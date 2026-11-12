@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { implementAccountFlows } from './account/implement'
+import { implementAccountFlows } from '@/services/accountFlows/implement'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { userOperations } from '@/services/users/operations'
 import { userSchemas } from '@/services/users/schemas'

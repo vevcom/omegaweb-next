@@ -7,7 +7,7 @@ import { Require } from '@/auth/authorizer/Require'
 const adminOrCompanyAdminOrSelf = Require.permission('COMPANY_ADMIN').or().companyAdmin().or()
     .companyUserId()
 
-export const companyUserAccountAuth = {
+export const companyUserAuthAuth = {
     sendPasswordLink: adminOrCompanyAdminOrSelf,
     registerNewEmail: adminOrCompanyAdminOrSelf,
 } as const

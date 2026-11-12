@@ -2,7 +2,7 @@
 import { careerLinks } from '@/app/(careers)/links'
 import Form from '@/components/Form/Form'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { verifyCompanyUserEmailAction } from '@/services/careers/companies/users/account/actions'
+import { verifyCompanyUserEmailAction } from '@/services/careers/companies/users/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 

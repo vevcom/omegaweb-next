@@ -10,7 +10,7 @@ import {
 import {
     registerNewCompanyUserEmailAction,
     sendCompanyUserPasswordLinkAction,
-} from '@/services/careers/companies/users/account/actions'
+} from '@/services/careers/companies/users/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { Capabilities } from '@/auth/authorizer/capabilities'

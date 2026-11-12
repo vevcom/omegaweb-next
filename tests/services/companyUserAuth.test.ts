@@ -2,10 +2,10 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
-import { generateResetPasswordJWT, generateVerifyEmailJWT } from '@/services/auth/account/tokens'
+import { generateResetPasswordJWT, generateVerifyEmailJWT } from '@/services/accountFlows/tokens'
 import { authOperations } from '@/services/auth/operations'
 import { companySessionTokenOf } from '@/auth/nextAuth/sessionToken'
-import { companyUserAccountOperations } from '@/services/careers/companies/users/account/operations'
+import { companyUserAuthOperations } from '@/services/careers/companies/users/auth/operations'
 import { recordSentMail } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
@@ -23,7 +23,7 @@ async function createCompanyUser(email: string) {
 const passwordToken = (companyUserId: number, email: string, expiresIn = 60 * 60) =>
     generateResetPasswordJWT('companyresetpassword', companyUserId, email, expiresIn)
 
-const choosePassword = (token: string, password = PASSWORD) => companyUserAccountOperations.choosePassword({
+const choosePassword = (token: string, password = PASSWORD) => companyUserAuthOperations.choosePassword({
     params: { token },
     data: { password, confirmPassword: password },
 })
@@ -38,7 +38,7 @@ describe('the password link of a company user', () => {
         const companyUser = await createCompanyUser('konto-lenke@example.com')
         const sentMail = recordSentMail()
 
-        await companyUserAccountOperations.sendPasswordLink({ params: { id: companyUser.id }, session: companyAdmin })
+        await companyUserAuthOperations.sendPasswordLink({ params: { id: companyUser.id }, session: companyAdmin })
 
         expect(sentMail).toHaveBeenCalledTimes(1)
         const [[mail]] = sentMail.mock.calls
@@ -58,17 +58,17 @@ describe('the password link of a company user', () => {
             return Session.fromToken(await companySessionTokenOf(id))
         }
 
-        await expect(companyUserAccountOperations.sendPasswordLink({
+        await expect(companyUserAuthOperations.sendPasswordLink({
             params: { id: companyUser.id },
             session: Session.empty(),
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
-        await expect(companyUserAccountOperations.sendPasswordLink({
+        await expect(companyUserAuthOperations.sendPasswordLink({
             params: { id: companyUser.id },
             session: await sessionOf(other.id),
         })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
         expect(sentMail).not.toHaveBeenCalled()
 
-        await companyUserAccountOperations.sendPasswordLink({
+        await companyUserAuthOperations.sendPasswordLink({
             params: { id: companyUser.id },
             session: await sessionOf(companyUser.id),
         })
@@ -79,7 +79,7 @@ describe('the password link of a company user', () => {
         const companyUser = await createCompanyUser('konto-deaktivert@example.com')
         await prisma.companyUser.update({ where: { id: companyUser.id }, data: { active: false } })
 
-        await expect(companyUserAccountOperations.sendPasswordLink({
+        await expect(companyUserAuthOperations.sendPasswordLink({
             params: { id: companyUser.id },
             session: companyAdmin,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
@@ -89,11 +89,11 @@ describe('the password link of a company user', () => {
         await createCompanyUser('konto-glemt@example.com')
         const sentMail = recordSentMail()
 
-        const known = await companyUserAccountOperations.sendResetPasswordEmail({
+        const known = await companyUserAuthOperations.sendResetPasswordEmail({
             params: { site: 'CAREERS' },
             data: { email: 'Konto-Glemt@example.com' },
         })
-        const unknown = await companyUserAccountOperations.sendResetPasswordEmail({
+        const unknown = await companyUserAuthOperations.sendResetPasswordEmail({
             params: { site: 'CAREERS' },
             data: { email: 'konto-ingen@example.com' },
         })
@@ -185,7 +185,7 @@ describe('changing the email of a company user', () => {
         const companyUser = await createCompanyUser('epost-gammel@example.com')
         const sentMail = recordSentMail()
 
-        const result = await companyUserAccountOperations.registerNewEmail({
+        const result = await companyUserAuthOperations.registerNewEmail({
             params: { id: companyUser.id },
             data: { email: 'Epost-Ny@example.com' },
             session: companyAdmin,
@@ -202,17 +202,17 @@ describe('changing the email of a company user', () => {
         const self = Session.fromToken(await companySessionTokenOf(companyUser.id))
         recordSentMail()
 
-        await expect(companyUserAccountOperations.registerNewEmail({
+        await expect(companyUserAuthOperations.registerNewEmail({
             params: { id: companyUser.id },
             data: { email: 'epost-selv-ny@example.com' },
             session: self,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
-        await expect(companyUserAccountOperations.registerNewEmail({
+        await expect(companyUserAuthOperations.registerNewEmail({
             params: { id: companyUser.id },
             data: { email: 'epost-selv-ny@example.com', currentPassword: 'feil-passord-som-er-langt' },
             session: self,
         })).rejects.toThrow(new Smorekopp('BAD PARAMETERS'))
-        await expect(companyUserAccountOperations.registerNewEmail({
+        await expect(companyUserAuthOperations.registerNewEmail({
             params: { id: companyUser.id },
             data: { email: 'epost-selv-ny@example.com', currentPassword: PASSWORD },
             session: self,
@@ -224,7 +224,7 @@ describe('changing the email of a company user', () => {
         await createCompanyUser('epost-opptatt-to@example.com')
         const sentMail = recordSentMail()
 
-        await expect(companyUserAccountOperations.registerNewEmail({
+        await expect(companyUserAuthOperations.registerNewEmail({
             params: { id: companyUser.id },
             data: { email: 'epost-opptatt-to@example.com' },
             session: companyAdmin,
@@ -236,7 +236,7 @@ describe('changing the email of a company user', () => {
         const companyUser = await createCompanyUser('epost-bekreft@example.com')
         const sentMail = recordSentMail()
 
-        const verified = await companyUserAccountOperations.verifyEmail({
+        const verified = await companyUserAuthOperations.verifyEmail({
             params: { token: verifyEmailToken(companyUser.id, 'epost-bekreftet@example.com') },
         })
         expect(verified.email).toBe('epost-bekreftet@example.com')
@@ -250,10 +250,10 @@ describe('changing the email of a company user', () => {
         const first = verifyEmailToken(companyUser.id, 'epost-brukt-forste@example.com')
         const second = verifyEmailToken(companyUser.id, 'epost-brukt-andre@example.com')
 
-        await companyUserAccountOperations.verifyEmail({ params: { token: second } })
-        await expect(companyUserAccountOperations.verifyEmail({ params: { token: first } }))
+        await companyUserAuthOperations.verifyEmail({ params: { token: second } })
+        await expect(companyUserAuthOperations.verifyEmail({ params: { token: first } }))
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
-        await expect(companyUserAccountOperations.verifyEmail({
+        await expect(companyUserAuthOperations.verifyEmail({
             params: { token: generateVerifyEmailJWT('verifyemail', companyUser.id, 'epost-kryss@example.com', 60 * 60) },
         })).rejects.toThrow(new Smorekopp('JWT INVALID'))
     })

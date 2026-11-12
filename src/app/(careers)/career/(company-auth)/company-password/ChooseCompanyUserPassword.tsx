@@ -4,7 +4,7 @@ import { careerLinks } from '@/app/(careers)/links'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useDomainContext from '@/hooks/useDomainContext'
-import { chooseCompanyUserPasswordAction } from '@/services/careers/companies/users/account/actions'
+import { chooseCompanyUserPasswordAction } from '@/services/careers/companies/users/auth/actions'
 
 type PropTypes = {
     token: string,

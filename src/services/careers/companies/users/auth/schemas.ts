@@ -12,7 +12,7 @@ const paramsFieldSchemas = z.object({
 
 const id = paramsFieldSchemas.pick({ id: true })
 
-export const companyUserAccountSchemas = {
+export const companyUserAuthSchemas = {
     data: {
         registerNewEmail: dataFieldSchemas.pick({ email: true, currentPassword: true }),
         // Not an operation: what the login route takes, checked by companyUserIdOfCredentials.

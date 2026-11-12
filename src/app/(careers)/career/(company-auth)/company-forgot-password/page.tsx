@@ -1,5 +1,5 @@
 import SendResetPasswordEmailForm from '@/pageKits/auth/components/SendResetPasswordEmailForm'
-import { sendCompanyUserResetPasswordEmailAction } from '@/services/careers/companies/users/account/actions'
+import { sendCompanyUserResetPasswordEmailAction } from '@/services/careers/companies/users/auth/actions'
 import { configureAction } from '@/services/configureAction'
 import { serverPage } from '@/app/ServerPage'
 

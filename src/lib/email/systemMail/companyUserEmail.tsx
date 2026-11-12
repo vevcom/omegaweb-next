@@ -5,7 +5,7 @@ import {
     CompanyUserVerifyEmailTemplate,
 } from '@/lib/email/templates/companyUserEmail'
 import { sendMailOperations } from '@/services/mail/send/operations'
-import { generateVerifyEmailJWT } from '@/services/auth/account/tokens'
+import { generateVerifyEmailJWT } from '@/services/accountFlows/tokens'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import logger from '@/lib/logger'
