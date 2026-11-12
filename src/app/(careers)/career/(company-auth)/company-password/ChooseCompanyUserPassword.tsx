@@ -17,7 +17,7 @@ type PropTypes = {
  * so the link in the mail is all a new company user needs to get in.
  */
 export default function ChooseCompanyUserPassword({ token, email }: PropTypes) {
-    const { resolveHref } = useDomainContext()
+    const domainContext = useDomainContext()
 
     const choosePassword = async (formData: FormData) => {
         const result = await chooseCompanyUserPasswordAction({ params: { token } }, formData)
@@ -28,7 +28,7 @@ export default function ChooseCompanyUserPassword({ token, email }: PropTypes) {
         const password = formData.get('password')
         const failure = email && typeof password === 'string' ? await signInAsCompanyUser(email, password) : 'Default'
         // A full load, so every server component renders with the new session.
-        window.location.href = resolveHref(failure ? careerLinks.companyLogin() : careerLinks.frontpage())
+        window.location.href = domainContext.resolveHref(failure ? careerLinks.companyLogin() : careerLinks.frontpage())
         return result
     }
 
