@@ -20,7 +20,6 @@ import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
-import useSiteRouter from '@/hooks/useSiteRouter'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { useState } from 'react'
@@ -108,7 +107,6 @@ function SetupForm({
         return { ...result, error: nameVariantInErrors(result.error, variantsFromForm(formData)) }
     }
     const { reportDots } = useTabs()
-    const { refresh } = useSiteRouter()
 
     const checkSetup = (values: FormData) => {
         const setup = eventSetupFromForm(values, { ...event, adminVisibility: access.adminVisibility })
@@ -123,8 +121,6 @@ function SetupForm({
         className="flex flex-col min-h-full"
         saveBar
         onValuesChange={checkSetup}
-        // At once, so the form starts over from what was saved before anything more is changed in it.
-        successCallback={() => refresh()}
         refreshOnSuccess
         navigateOnSuccess={data => (data?.name ? links.event(data) : null)}
     >

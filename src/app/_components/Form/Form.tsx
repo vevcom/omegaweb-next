@@ -8,7 +8,7 @@ import { PopUpContext } from '@/contexts/PopUp'
 import Button from '@/components/UI/Button'
 import SubmitButton from '@/components/UI/SubmitButton'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import React, { Children, isValidElement, useContext, useRef, useState } from 'react'
+import React, { Children, isValidElement, useContext, useRef, useState, useTransition } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
@@ -35,7 +35,9 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     /**
      * Keeps saving at the bottom of a long form, says whether there is anything to save and offers
      * to discard it. Discarding resets the form, which a field holding its value in state follows
-     * with `useFormReset`.
+     * with `useFormReset`. Such a form shows what is saved, so with `refreshOnSuccess` it refreshes
+     * as soon as a save is through, and it takes no input from a save starting until what was
+     * saved is back: what is typed meanwhile would be in neither.
      */
     saveBar?: boolean,
     /** Told what the form would submit, on mount and on every change. */
@@ -79,8 +81,11 @@ export default function Form<GiveActionReturn>({
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
     const [inputErrors, setInputErrors] = useState<Partial<Record<string, ErrorMessage[]>>>({})
+    const [refusedNames, setRefusedNames] = useState<string[]>([])
     const [success, setSuccess] = useState(false)
     const [pending, setPending] = useState(false)
+    // In a transition, which lasts until the refreshed page is in place.
+    const [refreshing, startRefresh] = useTransition()
     // Which button submitted, so only it shows the wait and the check mark.
     const [submitter, setSubmitter] = useState<'primary' | 'secondary'>('primary')
     const PopUpCtx = useContext(PopUpContext)
@@ -95,6 +100,7 @@ export default function Form<GiveActionReturn>({
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
         setInputErrors({})
+        setRefusedNames([])
 
         const res = await action(formData)
 
@@ -102,6 +108,7 @@ export default function Form<GiveActionReturn>({
             setSuccess(true)
             markSaved(formData)
             successCallback?.(res.data)
+            if (saveBar && refreshOnSuccess) startRefresh(() => refresh())
             if (closePopUpOnSuccess) {
                 setTimeout(() => {
                     PopUpCtx?.remove(closePopUpOnSuccess)
@@ -109,7 +116,7 @@ export default function Form<GiveActionReturn>({
             }
             setTimeout(() => {
                 setSuccess(false)
-                if (refreshOnSuccess) refresh()
+                if (refreshOnSuccess && !saveBar) refresh()
                 if (navigateOnSuccess) {
                     // An app path, rendered for the domain the visitor is on.
                     if (typeof navigateOnSuccess === 'string') {
@@ -146,6 +153,11 @@ export default function Form<GiveActionReturn>({
         })
         setInputErrors(errorsByLabel)
         if (unmatchedErrors.length > 0) setGeneralErrors(unmatchedErrors)
+        // Every field refused, whichever way its error is shown, so that a tab can say it holds one.
+        setRefusedNames(Array.from(new Set(res.error.flatMap(error => {
+            const label = error.path?.[0]
+            return typeof label === 'string' ? [label] : []
+        }))))
     }
 
     // Tracked here since useFormStatus only covers a transition started during the submit event.
@@ -170,6 +182,7 @@ export default function Form<GiveActionReturn>({
     const handleReset = () => {
         setGeneralErrors(undefined)
         setInputErrors({})
+        setRefusedNames([])
     }
 
     const submitButton = <div className={secondarySubmit ? 'flex flex-wrap items-start gap-x-2' : 'contents'}>
@@ -206,12 +219,12 @@ export default function Form<GiveActionReturn>({
     </div>
 
     return (
-        <FormContext.Provider value={{ inputErrors, pending }}>
+        <FormContext.Provider value={{ inputErrors, refusedNames, pending }}>
             <form ref={formRef} className={`
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
-            `} {...props} onSubmit={handleSubmit} onReset={handleReset}>
+            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onSubmit={handleSubmit} onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
                     if (isValidElement(child) && child.type === FormTab) return child

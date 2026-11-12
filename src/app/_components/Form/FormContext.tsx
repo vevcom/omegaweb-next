@@ -5,10 +5,15 @@ import type { ErrorMessage } from '@/services/error'
 
 type FormContextType = {
     inputErrors: Partial<Record<string, ErrorMessage[]>>,
+    /** The name of every field the server refused, also those whose errors are shown with the general ones. */
+    refusedNames: string[],
     pending: boolean,
 }
 
-/** What a Form shares with its sections: the errors of its inputs by name, and whether it is submitting. */
+/**
+ * What a Form shares with its sections and tabs: the errors of its inputs by name, the fields the
+ * server refused, and whether it is submitting.
+ */
 export const FormContext = createContext<FormContextType | null>(null)
 
 /** The children with every fragment among them replaced by its own children, so each input stands on its own. */
