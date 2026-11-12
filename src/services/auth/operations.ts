@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'
-import { userAccountFlows } from './userAccount'
+import { userAccountFlows } from './accountFlows'
 import { Site } from '@/lib/sites/site'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { sendLinkFeideAccountMail } from '@/lib/email/systemMail/linkFeideAccount'
@@ -25,7 +25,7 @@ function readLinkFeideAccountClaims(token: string) {
 
 export const authOperations = {
     // Choosing a password by mail and verifying an email are the same for every kind of account,
-    // and are implemented for a user in userAccount.ts.
+    // and are implemented for a user in accountFlows.ts.
     verifyEmail: userAccountFlows.verifyEmail,
     verifyResetPasswordToken: userAccountFlows.verifyResetPasswordToken,
     resetPassword: userAccountFlows.resetPassword,

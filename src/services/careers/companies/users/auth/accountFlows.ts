@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { companyUserSelection } from '@/services/careers/companies/users/constants'
-import { implementAccountFlows } from '@/services/auth/account/implement'
+import { implementAccountFlows } from '@/services/accountFlows/implement'
 import { userSchemas } from '@/services/users/schemas'
 import { ServiceError } from '@/services/error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'

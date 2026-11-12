@@ -1,7 +1,7 @@
 import { domainContextOf } from '@/app/domainContextOfRequest'
 import { readSessionToken, startCompanySession } from '@/auth/sso/session'
-import { companyUserIdOfCredentials } from '@/services/careers/companies/users/account/credentials'
-import { companyUserAccountSchemas } from '@/services/careers/companies/users/account/schemas'
+import { companyUserIdOfCredentials } from '@/services/careers/companies/users/auth/credentials'
+import { companyUserAuthSchemas } from '@/services/careers/companies/users/auth/schemas'
 import { Site } from '@/lib/sites/site'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (await readSessionToken(request)) return refuse('AlreadySignedIn', 409)
 
     const body: unknown = await request.json().catch(() => null)
-    const credentials = companyUserAccountSchemas.data.login.safeParse(body)
+    const credentials = companyUserAuthSchemas.data.login.safeParse(body)
     if (!credentials.success) return refuse('CredentialsSignin', 401)
 
     const companyUserId = await companyUserIdOfCredentials(credentials.data.email, credentials.data.password)

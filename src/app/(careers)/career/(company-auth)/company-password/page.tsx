@@ -1,5 +1,5 @@
 import ChooseCompanyUserPassword from './ChooseCompanyUserPassword'
-import { companyUserAccountOperations } from '@/services/careers/companies/users/account/operations'
+import { companyUserAuthOperations } from '@/services/careers/companies/users/auth/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -10,7 +10,7 @@ const { page, generateMetadata } = serverPage({
         const token = QueryParams.token.decode(searchParams)
         if (!token) return { token: null, valid: false, email: null }
         const verified = await withFallback(
-            companyUserAccountOperations.verifyPasswordToken({ params: { token } }),
+            companyUserAuthOperations.verifyPasswordToken({ params: { token } }),
             null,
         )
         return { token, valid: verified !== null, email: verified?.email ?? null }
