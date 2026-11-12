@@ -21,6 +21,7 @@ const dataFieldSchemas = z.object({
         })),
     }),
     published: Zpn.checkboxOrBoolean({ label: 'Publisert' }),
+    version: z.coerce.number().int().min(0),
 })
 
 const paramsFieldSchemas = z.object({
@@ -33,7 +34,7 @@ export const eventSeatingSchemas = {
     data: {
         openWishes: dataFieldSchemas.pick({ wishesEnd: true }),
         updateWishes: dataFieldSchemas.pick({ wishes: true }),
-        savePlan: dataFieldSchemas.pick({ seats: true, placements: true }),
+        savePlan: dataFieldSchemas.pick({ seats: true, placements: true, version: true }),
         setPublished: dataFieldSchemas.pick({ published: true }),
     },
     params: {

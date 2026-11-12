@@ -11,6 +11,8 @@ export type SeatingBoard = {
     plan: SeatingPlan,
     /** The guests kept at their table when a new draft is made. */
     locked: number[],
+    /** The id of the newest table, so a save from a board someone else has since saved is refused. */
+    version: number,
 }
 
 /** The seating of an event as one of its guests sees it. */
@@ -19,6 +21,7 @@ export type OwnSeating = {
     /** Who can be wished for, the guest left out. */
     options: { id: number, name: string }[],
     wishes: number[],
+    published: boolean,
     /** Null until the plan is published, or when the guest has no table. */
     table: { number: number, guests: string[] } | null,
 }
