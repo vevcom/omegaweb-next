@@ -116,8 +116,9 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
 
     const swapWith = (guestId: number) => {
         if (dragged === null || dragged === guestId) return
-        setPlan(swapGuests(plan, dragged, guestId))
-        const seated = [dragged, guestId].filter(id => !plan.unseated.includes(id))
+        const swapped = swapGuests(plan, dragged, guestId)
+        setPlan(swapped)
+        const seated = [dragged, guestId].filter(id => !swapped.unseated.includes(id))
         setLocked([...locked.filter(id => id !== dragged && id !== guestId), ...seated])
     }
 
@@ -269,6 +270,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                 {/* The plan is held in state, so discarding starts the editor over from what is saved. */}
                 <JsonFieldInput name="seats" value={seats} onReset={onDiscard} />
                 <JsonFieldInput name="placements" value={placements} />
+                <input type="hidden" name="version" value={board.version} />
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-end gap-3">
                         <TextInput
