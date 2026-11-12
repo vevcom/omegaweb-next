@@ -1,10 +1,18 @@
-import { hasNoAdministrators } from './publishProblems'
 import { Require } from '@/auth/authorizer/Require'
 import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
+
+/**
+ * Whether no one administrates an event but those with EVENT_ADMIN: it has no requirements, or one
+ * without conditions, which passes no one.
+ */
+export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
+    return adminVisibility.requirements.length === 0
+        || adminVisibility.requirements.some(requirement => requirement.conditions.length === 0)
+}
 
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
@@ -80,7 +88,6 @@ export const eventAuth = {
     create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
 
     readAdminVisibility: canSeeEvent,
-    updateAdminVisibility: eventAdminLevel,
 
     read: canSeeEvent,
     readStatistics: eventAdminLevel,
@@ -89,6 +96,7 @@ export const eventAuth = {
     search: visibleEvents,
 
     update: eventAdminLevel,
+    saveSetup: eventAdminLevel,
     connectToLedgerAccount: Require.allOf(eventAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: eventAdminLevel,
     updateCmsCoverImage: eventAdminLevel,

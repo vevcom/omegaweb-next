@@ -160,18 +160,17 @@ describe('publishing', () => {
     test('is refused for a paid event without an account', async () => {
         const event = await createDraft('Betalt uten konto')
         await fillIn(event.id)
-        await eventVariantOperations.create({
+        await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: 'Betalt',
                 registrationStart: new Date(Date.now() - HOUR),
                 registrationEnd: new Date(Date.now() + HOUR),
                 takesPayment: true,
-                price: 50,
+                price: 5000,
                 paymentStart: new Date(Date.now() - HOUR),
                 paymentEnd: new Date(Date.now() + HOUR),
             },
-            bypassAuth: true,
         })
 
         await expect(setPublished(event.id)).rejects.toThrow('BAD PARAMETERS')

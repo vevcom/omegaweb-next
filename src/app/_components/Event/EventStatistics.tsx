@@ -1,4 +1,5 @@
 'use client'
+import StatTile from '@/components/UI/StatTile'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { displayDuration, filledAt, registrationBuckets, timeToFillMs } from '@/services/events/statistics'
 import { useEffect, useRef, useState } from 'react'
@@ -28,14 +29,6 @@ function roundTicks(highest: number) {
     const ticks = [0]
     while (ticks[ticks.length - 1] < highest) ticks.push(ticks[ticks.length - 1] + step)
     return ticks
-}
-
-function Tile({ label, value, detail }: { label: string, value: ReactNode, detail?: string }) {
-    return <div className="flex flex-col gap-1 p-3 rounded-inner bg-base-200">
-        <span className="text-s text-base-content/80">{label}</span>
-        <span className="text-l font-bold">{value}</span>
-        {detail && <span className="text-s text-base-content/80">{detail}</span>}
-    </div>
 }
 
 /** A chart that fits its width, which only exists once its tab is shown, with the gridlines of its y axis. */
@@ -251,15 +244,15 @@ function VariantSection({ statistics, showName }: { statistics: VariantStatistic
     return <section className="flex flex-col gap-4">
         {showName && <h3 className="m-0">{statistics.name}</h3>}
         <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(9rem,1fr))]">
-            {places > 0 && <Tile
+            {places > 0 && <StatTile
                 label="Fylt på"
                 value={fillTime === null ? 'Ikke fullt' : displayDuration(fillTime)}
                 detail={fillTime === null ? undefined : 'fra påmeldingen åpnet'}
             />}
-            <Tile label="Påmeldte" value={`${inQuota} av ${places}`} />
-            <Tile label="Venteliste" value={waiting} />
-            {paid !== null && <Tile label="Betalt" value={`${paid} av ${inQuota}`} />}
-            {attended > 0 && <Tile label="Oppmøte" value={`${attended} av ${inQuota}`} />}
+            <StatTile label="Påmeldte" value={`${inQuota} av ${places}`} />
+            <StatTile label="Venteliste" value={waiting} />
+            {paid !== null && <StatTile label="Betalt" value={`${paid} av ${inQuota}`} />}
+            {attended > 0 && <StatTile label="Oppmøte" value={`${attended} av ${inQuota}`} />}
         </div>
         {registeredAt.length === 0 ? <p className="m-0 text-base-content/80">Ingen er påmeldt ennå.</p> : <>
             <CumulativeChart statistics={statistics} />

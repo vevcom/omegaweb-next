@@ -4,7 +4,8 @@ import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { useId, type SelectHTMLAttributes } from 'react'
 
 export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
-    name: string,
+    /** Left out for a select that is part of a larger field, which posts the value itself. */
+    name?: string,
     label?: string,
     color?: 'base' | 'primary' | 'secondary' | 'error',
     background?: 'base100' | 'base200',

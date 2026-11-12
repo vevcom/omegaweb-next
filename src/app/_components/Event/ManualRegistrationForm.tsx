@@ -1,6 +1,6 @@
 'use client'
 import Form from '@/components/Form/Form'
-import Button from '@/components/UI/Button'
+import HorizontalSelector from '@/components/UI/HorizontalSelector'
 import UserList from '@/components/User/UserList/UserList'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import UserSelectionProvider, { UserSelectionContext } from '@/contexts/UserSelection'
@@ -100,34 +100,30 @@ function GuestRegistrationForm({ eventId, placement }: { eventId: number, placem
     </Form>
 }
 
+/** The one chosen where both may be registered, and otherwise the one that may. */
+function whoToRegister(choice: 'member' | 'guest', canRegisterMembers: boolean, canRegisterGuests: boolean) {
+    if (canRegisterMembers && canRegisterGuests) return choice
+    return canRegisterMembers ? 'member' : 'guest'
+}
+
 function RegisterOthers({ eventId, variants, capabilities }: PropTypes) {
     const { placement, picker } = usePlacement(variants)
     const canRegisterMembers = capabilities.canRegisterAsAdmin.authorized
     const canRegisterGuests = capabilities.canRegisterGuest.authorized
     const [choice, setChoice] = useState<'member' | 'guest'>('member')
-    const who = canRegisterMembers && canRegisterGuests ? choice : canRegisterMembers && 'member' || 'guest'
+    const who = whoToRegister(choice, canRegisterMembers, canRegisterGuests)
 
     return <div className="flex flex-col gap-3">
-        {canRegisterMembers && canRegisterGuests && <div className="flex gap-2">
-            <Button
-                type="button"
-                color={who === 'member' ? 'primary' : 'secondary'}
-                aria-pressed={who === 'member'}
-                onClick={() => setChoice('member')}
-                className="m-0"
-            >
-                Medlem
-            </Button>
-            <Button
-                type="button"
-                color={who === 'guest' ? 'primary' : 'secondary'}
-                aria-pressed={who === 'guest'}
-                onClick={() => setChoice('guest')}
-                className="m-0"
-            >
-                Gjest uten bruker
-            </Button>
-        </div>}
+        {canRegisterMembers && canRegisterGuests && <HorizontalSelector
+            name="registerWho"
+            value={who}
+            onChange={setChoice}
+            options={[
+                { value: 'member', label: 'Medlem' },
+                { value: 'guest', label: 'Gjest uten bruker' },
+            ]}
+            className="self-start"
+        />}
         <div className="
             grid grid-cols-2 gap-x-4
             max-mobile:grid-cols-1

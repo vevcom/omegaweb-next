@@ -3,7 +3,8 @@ import type { InputHTMLAttributes } from 'react'
 
 
 export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
-    name: string,
+    /** Left out for an input that is part of a larger field, which posts the value itself. */
+    name?: string,
     label: string,
     type?: 'text' | 'password',
     color?: 'base' | 'primary' | 'secondary' | 'error',

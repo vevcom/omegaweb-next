@@ -7,20 +7,19 @@ import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import Tabs, { TabPanel } from '@/components/UI/Tabs'
 import { publishProblems } from '@/services/events/publishProblems'
-import { useState } from 'react'
-import type { ComponentProps } from 'react'
+import type { PropTypes as SetupFormPropTypes } from './EventSetupForm'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { SeatingBoard } from '@/services/events/seating/types'
 import type { VariantStatistics } from '@/services/events/statistics'
+import type { EventDetailed } from '@/services/events/types'
 import type { AppHref } from '@/lib/sites/href'
 
-type SetupProps = ComponentProps<typeof EventSetupForm>
-type PropTypes = Omit<SetupProps, 'event' | 'onDiscard'> & {
-    event: SetupProps['event'] & ComponentProps<typeof EventPublishing>['event']
-        & ComponentProps<typeof EventNotificationsAdmin>['event'] & { takesRegistration: boolean },
+type PropTypes = Omit<SetupFormPropTypes, 'event'> & {
+    event: EventDetailed,
     eventHref: AppHref,
     capabilities: CapabilitiesJsObject<
-        'canUpdate' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest' | 'canCreateNotification'
+        'canUpdate' | 'canSetPublished' | 'canDestroy' | 'canRegisterAsAdmin' | 'canRegisterGuest'
+        | 'canCreateNotification'
     >,
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
@@ -36,14 +35,8 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
     const canUpdate = capabilities.canUpdate.authorized
     const canRegisterOthers = capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
-    const showPublishing = canUpdate || capabilities.canDestroy.authorized
+    const showPublishing = capabilities.canSetPublished.authorized || capabilities.canDestroy.authorized
     const canNotify = capabilities.canCreateNotification.authorized
-    const [discards, setDiscards] = useState(0)
-    // Registering someone changes the counts, which must not throw away what is being set up.
-    const setupFormKey = JSON.stringify(
-        [event.variants, setup.access.adminVisibility, discards],
-        (key, value: unknown) => (['numOfRegistrations', 'numOnWaitingList'].includes(key) ? undefined : value),
-    )
     const publishingDot = () => {
         if (event.published) return { level: 'ok' as const, label: 'Publisert' }
         return publishProblems({ ...event, adminVisibility: setup.access.adminVisibility }).length > 0
@@ -64,12 +57,11 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
             ]}
         >
             {canUpdate && <TabPanel tab={eventSetupTabs.map(tab => tab.key)}>
-                <EventSetupForm
-                    key={setupFormKey}
-                    event={event}
-                    {...setup}
-                    onDiscard={() => setDiscards(discards + 1)}
-                />
+                {/*
+                  * A save moves `updatedAt`, so the form starts over from what was saved. Someone
+                  * registering does not, so that never throws away what is being set up.
+                  */}
+                <EventSetupForm key={event.updatedAt.getTime()} event={event} {...setup} />
             </TabPanel>}
 
             {showRegisterOthers && <TabPanel tab="others">
@@ -98,9 +90,12 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
             {showPublishing && <TabPanel tab="publishing">
                 <EventPublishing
                     event={event}
-                    access={setup.access}
+                    adminVisibility={setup.access.adminVisibility}
                     config={setup.config}
-                    capabilities={{ canDestroy: capabilities.canDestroy }}
+                    capabilities={{
+                        canSetPublished: capabilities.canSetPublished,
+                        canDestroy: capabilities.canDestroy,
+                    }}
                 />
             </TabPanel>}
         </Tabs>

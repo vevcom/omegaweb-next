@@ -1,9 +1,12 @@
 'use client'
+import AdminSection from './AdminSection'
 import EventQuotaBar from './EventQuotaBar'
-import { hasRegistrants, newQuotaDraft, newVariantDraft } from './eventSetupDraft'
+import { useEventVariantsField } from './EventVariantsField'
+import { hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
+import OptionCards from '@/components/UI/OptionCards'
 import ReorderableList from '@/components/UI/ReorderableList'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
@@ -13,26 +16,10 @@ import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
-import type { QuotaDraft, VariantDraft } from './eventSetupDraft'
+import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
 import type { ReactNode } from 'react'
 
-const sectionClassName = `
-    flex flex-col gap-3 p-4 rounded-round bg-base-200
-    [&>h3]:m-0 [&>h3]:text-l [&>h3]:font-bold
-`
-
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
-
-const linkButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-primary cursor-pointer
-    hover:underline
-`
-
-const removeButtonClassName = `
-    shrink-0 border-none bg-transparent p-0 text-s text-error cursor-pointer
-    enabled:hover:underline
-    disabled:text-base-content/80 disabled:cursor-not-allowed
-`
 
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     quota: QuotaDraft,
@@ -57,7 +44,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
             {several
                 ? <TextInput
                     label="Navn på kvoten"
-                    name={`quotaName${quota.key}`}
                     value={quota.name}
                     onChange={event => onChange({ name: event.target.value })}
                     className="flex-1 min-w-40 max-w-none! mt-0!"
@@ -65,7 +51,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 : <span className="flex-1">Antall plasser</span>}
             <NumberInput
                 label="Plasser"
-                name={`quotaPlaces${quota.key}`}
                 min={0}
                 value={quota.places}
                 onChange={event => onChange({ places: Number(event.target.value) })}
@@ -79,24 +64,25 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
             </span>
             <div className="flex items-center gap-3">
-                <button
+                <Button
                     type="button"
+                    variant="text"
                     aria-expanded={editingWho}
                     onClick={() => setEditingWho(!editingWho)}
-                    className={linkButtonClassName}
                 >
                     {editingWho ? 'Lukk' : 'Endre hvem'}
-                </button>
-                {several && <button
+                </Button>
+                {several && <Button
                     type="button"
+                    variant="text"
+                    color="red"
                     aria-label="Fjern kvoten"
                     title={quota.numOfRegistrations > 0 ? 'Kvoten har påmeldte' : undefined}
                     disabled={quota.numOfRegistrations > 0}
                     onClick={onRemove}
-                    className={removeButtonClassName}
                 >
                     Fjern
-                </button>}
+                </Button>}
             </div>
         </div>
         {over > 0 && <p className="m-0 text-s text-warning">
@@ -127,10 +113,9 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
             <ReorderableList
                 items={variant.quotas}
                 getId={quota => quota.key}
-                saveOrder={keys => {
-                    onChange({ quotas: keys.flatMap(key => variant.quotas.filter(quota => quota.key === key)) })
-                    return Promise.resolve({ success: true, data: undefined })
-                }}
+                onReorder={keys => onChange({
+                    quotas: keys.flatMap(key => variant.quotas.filter(quota => quota.key === key)),
+                })}
                 renderItem={(quota, { handle, index }) => <>
                     {index > 0 && <p className={flowStepClassName}>↓ Fylles deretter</p>}
                     <QuotaRow
@@ -154,7 +139,9 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
         {addLabel && <Button
             type="button"
             color="secondary"
-            onClick={() => onChange({ quotas: [...variant.quotas, newQuotaDraft(`Kvote ${variant.quotas.length + 1}`)] })}
+            onClick={() => onChange({
+                quotas: [...variant.quotas, newQuotaDraft(`Kvote ${variant.quotas.length + 1}`, variant.quotas)],
+            })}
             className="self-start w-auto! m-0!"
         >
             <FontAwesomeIcon icon={faPlus} /> {addLabel}
@@ -172,7 +159,6 @@ function RegistrationPeriod({ variant, onChange }: {
     ">
         <DateInput
             label="Påmelding åpner"
-            name={`registrationStart${variant.key}`}
             includeTime
             defaultValue={variant.registrationStart}
             onChange={event => {
@@ -181,7 +167,6 @@ function RegistrationPeriod({ variant, onChange }: {
         />
         <DateInput
             label="Påmelding stenger"
-            name={`registrationEnd${variant.key}`}
             includeTime
             defaultValue={variant.registrationEnd}
             onChange={event => {
@@ -193,11 +178,11 @@ function RegistrationPeriod({ variant, onChange }: {
 
 type Shape = 'NONE' | 'SHARED' | 'QUOTAS' | 'VARIANTS'
 
-const shapes: { shape: Shape, name: string, hint: string }[] = [
-    { shape: 'NONE', name: 'Ingen påmelding', hint: 'Folk bare møter opp' },
-    { shape: 'SHARED', name: 'Felles plasser', hint: 'Alle i samme kø' },
-    { shape: 'QUOTAS', name: 'Kvoter', hint: 'Plasser holdes av til ulike grupper' },
-    { shape: 'VARIANTS', name: 'Varianter', hint: 'Folk velger, for eksempel med eller uten VIP' },
+const shapes: { value: Shape, title: string, hint: string }[] = [
+    { value: 'NONE', title: 'Ingen påmelding', hint: 'Folk bare møter opp' },
+    { value: 'SHARED', title: 'Felles plasser', hint: 'Alle i samme kø' },
+    { value: 'QUOTAS', title: 'Kvoter', hint: 'Plasser holdes av til ulike grupper' },
+    { value: 'VARIANTS', title: 'Varianter', hint: 'Folk velger, for eksempel med eller uten VIP' },
 ]
 
 function shapeOf(variants: VariantDraft[]): Shape {
@@ -220,9 +205,9 @@ function blockedReason(shape: Shape, variants: VariantDraft[]) {
 
 function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Date): VariantDraft[] {
     if (shape === 'NONE') return []
-    const first = variants.at(0) ?? newVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart)
+    const first = variants.at(0) ?? newVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, [])
     if (shape === 'VARIANTS') {
-        return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, first)]
+        return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
     if (shape === 'SHARED') {
         const places = first.quotas.reduce((sum, quota) => sum + quota.places, 0)
@@ -231,58 +216,32 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
     if (first.quotas.length > 1) return [first]
     return [{
         ...first,
-        quotas: [{ ...first.quotas[0], name: 'Kvote 1' }, newQuotaDraft('Kvote 2')],
+        quotas: [{ ...first.quotas[0], name: 'Kvote 1' }, newQuotaDraft('Kvote 2', first.quotas)],
     }]
 }
 
 /**
- * The variants and quotas of an event as the form holds them. Nothing here is saved until the form
- * is, so the buttons at the top only change what the form will send.
+ * Where the variants and quotas of an event are edited, in the `EventVariantsField` around the
+ * form. Nothing here is saved until the form is, so the buttons at the top only change what the
+ * form will send.
  */
-export default function EventRegistrationFields({ variants, waitingList, eventStart, onChange }: {
-    variants: VariantDraft[],
+export default function EventRegistrationFields({ waitingList, eventStart }: {
     waitingList: boolean,
     eventStart: Date,
-    onChange: (variants: VariantDraft[]) => void,
 }) {
+    const { variants, setVariants, changeVariant } = useEventVariantsField()
     const current = shapeOf(variants)
-    const changeVariant = (key: number, changes: Partial<VariantDraft>) => onChange(
-        variants.map(variant => (variant.key === key ? { ...variant, ...changes } : variant))
-    )
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
-        <div className="
-            grid grid-cols-4 gap-2
-            max-mobile:grid-cols-2
-        ">
-            {shapes.map(option => {
-                const blocked = blockedReason(option.shape, variants)
-                return <button
-                    key={option.shape}
-                    type="button"
-                    aria-pressed={current === option.shape}
-                    disabled={blocked !== null}
-                    onClick={() => onChange(variantsInShape(option.shape, variants, eventStart))}
-                    className={`
-                        flex flex-col gap-0.5 p-2.5 rounded-inner border text-left cursor-pointer bg-base-200
-                        disabled:cursor-not-allowed disabled:opacity-50
-                        ${current === option.shape
-        ? 'border-primary ring-1 ring-primary'
-        : `
-            border-base-300
-            hover:bg-base-300
-        `}
-                    `}
-                >
-                    <span className="font-bold">{option.name}</span>
-                    <span className="text-s text-base-content/80">{blocked ?? option.hint}</span>
-                </button>
-            })}
-        </div>
+        <OptionCards
+            options={shapes.map(shape => ({ ...shape, blocked: blockedReason(shape.value, variants) }))}
+            value={current}
+            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart))}
+        />
 
         {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
 
-        {variants.length === 1 && <section className={sectionClassName}>
+        {variants.length === 1 && <AdminSection>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
                 variant={variants[0]}
@@ -290,27 +249,27 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                 addLabel={current === 'QUOTAS' ? 'Legg til kvote' : undefined}
                 onChange={changes => changeVariant(variants[0].key, changes)}
             />
-        </section>}
+        </AdminSection>}
 
         {variants.length > 1 && <>
-            {variants.map(variant => <section key={variant.key} className={sectionClassName}>
+            {variants.map(variant => <AdminSection key={variant.key}>
                 <div className="flex items-center gap-2">
                     <TextInput
                         label="Navn på varianten"
-                        name={`variantName${variant.key}`}
                         value={variant.name}
                         onChange={event => changeVariant(variant.key, { name: event.target.value })}
                         className="flex-1 max-w-none! mt-0!"
                     />
-                    <button
+                    <Button
                         type="button"
+                        variant="text"
+                        color="red"
                         title={hasRegistrants(variant) ? 'Varianten har påmeldte' : undefined}
                         disabled={hasRegistrants(variant)}
-                        onClick={() => onChange(variants.filter(other => other.key !== variant.key))}
-                        className={removeButtonClassName}
+                        onClick={() => setVariants(variants.filter(other => other.key !== variant.key))}
                     >
                         Fjern varianten
-                    </button>
+                    </Button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow
@@ -319,13 +278,13 @@ export default function EventRegistrationFields({ variants, waitingList, eventSt
                     addLabel={variant.quotas.length > 1 ? 'Legg til kvote' : 'Del varianten i kvoter'}
                     onChange={changes => changeVariant(variant.key, changes)}
                 />
-            </section>)}
+            </AdminSection>)}
             <Button
                 type="button"
                 color="secondary"
-                onClick={() => onChange([
+                onClick={() => setVariants([
                     ...variants,
-                    newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants[0]),
+                    newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants, variants[0]),
                 ])}
                 className="self-start w-auto! m-0!"
             >

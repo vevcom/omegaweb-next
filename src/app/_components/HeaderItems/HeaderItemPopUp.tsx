@@ -5,16 +5,12 @@ import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-f
 import {
     faArchive,
     faCog,
-    faCreditCard,
     faEye,
-    faLayerGroup,
     faPlus,
     faQrcode,
     faQuestionCircle,
     faTag,
-    faTrash,
     faUpload,
-    faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
@@ -76,8 +72,6 @@ export const HelpHeaderItemPopUp = createHeaderItemPopUp(faQuestionCircle, 18)
  */
 export const SettingsHeaderItemPopUp = createHeaderItemPopUp(faCog, 18)
 
-export const UsersHeaderItemPopUp = createHeaderItemPopUp(faUsers, 18)
-
 /**
  * Component that can be used to show an upload pop up for a page
  */
@@ -107,16 +101,3 @@ export const ScanHeaderItemPopUp = createHeaderItemPopUp(faQrcode, 40, 'Skann')
  * Component that can be used to open everything there is to administrate on a page, by name
  */
 export const AdminHeaderItemPopUp = createHeaderItemPopUp(null, 40, 'Administrer')
-
-/**
- * Component that can be used to show payment settings, such as the account paid into, in a pop up
- */
-export const PaymentHeaderItemPopUp = createHeaderItemPopUp(faCreditCard, 18)
-
-/**
- * Component that can be used to show a delete confirmation in a pop up
- */
-export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)
-
-/** For the variants and quotas of an event. */
-export const VariantsHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)

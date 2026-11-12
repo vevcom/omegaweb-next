@@ -15,6 +15,8 @@ export default function FormTab({ tab, children }: { tab: string, children: Reac
     const { reportErrors } = useTabs()
     const contentRef = useRef<HTMLDivElement>(null)
 
+    // Looked up in the page, not among the children: the inputs of a tab are often rendered by
+    // components further down, which the children given here say nothing about.
     useEffect(() => {
         const hasErrors = Object.keys(form.inputErrors).some(name => {
             const escaped = CSS.escape(name)
