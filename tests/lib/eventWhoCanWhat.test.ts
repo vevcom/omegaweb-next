@@ -22,13 +22,19 @@ const event = (changes: Partial<EventAccess>): EventAccess => ({
     ...changes,
 })
 const rowOf = (access: EventAccess, label: 'loggedOut' | 'loggedIn' | 'eventAdmin') => (
-    whoCanWhat(access).find(row => row.label === label)
+    whoCanWhat(access).rows.find(row => row.label === label)
 )
-const rowsFor = (access: EventAccess, groupId: number) => whoCanWhat(access).filter(row => (
+const rowsFor = (access: EventAccess, groupId: number) => whoCanWhat(access).rows.filter(row => (
     row.audience?.requirements.some(requirement => requirement.conditions.some(condition => condition.groupId === groupId))
 ))
 
 describe('whoCanWhat', () => {
+    test('leaves out audiences past a dozen, and says so', () => {
+        const many = inGroups(Array.from({ length: 40 }, (_, index) => index + 10))
+        expect(whoCanWhat(event({ quotaVisibilities: [many] })).audiencesLeftOut).toBe(true)
+        expect(whoCanWhat(event({})).audiencesLeftOut).toBe(false)
+    })
+
     test('an open event is seen by all, and logging in is what it takes to register', () => {
         expect(rowOf(event({}), 'loggedOut')).toMatchObject({ sees: true, registers: 'login', administers: false })
         expect(rowOf(event({}), 'loggedIn')).toMatchObject({ sees: true, registers: 'yes', administers: false })

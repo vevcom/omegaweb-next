@@ -50,9 +50,15 @@ export function describeAccess(
     return `${describeAudience(visibility, groups)} ${verb}.`
 }
 
-/** Someone is only in one class at a time, so two lists of nothing but classes can never both pass. */
+/** Someone is only in one class at a time, so lists of nothing but classes must share a class to all pass. */
 export function listsContradict(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): boolean {
-    return visibility.requirements.filter(({ conditions }) => conditions.length > 0 && conditions.every(condition => (
-        condition.type === 'ACTIVE' && findGroup(groups, condition.groupId)?.groupType === 'CLASS'
-    ))).length > 1
+    const classLists = visibility.requirements.filter(({ conditions }) => (
+        conditions.length > 0 && conditions.every(condition => (
+            condition.type === 'ACTIVE' && findGroup(groups, condition.groupId)?.groupType === 'CLASS'
+        ))
+    ))
+    if (classLists.length < 2) return false
+    return !classLists[0].conditions.some(({ groupId }) => classLists.every(
+        ({ conditions }) => conditions.some(condition => condition.groupId === groupId)
+    ))
 }

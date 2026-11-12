@@ -6,6 +6,8 @@ import type { SessionUser } from '@/auth/session/Session'
 import type { VisibilityCondition, VisibilityMatrix } from '@/services/visibility/types'
 
 const MAX_AUDIENCES = 12
+// Each requirement multiplies the ways, so a few long lists would otherwise hang the form.
+const MAX_WAYS = 1000
 // Matches no creator, so a row never gets in by having created the draft.
 const NOBODY = -1
 
@@ -22,7 +24,9 @@ export type WhoCanWhatRow = {
 /** Each way of passing a matrix, since someone can pass it through any one condition of each requirement. */
 function waysToPass(matrix: VisibilityMatrix): VisibilityCondition[][] {
     return matrix.requirements.reduce<VisibilityCondition[][]>(
-        (ways, requirement) => ways.flatMap(way => requirement.conditions.map(condition => [...way, condition])),
+        (ways, requirement) => ways
+            .slice(0, MAX_WAYS)
+            .flatMap(way => requirement.conditions.map(condition => [...way, condition])),
         [[]],
     )
 }
@@ -51,7 +55,7 @@ function sessionOf(conditions: VisibilityCondition[]) {
  * audience its quotas and administrators name is a row of its own, so someone who has to be in two
  * groups is not shown as two people who get nothing.
  */
-export function whoCanWhat(access: EventAccess): WhoCanWhatRow[] {
+export function whoCanWhat(access: EventAccess): { rows: WhoCanWhatRow[], audiencesLeftOut: boolean } {
     const ways = [...access.quotaVisibilities, access.adminVisibility].flatMap(waysToPass)
     const distinct = Array.from(new Map(ways.filter(way => way.length > 0).map(way => [keyOf(way), way])).values())
 
@@ -72,7 +76,7 @@ export function whoCanWhat(access: EventAccess): WhoCanWhatRow[] {
         }
     }
 
-    return [
+    const rows = [
         rowOf(Session.empty(), { label: 'loggedOut', audience: null }),
         rowOf(sessionOf([]), { label: 'loggedIn', audience: null }),
         ...distinct.slice(0, MAX_AUDIENCES).map(way => rowOf(sessionOf(way), {
@@ -84,4 +88,5 @@ export function whoCanWhat(access: EventAccess): WhoCanWhatRow[] {
             { label: 'eventAdmin', audience: null },
         ),
     ]
+    return { rows, audiencesLeftOut: distinct.length > MAX_AUDIENCES }
 }

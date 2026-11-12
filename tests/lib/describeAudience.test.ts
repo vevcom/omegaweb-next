@@ -79,6 +79,12 @@ describe('listsContradict', () => {
         expect(contradicts([1, 2])).toBe(false)
     })
 
+    test('lists of classes that share one can all pass', () => {
+        expect(contradicts([1, 2], [2])).toBe(false)
+        expect(contradicts([1, 2], [1, 2])).toBe(false)
+        expect(contradicts([1, 2], [2], [1])).toBe(true)
+    })
+
     test('a list with something other than classes can pass', () => {
         expect(contradicts([1], [3])).toBe(false)
         expect(contradicts([1, 3], [2])).toBe(false)

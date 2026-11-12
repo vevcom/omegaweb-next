@@ -109,6 +109,7 @@ export const eventSeatingOperations = {
                     )),
                 },
                 locked: registrations.flatMap(registration => (registration.seatLocked ? [registration.id] : [])),
+                version: Math.max(0, ...tableIds),
             }
         },
     }),
@@ -140,6 +141,7 @@ export const eventSeatingOperations = {
                 wishesEnd: event.seatingWishesEnd,
                 options: registrations.flatMap(({ id, name }) => (id === own.id ? [] : [{ id, name }])),
                 wishes: own.seatingWishes.map(wish => wish.wishedRegistrationId),
+                published: event.seatingPublishedAt !== null,
                 table: ownTable ? {
                     number: ownTable.order + 1,
                     guests: registrations.flatMap(({ id, name, tableId }) => (
@@ -224,6 +226,14 @@ export const eventSeatingOperations = {
         operation: async ({ prisma, params, data }) => {
             await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.id)
+                // Every save makes new tables, so the newest table id tells whether the board is stale.
+                const newest = await tx.eventTable.aggregate({ where: { eventId: params.id }, _max: { id: true } })
+                if ((newest._max.id ?? 0) !== data.version) {
+                    throw new ServiceError(
+                        'BAD PARAMETERS',
+                        'Noen andre har lagret bordene siden du åpnet dem. Last inn siden på nytt.',
+                    )
+                }
 
                 // Someone may have lost their place since the plan was opened, which should not stop it being saved.
                 const seated = (await readSeatedRegistrations(tx, params.id)).map(({ id }) => id)

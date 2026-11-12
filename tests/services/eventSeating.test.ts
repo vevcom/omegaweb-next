@@ -138,6 +138,7 @@ describe('the plan', () => {
         await eventSeatingOperations.savePlan({
             params,
             data: {
+                version: 0,
                 seats: [2, 2],
                 placements: [
                     { registrationId: first.id, table: 1, locked: true },
@@ -148,11 +149,13 @@ describe('the plan', () => {
             bypassAuth: true,
         })
 
-        expect((await eventSeatingOperations.readOwn({ params, session: sessionOf(0) }))?.table).toBeNull()
+        const unpublished = await eventSeatingOperations.readOwn({ params, session: sessionOf(0) })
+        expect(unpublished).toMatchObject({ table: null, published: false })
 
         await eventSeatingOperations.setPublished({ params, data: { published: true }, bypassAuth: true })
         const own = await eventSeatingOperations.readOwn({ params, session: sessionOf(0) })
         expect(own?.table).toEqual({ number: 2, guests: ['second Testesen'] })
+        expect(own?.published).toBe(true)
 
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
         expect(board.seats).toEqual([2, 2])
@@ -165,9 +168,13 @@ describe('the plan', () => {
 
     test('leaves those it does not place without a table when saved again', async () => {
         const { params, first } = await setUp('seat-again')
-        const save = (table: number) => eventSeatingOperations.savePlan({
+        const save = async (table: number, version?: number) => eventSeatingOperations.savePlan({
             params,
-            data: { seats: [1, 1], placements: [{ registrationId: first.id, table, locked: false }] },
+            data: {
+                seats: [1, 1],
+                placements: [{ registrationId: first.id, table, locked: false }],
+                version: version ?? (await eventSeatingOperations.readBoard({ params, bypassAuth: true })).version,
+            },
             bypassAuth: true,
         })
         await save(0)
@@ -175,6 +182,18 @@ describe('the plan', () => {
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
         expect(board.plan.tables).toEqual([[], [first.id]])
         expect(board.plan.unseated).toHaveLength(2)
+    })
+
+    test('refuses a save from a board someone else has since saved', async () => {
+        const { params, first } = await setUp('seat-version')
+        const placements = [{ registrationId: first.id, table: 0, locked: false }]
+        await eventSeatingOperations.savePlan({ params, data: { seats: [1], placements, version: 0 }, bypassAuth: true })
+        await expectRefused(eventSeatingOperations.savePlan({
+            params,
+            data: { seats: [1], placements: [], version: 0 },
+            bypassAuth: true,
+        }))
+        expect((await eventSeatingOperations.readBoard({ params, bypassAuth: true })).plan.tables).toEqual([[first.id]])
     })
 
     test('refuses a table with too many guests', async () => {
@@ -187,6 +206,7 @@ describe('the plan', () => {
                     { registrationId: first.id, table: 0, locked: false },
                     { registrationId: second.id, table: 0, locked: false },
                 ],
+                version: 0,
             },
             bypassAuth: true,
         }))
@@ -197,7 +217,7 @@ describe('the plan', () => {
         await expectRefused(eventSeatingOperations.readBoard({ params, session: sessionOf(0) }))
         await expectRefused(eventSeatingOperations.savePlan({
             params,
-            data: { seats: [1], placements: [] },
+            data: { seats: [1], placements: [], version: 0 },
             session: sessionOf(0),
         }))
     })

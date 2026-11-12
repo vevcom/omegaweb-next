@@ -47,6 +47,7 @@ export function EventQuotaAudiences({ variants }: { variants: VariantDraft[] }) 
 export default function EventWhoCanWhat({ access }: { access: EventAccess }) {
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
+    const { rows, audiencesLeftOut } = whoCanWhat(access)
 
     return <div className="flex flex-col gap-2 pb-4">
         <div className="overflow-x-auto">
@@ -60,7 +61,7 @@ export default function EventWhoCanWhat({ access }: { access: EventAccess }) {
                     </tr>
                 </thead>
                 <tbody>
-                    {whoCanWhat(access).map(row => {
+                    {rows.map(row => {
                         const audience = row.audience ?? { requirements: [] }
                         const name = row.label ? labels[row.label] : describeAudience(audience, groups)
                         return <tr key={name} className="border-t border-base-300">
@@ -73,6 +74,9 @@ export default function EventWhoCanWhat({ access }: { access: EventAccess }) {
                 </tbody>
             </table>
         </div>
+        {audiencesLeftOut && <p className="m-0 text-s text-base-content/80">
+            Det er for mange kombinasjoner av grupper til å vise alle.
+        </p>}
         {!access.published && <p className="m-0 text-s text-base-content/80">
             Arrangementet er et utkast, så foreløpig ser bare de som administrerer det. Den som opprettet utkastet
             administrerer det også.

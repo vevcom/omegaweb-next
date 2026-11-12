@@ -30,6 +30,10 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
         </>
     }
 
+    if (seating.published) {
+        return <p className="m-0 text-base-content/80">Du har ikke fått et bord. Ta kontakt med arrangøren.</p>
+    }
+
     if (!open) {
         const names = seating.wishes.flatMap(wish => seating.options.find(option => option.id === wish)?.name ?? [])
         return <>
