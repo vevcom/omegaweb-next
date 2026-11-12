@@ -4,7 +4,7 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
-import { sessionTokenOf } from './sessionToken'
+import { companySessionStillStands, refreshedCompanySessionToken, sessionTokenOf } from './sessionToken'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
@@ -80,6 +80,12 @@ export const authOptions: AuthOptions = {
             // iat = issued at (timestamp given in seconds since epoch)
             if (!token?.iat) return null
 
+            if (token.provider === 'company-credentials') {
+                return await companySessionStillStands(token) ? token : null
+            }
+            // Every other login is a user's.
+            if (!token.user) return null
+
             const user = await prisma.user.findUnique({
                 where: {
                     id: token.user.id,
@@ -131,6 +137,7 @@ export const authOptions: AuthOptions = {
         },
         session({ session, token }) {
             session.user = token.user
+            session.companyUser = token.companyUser
             session.permissions = token.permissions
             session.memberships = token.memberships
             return session
@@ -152,7 +159,8 @@ export const authOptions: AuthOptions = {
                             })
                         }
 
-                        const userId = user ? Number(user.id) : token.user.id
+                        const userId = user ? Number(user.id) : token.user?.id
+                        if (userId === undefined) throw new Error('A Feide login names no user')
 
                         const studyProgrammes = await updateUserStudyProgrammes(userId, account.access_token)
                         await inferClassFromStudyProgrammes(userId, studyProgrammes)
@@ -163,6 +171,11 @@ export const authOptions: AuthOptions = {
                 }
                 // Trigger is undefined for subsequent calls
                 case undefined: {
+                    // A company user never signs in through NextAuth, so this is the only trigger
+                    // their token meets: it is kept, or read again when the company user has changed.
+                    if (token.provider === 'company-credentials') return refreshedCompanySessionToken(token)
+                    if (!token.user) throw new Error('A session token of a user login names no user')
+
                     const dbUser = await userOperations.read({
                         params: { id: token.user.id },
                         bypassAuth: true,
@@ -192,7 +205,8 @@ export const authOptions: AuthOptions = {
             // The 'user' object will only be set when the trigger is 'signIn'.
             // We also have to type convert 'user.id' because the default next
             // auth type for it is different from our model.
-            const userId = user ? Number(user.id) : token?.user.id
+            const userId = user ? Number(user.id) : token.user?.id
+            if (userId === undefined) throw new Error('A session token of a user login names no user')
 
             // The account object will only be available during sign in/up.
             // For other cases we will already have a provider stored in the token

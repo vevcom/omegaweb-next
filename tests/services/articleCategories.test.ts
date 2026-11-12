@@ -3,6 +3,7 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
 import { seedDevArticleCategories } from '@/prisma/seeder/src/development/seedDevArticleCategories'
+import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -27,11 +28,11 @@ function sessionInGroups(...groupIds: number[]) {
         active: true,
         admin: false,
     }))
-    return Session.fromJsObject({ user: null, permissions: [], memberships })
+    return testSession({ user: null, permissions: [], memberships })
 }
 
 function sessionWithPermissions(...permissions: Parameters<typeof Session.fromDefaultPermissions>[0]) {
-    return Session.fromJsObject({ user: null, permissions, memberships: [] })
+    return testSession({ user: null, permissions, memberships: [] })
 }
 
 function activeIn(groupId: number): VisibilityMatrix {

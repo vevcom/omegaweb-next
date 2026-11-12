@@ -1,5 +1,27 @@
+import { Session } from '@/auth/session/Session'
 import { jest } from '@jest/globals'
 import type Mail from 'nodemailer/lib/mailer'
+import type { AnySession, SessionMaybeUser } from '@/auth/session/Session'
+import type { Permission } from '@/prisma-generated-pn-types'
+import type { MembershipFiltered } from '@/services/groups/types'
+import type { UserFiltered } from '@/services/users/types'
+
+/**
+ * A session for a test, from parts that need not hang together the way a real session's do. A real
+ * session only has memberships when it has a user, and the type of a session says so. A test of a
+ * rule on memberships seldom needs the user they belong to, so here it may be left out.
+ */
+export function testSession(parts: {
+    user?: UserFiltered | null,
+    permissions?: Permission[],
+    memberships?: MembershipFiltered[],
+}): AnySession {
+    return Session.fromJsObject({
+        user: parts.user ?? null,
+        permissions: parts.permissions ?? [],
+        memberships: parts.memberships ?? [],
+    } as SessionMaybeUser)
+}
 
 /**
  * Waits for all promises to settle and returns their results.

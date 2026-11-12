@@ -26,11 +26,14 @@ const { page, generateMetadata } = serverPage({
         if (companyUser.companyId !== company.id) throw new Smorekopp('NOT FOUND')
         return { company, companyUser }
     },
-    capabilities: () => ({
-        canUpdate: companyUserAuth.update,
-        canUpdateRole: companyUserAuth.updateRole,
-        canDestroy: companyUserAuth.destroy,
-    }),
+    capabilities: ({ company, companyUser }) => {
+        const ownership = { companyId: company.id, companyUserId: companyUser.id }
+        return {
+            canUpdate: companyUserAuth.update.data(ownership),
+            canUpdateRole: companyUserAuth.updateRole.data(ownership),
+            canDestroy: companyUserAuth.destroy.data(ownership),
+        }
+    },
     metadata: ({ companyUser }) => ({ title: `${companyUser.firstname} ${companyUser.lastname}` }),
     render: ({ data: { company, companyUser }, capabilities }) => (
         <>

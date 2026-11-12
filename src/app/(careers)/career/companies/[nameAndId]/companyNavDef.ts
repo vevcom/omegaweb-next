@@ -6,6 +6,7 @@ import { faBuilding, faCog, faUsers } from '@fortawesome/free-solid-svg-icons'
 
 /** The pages of a company, in the order the tabs show them. */
 export function companyNavDef(company: { id: number, name: string }) {
+    const ownership = { companyId: company.id }
     return defineNavDef([
         {
             key: 'overview',
@@ -19,7 +20,7 @@ export function companyNavDef(company: { id: number, name: string }) {
             name: 'Brukere',
             href: careerLinks.companyUsers(company),
             icon: faUsers,
-            authorizers: () => [companyUserAuth.readOfCompany],
+            authorizers: () => [companyUserAuth.readOfCompany.data(ownership)],
         },
         {
             key: 'settings',
@@ -27,8 +28,8 @@ export function companyNavDef(company: { id: number, name: string }) {
             href: careerLinks.companySettings(company),
             icon: faCog,
             authorizers: () => [
-                companyAuth.update,
-                companyAuth.updateLogo,
+                companyAuth.update.data(ownership),
+                companyAuth.updateLogo.data(ownership),
                 companyAuth.updateSponsorTier,
                 companyAuth.destroy,
             ],

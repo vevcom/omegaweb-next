@@ -21,6 +21,20 @@ export const companyUserWithCompanySelection = {
     credentials: { select: { credentialsUpdatedAt: true } },
 } as const satisfies Prisma.CompanyUserSelect
 
+/**
+ * What a session carries of the company user it belongs to. The company and whether the user is
+ * its admin are here, as a user's memberships are on theirs, so an authorizer checks them without
+ * asking the database.
+ */
+export const companyUserOfSessionSelection = {
+    id: true,
+    email: true,
+    firstname: true,
+    lastname: true,
+    admin: true,
+    company: { select: { id: true, name: true } },
+} as const satisfies Prisma.CompanyUserSelect
+
 // Admins first, then by name.
 export const companyUserOrdering = [
     { admin: 'desc' },
