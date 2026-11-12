@@ -3,6 +3,7 @@ import Form from '@/components/Form/Form'
 import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
+import NumberInput from '@/components/UI/NumberInput'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -11,6 +12,7 @@ import {
     setEventSeatingPublishedAction,
 } from '@/services/events/seating/actions'
 import {
+    DEFAULT_SEATING_POINTS,
     createSeatingPlan,
     displaySeats,
     fulfilledWishes,
@@ -26,7 +28,7 @@ import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons'
 import { MotionConfig, motion } from 'framer-motion'
 import { useState } from 'react'
 import type { DragEvent, ReactNode } from 'react'
-import type { SeatingPlan } from '@/services/events/seating/plan'
+import type { SeatingPlan, SeatingPoints } from '@/services/events/seating/plan'
 import type { SeatingBoard } from '@/services/events/seating/types'
 
 const DEFAULT_SEATS_PER_TABLE = 8
@@ -42,6 +44,39 @@ function Stat({ label, value }: { label: string, value: ReactNode }) {
         <strong className="text-l">{value}</strong>
         <span className="text-s text-base-content/80">{label}</span>
     </div>
+}
+
+const WISH_ORDINALS = ['Første', 'Andre', 'Tredje']
+
+/** The points a draft tries to get the most of, so the organizers can weigh wishes against committees. */
+function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (points: SeatingPoints) => void }) {
+    const field = (label: string, value: number, change: (value: number) => SeatingPoints) => <NumberInput
+        key={label}
+        label={label}
+        value={value}
+        min={0}
+        onChange={event => onChange(change(Math.max(0, Number(event.target.value) || 0)))}
+        className="w-48!"
+    />
+    return <details className="text-s">
+        <summary className="cursor-pointer">Vekting</summary>
+        <p className="m-0 mt-1 text-base-content/80">
+            Utkastet prøver å få flest mulig poeng. Endringer brukes neste gang du lager et utkast.
+        </p>
+        <div className="flex flex-wrap items-end gap-2">
+            {points.wishes.map((value, rank) => field(
+                `${WISH_ORDINALS[rank]} oppfylte ønske`,
+                value,
+                changed => ({ ...points, wishes: points.wishes.map((old, index) => (index === rank ? changed : old)) }),
+            ))}
+            {field('Gjensidig ønske', points.mutual, mutual => ({ ...points, mutual }))}
+            {field('Samme komité', points.committee, committee => ({ ...points, committee }))}
+            {field('Trekk for tomme plasser', points.emptySeat, emptySeat => ({ ...points, emptySeat }))}
+            <Button type="button" onClick={() => onChange(DEFAULT_SEATING_POINTS)} className="m-0!">
+                Tilbakestill
+            </Button>
+        </div>
+    </details>
 }
 
 /** Sorted, so a plan saved and read back compares equal to what was saved. */
@@ -69,6 +104,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     const [selected, setSelected] = useState<number | null>(null)
     const [dragged, setDragged] = useState<number | null>(null)
     const [drafts, setDrafts] = useState(0)
+    const [points, setPoints] = useState(DEFAULT_SEATING_POINTS)
 
     // Registrations can change behind an open plan, which must not throw away the work on it.
     const plan = reconcilePlan(workingPlan, guestIds)
@@ -101,7 +137,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
             id,
             plan.tables.findIndex(members => members.includes(id)),
         ]))
-        setPlan(createSeatingPlan({ guests, wishes, seats, locked: lockedTables, seed: drafts + 1 }))
+        setPlan(createSeatingPlan({ guests, wishes, seats, locked: lockedTables, seed: drafts + 1, points }))
         setDrafts(drafts + 1)
         setSelected(null)
     }
@@ -288,6 +324,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                     {!parseSeats(seatsText) && <p className="m-0 text-s text-error">
                         Skriv bordene som 5x8, eller hvert bord for seg som 10, 10, 8, 8.
                     </p>}
+                    <PointsEditor points={points} onChange={setPoints} />
 
                     {plan.tables.flat().length > 0 && <div className="
                         grid grid-cols-3 gap-2
