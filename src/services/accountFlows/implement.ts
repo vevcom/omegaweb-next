@@ -70,7 +70,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
     kind: AccountKind<Verified, PasswordSchema>,
 ) {
     const verifyResetPasswordToken = defineOperation({
-        paramsSchema: accountSchemas.params.token,
+        paramsSchema: accountSchemas.params.verifyResetPasswordToken,
         authorizer: () => Require.nothing(),
         operation: async ({ prisma, params }) => {
             const payload = verifyJWT(params.token, kind.audiences.resetPassword)
@@ -88,12 +88,20 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
             }
 
             // Tokens issued before the email claim was added carry none.
-            return { accountId, email: typeof payload.email === 'string' ? payload.email : null }
+            const email = typeof payload.email === 'string' ? payload.email : null
+
+            // The link is for whoever reads the mail at the address it was sent to. Once the account
+            // has left that address, its reader must no longer be able to set the password.
+            if (email !== null && email !== (await kind.readEmail(prisma, accountId)).email) {
+                throw new ServiceError('JWT INVALID', 'Lenken ble sendt til en e-postadresse kontoen ikke lenger har')
+            }
+
+            return { accountId, email }
         },
     })
 
     const resetPassword = defineOperation({
-        paramsSchema: accountSchemas.params.token,
+        paramsSchema: accountSchemas.params.resetPassword,
         dataSchema: kind.passwordSchema,
         authorizer: () => Require.nothing(),
         operation: async ({ prisma, params, data }) => {
@@ -101,7 +109,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
 
             await kind.writePassword(accountId, data as z.output<PasswordSchema>)
 
-            // Following the link proves the address, so it need not be verified again.
+            // Following the link proves the address, which is the account's, so it need not be verified again.
             if (email) await kind.markEmailVerified(prisma, accountId, email)
 
             return { accountId }
@@ -109,8 +117,8 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
     })
 
     const sendResetPasswordEmail = defineOperation({
-        paramsSchema: accountSchemas.params.site,
-        dataSchema: accountSchemas.data.email,
+        paramsSchema: accountSchemas.params.sendResetPasswordEmail,
+        dataSchema: accountSchemas.data.sendResetPasswordEmail,
         authorizer: () => Require.nothing(),
         operation: ({ params, data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long
@@ -124,7 +132,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
     })
 
     const verifyEmail = defineOperation({
-        paramsSchema: accountSchemas.params.token,
+        paramsSchema: accountSchemas.params.verifyEmail,
         authorizer: () => Require.nothing(),
         operation: async ({ prisma, params }) => {
             const payload = verifyJWT(params.token, kind.audiences.verifyEmail)
