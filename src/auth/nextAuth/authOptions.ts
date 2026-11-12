@@ -4,7 +4,13 @@ import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
-import { companySessionStillStands, refreshedCompanySessionToken, sessionTokenOf } from './sessionToken'
+import {
+    companySessionStillStands,
+    companySessionTokenOf,
+    refreshedCompanySessionToken,
+    sessionTokenOf,
+} from './sessionToken'
+import { COMPANY_CREDENTIALS_PROVIDER, authorizeCompanyCredentials } from './companyCredentials'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
@@ -56,6 +62,15 @@ export const authOptions: AuthOptions = {
                 return { id: String(userCredentials.userId) }
             }
         }),
+        CredentialsProvider({
+            id: COMPANY_CREDENTIALS_PROVIDER,
+            name: 'Company credentials',
+            credentials: {
+                email: { label: 'Email', type: 'text' },
+                password: { label: 'Password', type: 'password' },
+            },
+            authorize: authorizeCompanyCredentials,
+        }),
         FeideProvider({
             clientId: process.env.FEIDE_CLIENT_ID ?? 'no_id',
             clientSecret: process.env.FEIDE_CLIENT_SECRET ?? 'no_secret',
@@ -80,7 +95,7 @@ export const authOptions: AuthOptions = {
             // iat = issued at (timestamp given in seconds since epoch)
             if (!token?.iat) return null
 
-            if (token.provider === 'company-credentials') {
+            if (token.provider === COMPANY_CREDENTIALS_PROVIDER) {
                 return await companySessionStillStands(token) ? token : null
             }
             // Every other login is a user's.
@@ -120,6 +135,9 @@ export const authOptions: AuthOptions = {
     },
     callbacks: {
         async signIn({ user, account, profile }) {
+            // A company user is no user: there is none to be archived, and no Feide account to link.
+            if (account?.provider === COMPANY_CREDENTIALS_PROVIDER) return true
+
             const isFeide = account?.provider === 'feide'
             const reachesArchivedUser = await loginReachesArchivedUser(prisma, isFeide
                 ? { feideAccountId: account.providerAccountId, email: profile?.email }
@@ -146,6 +164,10 @@ export const authOptions: AuthOptions = {
             switch (trigger) {
                 case 'signUp':
                 case 'signIn': {
+                    if (account?.provider === COMPANY_CREDENTIALS_PROVIDER) {
+                        logger.info('Company log in', { companyUserId: user.id })
+                        return companySessionTokenOf(Number(user.id))
+                    }
                     if (account?.provider === 'feide') {
                         if (!account.access_token) {
                             // Should never happen.
@@ -173,7 +195,7 @@ export const authOptions: AuthOptions = {
                 case undefined: {
                     // A company user never signs in through NextAuth, so this is the only trigger
                     // their token meets: it is kept, or read again when the company user has changed.
-                    if (token.provider === 'company-credentials') return refreshedCompanySessionToken(token)
+                    if (token.provider === COMPANY_CREDENTIALS_PROVIDER) return refreshedCompanySessionToken(token)
                     if (!token.user) throw new Error('A session token of a user login names no user')
 
                     const dbUser = await userOperations.read({

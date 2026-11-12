@@ -1,6 +1,6 @@
-import { POST as companyLogin } from '@/app/api/company-auth/login/route'
 import { GET as authorize } from '@/app/api/oidc/authorize/route'
 import { authOptions } from '@/auth/nextAuth/authOptions'
+import { authorizeCompanyCredentials, companyLoginErrors } from '@/auth/nextAuth/companyCredentials'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sessionFromCookie } from '@/auth/sso/session'
@@ -10,7 +10,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { testDomainConfig } from 'tests/testDomains'
 import { afterAll, beforeAll, describe, expect, test } from '@jest/globals'
 import { NextRequest } from 'next/server'
-import type { NextResponse } from 'next/server'
+import type { JWT } from 'next-auth/jwt'
 
 /** A career site on its own domain, Omega's, and a domain set apart to sign in on. */
 const withAuthDomain = DomainConfig.parse({
@@ -23,105 +23,99 @@ const SESSION_COOKIE = '__Secure-next-auth.session-token'
 const PASSWORD = 'et-langt-nok-passord-123'
 const EMAIL = 'innlogging@example.com'
 
+let companyId: number
 let companyUserId: number
 
-const headersOf = (url: string, cookies: Record<string, string>) => ({
-    host: new URL(url).host,
+const headersOf = (origin: string, cookies: Record<string, string> = {}) => ({
+    host: new URL(origin).host,
     'x-forwarded-proto': 'https',
     cookie: Object.entries(cookies).map(([name, value]) => `${name}=${value}`).join('; '),
 })
 
-/** A login as the form sends it, over https to the host it came to. */
-const login = (
-    credentials: unknown,
+/** The sign in as NextAuth hands it to the provider: the credentials, and the headers of the request. */
+const signIn = (
+    credentials: { email: string, password: string },
     { origin = 'https://contactor.no', cookies = {} }: { origin?: string, cookies?: Record<string, string> } = {},
-) => companyLogin(new NextRequest(`${origin}/api/company-auth/login`, {
-    method: 'POST',
-    headers: { ...headersOf(origin, cookies), 'content-type': 'application/json' },
-    body: JSON.stringify(credentials),
-}))
+) => authorizeCompanyCredentials(credentials, { headers: headersOf(origin, cookies) })
 
-const sessionCookieOf = (response: NextResponse) => response.cookies.get(SESSION_COOKIE)?.value
+/** The token NextAuth builds for whoever the provider let in, as its jwt callback does at a sign in. */
+async function tokenAtSignIn(signedIn: { id: string }): Promise<JWT> {
+    const jwt = authOptions.callbacks?.jwt
+    if (!jwt) throw new Error('no jwt callback')
+    return jwt({
+        token: {} as JWT,
+        user: signedIn,
+        account: { provider: 'company-credentials', type: 'credentials', providerAccountId: signedIn.id },
+        trigger: 'signIn',
+    })
+}
 
-const sessionOf = (origin: string, cookie: string) => sessionFromCookie(new NextRequest(`${origin}/`, {
-    headers: headersOf(origin, { [SESSION_COOKIE]: cookie }),
-}))
+async function cookieOf(token: JWT): Promise<string> {
+    const encode = authOptions.jwt?.encode
+    if (!encode) throw new Error('no encoder')
+    return encode({ token, secret: process.env.NEXTAUTH_SECRET ?? '' })
+}
+
+async function createCompanyUser(email: string, { active = true, withPassword = true } = {}) {
+    return prisma.companyUser.create({
+        data: {
+            companyId,
+            email,
+            firstname: 'Kari',
+            lastname: 'Nordmann',
+            active,
+            credentials: withPassword ? { create: { passwordHash: await hashAndEncryptPassword(PASSWORD) } } : undefined,
+        },
+    })
+}
 
 beforeAll(async () => {
     DomainContext.configure(withAuthDomain)
     const company = await prisma.company.create({ data: { name: 'Innloggingstest AS', description: '' } })
-    const companyUser = await prisma.companyUser.create({
-        data: {
-            companyId: company.id,
-            email: EMAIL,
-            firstname: 'Kari',
-            lastname: 'Nordmann',
-            credentials: { create: { passwordHash: await hashAndEncryptPassword(PASSWORD) } },
-        },
-    })
-    companyUserId = companyUser.id
+    companyId = company.id
+    companyUserId = (await createCompanyUser(EMAIL)).id
 })
 afterAll(() => DomainContext.configure(testDomainConfig))
 
 describe('the login of a company user', () => {
-    test('the right email and password start a company session on the career domain', async () => {
-        const response = await login({ email: 'Innlogging@Example.com', password: PASSWORD })
-        expect(response.status).toBe(200)
+    test('the right email and password sign in as the company user, and give a company session', async () => {
+        const signedIn = await signIn({ email: 'Innlogging@Example.com', password: PASSWORD })
+        expect(signedIn).toEqual({ id: String(companyUserId) })
+        if (!signedIn) return
 
-        const cookie = sessionCookieOf(response)
-        expect(cookie).toBeDefined()
-        const session = await sessionOf('https://contactor.no', cookie ?? '')
+        const token = await tokenAtSignIn(signedIn)
+        expect(token.provider).toBe('company-credentials')
+
+        // The session the cookie NextAuth writes for it gives, read the way every request reads it.
+        const origin = 'https://contactor.no'
+        const session = await sessionFromCookie(new NextRequest(`${origin}/`, {
+            headers: headersOf(origin, { [SESSION_COOKIE]: await cookieOf(token) }),
+        }))
         expect(session.user).toBeNull()
         expect(session.companyUser).toMatchObject({ id: companyUserId, company: { name: 'Innloggingstest AS' } })
         expect(session.memberships).toEqual([])
     })
 
-    test('a wrong password, an unknown email and a body that is no login are refused alike', async () => {
-        const responses = await Promise.all([
-            login({ email: EMAIL, password: 'feil-passord-som-er-langt' }),
-            login({ email: 'ingen@example.com', password: PASSWORD }),
-            login({ email: EMAIL }),
-            login('ikke en innlogging'),
-        ])
-        for (const response of responses) {
-            expect(response.status).toBe(401)
-            expect(await response.json()).toEqual({ error: 'CredentialsSignin' })
-            expect(sessionCookieOf(response)).toBeUndefined()
-        }
+    test('a wrong password, an unknown email and no credentials sign in as no one', async () => {
+        await expect(signIn({ email: EMAIL, password: 'feil-passord-som-er-langt' })).resolves.toBeNull()
+        await expect(signIn({ email: 'ingen@example.com', password: PASSWORD })).resolves.toBeNull()
+        await expect(signIn({ email: EMAIL, password: '' })).resolves.toBeNull()
+        await expect(authorizeCompanyCredentials(undefined, { headers: headersOf('https://contactor.no') }))
+            .resolves.toBeNull()
     })
 
     test('a deactivated company user, and one who has chosen no password, do not get in', async () => {
-        const company = await prisma.company.findFirstOrThrow({ where: { name: 'Innloggingstest AS' } })
-        await prisma.companyUser.create({
-            data: {
-                companyId: company.id,
-                email: 'innlogging-deaktivert@example.com',
-                firstname: 'Ola',
-                lastname: 'Nordmann',
-                active: false,
-                credentials: { create: { passwordHash: await hashAndEncryptPassword(PASSWORD) } },
-            },
-        })
-        await prisma.companyUser.create({
-            data: {
-                companyId: company.id,
-                email: 'innlogging-uten@example.com',
-                firstname: 'Per',
-                lastname: 'Nordmann',
-            },
-        })
+        await createCompanyUser('innlogging-deaktivert@example.com', { active: false })
+        await createCompanyUser('innlogging-uten@example.com', { withPassword: false })
 
-        expect((await login({ email: 'innlogging-deaktivert@example.com', password: PASSWORD })).status).toBe(401)
-        expect((await login({ email: 'innlogging-uten@example.com', password: PASSWORD })).status).toBe(401)
+        await expect(signIn({ email: 'innlogging-deaktivert@example.com', password: PASSWORD })).resolves.toBeNull()
+        await expect(signIn({ email: 'innlogging-uten@example.com', password: PASSWORD })).resolves.toBeNull()
     })
 
     test('it is refused when someone is signed in already, as a company user or as a user', async () => {
-        const first = await login({ email: EMAIL, password: PASSWORD })
-        const asCompanyUser = await login(
-            { email: EMAIL, password: PASSWORD },
-            { cookies: { [SESSION_COOKIE]: sessionCookieOf(first) ?? '' } },
-        )
-        expect(asCompanyUser.status).toBe(409)
+        const companyCookie = await cookieOf(await tokenAtSignIn({ id: String(companyUserId) }))
+        await expect(signIn({ email: EMAIL, password: PASSWORD }, { cookies: { [SESSION_COOKIE]: companyCookie } }))
+            .rejects.toThrow(companyLoginErrors.alreadySignedIn)
 
         const user = await prisma.user.create({
             data: {
@@ -132,53 +126,33 @@ describe('the login of a company user', () => {
                 credentials: { create: { passwordHash: 'x' } },
             },
         })
-        const encode = authOptions.jwt?.encode
-        if (!encode) throw new Error('no encoder')
-        const userCookie = await encode({
-            token: await sessionTokenOf(user.id, 'credentials'),
-            secret: process.env.NEXTAUTH_SECRET ?? '',
-        })
-        const asUser = await login({ email: EMAIL, password: PASSWORD }, { cookies: { [SESSION_COOKIE]: userCookie } })
-        expect(asUser.status).toBe(409)
-        expect(sessionCookieOf(asUser)).toBeUndefined()
-    })
-
-    test('a body that is not sent as JSON is refused, though it parses as a login', async () => {
-        // What a form on another site can send: a text/plain body written to be read as JSON.
-        const response = await companyLogin(new NextRequest('https://contactor.no/api/company-auth/login', {
-            method: 'POST',
-            headers: { ...headersOf('https://contactor.no', {}), 'content-type': 'text/plain' },
-            body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
-        }))
-        expect(response.status).toBe(403)
-        expect(sessionCookieOf(response)).toBeUndefined()
-    })
-
-    test('a login sent from a page of another site is refused, one from the site itself is not', async () => {
-        const from = (origin: string) => companyLogin(new NextRequest('https://contactor.no/api/company-auth/login', {
-            method: 'POST',
-            headers: { ...headersOf('https://contactor.no', {}), 'content-type': 'application/json', origin },
-            body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
-        }))
-
-        const fromElsewhere = await from('https://evil.example')
-        expect(fromElsewhere.status).toBe(403)
-        expect(sessionCookieOf(fromElsewhere)).toBeUndefined()
-        expect((await from('https://contactor.no')).status).toBe(200)
+        const userCookie = await cookieOf(await sessionTokenOf(user.id, 'credentials'))
+        await expect(signIn({ email: EMAIL, password: PASSWORD }, { cookies: { [SESSION_COOKIE]: userCookie } }))
+            .rejects.toThrow(companyLoginErrors.alreadySignedIn)
     })
 
     test('it is only there on a domain that serves the career site', async () => {
-        const onAuthDomain = await login({ email: EMAIL, password: PASSWORD }, { origin: 'https://login.omega.ntnu.no' })
-        expect(onAuthDomain.status).toBe(404)
-        expect(sessionCookieOf(onAuthDomain)).toBeUndefined()
+        await expect(signIn({ email: EMAIL, password: PASSWORD }, { origin: 'https://login.omega.ntnu.no' }))
+            .rejects.toThrow(companyLoginErrors.notOnCareerSite)
 
         // Omega's domain serves the career site under its base path.
-        const onOmega = await login({ email: EMAIL, password: PASSWORD }, { origin: 'https://omega.ntnu.no' })
-        expect(onOmega.status).toBe(200)
+        await expect(signIn({ email: EMAIL, password: PASSWORD }, { origin: 'https://omega.ntnu.no' }))
+            .resolves.toEqual({ id: String(companyUserId) })
+    })
+
+    test('the sign in callback lets a company user through without looking for a user', async () => {
+        const signInCallback = authOptions.callbacks?.signIn
+        if (!signInCallback) throw new Error('no signIn callback')
+        const user = { id: String(companyUserId) } as Parameters<typeof signInCallback>[0]['user']
+
+        await expect(signInCallback({
+            user,
+            account: { provider: 'company-credentials', type: 'credentials', providerAccountId: user.id },
+        })).resolves.toBe(true)
     })
 
     test('the provider hands no code to a company session, so it never reaches another domain', async () => {
-        const signedIn = await login({ email: EMAIL, password: PASSWORD }, { origin: 'https://omega.ntnu.no' })
+        const cookie = await cookieOf(await tokenAtSignIn({ id: String(companyUserId) }))
         const origin = 'https://login.omega.ntnu.no'
         const query = new URLSearchParams({
             response_type: 'code',
@@ -190,7 +164,7 @@ describe('the login of a company user', () => {
             code_challenge_method: 'S256',
         })
         const response = await authorize(new NextRequest(`${origin}/api/oidc/authorize?${query.toString()}`, {
-            headers: headersOf(origin, { [SESSION_COOKIE]: sessionCookieOf(signedIn) ?? '' }),
+            headers: headersOf(origin, { [SESSION_COOKIE]: cookie }),
         }))
 
         const location = response.headers.get('location') ?? ''
