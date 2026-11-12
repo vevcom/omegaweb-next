@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
-import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { companySessionTokenOf, sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
 import type { AnySession } from '@/auth/session/Session'
@@ -82,6 +82,22 @@ export async function startSession(
     const encode = authOptions.jwt?.encode
     if (!encode) throw new Error('authOptions has no jwt encoder')
     const token = await sessionTokenOf(userId, provider)
+    setSessionCookie(response, request, await encode({ token, secret: secret(), maxAge: SESSION_MAX_AGE_S }))
+}
+
+/**
+ * Starts a session on this domain for a company user who has given their password here. A company
+ * user signs in on the career site alone and never on the auth domain, so their session is written
+ * straight to the domain they are on, in the cookie NextAuth reads.
+ */
+export async function startCompanySession(
+    response: NextResponse,
+    request: Request,
+    companyUserId: number,
+): Promise<void> {
+    const encode = authOptions.jwt?.encode
+    if (!encode) throw new Error('authOptions has no jwt encoder')
+    const token = await companySessionTokenOf(companyUserId)
     setSessionCookie(response, request, await encode({ token, secret: secret(), maxAge: SESSION_MAX_AGE_S }))
 }
 

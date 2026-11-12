@@ -34,10 +34,11 @@ const { page, generateMetadata } = serverPage({
             canUpdateRole: companyUserAuth.updateRole.data(ownership),
             canDestroy: companyUserAuth.destroy.data(ownership),
             canSendPasswordLink: companyUserAccountAuth.sendPasswordLink.data(ownership),
+            canChangeEmail: companyUserAccountAuth.registerNewEmail.data(ownership),
         }
     },
     metadata: ({ companyUser }) => ({ title: `${companyUser.firstname} ${companyUser.lastname}` }),
-    render: ({ data: { company, companyUser }, capabilities }) => (
+    render: ({ data: { company, companyUser }, capabilities, session }) => (
         <>
             <section className={sectionClassName}>
                 <SiteLink href={careerLinks.companyUsers(company)} className="text-s text-base-content/80">
@@ -76,6 +77,7 @@ const { page, generateMetadata } = serverPage({
                         companyUser={companyUser}
                         capabilities={capabilities}
                         usersHref={careerLinks.companyUsers(company)}
+                        isSelf={session.companyUser?.id === companyUser.id}
                     />
                 </section>
             )}

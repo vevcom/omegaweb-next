@@ -7,7 +7,10 @@ import {
     updateCompanyUserAction,
     updateCompanyUserRoleAction,
 } from '@/services/careers/companies/users/actions'
-import { sendCompanyUserPasswordLinkAction } from '@/services/careers/companies/users/account/actions'
+import {
+    registerNewCompanyUserEmailAction,
+    sendCompanyUserPasswordLinkAction,
+} from '@/services/careers/companies/users/account/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -17,15 +20,20 @@ import type { CompanyUserFiltered } from '@/services/careers/companies/users/typ
 type PropTypes = {
     companyUser: CompanyUserFiltered,
     /** What the viewer may do with the company user. Each form is left out for one who may not. */
-    capabilities: Capabilities<'canUpdate' | 'canUpdateRole' | 'canDestroy' | 'canSendPasswordLink'>,
+    capabilities: Capabilities<
+        'canUpdate' | 'canUpdateRole' | 'canDestroy' | 'canSendPasswordLink' | 'canChangeEmail'
+    >,
     /** The list of the company's users, which is where to go when this one is removed. */
     usersHref: AppHref,
+    /** Whether the viewer is this company user, who gives their password to change their email. */
+    isSelf: boolean,
 }
 
 /** The forms for changing a company user. */
-export default function CompanyUserSettings({ companyUser, capabilities, usersHref }: PropTypes) {
+export default function CompanyUserSettings({ companyUser, capabilities, usersHref, isSelf }: PropTypes) {
     const params = { params: { id: companyUser.id } }
     const [sentTo, setSentTo] = useState<string | null>(null)
+    const [emailFeedback, setEmailFeedback] = useState<string | null>(null)
 
     return (
         <>
@@ -44,7 +52,7 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                 <Form
                     title="Innlogging"
                     action={configureAction(sendCompanyUserPasswordLinkAction, params)}
-                    successCallback={email => setSentTo(typeof email === 'string' ? email : null)}
+                    successCallback={(email?: string) => setSentTo(email ?? null)}
                     submitText="Send lenke for å velge passord"
                 >
                     <p>
@@ -52,6 +60,21 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                         første gang, og slik byttes et glemt passord.
                     </p>
                     {sentTo && <p>Lenken er sendt til {sentTo}.</p>}
+                </Form>
+            )}
+            {capabilities.canChangeEmail.authorized && (
+                <Form
+                    title="E-post"
+                    action={configureAction(registerNewCompanyUserEmailAction, params)}
+                    successCallback={(result?: { verified: boolean, email: string }) => setEmailFeedback(result?.verified
+                        ? 'E-postadressen er allerede bekreftet.'
+                        : `Vi har sendt en e-post til ${result?.email} med en lenke for å bekrefte adressen. `
+                            + 'Adressen byttes når lenken er fulgt.')}
+                    submitText="Bytt e-post"
+                >
+                    <TextInput name="email" label="Ny e-post" defaultValue={companyUser.email} />
+                    {isSelf && <TextInput name="currentPassword" type="password" label="Passordet ditt" />}
+                    {emailFeedback && <p>{emailFeedback}</p>}
                 </Form>
             )}
             {capabilities.canUpdateRole.authorized && (
