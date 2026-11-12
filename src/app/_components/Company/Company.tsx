@@ -48,10 +48,10 @@ export default function Company({
     logoWidth = 300,
     squareLogo = true,
 }: PropTypes) {
-    const canUpdate = useAuthorizer({ authorizer: companyAuth.update })
+    const canUpdate = useAuthorizer({ authorizer: companyAuth.update.data({ companyId: company.id }) })
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
     const canDestroy = useAuthorizer({ authorizer: companyAuth.destroy })
-    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo })
+    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo.data({ companyId: company.id }) })
     const showSettings = !disableEdit && (
         canUpdate.authorized || canUpdateLogo.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
     )

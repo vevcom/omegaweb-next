@@ -5,6 +5,7 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
+import { testSession } from 'tests/utils'
 import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals'
 import { z } from 'zod'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -51,7 +52,7 @@ function sessionInGroups(...groupIds: number[]) {
         active: true,
         admin: false,
     }))
-    return Session.fromJsObject({ user: null, permissions: [], memberships })
+    return testSession({ user: null, permissions: [], memberships })
 }
 
 function activeIn(groupId: number): VisibilityMatrix {

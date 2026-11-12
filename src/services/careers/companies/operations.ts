@@ -72,7 +72,7 @@ export const companyOperations = {
     update: defineOperation({
         paramsSchema: companySchemas.params.update,
         dataSchema: companySchemas.data.update,
-        authorizer: () => companyAuth.update,
+        authorizer: ({ params }) => companyAuth.update.data({ companyId: params.id }),
         operation: async ({ prisma, params: { id }, data }) => {
             await prisma.company.update({
                 where: { id },
@@ -106,7 +106,7 @@ export const companyOperations = {
     updateLogo: defineOperation({
         paramsSchema: companySchemas.params.updateLogo,
         dataSchema: companySchemas.data.updateLogo,
-        authorizer: () => companyAuth.updateLogo,
+        authorizer: ({ params }) => companyAuth.updateLogo.data({ companyId: params.id }),
         transaction: 'OPENS',
         operation: async ({ prisma, params: { id }, data }) =>
             // The upload writes the file before the database, so it needs more than the default

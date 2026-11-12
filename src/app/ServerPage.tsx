@@ -12,7 +12,7 @@ import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
-import type { Session } from '@/auth/session/Session'
+import type { AnySession } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { Awaitable } from '@/lib/awaitable'
@@ -20,7 +20,7 @@ import type { ServedOn } from '@/lib/sites/context'
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
-export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
+export type ServerPageSession = AnySession
 
 /**
  * The arguments a serverPage operation receives. Pages with route params annotate their

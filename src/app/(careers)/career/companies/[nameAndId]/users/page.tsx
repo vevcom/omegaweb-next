@@ -23,8 +23,8 @@ const { page, generateMetadata } = serverPage({
         const companyUsers = await companyUserOperations.readOfCompany({ params: { companyId: company.id } })
         return { company, companyUsers }
     },
-    capabilities: () => ({
-        canCreate: companyUserAuth.create,
+    capabilities: ({ company }) => ({
+        canCreate: companyUserAuth.create.data({ companyId: company.id }),
     }),
     metadata: ({ company }) => ({ title: `Brukere i ${company.name}` }),
     render: ({ data: { company, companyUsers }, capabilities }) => (

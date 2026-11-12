@@ -1,4 +1,4 @@
-import { Session } from '@/auth/session/Session'
+import { testSession } from 'tests/utils'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -84,7 +84,7 @@ describe('eventOperations.readStatistics', () => {
         expect(variant.registeredAt).toEqual([...variant.registeredAt].sort((one, other) => one.getTime() - other.getTime()))
         expect(variant.registeredAt).toHaveLength(3)
 
-        const session = (active: boolean) => Session.fromJsObject({
+        const session = (active: boolean) => testSession({
             user: null,
             permissions: [],
             memberships: active ? [{ groupId, order, active, admin: false }] : [],

@@ -28,8 +28,8 @@ type PropTypes = {
  * only shown to a user its authorizer lets through, so nothing is rendered for one who may do none of it.
  */
 export default function CompanySettings({ company, closePopUpOnSuccess, navigateOnDestroy }: PropTypes) {
-    const canUpdate = useAuthorizer({ authorizer: companyAuth.update })
-    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo })
+    const canUpdate = useAuthorizer({ authorizer: companyAuth.update.data({ companyId: company.id }) })
+    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo.data({ companyId: company.id }) })
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
     const canDestroy = useAuthorizer({ authorizer: companyAuth.destroy })
     const params = { params: { id: company.id } }
