@@ -235,6 +235,18 @@ describe('what a company user may do', () => {
             .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
     })
 
+    test('a company user reads their own company without the permission a visitor needs, and no other', async () => {
+        const colleague = await sessionOfCompanyUser(colleagueId)
+        expect(colleague.permissions).not.toContain('COMPANY_USE')
+
+        await expect(companyOperations.read({ params: { id: companyId }, session: colleague }))
+            .resolves.toMatchObject({ id: companyId })
+        await expect(companyOperations.read({ params: { id: otherCompanyId }, session: colleague }))
+            .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        await expect(companyOperations.read({ params: { id: companyId }, session: Session.empty() }))
+            .rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
+    })
+
     test('an admin of the company changes its details, but not its sponsor tier', async () => {
         const admin = await sessionOfCompanyUser(adminId)
         const outsider = await sessionOfCompanyUser(outsiderId)

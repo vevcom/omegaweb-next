@@ -8,7 +8,7 @@ const adminOrCompanyAdmin = Require.permission('COMPANY_ADMIN').or().companyAdmi
 export const companyAuth = {
     readSponsors: Require.nothing(),
     create: Require.permission('COMPANY_ADMIN'),
-    read: Require.permission('COMPANY_USE'),
+    read: Require.permission('COMPANY_USE').or().companyMember(),
     readPage: Require.permission('COMPANY_USE'),
     search: Require.permission('COMPANY_USE'),
     update: adminOrCompanyAdmin,
