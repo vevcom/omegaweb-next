@@ -1,0 +1,18 @@
+// A person who represents a company on the career site. A company user is an account of its own and
+// not a User: it has no Omega membership, no groups and no ledger account, and belongs to exactly
+// one company.
+model CompanyUser {
+  id        Int     @id @default(autoincrement())
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  companyId Int
+  email     String  @unique
+  firstname String
+  lastname  String
+  admin     Boolean @default(false)
+  active    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+}
