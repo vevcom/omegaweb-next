@@ -46,6 +46,10 @@ describe('eventSetupChecks', () => {
         const partsOf = (event: Parameters<typeof eventSetupChecks>[0]) => eventSetupChecks(event).map(check => check.part)
         expect(partsOf({ ...ready, location: ' ', eventEnd: ready.eventStart })).toEqual(['time', 'location'])
         expect(partsOf({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] })).toEqual(['visibility'])
+        // A date the form has emptied is asked for, and not compared with the others.
+        expect(eventSetupChecks({ ...ready, variants: [{ ...variant, registrationEnd: null }] })).toEqual([
+            { part: 'registration', level: 'missing', message: 'Påmeldingsperioden må settes.' },
+        ])
 
         expect(statuses({ ...ready, location: ' ' }).about.level).toBe('missing')
         expect(statuses({ ...ready, adminVisibility: { requirements: [{ conditions: [] }] } }).access.level).toBe('missing')

@@ -61,8 +61,9 @@ export default function DateInput({
     // The browser resets the date that is picked, and the one posted follows here.
     useFormReset(utcInputRef, () => setUtcValue(defaultValueTransformedUtc))
 
+    // An emptied input has no date to post, and is posted empty.
     const setUtc = (e: ChangeEvent<HTMLInputElement>) => {
-        setUtcValue(utcInputValue(new Date(e.target.value), includeTime))
+        setUtcValue(e.target.value === '' ? '' : utcInputValue(new Date(e.target.value), includeTime))
     }
 
     return (

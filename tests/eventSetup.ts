@@ -1,4 +1,4 @@
-import { toVariantDrafts } from '@/services/events/setupDraft'
+import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -19,7 +19,7 @@ export async function changeEventSetup(
     change(drafts)
     return await eventOperations.saveSetup({
         params: { id: eventId },
-        data: { variants: drafts },
+        data: { variants: variantsToPost(drafts) },
         ...(session ? { session } : { bypassAuth: true }),
     })
 }
