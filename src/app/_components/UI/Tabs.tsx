@@ -1,5 +1,6 @@
 'use client'
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import type { ReactNode } from 'react'
 
 export type TabDot = { level: 'ok' | 'warning' | 'missing', label: string }
@@ -12,6 +13,11 @@ const dotClassNames: Record<TabDot['level'], string> = {
 
 type TabsContextType = {
     active: string,
+    /**
+     * Brings a tab forward before anything else happens, for whoever needs it showing at once. Of
+     * several asked for in one go, the first is the one shown.
+     */
+    show: (tab: string) => void,
     reportErrors: (tab: string, hasErrors: boolean) => void,
     reportDots: (dots: Record<string, TabDot>) => void,
 }
@@ -50,6 +56,16 @@ export default function Tabs({ tabs, label, children }: {
         if (firstErrored) setSelected(firstErrored.key)
     }
     const active = tabs.some(tab => tab.key === selected) ? selected : tabs[0]?.key
+
+    const showing = useRef(false)
+    const show = useCallback((tab: string) => {
+        if (showing.current) return
+        showing.current = true
+        setTimeout(() => {
+            showing.current = false
+        }, 0)
+        flushSync(() => setSelected(tab))
+    }, [])
 
     const reportErrors = useCallback((tab: string, tabHasErrors: boolean) => {
         setErroredTabs(errored => {
@@ -106,7 +122,7 @@ export default function Tabs({ tabs, label, children }: {
                 </button>
             })}
         </div>
-        <TabsContext.Provider value={{ active, reportErrors, reportDots }}>
+        <TabsContext.Provider value={{ active, show, reportErrors, reportDots }}>
             <div className="min-w-0 min-h-0 overflow-y-auto p-1">
                 {children}
             </div>
