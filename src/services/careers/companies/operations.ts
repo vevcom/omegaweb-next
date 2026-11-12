@@ -13,7 +13,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementSearchOperation } from '@/services/search/implement'
 import { careerLinks } from '@/app/(careers)/links'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
-import type { SponsorCompany } from './types'
+import type { CompanyExpanded, SponsorCompany } from './types'
 
 export const companyOperations = {
     create: defineOperation({
@@ -30,6 +30,14 @@ export const companyOperations = {
             orderBy: companySponsorOrdering,
             select: sponsorSelection,
         })
+    }),
+    read: defineOperation({
+        paramsSchema: companySchemas.params.read,
+        authorizer: () => companyAuth.read,
+        operation: ({ prisma, params: { id } }): Promise<CompanyExpanded> => prisma.company.findUniqueOrThrow({
+            where: { id },
+            include: logoIncluder,
+        }),
     }),
     readPage: defineOperation({
         paramsSchema: companySchemas.params.readPage,
@@ -54,10 +62,9 @@ export const companyOperations = {
             orderBy: companySponsorOrdering,
             include: logoIncluder,
         }),
-        // A company has no page of its own, so the result opens the company list filtered to it.
         toSearchResult: company => ({
             key: `company-${company.id}`,
-            href: careerLinks.companies(company.name),
+            href: careerLinks.company(company),
             label: company.name,
             image: company.logoImage,
         }),
