@@ -9,6 +9,7 @@ import { ServiceError } from '@/services/error'
 import { DomainContext } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
+import { spellPlainly } from '@/lib/usernames/spellPlainly'
 
 /**
  * The veven mail address of a user: the address they have on our mail domains, see
@@ -16,9 +17,6 @@ import { Site } from '@/lib/sites/site'
  * not `User.email`, their private email, which is where they are reached and where the mail to
  * their veven address is sent on to.
  */
-
-/** The letters outside a to z that usernames here most often hold, as an address spells them. */
-const SPELLINGS: [letter: RegExp, spelling: string][] = [[/æ/g, 'ae'], [/ø/g, 'oe'], [/å/g, 'aa']]
 
 /** Room for the number that tells an address from one that is taken. */
 const NUMBER_LENGTH = 4
@@ -29,9 +27,7 @@ const NUMBER_LENGTH = 4
  * whose username leaves nothing is named by their id.
  */
 export function defaultVevenMailAddressLocalPart(user: { id: number, username: string }): string {
-    const spelled = SPELLINGS
-        .reduce((name, [letter, spelling]) => name.replace(letter, spelling), user.username.toLowerCase())
-        .normalize('NFKD')
+    const spelled = spellPlainly(user.username)
         .replace(/[^a-z0-9._+-]/g, '')
         // An address takes one of . _ + - at a time, and none first or last.
         .replace(/[._+-]{2,}/g, separators => separators[0])
