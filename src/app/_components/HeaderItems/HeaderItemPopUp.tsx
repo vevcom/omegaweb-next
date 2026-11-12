@@ -11,6 +11,7 @@ import {
     faQuestionCircle,
     faTag,
     faUpload,
+    faUsers,
 } from '@fortawesome/free-solid-svg-icons'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
@@ -71,6 +72,12 @@ export const HelpHeaderItemPopUp = createHeaderItemPopUp(faQuestionCircle, 18)
  * Component that can be used to show a settings pop up for a page
  */
 export const SettingsHeaderItemPopUp = createHeaderItemPopUp(faCog, 18)
+
+/**
+ * Component that can be used to show a pop up about the users of a page. No page uses it now, but
+ * the design system shows it, see .design-sync.
+ */
+export const UsersHeaderItemPopUp = createHeaderItemPopUp(faUsers, 18)
 
 /**
  * Component that can be used to show an upload pop up for a page

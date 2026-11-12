@@ -1,5 +1,5 @@
 import { Session } from '@/auth/session/Session'
-import { toVariantDrafts } from '@/services/events/setupDraft'
+import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -199,6 +199,31 @@ describe('saving an event with its registration', () => {
 
         const { variants } = await eventOperations.read({ params: { id }, bypassAuth: true })
         expect(toVariantDrafts(variants)[0].requeueUnpaidRegistrations).toBe(true)
+    })
+
+    test('refuses a price emptied in the form for a variant that takes payment, and keeps the price', async () => {
+        const id = await createEvent('Tømt pris')
+        const paid = {
+            name: 'Påmelding',
+            ...period,
+            takesPayment: true,
+            price: 100,
+            paymentStart: period.registrationStart,
+            paymentEnd: period.registrationEnd,
+            quotas: [{ name: 'Alle', places: 5, ...open }],
+        }
+        await save(id, { variants: [paid] })
+        const { variants } = await eventOperations.read({ params: { id }, bypassAuth: true })
+        const [draft] = toVariantDrafts(variants)
+
+        // As the form posts a variant whose price field was emptied.
+        const emptied = variantsToPost([{ ...draft, price: undefined }])
+        expect(emptied[0].price).toBe(0)
+        await expect(save(id, { variants: emptied })).rejects.toThrow(Smorekopp)
+        expect((await variantsOf(id))[0].price).toBe(10000)
+
+        // A variant that takes no payment has no price to post.
+        expect(variantsToPost([{ ...draft, takesPayment: false, price: undefined }])[0].price).toBeUndefined()
     })
 
     test('judges who sees the event by the quotas the same save leaves it with', async () => {

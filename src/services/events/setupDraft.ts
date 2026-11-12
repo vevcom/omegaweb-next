@@ -21,13 +21,14 @@ export type VariantDraft = {
     key: number,
     id?: number,
     name: string,
-    registrationStart: Date,
-    registrationEnd: Date,
+    /** Null for a date that was emptied in the form, which the save refuses. */
+    registrationStart: Date | null,
+    registrationEnd: Date | null,
     takesPayment: boolean,
     /** In kroner, as it is typed. */
     price?: number,
-    paymentStart?: Date,
-    paymentEnd?: Date,
+    paymentStart?: Date | null,
+    paymentEnd?: Date | null,
     requeueUnpaidRegistrations: boolean,
     numOfRegistrations: number,
     numOnWaitingList: number,
@@ -61,17 +62,25 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
 
 type PostedVariant = z.input<typeof eventVariantSetupFormSchema>[number]
 
+/**
+ * A date as it is posted. One that was emptied is posted as an empty one, which the save refuses
+ * as no date. Left out, the save would keep the old date and say all is well.
+ */
+const postedDate = (date: Date | null) => date ?? ''
+
 /** The drafts as the save takes them: the fields of its schema and nothing the form holds for itself. */
 export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
     return variants.map(variant => ({
         id: variant.id,
         name: variant.name,
-        registrationStart: variant.registrationStart,
-        registrationEnd: variant.registrationEnd,
+        registrationStart: postedDate(variant.registrationStart),
+        registrationEnd: postedDate(variant.registrationEnd),
         takesPayment: variant.takesPayment,
-        price: variant.price,
-        paymentStart: variant.paymentStart,
-        paymentEnd: variant.paymentEnd,
+        // A price that was emptied is posted as none, which the save refuses for a variant that takes
+        // payment. Left out, the save would keep the old price and say all is well.
+        price: variant.price ?? (variant.takesPayment ? 0 : undefined),
+        paymentStart: variant.paymentStart === undefined ? undefined : postedDate(variant.paymentStart),
+        paymentEnd: variant.paymentEnd === undefined ? undefined : postedDate(variant.paymentEnd),
         requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
         quotas: variant.quotas.map(quota => ({
             id: quota.id,
@@ -96,9 +105,10 @@ type ReadVariant = Omit<EventSetup['variants'][number], 'quotas'> & { quotas: { 
 /** The variants the form would post, with their dates as dates again. None when the form has no such field. */
 export function variantsFromForm(values: FormData): ReadVariant[] {
     // Written by the variants field of this form, so it has the shape `variantsToPost` gives.
-    const variants = jsonField(values, 'variants', (key, value) => (
-        postedDates.includes(key) && typeof value === 'string' ? new Date(value) : value
-    )) as ReadVariant[] | null
+    const variants = jsonField(values, 'variants', (key, value) => {
+        if (!postedDates.includes(key) || typeof value !== 'string') return value
+        return value === '' ? null : new Date(value)
+    }) as ReadVariant[] | null
     return variants ?? []
 }
 

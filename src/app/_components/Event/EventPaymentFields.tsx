@@ -46,6 +46,7 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
                 <NumberInput
                     label="Pris i kroner"
                     min={0}
+                    step={0.01}
                     value={variant.price ?? ''}
                     onChange={event => changeVariant(variant.key, {
                         price: event.target.value === '' ? undefined : Number(event.target.value),
@@ -55,17 +56,23 @@ export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
                 <DateInput
                     label="Betaling åpner"
                     includeTime
-                    defaultValue={variant.paymentStart}
+                    required
+                    defaultValue={variant.paymentStart ?? undefined}
                     onChange={event => {
-                        if (event.target.value) changeVariant(variant.key, { paymentStart: new Date(event.target.value) })
+                        changeVariant(variant.key, {
+                            paymentStart: event.target.value ? new Date(event.target.value) : null,
+                        })
                     }}
                 />
                 <DateInput
                     label="Betalingsfrist"
                     includeTime
-                    defaultValue={variant.paymentEnd}
+                    required
+                    defaultValue={variant.paymentEnd ?? undefined}
                     onChange={event => {
-                        if (event.target.value) changeVariant(variant.key, { paymentEnd: new Date(event.target.value) })
+                        changeVariant(variant.key, {
+                            paymentEnd: event.target.value ? new Date(event.target.value) : null,
+                        })
                     }}
                 />
                 <Slider
