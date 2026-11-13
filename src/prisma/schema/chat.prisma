@@ -32,6 +32,11 @@ model ChatSpace {
   // deletes the row.
   destroyedAt DateTime?
 
+  mentionsNotificationChannel   NotificationChannel @relation(name: "ChatSpaceMentionsNotificationChannel", fields: [mentionsNotificationChannelId], references: [id], onDelete: Restrict)
+  mentionsNotificationChannelId Int                 @unique
+  allNotificationChannel        NotificationChannel @relation(name: "ChatSpaceAllNotificationChannel", fields: [allNotificationChannelId], references: [id], onDelete: Restrict)
+  allNotificationChannelId      Int                 @unique
+
   members      ChatSpaceMember[]
   rooms        ChatSpaceRoom[]
   committee    Committee?
