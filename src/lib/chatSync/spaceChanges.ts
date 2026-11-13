@@ -13,6 +13,9 @@ export type WantedSpace = {
 export type WantedRoom = {
     id: string,
     name: string,
+    isPrivate: boolean,
+    /** Among the members of the space. None for a room that is not private. */
+    pickedMembers: string[],
 }
 
 export type ActualSpace = {
@@ -51,10 +54,15 @@ function planRoomChanges(homeserver: Homeserver, wanted: WantedSpace, space: Act
     // A room that could not be read is left for a later run.
     if (!room) return []
 
+    const membersToKeep = wantedRoom.isPrivate ? wantedRoom.pickedMembers : wanted.members
+    // Nobody is put in a room every member of the space may enter. They let themselves in.
+    const membersToAdd = wantedRoom.pickedMembers.filter(userId => !room.membersWithoutBot.includes(userId))
+
     return [
         ...rename(homeserver, room, wantedRoom.name),
         ...list(homeserver, space, room),
-        ...removeEveryoneBut(wanted.members, homeserver, room),
+        ...removeEveryoneBut(membersToKeep, homeserver, room),
+        ...membersToAdd.map(userId => addMember(homeserver, room, userId)),
         ...setModerators(homeserver, room, wanted.admins),
     ]
 }

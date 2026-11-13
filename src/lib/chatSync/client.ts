@@ -33,6 +33,8 @@ export type ChatRoom = {
 /** From this version of a room on, its creator outranks every level, so nobody takes the bot's power away. */
 const ROOM_VERSION_WITH_CREATOR_POWER = '12'
 
+export type NewRoom = { name: string, spaceRoomId: string, isPrivate: boolean }
+
 const membersOfSpaceLetThemselvesIn = (spaceRoomId: string) => ({
     join_rule: 'restricted',
     allow: [{ type: 'm.room_membership', room_id: spaceRoomId }],
@@ -168,12 +170,13 @@ export class ChatClient {
         return created.room_id
     }
 
-    async createRoom(spaceRoomId: string, name: string): Promise<string> {
+    async createRoom({ name, spaceRoomId, isPrivate }: NewRoom): Promise<string> {
         const created = await this.matrix('POST', '/createRoom', {
             name,
+            // Lets in only whom the bot invites, unless a join rule says otherwise.
             preset: 'private_chat',
             room_version: ROOM_VERSION_WITH_CREATOR_POWER,
-            initial_state: [
+            initial_state: isPrivate ? [] : [
                 { type: 'm.room.join_rules', state_key: '', content: membersOfSpaceLetThemselvesIn(spaceRoomId) },
             ],
             power_level_content_override: {

@@ -44,6 +44,8 @@ model ChatSpaceMember {
   chatUserId Int
   createdAt  DateTime  @default(now())
 
+  privateRoomMemberships ChatSpaceRoomMember[]
+
   @@unique([spaceId, chatUserId])
   @@index([chatUserId])
 }
@@ -58,6 +60,21 @@ model ChatSpaceRoom {
   createdAt    DateTime  @default(now())
   // The chat sync empties the room and then deletes the row.
   destroyedAt  DateTime?
+  isPrivate    Boolean   @default(false)
+
+  pickedMembers ChatSpaceRoomMember[]
 
   @@index([spaceId])
+}
+
+model ChatSpaceRoomMember {
+  id            Int             @id @default(autoincrement())
+  room          ChatSpaceRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId        Int
+  spaceMember   ChatSpaceMember @relation(fields: [spaceMemberId], references: [id], onDelete: Cascade)
+  spaceMemberId Int
+  createdAt     DateTime        @default(now())
+
+  @@unique([roomId, spaceMemberId])
+  @@index([spaceMemberId])
 }
