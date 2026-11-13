@@ -30,7 +30,7 @@ export default function SpaceAdmin({ space, rooms, members, actions }: PropTypes
                     <TextInput name="name" label="Navn" defaultValue={space.name} />
                 </Form>
             )}
-            <SpaceRooms spaceId={space.id} rooms={rooms} actions={actions} />
+            <SpaceRooms spaceId={space.id} rooms={rooms} spaceMembers={members} actions={actions} />
             <SpaceMembers spaceId={space.id} members={members} actions={actions} />
         </div>
     )
