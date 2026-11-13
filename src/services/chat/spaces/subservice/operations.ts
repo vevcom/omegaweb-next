@@ -5,6 +5,7 @@ import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
 const liveSpace = (spaceId: number) => ({ id: spaceId, destroyedAt: null })
+const userOverview = { id: true, username: true, firstname: true, lastname: true } as const
 const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => ({ id: roomId, spaceId, destroyedAt: null })
 
 /** These only write rows. The chat sync (src/lib/chatSync) makes the homeserver follow. */
@@ -33,7 +34,7 @@ export const chatSpaceOperations = {
                     chatUser: {
                         select: {
                             syncedName: true,
-                            user: { select: { id: true, username: true, firstname: true, lastname: true } },
+                            user: { select: userOverview },
                         },
                     },
                 },
@@ -93,10 +94,23 @@ export const chatSpaceOperations = {
         operation: () => async ({ prisma, params }) => {
             const rooms = await prisma.chatSpaceRoom.findMany({
                 where: { spaceId: params.spaceId, destroyedAt: null },
-                select: { id: true, name: true, matrixRoomId: true },
+                select: {
+                    id: true,
+                    name: true,
+                    matrixRoomId: true,
+                    isPrivate: true,
+                    pickedMembers: {
+                        select: { spaceMember: { select: { chatUser: { select: { user: { select: userOverview } } } } } },
+                        orderBy: { createdAt: 'asc' },
+                    },
+                },
                 orderBy: { id: 'asc' },
             })
-            return rooms.map(({ id, name, matrixRoomId }) => ({ id, name, onHomeserver: matrixRoomId !== null }))
+            return rooms.map(({ matrixRoomId, pickedMembers, ...room }) => ({
+                ...room,
+                onHomeserver: matrixRoomId !== null,
+                pickedMembers: pickedMembers.flatMap(({ spaceMember }) => spaceMember.chatUser.user ?? []),
+            }))
         },
     }),
 
@@ -106,7 +120,7 @@ export const chatSpaceOperations = {
         operation: () => async ({ prisma, params, data }) => {
             const space = await prisma.chatSpace.findFirst({ where: liveSpace(params.spaceId), select: { id: true } })
             if (!space) throw new ServiceError('NOT FOUND', 'Fant ikke chatområdet')
-            return prisma.chatSpaceRoom.create({ data: { spaceId: space.id, name: data.name } })
+            return prisma.chatSpaceRoom.create({ data: { spaceId: space.id, name: data.name, isPrivate: data.isPrivate } })
         },
     }),
 
@@ -123,6 +137,38 @@ export const chatSpaceOperations = {
         paramsSchema: () => chatSpaceSchemas.params.destroyRoom,
         operation: () => async ({ prisma, params }) => {
             await prisma.chatSpaceRoom.update({ where: liveRoom(params), data: { destroyedAt: new Date() } })
+        },
+    }),
+
+    addRoomMembers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.addRoomMembers,
+        dataSchema: () => chatSpaceSchemas.data.addRoomMembers,
+        operation: () => async ({ prisma, params, data }) => {
+            const room = await prisma.chatSpaceRoom.findFirst({ where: liveRoom(params), select: { isPrivate: true } })
+            if (!room) throw new ServiceError('NOT FOUND', 'Fant ikke rommet')
+            if (!room.isPrivate) throw new ServiceError('BAD DATA', 'Alle i chatområdet kan gå inn i dette rommet')
+
+            const spaceMembers = await prisma.chatSpaceMember.findMany({
+                where: { spaceId: params.spaceId, chatUser: { userId: { in: data.userIds } } },
+                select: { id: true },
+            })
+            if (spaceMembers.length < new Set(data.userIds).size) {
+                throw new ServiceError('BAD DATA', 'Bare medlemmer av chatområdet kan legges til i et privat rom')
+            }
+            await prisma.chatSpaceRoomMember.createMany({
+                data: spaceMembers.map(spaceMember => ({ roomId: params.roomId, spaceMemberId: spaceMember.id })),
+                skipDuplicates: true,
+            })
+        },
+    }),
+
+    removeRoomMembers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.removeRoomMembers,
+        dataSchema: () => chatSpaceSchemas.data.removeRoomMembers,
+        operation: () => async ({ prisma, params, data }) => {
+            await prisma.chatSpaceRoomMember.deleteMany({
+                where: { room: liveRoom(params), spaceMember: { chatUser: { userId: { in: data.userIds } } } },
+            })
         },
     }),
 } as const
