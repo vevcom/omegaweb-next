@@ -1,0 +1,9 @@
+# The chat for development, from the chat-infrastructure submodule. Added on top of the dev file
+# when wanted, so the dev stack never depends on the submodule being checked out:
+#
+#     npm run docker:dev -- --chat
+#
+# See README.md for how the app connects to it.
+include:
+    - path: ${PROJECT_ROOT:-.}/chat-infrastructure/dev/compose.yaml
+      project_directory: ${PROJECT_ROOT:-.}/chat-infrastructure/dev

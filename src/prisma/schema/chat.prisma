@@ -1,0 +1,9 @@
+model ChatUser {
+  id     Int  @id @default(autoincrement())
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int  @unique
+  // What stands before the colon in the user's Matrix id, @localpart:server. Matrix never lets it
+  // change, so it is decided here once and stays when the username changes.
+  localpart String   @unique
+  createdAt DateTime @default(now())
+}
