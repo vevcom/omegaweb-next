@@ -93,11 +93,14 @@ export function roomsThatAre(standing: RoomStanding, actual: ActualSpace): Actua
 }
 
 /**
- * Whether a room is a user's to hand over to a space: they made it, or hold the level that changes
- * levels in it. So the sync gives a space's admins nothing in a room that whoever listed it could
- * not have given them by hand.
+ * Whether a room is a user's to hand over to a space: they are in it, and made it or could do by
+ * hand what the sync does in a room a space holds, which is to change its levels and to raise
+ * inviting to ROOM_INVITE_LEVEL. So the sync gives a space's admins nothing in a room that whoever
+ * listed it could not have given them. A level outlives the membership it was given to, so one
+ * who was taken out of the room hands over nothing.
  */
 export function canHandOver(room: ChatRoom, userId: string): boolean {
+    if (!room.members.includes(userId)) return false
     if (room.creators.includes(userId)) return true
     const { users = {}, users_default: usersDefault = 0, events = {}, state_default: stateDefault = 50 } = room.levels as {
         users?: UserLevels,
@@ -105,7 +108,8 @@ export function canHandOver(room: ChatRoom, userId: string): boolean {
         events?: Record<string, number>,
         state_default?: number,
     }
-    return (users[userId] ?? usersDefault) >= (events['m.room.power_levels'] ?? stateDefault)
+    const levelThatChangesLevels = events['m.room.power_levels'] ?? stateDefault
+    return (users[userId] ?? usersDefault) >= Math.max(levelThatChangesLevels, ROOM_INVITE_LEVEL)
 }
 
 function rename(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {

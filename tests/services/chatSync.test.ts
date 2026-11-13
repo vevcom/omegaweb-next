@@ -307,16 +307,33 @@ describe('a room', () => {
         expect(await prisma.chatSpaceRoom.count()).toBe(0)
     })
 
-    test('is theirs to hand over who made it, or who holds the level that changes levels in it', () => {
+    test('is theirs to hand over who is in it, and made it or could do by hand what the sync does', () => {
         const room = {
             creators: ['@maker:x'],
-            members: [],
-            levels: { users: { '@owner:x': 100, '@moderator:x': 50 }, events: { 'm.room.power_levels': 100 } },
+            members: ['@maker:x', '@owner:x', '@moderator:x', '@member:x'],
+            levels: {
+                users: { '@owner:x': 100, '@moderator:x': 50, '@thrown-out:x': 100 },
+                events: { 'm.room.power_levels': 100 },
+            },
         }
         expect(canHandOver(room, '@maker:x')).toBe(true)
         expect(canHandOver(room, '@owner:x')).toBe(true)
         expect(canHandOver(room, '@moderator:x')).toBe(false)
         expect(canHandOver(room, '@member:x')).toBe(false)
+
+        // A level outlives the membership it was given to, and so does having made the room.
+        expect(canHandOver(room, '@thrown-out:x')).toBe(false)
+        expect(canHandOver({ ...room, members: ['@owner:x'] }, '@maker:x')).toBe(false)
+
+        // Where a moderator changes levels, they still give no one a level above their own.
+        const levelsAreModerators = { ...room, levels: { ...room.levels, events: { 'm.room.power_levels': 50 } } }
+        expect(canHandOver(levelsAreModerators, '@moderator:x')).toBe(false)
+        expect(canHandOver(levelsAreModerators, '@owner:x')).toBe(true)
+
+        // Where it takes more than the bot's level to change levels.
+        const levelsAreAbove = { ...room, levels: { ...room.levels, events: { 'm.room.power_levels': 150 } } }
+        expect(canHandOver(levelsAreAbove, '@owner:x')).toBe(false)
+
         // A room the homeserver does not have.
         expect(canHandOver({ creators: [], members: [], levels: {} }, '@member:x')).toBe(false)
     })
