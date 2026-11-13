@@ -135,7 +135,19 @@ describe('the spaces of a chat user', () => {
         await createChatSpace({ name: 'Andres' })
 
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
-            .resolves.toEqual({ hasChatAccount: true, spaces: [{ id: space.id, name: 'Vevcom', committee: null }] })
+            .resolves.toEqual({
+                hasChatAccount: true,
+                spaces: [{
+                    id: space.id,
+                    name: 'Vevcom',
+                    committee: null,
+                    mentionsNotificationChannel: expect.objectContaining({ id: space.mentionsNotificationChannelId }),
+                    allNotificationChannel: expect.objectContaining({
+                        id: space.allNotificationChannelId,
+                        availableMethods: { email: false, emailWeekly: true, push: true },
+                    }),
+                }],
+            })
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: ola.session }))
             .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
     })
