@@ -43,7 +43,8 @@ An overlay includes `base` and fills in what it leaves open:
   for this are documented in mail-infrastructure.
 - **The chat.** `CHAT_AUTH_URL` is the origin of the chat's sign in, MAS, whose host is the
   client id it signs users in through the provider with. Left unset, the provider knows no chat.
-  The chat's own settings for this are documented in chat-infrastructure.
+  The chat's own settings for this are documented in chat-infrastructure. `CHAT_CLIENT_URL` is the
+  origin of the chat client, which a user's chat page links to. Left unset, nothing links to it.
 - **The chat sync.** `CHAT_HOMESERVER_URL` is Synapse and `CHAT_MAS_URL` MAS's admin api, both as
   the worker reaches them inside the cluster, and `CHAT_SERVER_NAME` is the server name of the
   homeserver. `CHAT_AS_TOKEN` and `CHAT_MAS_CLIENT_SECRET` are secrets the chat has too. With all

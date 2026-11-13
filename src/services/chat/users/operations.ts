@@ -49,4 +49,30 @@ export const chatUserOperations = {
             return chatUser
         },
     }),
+
+    /** The spaces a user is in. None for a user who has not signed in to the chat. */
+    readSpaces: defineOperation({
+        paramsSchema: chatUserSchemas.params.readSpaces,
+        authorizer: ({ params }) => chatUserAuth.readSpaces.data({ userId: params.userId }),
+        operation: async ({ prisma, params }) => {
+            const chatUser = await prisma.chatUser.findUnique({
+                where: { userId: params.userId },
+                select: {
+                    spaceMemberships: {
+                        where: { space: { destroyedAt: null } },
+                        select: {
+                            space: {
+                                select: { id: true, name: true, committee: { select: { shortName: true } } },
+                            },
+                        },
+                        orderBy: { space: { name: 'asc' } },
+                    },
+                },
+            })
+            return {
+                hasChatAccount: chatUser !== null,
+                spaces: chatUser?.spaceMemberships.map(membership => membership.space) ?? [],
+            }
+        },
+    }),
 } as const

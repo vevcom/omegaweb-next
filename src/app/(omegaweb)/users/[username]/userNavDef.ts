@@ -13,6 +13,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
+import { chatUserAuth } from '@/services/chat/users/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -20,6 +21,7 @@ import { appHref } from '@/lib/sites/href'
 import {
     faCalendarCheck,
     faCircleDot,
+    faComments,
     faEnvelope,
     faHatWizard,
     faIdCard,
@@ -82,6 +84,13 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             href: appHref(`/users/${username}/mail`),
             icon: faEnvelope,
             authorizers: () => [mailAliasAuth.readReceived.data({ userId }), userAuth.updateVevenMailAddress],
+        },
+        {
+            key: 'chat',
+            name: 'Chat',
+            href: appHref(`/users/${username}/chat`),
+            icon: faComments,
+            authorizers: () => [chatUserAuth.readSpaces.data({ userId })],
         },
         {
             key: 'account',
