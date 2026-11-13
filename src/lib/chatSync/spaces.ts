@@ -1,9 +1,10 @@
 import '@pn-server-only'
 import { planSpaceChanges, removeEveryoneBut } from './spaceChanges'
-import { chatSpaceAdmins } from '@/services/chat/spaces/admins'
+import { chatSpaceAdmins, chatSpaceStandingMembers } from '@/services/chat/spaces/admins'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ActualRoom, ActualSpace, WantedRoom, WantedSpace } from './spaceChanges'
 import type { Homeserver } from './client'
+import type { ReadUserIdsOfChatSpace } from '@/services/chat/spaces/admins'
 import type { SyncReport } from './report'
 import type { ChatSpace, ChatSpaceRoom } from '@/prisma-generated-pn-types'
 
@@ -25,8 +26,9 @@ async function syncSpace(homeserver: Homeserver, space: ChatSpace, report: SyncR
     await destroyRoomsMarkedDestroyed(homeserver, space, spaceRoomId, report)
     await createRoomsNotYetMade(homeserver, space, spaceRoomId, report)
 
-    const admins = await readAdmins(space)
-    await makeAdminsMembers(space, admins)
+    const admins = await readChatUsers(chatSpaceAdmins[space.purpose], space)
+    const standingMembers = await readChatUsers(chatSpaceStandingMembers[space.purpose], space)
+    await giveMemberRows(space, [...admins, ...standingMembers])
 
     const wanted = await readWantedSpace(homeserver, space, admins)
     const actual = await readActualSpace(homeserver, spaceRoomId, wanted.rooms, report)
@@ -125,24 +127,25 @@ async function createRoomsNotYetMade(
     }
 }
 
-type Admin = { id: number }
+type ChatUserId = { id: number }
 
-async function readAdmins(space: ChatSpace): Promise<Admin[]> {
-    const userIds = await chatSpaceAdmins[space.purpose]?.({ prisma, spaceId: space.id }) ?? []
+async function readChatUsers(readUserIds: ReadUserIdsOfChatSpace | undefined, space: ChatSpace): Promise<ChatUserId[]> {
+    const userIds = await readUserIds?.({ prisma, spaceId: space.id }) ?? []
     return prisma.chatUser.findMany({
         where: { userId: { in: userIds }, deactivatedAt: null },
         select: { id: true },
     })
 }
 
-async function makeAdminsMembers(space: ChatSpace, admins: Admin[]): Promise<void> {
+/** A row is only ever given here, so one who is an admin or a standing member no longer stays until they are removed. */
+async function giveMemberRows(space: ChatSpace, chatUsers: ChatUserId[]): Promise<void> {
     await prisma.chatSpaceMember.createMany({
-        data: admins.map(admin => ({ spaceId: space.id, chatUserId: admin.id })),
+        data: chatUsers.map(chatUser => ({ spaceId: space.id, chatUserId: chatUser.id })),
         skipDuplicates: true,
     })
 }
 
-async function readWantedSpace(homeserver: Homeserver, space: ChatSpace, admins: Admin[]): Promise<WantedSpace> {
+async function readWantedSpace(homeserver: Homeserver, space: ChatSpace, admins: ChatUserId[]): Promise<WantedSpace> {
     const adminIds = admins.map(admin => admin.id)
     const members = await prisma.chatSpaceMember.findMany({
         where: {
