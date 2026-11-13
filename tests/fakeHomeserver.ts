@@ -25,6 +25,8 @@ export class FakeHomeserver implements Homeserver {
     readonly writes: string[] = []
     /** Rooms the homeserver refuses every change to, for a test of what a refusal does. */
     readonly broken: string[] = []
+    /** Accounts the homeserver fails to look up. */
+    readonly unanswered: string[] = []
     private accounts: string[] = []
     private created = 0
 
@@ -76,7 +78,10 @@ export class FakeHomeserver implements Homeserver {
 
     registerBot = () => Promise.resolve()
 
-    hasAccount = (userId: string) => Promise.resolve(this.accounts.includes(userId))
+    hasAccount(userId: string): Promise<boolean> {
+        if (this.unanswered.includes(userId)) return Promise.reject(new ChatServerError(500, 'M_UNKNOWN', 'No answer'))
+        return Promise.resolve(this.accounts.includes(userId))
+    }
 
     writeDisplayName(userId: string, displayName: string): Promise<void> {
         // Synapse would make the account. The sync must ask first.

@@ -46,3 +46,9 @@ export const SPACE_ADMIN_LEVEL = 50
  * gave it to.
  */
 export const ROOM_ADMIN_LEVEL = 99
+
+/**
+ * The level it takes to invite into a room a space holds: the bot's. Who is in a space is decided
+ * here, so nobody is let into its rooms from the chat.
+ */
+export const ROOM_INVITE_LEVEL = 100

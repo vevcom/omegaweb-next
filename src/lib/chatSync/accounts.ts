@@ -19,7 +19,11 @@ export async function syncNames(homeserver: Homeserver, report: SyncReport): Pro
         const name = nameOf(user!)
         if (syncedName === name) continue
         const userId = homeserver.userIdOf(localpart)
-        if (!await homeserver.hasAccount(userId)) continue
+        const hasAccount = await homeserver.hasAccount(userId).catch((error: unknown) => {
+            report.refuse(`look up ${userId}`, error)
+            return false
+        })
+        if (!hasAccount) continue
 
         await report.carryOut({
             what: `name ${userId}`,
