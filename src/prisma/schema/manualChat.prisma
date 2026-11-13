@@ -1,0 +1,11 @@
+model ManualChatSpaceAdmin {
+  id        Int       @id @default(autoincrement())
+  space     ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId   Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  createdAt DateTime  @default(now())
+
+  @@unique([spaceId, userId])
+  @@index([userId])
+}

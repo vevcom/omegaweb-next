@@ -4,7 +4,7 @@ import { Require } from '@/auth/authorizer/Require'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { appHref } from '@/lib/sites/href'
 import { omegaLinks } from '@/app/(omegaweb)/links'
-import { faCog, faHome, faInfo, faScroll, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faCog, faComments, faHome, faInfo, faScroll, faUsers } from '@fortawesome/free-solid-svg-icons'
 
 /** The pages of a committee, in the order they are shown. */
 export function committeeNavDef({ shortName, groupId }: { shortName: string, groupId: number }) {
@@ -36,6 +36,13 @@ export function committeeNavDef({ shortName, groupId }: { shortName: string, gro
             href: appHref(`/committees/${shortName}/members`),
             icon: faUsers,
             authorizers: () => [committeeAuth.readMembers.data({ groupId })],
+        },
+        {
+            key: 'chat',
+            name: 'Chat',
+            href: appHref(`/committees/${shortName}/chat`),
+            icon: faComments,
+            authorizers: () => [committeeAuth.readChatSpace.data({ groupId })],
         },
         {
             key: 'about',

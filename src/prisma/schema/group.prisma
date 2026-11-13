@@ -102,6 +102,9 @@ model Committee {
   paragraph          CmsParagraph @relation(fields: [paragraphId], references: [id], name: "committeeParagraph")
   paragraphId        Int          @unique
 
+  chatSpace   ChatSpace? @relation(fields: [chatSpaceId], references: [id], onDelete: SetNull)
+  chatSpaceId Int?       @unique
+
   events                             Event[]
   participationsInApplicationPeriods CommitteeParticipationInApplicationPeriod[]
 }

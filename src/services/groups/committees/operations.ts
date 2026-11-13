@@ -3,6 +3,7 @@ import { committeeAuth } from './auth'
 import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'
 import { committeeLogoImageOperations } from './committeeLogoCollection'
+import { chatSpaceOfCommittee } from './chatSpace'
 import { groupOperations } from '@/services/groups/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { defineOperation } from '@/services/serviceOperation'
@@ -189,6 +190,7 @@ const destroy = defineOperation({
 
         // Everything the committee owns goes in one transaction.
         const committee = await prisma.$transaction(async tx => {
+            await chatSpaceOfCommittee.destroy(tx, await readGroupIdOfCommittee(tx, { id: params.id }))
             const deleted = await tx.committee.delete({
                 where: {
                     id: params.id,
@@ -304,6 +306,7 @@ const update = defineOperation({
                 logoImage: { include: expandedImageIncluder },
             },
         })
+        await chatSpaceOfCommittee.rename(prisma, committee.groupId, committee.name)
 
         return {
             ...committee,

@@ -21,6 +21,7 @@ async function createUser(username: string) {
 }
 
 afterEach(async () => {
+    await prisma.chatSpace.deleteMany()
     await prisma.user.deleteMany({ where: { email: { endsWith: '@chat-test.test' } } })
     // The account of a deleted user stays, without the user.
     await prisma.chatUser.deleteMany({ where: { userId: null } })
@@ -119,5 +120,30 @@ describe('reading a chat user', () => {
             .resolves.toEqual(account)
         await expect(chatUserOperations.read({ params: { userId: kari.user.id }, session: other.session }))
             .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+    })
+})
+
+describe('the spaces of a chat user', () => {
+    test('are the ones they are in that are not destroyed, and theirs alone to see', async () => {
+        const kari = await createUser('chat-omraader')
+        const ola = await createUser('chat-omraader-annen')
+        const ofKari = { params: { userId: kari.user.id } }
+        const { id: chatUserId } = await chatUserOperations.optIn({ ...ofKari, session: kari.session })
+        const memberOf = { members: { create: { chatUserId } } }
+        const space = await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Vevcom', ...memberOf } })
+        await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Borte', destroyedAt: new Date(), ...memberOf } })
+        await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Andres' } })
+
+        await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
+            .resolves.toEqual({ hasChatAccount: true, spaces: [{ id: space.id, name: 'Vevcom', committee: null }] })
+        await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: ola.session }))
+            .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+    })
+
+    test('are none for a user who has not signed in to the chat', async () => {
+        const kari = await createUser('chat-uten-konto')
+
+        await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
+            .resolves.toEqual({ hasChatAccount: false, spaces: [] })
     })
 })

@@ -71,6 +71,7 @@ model User {
   oidcAuthorizationCodes OidcAuthorizationCode[]
   // Their account on the chat, from the first time they sign in to it.
   chatUser               ChatUser?
+  manualChatSpacesAdministered ManualChatSpaceAdmin[]
 
   // Memberships to groups (committees, interest groups, classes, etc...).
   memberships Membership[]

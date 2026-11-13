@@ -1,21 +1,25 @@
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { syncChat } from '@/lib/chatSync/sync'
 import { ROOM_MODERATOR_LEVEL } from '@/lib/chatSync/constants'
-import { chatSpaceAdmins } from '@/services/chat/spaces/admins'
+import { chatSpaceAdmins, chatSpaceStandingMembers } from '@/services/chat/spaces/admins'
 import { prisma } from '@/prisma-pn-client-instance'
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
 
 let homeserver: FakeHomeserver
 let adminUserIds: number[]
+let standingMemberUserIds: number[]
 
 beforeEach(() => {
     homeserver = new FakeHomeserver()
     adminUserIds = []
+    standingMemberUserIds = []
     chatSpaceAdmins.MANUAL = () => Promise.resolve(adminUserIds)
+    chatSpaceStandingMembers.MANUAL = () => Promise.resolve(standingMemberUserIds)
 })
 
 afterEach(async () => {
     Reflect.deleteProperty(chatSpaceAdmins, 'MANUAL')
+    Reflect.deleteProperty(chatSpaceStandingMembers, 'MANUAL')
     await prisma.chatSpace.deleteMany()
     await prisma.chatUser.deleteMany()
     await prisma.user.deleteMany({ where: { email: { endsWith: '@chat-sync.test' } } })
@@ -192,6 +196,54 @@ describe('a space', () => {
         const settled = homeserver.writes.length
         await syncChat(homeserver)
         expect(homeserver.writes).toHaveLength(settled)
+    })
+})
+
+describe('the standing members of a space', () => {
+    test('are whoever the owning service names, and are in it without anyone adding them', async () => {
+        const kari = await createChatUser('kari')
+        standingMemberUserIds = [kari.user.id]
+        const space = await createSpace('Space')
+        await syncChat(homeserver)
+
+        expect(homeserver.room(await spaceRoomIdOf(space)).members).toContain(kari.matrixId)
+        expect(await prisma.chatSpaceMember.count({ where: { spaceId: space.id } })).toBe(1)
+    })
+
+    test('stay in the space when they are named no longer, until their row is removed', async () => {
+        const kari = await createChatUser('kari')
+        standingMemberUserIds = [kari.user.id]
+        const space = await createSpace('Space')
+        await syncChat(homeserver)
+
+        standingMemberUserIds = []
+        await syncChat(homeserver)
+        expect(homeserver.room(await spaceRoomIdOf(space)).members).toContain(kari.matrixId)
+
+        await prisma.chatSpaceMember.deleteMany({ where: { spaceId: space.id } })
+        await syncChat(homeserver)
+        expect(homeserver.room(await spaceRoomIdOf(space)).members).not.toContain(kari.matrixId)
+    })
+
+    test('are in the space from the run after they first sign in to the chat', async () => {
+        const kari = await prisma.user.create({
+            data: {
+                username: 'kari',
+                email: 'kari@chat-sync.test',
+                bioParagraph: { create: {} },
+                ledgerAccount: { create: { type: 'USER' } },
+            },
+        })
+        standingMemberUserIds = [kari.id]
+        const space = await createSpace('Space')
+        await syncChat(homeserver)
+        expect(await prisma.chatSpaceMember.count({ where: { spaceId: space.id } })).toBe(0)
+
+        await prisma.chatUser.create({ data: { userId: kari.id, localpart: 'kari' } })
+        homeserver.signIn('kari')
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.room(await spaceRoomIdOf(space)).members).toContain(homeserver.userIdOf('kari'))
     })
 })
 
