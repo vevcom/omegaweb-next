@@ -2,8 +2,10 @@
 CREATE TABLE "ChatSpaceRoom" (
     "id" SERIAL NOT NULL,
     "spaceId" INTEGER NOT NULL,
-    "matrixRoomId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "matrixRoomId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "destroyedAt" TIMESTAMP(3),
 
     CONSTRAINT "ChatSpaceRoom_pkey" PRIMARY KEY ("id")
 );
