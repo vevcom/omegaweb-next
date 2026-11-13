@@ -10,13 +10,22 @@ import {
 import { chatNotificationChannel } from '@/services/chat/chatNotificationChannel'
 import { implementNotificationChannelsForPurpose } from '@/services/notifications/channels/implementForPurpose'
 import { defineSubOperation } from '@/services/serviceOperation'
+import type { ChannelsOfPurposeConfig } from '@/services/notifications/channels/implementForPurpose'
 import type { ChatSpace, NotificationChannelPurpose } from '@/prisma-generated-pn-types'
 
 type ChatSpaceChannelIds = Pick<ChatSpace, 'mentionsNotificationChannelId' | 'allNotificationChannelId'>
 
 const channels = {
-    mentions: implementForSpaces('CHAT_SPACE_MENTIONS', 'mentionsNotificationChannelId'),
-    all: implementForSpaces('CHAT_SPACE_ALL', 'allNotificationChannelId'),
+    mentions: implementForSpaces('CHAT_SPACE_MENTIONS', 'mentionsNotificationChannelId', {
+        parent: chatNotificationChannel,
+        description: chatSpaceChannelDescriptions.mentions,
+        availableMethods: chatSpaceMentionsChannelMethods,
+    }),
+    all: implementForSpaces('CHAT_SPACE_ALL', 'allNotificationChannelId', {
+        parent: chatNotificationChannel,
+        description: chatSpaceChannelDescriptions.all,
+        availableMethods: chatSpaceAllChannelMethods,
+    }),
 } as const
 
 /**
@@ -34,19 +43,11 @@ export const chatSpaceNotificationOperations = {
             paramsSchema: () => chatSpaceNotificationSchemas.params.createChannels,
             dataSchema: () => chatSpaceNotificationSchemas.data.createChannels,
             transaction: 'RUNS_IN',
-            operation: () => async ({ prisma, params, data }): Promise<ChatSpaceChannelIds> => {
-                const parent = await chatNotificationChannel.readChannelInternal({ prisma })
+            operation: () => async ({ params, data }): Promise<ChatSpaceChannelIds> => {
                 const names = chatSpaceChannelNames(data.name, params.spaceId)
-                const descriptions = chatSpaceChannelDescriptions
                 const [mentions, all] = await Promise.all([
-                    channels.mentions.internal.create.internalCall({
-                        params: { availableMethods: chatSpaceMentionsChannelMethods },
-                        data: { name: names.mentions, description: descriptions.mentions, parentId: parent.id },
-                    }),
-                    channels.all.internal.create.internalCall({
-                        params: { availableMethods: chatSpaceAllChannelMethods },
-                        data: { name: names.all, description: descriptions.all, parentId: parent.id },
-                    }),
+                    channels.mentions.internal.createAsConfigured.internalCall({ data: { name: names.mentions } }),
+                    channels.all.internal.createAsConfigured.internalCall({ data: { name: names.all } }),
                 ])
                 return { mentionsNotificationChannelId: mentions.id, allNotificationChannelId: all.id }
             },
@@ -83,9 +84,14 @@ export const chatSpaceNotificationOperations = {
     },
 } as const
 
-function implementForSpaces(purpose: NotificationChannelPurpose, channelKey: keyof ChatSpaceChannelIds) {
+function implementForSpaces(
+    purpose: NotificationChannelPurpose,
+    channelKey: keyof ChatSpaceChannelIds,
+    channelsConfig: ChannelsOfPurposeConfig,
+) {
     return implementNotificationChannelsForPurpose({
         purpose,
+        channels: channelsConfig,
         authorizers: {
             readMany: () => chatSpaceNotificationAuth.readManyChannels,
             createNotification: () => chatSpaceNotificationAuth.createNotification,
