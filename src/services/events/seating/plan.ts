@@ -182,10 +182,11 @@ export function createSeatingPlan({ guests, wishes, seats, locked = {}, seed = 1
     // Whose score changes when a guest moves: theirs, and that of everyone who wished for them.
     const touched = new Map(guests.map(({ id }) => [id, [id]]))
     Object.entries(wishes).forEach(([id, wished]) => wished.forEach(wishedId => touched.get(wishedId)?.push(Number(id))))
-    const touchedScore = (guestId: number | null) => {
+    const touchedBy = (guestId: number | null) => (guestId === null ? [] : touched.get(guestId) ?? [])
+    const touchedScore = (guestId: number | null, alreadyScored: number[] = []) => {
         let score = 0
-        for (const id of guestId === null ? [] : touched.get(guestId) ?? []) {
-            score += guestScore(id, places, seats, wishes, points)
+        for (const id of touchedBy(guestId)) {
+            if (!alreadyScored.includes(id)) score += guestScore(id, places, seats, wishes, points)
         }
         return score
     }
@@ -239,8 +240,8 @@ export function createSeatingPlan({ guests, wishes, seats, locked = {}, seed = 1
         const committees = sameTable ? [] : Array.from(new Set([firstGuest, secondGuest].flatMap(
             guestId => (guestId === null ? [] : committeesOf.get(guestId) ?? [])
         )))
-        // Someone both swapped guests wished for is scored twice, which cancels out in the change.
-        const score = () => touchedScore(firstGuest) + touchedScore(secondGuest)
+        // Someone whose score both swapped guests change is counted once, or their change would weigh double.
+        const score = () => touchedScore(firstGuest) + touchedScore(secondGuest, touchedBy(firstGuest))
             + (sameTable ? 0 : emptyScore(first.table) + emptyScore(second.table) + splitScore(committees))
         const before = score()
         swap(first, second)
