@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART } from '@/lib/chatSync/constants'
 
 /**
  * The service that signs users in to the chat, MAS in chat-infrastructure, as browsers reach it. It
@@ -17,7 +18,7 @@ function chatAuthOf(url: string | undefined): ChatAuth | null {
 }
 
 /**
- * The localparts the application's own users on the homeserver have, see chat-infrastructure: the
- * bot it acts as, and the user it reaches Synapse's admin api as. No user is given one of them.
+ * The localparts the application's own users on the homeserver have, see src/lib/chatSync. No user
+ * is given one of them.
  */
-export const RESERVED_CHAT_LOCALPARTS: readonly string[] = ['omegaweb', 'omegaweb-admin']
+export const RESERVED_CHAT_LOCALPARTS: readonly string[] = [CHAT_BOT_LOCALPART, CHAT_ADMIN_LOCALPART]

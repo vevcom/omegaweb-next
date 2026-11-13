@@ -13,9 +13,9 @@ const names = [
     'JWT_PUBLIC_KEY',
 ] as const
 
-// Secrets production may run without, since mail is optional. The test container has the development
-// EMAIL_ADMIN_PASSWORD set, so they are cleared before each test.
-const optionalNames = ['EMAIL_ADMIN_PASSWORD'] as const
+// Secrets production may run without, since mail and chat are optional. The test container has the
+// development values set, so they are cleared before each test.
+const optionalNames = ['EMAIL_ADMIN_PASSWORD', 'CHAT_AS_TOKEN', 'CHAT_MAS_CLIENT_SECRET'] as const
 
 const devValues = parseEnv(readFileSync('.env.default', 'utf8'))
 
@@ -56,13 +56,13 @@ describe('production secrets', () => {
         expect(() => assertProductionSecrets()).toThrow(/NEXTAUTH_SECRET is not set[\s\S]*JWT_SECRET is shorter/)
     })
 
-    test('refuses the development mail admin password, but accepts it unset', () => {
+    test('refuses the development secrets of mail and chat, but accepts them unset', () => {
         optionalNames.forEach(name => {
             process.env[name] = devValues[name]
         })
-        expect(() => assertProductionSecrets()).toThrow(
-            /EMAIL_ADMIN_PASSWORD has the development value/
-        )
+        optionalNames.forEach(name => {
+            expect(() => assertProductionSecrets()).toThrow(`${name} has the development value`)
+        })
 
         optionalNames.forEach(name => Reflect.deleteProperty(process.env, name))
         expect(() => assertProductionSecrets()).not.toThrow()

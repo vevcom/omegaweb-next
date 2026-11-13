@@ -44,6 +44,11 @@ An overlay includes `base` and fills in what it leaves open:
 - **The chat.** `CHAT_AUTH_URL` is the origin of the chat's sign in, MAS, whose host is the
   client id it signs users in through the provider with. Left unset, the provider knows no chat.
   The chat's own settings for this are documented in chat-infrastructure.
+- **The chat sync.** `CHAT_HOMESERVER_URL` is Synapse and `CHAT_MAS_URL` MAS's admin api, both as
+  the worker reaches them inside the cluster, and `CHAT_SERVER_NAME` is the server name of the
+  homeserver. `CHAT_AS_TOKEN` and `CHAT_MAS_CLIENT_SECRET` are secrets the chat has too. With all
+  five set, the worker keeps the homeserver's accounts and spaces in step with the database. Left
+  unset, nothing is synced.
 - **The store.** Uploaded images and ombul pdfs are on the store volume, which base mounts at
   `store/` in the app, the worker and the migrate job, and in an S3 bucket when
   `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and
