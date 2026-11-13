@@ -1,9 +1,11 @@
+import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 import { zfd } from 'zod-form-data'
 
 const dataFieldSchemas = z.object({
     name: z.string().trim().min(2).max(50),
     userIds: zfd.repeatable(z.coerce.number().array()),
+    isPrivate: Zpn.checkboxOrBoolean({ label: 'Privat' }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -22,8 +24,10 @@ export const chatSpaceSchemas = {
         update: name,
         addMembers: users,
         removeMembers: users,
-        createRoom: name,
+        createRoom: dataFieldSchemas.pick({ name: true, isPrivate: true }),
         updateRoom: name,
+        addRoomMembers: users,
+        removeRoomMembers: users,
     },
     params: {
         read: ofSpace,
@@ -36,5 +40,7 @@ export const chatSpaceSchemas = {
         createRoom: ofSpace,
         updateRoom: ofRoom,
         destroyRoom: ofRoom,
+        addRoomMembers: ofRoom,
+        removeRoomMembers: ofRoom,
     },
 }

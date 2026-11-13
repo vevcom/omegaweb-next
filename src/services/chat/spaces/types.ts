@@ -12,6 +12,8 @@ export type ChatSpaceAdminActions = Partial<{
     createRoom: ChatSpaceAction<'createRoom'>,
     updateRoom: ChatSpaceAction<'updateRoom'>,
     destroyRoom: ChatSpaceAction<'destroyRoom'>,
+    addRoomMembers: ChatSpaceAction<'addRoomMembers'>,
+    removeRoomMembers: ChatSpaceAction<'removeRoomMembers'>,
     addMembers: ChatSpaceAction<'addMembers'>,
     removeMembers: ChatSpaceAction<'removeMembers'>,
 }>

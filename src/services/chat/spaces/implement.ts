@@ -94,6 +94,16 @@ export function implementChatSpaces<
             authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
             ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
         }),
+        addRoomMembers: chatSpaceOperations.addRoomMembers.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        removeRoomMembers: chatSpaceOperations.removeRoomMembers.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
 
         internal: {
             /** For the owner to call in the transaction that writes its own row. */
