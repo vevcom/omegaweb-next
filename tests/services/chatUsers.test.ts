@@ -1,3 +1,4 @@
+import { createChatSpace } from 'tests/chatSpaces'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import { chatLocalpartAt, chatLocalpartOf } from '@/services/chat/users/localpart'
 import { userOperations } from '@/services/users/operations'
@@ -129,10 +130,9 @@ describe('the spaces of a chat user', () => {
         const ola = await createUser('chat-omraader-annen')
         const ofKari = { params: { userId: kari.user.id } }
         const { id: chatUserId } = await chatUserOperations.optIn({ ...ofKari, session: kari.session })
-        const memberOf = { members: { create: { chatUserId } } }
-        const space = await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Vevcom', ...memberOf } })
-        await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Borte', destroyedAt: new Date(), ...memberOf } })
-        await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Andres' } })
+        const space = await createChatSpace({ name: 'Vevcom', memberChatUserIds: [chatUserId] })
+        await createChatSpace({ name: 'Borte', memberChatUserIds: [chatUserId], destroyed: true })
+        await createChatSpace({ name: 'Andres' })
 
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
             .resolves.toEqual({ hasChatAccount: true, spaces: [{ id: space.id, name: 'Vevcom', committee: null }] })

@@ -1,3 +1,4 @@
+import { createChatSpace } from 'tests/chatSpaces'
 import { implementChatSpaces } from '@/services/chat/spaces/implement'
 import { Require } from '@/auth/authorizer/Require'
 import { userOperations } from '@/services/users/operations'
@@ -55,8 +56,8 @@ describe('the chat spaces of a service', () => {
 
     test('are only the spaces the service owns', async () => {
         const { session } = await createUser('spaces-owner')
-        const anothers = await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Andres' } })
-        const committees = await prisma.chatSpace.create({ data: { purpose: 'COMMITTEE', name: 'Mine' } })
+        const anothers = await createChatSpace({ name: 'Andres' })
+        const committees = await createChatSpace({ purpose: 'COMMITTEE', name: 'Mine' })
 
         for (const space of [anothers, committees]) {
             await expect(mySpaces.read({ params: { spaceId: space.id }, session }))
@@ -165,5 +166,39 @@ describe('the chat spaces of a service', () => {
 
         await expect(mySpaces.addRoomMembers({ params: ofPrat, session, data: { userIds: [kari.user.id] } }))
             .rejects.toMatchObject({ errorCode: 'BAD DATA' })
+    })
+
+    test('have a channel for mentions and one for every other message, named for them under the chat channel', async () => {
+        const { session } = await createUser('spaces-channels')
+        const space = await createMine()
+        const channelsOf = async () => {
+            const { mentionsNotificationChannel: mentions, allNotificationChannel: all } =
+                await prisma.chatSpace.findUniqueOrThrow({
+                    where: { id: space.id },
+                    select: {
+                        mentionsNotificationChannel: { include: { availableMethods: true, parent: true } },
+                        allNotificationChannel: { include: { availableMethods: true, parent: true } },
+                    },
+                })
+            return { mentions, all }
+        }
+
+        const made = await channelsOf()
+        expect(made.mentions).toMatchObject({
+            name: `Mine (chat #${space.id}): omtaler`,
+            purpose: 'CHAT_SPACE_MENTIONS',
+            parent: { special: 'CHAT' },
+            availableMethods: { email: true, emailWeekly: true, push: true },
+        })
+        expect(made.all).toMatchObject({
+            name: `Mine (chat #${space.id}): alle meldinger`,
+            purpose: 'CHAT_SPACE_ALL',
+            parent: { special: 'CHAT' },
+            availableMethods: { email: false, emailWeekly: true, push: true },
+        })
+
+        await mySpaces.update({ params: { spaceId: space.id }, session, data: { name: 'Mine, omdøpt' } })
+        expect((await channelsOf()).mentions.name).toBe(`Mine, omdøpt (chat #${space.id}): omtaler`)
+        expect((await channelsOf()).all.id).toBe(made.all.id)
     })
 })

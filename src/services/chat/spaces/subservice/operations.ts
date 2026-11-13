@@ -1,5 +1,7 @@
 import '@pn-server-only'
 import { chatSpaceSchemas } from './schemas'
+import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
+import { reserveId } from '@/lib/reserveId'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
@@ -12,8 +14,15 @@ const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => (
 export const chatSpaceOperations = {
     create: defineSubOperation({
         dataSchema: () => chatSpaceSchemas.data.create,
-        operation: ({ purpose }: { purpose: ChatSpacePurpose }) =>
-            ({ prisma, data }) => prisma.chatSpace.create({ data: { purpose, name: data.name } }),
+        transaction: 'RUNS_IN',
+        operation: ({ purpose }: { purpose: ChatSpacePurpose }) => async ({ prisma, data }) => {
+            const id = await reserveId(prisma, 'ChatSpace')
+            const notificationChannelIds = await chatSpaceNotificationOperations.internal.createChannels.internalCall({
+                params: { spaceId: id },
+                data: { name: data.name },
+            })
+            return prisma.chatSpace.create({ data: { id, purpose, name: data.name, ...notificationChannelIds } })
+        },
     }),
 
     read: defineSubOperation({
@@ -47,10 +56,18 @@ export const chatSpaceOperations = {
     update: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.update,
         dataSchema: () => chatSpaceSchemas.data.update,
-        operation: () => ({ prisma, params, data }) => prisma.chatSpace.update({
-            where: liveSpace(params.spaceId),
-            data: { name: data.name },
-        }),
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const space = await prisma.chatSpace.update({
+                where: liveSpace(params.spaceId),
+                data: { name: data.name },
+            })
+            await chatSpaceNotificationOperations.internal.renameChannels.internalCall({
+                params: { spaceId: space.id },
+                data: { name: space.name },
+            })
+            return space
+        },
     }),
 
     destroy: defineSubOperation({
