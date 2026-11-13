@@ -68,11 +68,19 @@ async function destroyRoomsMarkedDestroyed(
 
 async function tryToDestroyRoom(homeserver: Homeserver, room: ChatSpaceRoom, report: SyncReport): Promise<boolean> {
     if (room.matrixRoomId !== null) {
+        const closed = room.isPrivate || await tryToClose(homeserver, room.matrixRoomId, report)
+        if (!closed) return false
         const emptied = await tryToEmptyAndLeave(homeserver, room.matrixRoomId, report)
         if (!emptied) return false
     }
     await prisma.chatSpaceRoom.delete({ where: { id: room.id } })
     return true
+}
+
+/** So that no member of the space lets themselves in while the room is emptied. */
+async function tryToClose(homeserver: Homeserver, roomId: string, report: SyncReport): Promise<boolean> {
+    const botHasLeftIt = await homeserver.readRoom(roomId) === null
+    return botHasLeftIt || report.carryOut({ what: `close ${roomId}`, run: () => homeserver.closeRoom(roomId) })
 }
 
 async function tryToEmptyAndLeave(homeserver: Homeserver, roomId: string, report: SyncReport): Promise<boolean> {
