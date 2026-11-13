@@ -1,4 +1,4 @@
-import { ROOM_ADMIN_LEVEL, SPACE_ADMIN_LEVEL } from './constants'
+import { ROOM_ADMIN_LEVEL, ROOM_INVITE_LEVEL, SPACE_ADMIN_LEVEL } from './constants'
 import type { ChatPowerLevels, ChatRoom, Homeserver } from './client'
 import type { Change } from './report'
 
@@ -37,8 +37,8 @@ export type RoomRecords = {
 }
 
 /**
- * What a room is to the space. Only a HELD room is the space's, to set the admins of and to take
- * its former members out of.
+ * What a room is to the space. Only a HELD room is the space's, to set the levels of and to keep
+ * to the members of the space.
  * - HANDED_OVER: listed by someone who could hand it over, and in no space yet. It is taken in.
  * - HELD: taken in, and still listed.
  * - GIVEN_BACK: taken in, and listed no longer. It is its makers' again.
@@ -60,21 +60,26 @@ export function planSpaceChanges(
 ): Change[] {
     const toAdd = wanted.members.filter(userId => !actual.members.includes(userId))
     const toRemove = actual.members.filter(userId => !wanted.members.includes(userId))
+    const held = roomsThatAre('HELD', actual)
 
     return [
         ...rename(homeserver, wanted, actual),
         ...roomsThatAre('HANDED_OVER', actual).map(room => takeIn(homeserver, records, room)),
         ...toAdd.map(userId => addMember(homeserver, actual, userId)),
+        ...held.flatMap(room => keepToMembers(homeserver, room, wanted.members)),
         ...toRemove.map(userId => removeMember(homeserver, actual, userId)),
         ...setSpaceAdmins(homeserver, wanted, actual),
-        ...roomsThatAre('HELD', actual).flatMap(room => setRoomAdmins(homeserver, room, wanted)),
+        ...held.flatMap(room => setRoomLevels(homeserver, room, wanted)),
         ...roomsThatAre('GIVEN_BACK', actual).map(room => giveBack(homeserver, records, room)),
     ]
 }
 
-/** What it takes to get everyone out of a space, the rooms it holds included. */
+/** What it takes to get everyone out of a space and out of the rooms it holds. */
 export function planEmptying(homeserver: Homeserver, actual: ActualSpace): Change[] {
-    return actual.members.map(userId => removeMember(homeserver, actual, userId))
+    return [
+        ...roomsThatAre('HELD', actual).flatMap(room => keepToMembers(homeserver, room, [])),
+        ...actual.members.map(userId => removeMember(homeserver, actual, userId)),
+    ]
 }
 
 export function standingOf(room: ActualRoom): RoomStanding {
@@ -118,15 +123,25 @@ function addMember(homeserver: Homeserver, actual: ActualSpace, userId: string):
     }
 }
 
-/** Out of the rooms the space holds first, since a room lets the members of its space in. */
 function removeMember(homeserver: Homeserver, actual: ActualSpace, userId: string): Change {
     return {
         what: `remove ${userId}`,
-        run: async () => {
-            for (const room of roomsThatAre('HELD', actual)) await homeserver.removeMember(room.id, userId)
-            await homeserver.removeMember(actual.roomId, userId)
-        },
+        run: () => homeserver.removeMember(actual.roomId, userId),
     }
+}
+
+/**
+ * A room a space holds is for the members of the space, and whoever else is in it is taken out:
+ * someone removed from the space, or let into the room from the chat. It is planned before the
+ * removals from the space, since a room lets the members of its space in.
+ */
+function keepToMembers(homeserver: Homeserver, room: ActualRoom, spaceMembers: string[]): Change[] {
+    return room.members
+        .filter(userId => userId !== homeserver.botUserId && !spaceMembers.includes(userId))
+        .map(userId => ({
+            what: `remove ${userId} from the room ${room.id}`,
+            run: () => homeserver.removeMember(room.id, userId),
+        }))
 }
 
 /** Recorded first, so a room the bot then fails to enter is entered on a later run. */
@@ -140,7 +155,10 @@ function takeIn(homeserver: Homeserver, records: RoomRecords, room: ActualRoom):
     }
 }
 
-/** The room is left as its makers had it: without the level the sync gave, and without the bot. */
+/**
+ * The room is left to its makers: without the level the sync gave, without the bot, and with
+ * inviting at the level Matrix gives it when a room names none.
+ */
 function giveBack(homeserver: Homeserver, records: RoomRecords, room: ActualRoom): Change {
     return {
         what: `give back the room ${room.id}`,
@@ -148,7 +166,9 @@ function giveBack(homeserver: Homeserver, records: RoomRecords, room: ActualRoom
             if (room.members.includes(homeserver.botUserId)) {
                 const users = roomLevelsOf(room.levels.users ?? {}, [])
                 Reflect.deleteProperty(users, homeserver.botUserId)
-                await homeserver.writeState(room.id, 'm.room.power_levels', { ...room.levels, users })
+                const levels = { ...room.levels, users }
+                Reflect.deleteProperty(levels, 'invite')
+                await homeserver.writeState(room.id, 'm.room.power_levels', levels)
                 await homeserver.leave(room.id)
             }
             await records.forget(room.id)
@@ -165,8 +185,11 @@ function setSpaceAdmins(homeserver: Homeserver, wanted: WantedSpace, actual: Act
     }]
 }
 
-/** The admins of a room are set from the run after it is taken in, once the bot is in it. */
-function setRoomAdmins(homeserver: Homeserver, room: ActualRoom, wanted: WantedSpace): Change[] {
+/**
+ * In a room a space holds, the space's admins are admins and only the bot invites. Set from the
+ * run after the room is taken in, once the bot is in it.
+ */
+function setRoomLevels(homeserver: Homeserver, room: ActualRoom, wanted: WantedSpace): Change[] {
     if (!room.members.includes(homeserver.botUserId)) {
         return [{
             what: `enter the room ${room.id}`,
@@ -174,11 +197,15 @@ function setRoomAdmins(homeserver: Homeserver, room: ActualRoom, wanted: WantedS
         }]
     }
     const adminsToGiveALevel = wanted.admins.filter(userId => !room.creators.includes(userId))
-    const levels = roomLevelsOf(room.levels.users ?? {}, adminsToGiveALevel)
-    if (sameLevels(room.levels.users ?? {}, levels)) return []
+    const users = roomLevelsOf(room.levels.users ?? {}, adminsToGiveALevel)
+    if (sameLevels(room.levels.users ?? {}, users) && room.levels.invite === ROOM_INVITE_LEVEL) return []
     return [{
-        what: `set the admins of the room ${room.id}`,
-        run: () => homeserver.writeState(room.id, 'm.room.power_levels', { ...room.levels, users: levels }),
+        what: `set the levels of the room ${room.id}`,
+        run: () => homeserver.writeState(room.id, 'm.room.power_levels', {
+            ...room.levels,
+            invite: ROOM_INVITE_LEVEL,
+            users,
+        }),
     }]
 }
 

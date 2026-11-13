@@ -1,7 +1,7 @@
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { syncChat } from '@/lib/chatSync/sync'
 import { canHandOver, roomLevelsOf, spaceLevelsOf } from '@/lib/chatSync/spaceChanges'
-import { ROOM_ADMIN_LEVEL, SPACE_ADMIN_LEVEL } from '@/lib/chatSync/constants'
+import { ROOM_ADMIN_LEVEL, ROOM_INVITE_LEVEL, SPACE_ADMIN_LEVEL } from '@/lib/chatSync/constants'
 import { chatSpaceAdmins } from '@/services/chat/spaces/admins'
 import { prisma } from '@/prisma-pn-client-instance'
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
@@ -71,6 +71,20 @@ describe('the names of the accounts', () => {
         await prisma.user.update({ where: { id: kari.user.id }, data: { firstname: 'Karianne' } })
         await syncChat(homeserver)
         expect(homeserver.names.get(kari.matrixId)).toBe('Karianne kari')
+    })
+})
+
+describe('an account the homeserver will not answer for', () => {
+    test('keeps neither the other names nor the spaces from being synced, and is named', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const space = await createSpace('Space', [ola])
+        homeserver.unanswered.push(kari.matrixId)
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`look up ${kari.matrixId}`)
+
+        expect(homeserver.names.get(ola.matrixId)).toBe('Kari ola')
+        expect(await roomIdOf(space)).not.toBeNull()
     })
 })
 
@@ -249,6 +263,32 @@ describe('a room', () => {
         return roomIdOf(space)
     }
 
+    test('the space holds is for its members, and whoever else is in it is taken out', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const space = await createSpace('Space', [kari])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(space), kari.matrixId)
+        await syncChat(homeserver)
+
+        // Ola was never in the space: Kari let them into the room from the chat.
+        homeserver.room(room).members.push(ola.matrixId)
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).members).toEqual([kari.matrixId, homeserver.botUserId])
+    })
+
+    test('the space holds lets only the bot invite', async () => {
+        const kari = await createChatUser('kari')
+        const space = await createSpace('Space', [kari])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(space), kari.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).levels.invite).toBe(ROOM_INVITE_LEVEL)
+    })
+
     test('listed by someone it is not theirs to hand over is left as it is', async () => {
         const kari = await createChatUser('kari')
         const ola = await createChatUser('ola')
@@ -317,7 +357,7 @@ describe('a room', () => {
         await syncChat(homeserver)
 
         expect(homeserver.room(room).members).toEqual([ola.matrixId])
-        expect(homeserver.room(room).levels.users).toEqual({})
+        expect(homeserver.room(room).levels).toEqual({ users: {} })
         expect(await prisma.chatSpaceRoom.count()).toBe(0)
 
         homeserver.listRoom(await roomIdOf(second), room, ola.matrixId)
@@ -351,6 +391,8 @@ describe('a destroyed space', () => {
         const roomId = await roomIdOf(space)
         const room = homeserver.makeRoom(roomId, kari.matrixId)
         await syncChat(homeserver)
+        // Someone who left the space on their own and stayed in its room.
+        homeserver.room(room).members.push(homeserver.signIn('left-the-space'))
 
         await prisma.chatSpace.update({ where: { id: space.id }, data: { destroyedAt: new Date() } })
         await syncChat(homeserver)

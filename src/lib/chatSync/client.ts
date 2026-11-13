@@ -160,12 +160,14 @@ export class ChatClient {
 
     /**
      * A space only the bot lets anyone into, where SPACE_ADMIN_LEVEL adds and removes rooms and
-     * every other change is the bot's.
+     * every other change is the bot's. The bot's power in it is its creator's, which no rewrite of
+     * the levels takes away, and that holds from the room version asked for here.
      */
     async createSpace(name: string): Promise<string> {
         const created = await this.matrix('POST', '/createRoom', {
             name,
             preset: 'private_chat',
+            room_version: String(FIRST_ROOM_VERSION_OF_CREATOR_POWER),
             creation_content: { type: 'm.space' },
             power_level_content_override: {
                 events: { 'm.space.child': SPACE_ADMIN_LEVEL },
