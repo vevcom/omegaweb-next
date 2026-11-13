@@ -19,8 +19,8 @@ export type SpecialNotificationChannelConfig = {
     alias?: string,
 }
 
-/** What a special channel needs of its parent: to read it, creating it when it is missing. */
-type ParentChannel = {
+/** What is needed of a special channel to put another under it: to read it, creating it when it is missing. */
+export type ParentChannel = {
     readChannelInternal: (args: { prisma: PrismaPossibleTransaction<false> }) => Promise<ExpandedNotificationChannel>,
 }
 
