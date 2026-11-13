@@ -8,21 +8,14 @@ import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 import type { Awaitable } from '@/lib/awaitable'
 import type { z } from 'zod'
 
-/** The space in question, with the implementation params of the owner when it takes any, such as its group's id. */
 type SpaceArgs<ImplementationParamsSchema extends z.ZodTypeAny | undefined> = {
     prisma: PrismaPossibleTransaction<false>,
     spaceId: number,
 } & ImplementationParamsObject<ImplementationParamsSchema, 'INFERRED'>
 
 /**
- * The chat space operations of one service that owns spaces, such as the committees. Its purpose
- * marks the spaces it makes, and it owns a space when the space has that purpose and its own
- * `ownershipCheck` says so: a committee owns the space of that committee, not every committee's.
- *
- * `create` comes out internal: the owner calls it in the transaction that writes its own row, and
- * keeps the space's id there. Who is in a space is `setMembers`'s to let through. Who administers
- * one is not asked here but by the chat sync, of `chatSpaceAdmins` in admins.ts, where the owner
- * adds how its admins are read.
+ * The chat space operations of one owner. It owns a space that has its purpose and passes its
+ * `ownershipCheck`. Who administers a space is the owner's entry in `chatSpaceAdmins`, not asked here.
  */
 export function implementChatSpaces<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined
@@ -39,8 +32,8 @@ export function implementChatSpaces<
         update: (args: SpaceArgs<ImplementationParamsSchema>) => Awaitable<Authorizer>,
         destroy: (args: SpaceArgs<ImplementationParamsSchema>) => Awaitable<Authorizer>,
         setMembers: (args: SpaceArgs<ImplementationParamsSchema>) => Awaitable<Authorizer>,
+        setRooms: (args: SpaceArgs<ImplementationParamsSchema>) => Awaitable<Authorizer>,
     },
-    /** Whether the space is the owner's own, on top of having its purpose. */
     ownershipCheck: (args: SpaceArgs<ImplementationParamsSchema>) => Awaitable<boolean>,
 }) {
     const ownsSpace = async (args: SpaceArgs<ImplementationParamsSchema>): Promise<boolean> => {
@@ -81,8 +74,39 @@ export function implementChatSpaces<
             authorizer: args => authorizers.setMembers({ ...args, spaceId: args.params.spaceId }),
             ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
         }),
+        readRooms: chatSpaceOperations.readRooms.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.read({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        createRoom: chatSpaceOperations.createRoom.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        updateRoom: chatSpaceOperations.updateRoom.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        destroyRoom: chatSpaceOperations.destroyRoom.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        addRoomMembers: chatSpaceOperations.addRoomMembers.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
+        removeRoomMembers: chatSpaceOperations.removeRoomMembers.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setRooms({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
 
         internal: {
+            /** For the owner to call in the transaction that writes its own row. */
             create: defineSubOperation({
                 dataSchema: () => chatSpaceSchemas.data.create,
                 operation: () => ({ data }) => chatSpaceOperations.create.internalCall({

@@ -9,19 +9,12 @@ type PropTypes = {
     action: ActionFormData<unknown>,
     /** Where to go once the password is set. */
     navigateOnSuccess: AppHref,
-    title?: string,
-    submitText?: string,
 }
 
-export default function ResetPasswordForm({
-    action,
-    navigateOnSuccess,
-    title = 'Nullstill passord',
-    submitText = 'Endre passord',
-}: PropTypes) {
+export default function ResetPasswordForm({ action, navigateOnSuccess }: PropTypes) {
     return <Form
-        title={title}
-        submitText={submitText}
+        title="Nullstill passord"
+        submitText="Endre passord"
         action={action}
         navigateOnSuccess={navigateOnSuccess}
     >

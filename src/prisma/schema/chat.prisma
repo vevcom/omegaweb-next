@@ -15,14 +15,12 @@ model ChatUser {
   spaceMemberships ChatSpaceMember[]
 }
 
-// Which service owns a space, see src/services/chat/spaces.
 enum ChatSpacePurpose {
   COMMITTEE
   MANUAL
 }
 
-// A space on the chat: a group of rooms with a member list. The chat sync makes the Matrix space
-// from the row and keeps its name, members and admins as they are here.
+
 model ChatSpace {
   id      Int              @id @default(autoincrement())
   purpose ChatSpacePurpose
@@ -35,6 +33,7 @@ model ChatSpace {
   destroyedAt DateTime?
 
   members ChatSpaceMember[]
+  rooms   ChatSpaceRoom[]
 }
 
 model ChatSpaceMember {
@@ -45,6 +44,37 @@ model ChatSpaceMember {
   chatUserId Int
   createdAt  DateTime  @default(now())
 
+  privateRoomMemberships ChatSpaceRoomMember[]
+
   @@unique([spaceId, chatUserId])
   @@index([chatUserId])
+}
+
+model ChatSpaceRoom {
+  id           Int       @id @default(autoincrement())
+  space        ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId      Int
+  name         String
+  // Null until the chat sync has made the room.
+  matrixRoomId String?   @unique
+  createdAt    DateTime  @default(now())
+  // The chat sync empties the room and then deletes the row.
+  destroyedAt  DateTime?
+  isPrivate    Boolean   @default(false)
+
+  pickedMembers ChatSpaceRoomMember[]
+
+  @@index([spaceId])
+}
+
+model ChatSpaceRoomMember {
+  id            Int             @id @default(autoincrement())
+  room          ChatSpaceRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId        Int
+  spaceMember   ChatSpaceMember @relation(fields: [spaceMemberId], references: [id], onDelete: Cascade)
+  spaceMemberId Int
+  createdAt     DateTime        @default(now())
+
+  @@unique([roomId, spaceMemberId])
+  @@index([spaceMemberId])
 }

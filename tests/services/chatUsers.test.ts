@@ -22,6 +22,8 @@ async function createUser(username: string) {
 
 afterEach(async () => {
     await prisma.user.deleteMany({ where: { email: { endsWith: '@chat-test.test' } } })
+    // The account of a deleted user stays, without the user.
+    await prisma.chatUser.deleteMany({ where: { userId: null } })
 })
 
 describe('the localpart of a chat user', () => {
@@ -89,11 +91,16 @@ describe('opting in to the chat', () => {
             .rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
     })
 
-    test('goes with the user when they are deleted', async () => {
+    test('stays when the user is deleted, so their localpart is given to no one after them', async () => {
+        const deleted = await createUser('chat-slettes')
+        await chatUserOperations.optIn({ params: { userId: deleted.user.id }, session: deleted.session })
+        await prisma.user.delete({ where: { id: deleted.user.id } })
+        await expect(prisma.chatUser.findUniqueOrThrow({ where: { localpart: 'chat-slettes' } }))
+            .resolves.toMatchObject({ userId: null })
+
         const { user, session } = await createUser('chat-slettes')
-        await chatUserOperations.optIn({ params: { userId: user.id }, session })
-        await prisma.user.delete({ where: { id: user.id } })
-        await expect(prisma.chatUser.count({ where: { userId: user.id } })).resolves.toBe(0)
+        await expect(chatUserOperations.optIn({ params: { userId: user.id }, session }))
+            .resolves.toMatchObject({ localpart: 'chat-slettes2' })
     })
 })
 

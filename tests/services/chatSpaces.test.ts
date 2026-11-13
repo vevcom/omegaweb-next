@@ -13,6 +13,7 @@ const mySpaces = implementChatSpaces({
         update: () => Require.user(),
         destroy: () => Require.user(),
         setMembers: () => Require.user(),
+        setRooms: () => Require.user(),
     },
     ownershipCheck: async ({ prisma: client, spaceId }) =>
         (await client.chatSpace.findUniqueOrThrow({ where: { id: spaceId } })).name.startsWith('Mine'),
@@ -98,5 +99,71 @@ describe('the chat spaces of a service', () => {
         expect(await prisma.chatSpace.findUniqueOrThrow({ where: { id: space.id } }))
             .toMatchObject({ destroyedAt: expect.any(Date) })
         await expect(mySpaces.read({ params, session })).rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+    })
+
+    test('have rooms, which are made, renamed, and destroyed by being marked for the chat sync to empty', async () => {
+        const { session } = await createUser('spaces-rooms')
+        const space = await createMine()
+        const anotherSpace = await createMine()
+        const params = { spaceId: space.id }
+
+        const room = await mySpaces.createRoom({ params, session, data: { name: 'Prat', isPrivate: false } })
+        await mySpaces.updateRoom({ params: { ...params, roomId: room.id }, session, data: { name: 'Skravling' } })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toEqual([
+            { id: room.id, name: 'Skravling', onHomeserver: false, isPrivate: false, pickedMembers: [] },
+        ])
+
+        const roomOfAnotherSpace = { spaceId: anotherSpace.id, roomId: room.id }
+        await expect(mySpaces.destroyRoom({ params: roomOfAnotherSpace, session }))
+            .rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+
+        await mySpaces.destroyRoom({ params: { ...params, roomId: room.id }, session })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toEqual([])
+        expect(await prisma.chatSpaceRoom.findUniqueOrThrow({ where: { id: room.id } }))
+            .toMatchObject({ destroyedAt: expect.any(Date) })
+    })
+
+    test('take no room once they are destroyed', async () => {
+        const { session } = await createUser('spaces-rooms-late')
+        const space = await createMine()
+        const params = { spaceId: space.id }
+        await mySpaces.destroy({ params, session })
+
+        await expect(mySpaces.createRoom({ params, session, data: { name: 'Prat', isPrivate: false } }))
+            .rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+    })
+
+    test('have private rooms, which take members of the space and lose them with the space', async () => {
+        const { session } = await createUser('spaces-private')
+        const kari = await createUser('spaces-private-kari')
+        const outsider = await createUser('spaces-private-outsider')
+        const space = await createMine()
+        const params = { spaceId: space.id }
+        await mySpaces.addMembers({ params, session, data: { userIds: [kari.user.id] } })
+        const styret = await mySpaces.createRoom({ params, session, data: { name: 'Styret', isPrivate: true } })
+        const ofStyret = { ...params, roomId: styret.id }
+
+        await mySpaces.addRoomMembers({ params: ofStyret, session, data: { userIds: [kari.user.id] } })
+        await expect(mySpaces.addRoomMembers({ params: ofStyret, session, data: { userIds: [outsider.user.id] } }))
+            .rejects.toMatchObject({ errorCode: 'BAD DATA' })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toMatchObject([
+            { id: styret.id, isPrivate: true, pickedMembers: [{ id: kari.user.id, username: 'spaces-private-kari' }] },
+        ])
+
+        await mySpaces.removeMembers({ params, session, data: { userIds: [kari.user.id] } })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toMatchObject([{ pickedMembers: [] }])
+    })
+
+    test('have rooms every member may enter, which nobody is picked for', async () => {
+        const { session } = await createUser('spaces-open')
+        const kari = await createUser('spaces-open-kari')
+        const space = await createMine()
+        const params = { spaceId: space.id }
+        await mySpaces.addMembers({ params, session, data: { userIds: [kari.user.id] } })
+        const prat = await mySpaces.createRoom({ params, session, data: { name: 'Prat', isPrivate: false } })
+        const ofPrat = { ...params, roomId: prat.id }
+
+        await expect(mySpaces.addRoomMembers({ params: ofPrat, session, data: { userIds: [kari.user.id] } }))
+            .rejects.toMatchObject({ errorCode: 'BAD DATA' })
     })
 })

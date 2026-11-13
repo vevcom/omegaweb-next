@@ -5,12 +5,10 @@ import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
 const liveSpace = (spaceId: number) => ({ id: spaceId, destroyedAt: null })
+const userOverview = { id: true, username: true, firstname: true, lastname: true } as const
+const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => ({ id: roomId, spaceId, destroyedAt: null })
 
-/**
- * The spaces of the chat. A space is owned by the service that implements these, which its purpose
- * names. The operations only write rows: the chat sync (src/lib/chatSync) is what makes the
- * homeserver follow, within the interval of the chat worker.
- */
+/** These only write rows. The chat sync (src/lib/chatSync) makes the homeserver follow. */
 export const chatSpaceOperations = {
     create: defineSubOperation({
         dataSchema: () => chatSpaceSchemas.data.create,
@@ -27,7 +25,6 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** Those picked for the space, with whether their account is on the homeserver yet. */
     readMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.readMembers,
         operation: () => async ({ prisma, params }) => {
@@ -37,7 +34,7 @@ export const chatSpaceOperations = {
                     chatUser: {
                         select: {
                             syncedName: true,
-                            user: { select: { id: true, username: true, firstname: true, lastname: true } },
+                            user: { select: userOverview },
                         },
                     },
                 },
@@ -56,7 +53,6 @@ export const chatSpaceOperations = {
         }),
     }),
 
-    /** Marks the space destroyed. The chat sync takes everyone out of it and then deletes the row. */
     destroy: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
@@ -64,7 +60,6 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** Only those with a chat account can be members, which is to say those who have signed in to the chat. */
     addMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.addMembers,
         dataSchema: () => chatSpaceSchemas.data.addMembers,
@@ -83,13 +78,96 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** An admin of the space who is removed is put back by the chat sync, see src/lib/chatSync/spaces.ts. */
+    /** The chat sync puts an admin of the space who is removed back. */
     removeMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.removeMembers,
         dataSchema: () => chatSpaceSchemas.data.removeMembers,
         operation: () => async ({ prisma, params, data }) => {
             await prisma.chatSpaceMember.deleteMany({
                 where: { spaceId: params.spaceId, chatUser: { userId: { in: data.userIds } } },
+            })
+        },
+    }),
+
+    readRooms: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.readRooms,
+        operation: () => async ({ prisma, params }) => {
+            const rooms = await prisma.chatSpaceRoom.findMany({
+                where: { spaceId: params.spaceId, destroyedAt: null },
+                select: {
+                    id: true,
+                    name: true,
+                    matrixRoomId: true,
+                    isPrivate: true,
+                    pickedMembers: {
+                        select: { spaceMember: { select: { chatUser: { select: { user: { select: userOverview } } } } } },
+                        orderBy: { createdAt: 'asc' },
+                    },
+                },
+                orderBy: { id: 'asc' },
+            })
+            return rooms.map(({ matrixRoomId, pickedMembers, ...room }) => ({
+                ...room,
+                onHomeserver: matrixRoomId !== null,
+                pickedMembers: pickedMembers.flatMap(({ spaceMember }) => spaceMember.chatUser.user ?? []),
+            }))
+        },
+    }),
+
+    createRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.createRoom,
+        dataSchema: () => chatSpaceSchemas.data.createRoom,
+        operation: () => async ({ prisma, params, data }) => {
+            const space = await prisma.chatSpace.findFirst({ where: liveSpace(params.spaceId), select: { id: true } })
+            if (!space) throw new ServiceError('NOT FOUND', 'Fant ikke chatområdet')
+            return prisma.chatSpaceRoom.create({ data: { spaceId: space.id, name: data.name, isPrivate: data.isPrivate } })
+        },
+    }),
+
+    updateRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.updateRoom,
+        dataSchema: () => chatSpaceSchemas.data.updateRoom,
+        operation: () => ({ prisma, params, data }) => prisma.chatSpaceRoom.update({
+            where: liveRoom(params),
+            data: { name: data.name },
+        }),
+    }),
+
+    destroyRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.destroyRoom,
+        operation: () => async ({ prisma, params }) => {
+            await prisma.chatSpaceRoom.update({ where: liveRoom(params), data: { destroyedAt: new Date() } })
+        },
+    }),
+
+    addRoomMembers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.addRoomMembers,
+        dataSchema: () => chatSpaceSchemas.data.addRoomMembers,
+        operation: () => async ({ prisma, params, data }) => {
+            const room = await prisma.chatSpaceRoom.findFirst({ where: liveRoom(params), select: { isPrivate: true } })
+            if (!room) throw new ServiceError('NOT FOUND', 'Fant ikke rommet')
+            if (!room.isPrivate) throw new ServiceError('BAD DATA', 'Alle i chatområdet kan gå inn i dette rommet')
+
+            const spaceMembers = await prisma.chatSpaceMember.findMany({
+                where: { spaceId: params.spaceId, chatUser: { userId: { in: data.userIds } } },
+                select: { id: true },
+            })
+            if (spaceMembers.length < new Set(data.userIds).size) {
+                throw new ServiceError('BAD DATA', 'Bare medlemmer av chatområdet kan legges til i et privat rom')
+            }
+            await prisma.chatSpaceRoomMember.createMany({
+                data: spaceMembers.map(spaceMember => ({ roomId: params.roomId, spaceMemberId: spaceMember.id })),
+                skipDuplicates: true,
+            })
+        },
+    }),
+
+    removeRoomMembers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.removeRoomMembers,
+        dataSchema: () => chatSpaceSchemas.data.removeRoomMembers,
+        operation: () => async ({ prisma, params, data }) => {
+            await prisma.chatSpaceRoomMember.deleteMany({
+                where: { room: liveRoom(params), spaceMember: { chatUser: { userId: { in: data.userIds } } } },
             })
         },
     }),

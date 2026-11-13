@@ -1,130 +1,123 @@
-import { ROOM_ADMIN_LEVEL, SPACE_ADMIN_LEVEL } from './constants'
+import { ROOM_MODERATOR_LEVEL } from './constants'
 import type { ChatPowerLevels, Homeserver } from './client'
 import type { Change } from './report'
 
-/** A space as the database says it is to be. Members and admins are Matrix user ids. */
+/** Members, admins and rooms are Matrix ids. */
 export type WantedSpace = {
     name: string,
     members: string[],
-    /** Among the members. */
     admins: string[],
+    rooms: WantedRoom[],
 }
 
-/** A space as it is on the homeserver. */
+export type WantedRoom = {
+    id: string,
+    name: string,
+    isPrivate: boolean,
+    /** Among the members of the space. None for a room that is not private. */
+    pickedMembers: string[],
+}
+
 export type ActualSpace = {
-    /** The space's own id on the homeserver, where a space is a room that holds rooms. */
-    roomId: string,
+    id: string,
     name: string | undefined,
-    /** Without the bot. */
-    members: string[],
-    levels: ChatPowerLevels,
+    membersWithoutBot: string[],
+    invitedUserIds: string[],
+    listedRoomIds: string[],
     rooms: ActualRoom[],
 }
 
-/** A room of a space. `entered` is null for a room the bot is not in yet, which it can neither read nor change. */
 export type ActualRoom = {
     id: string,
-    entered: {
-        levels: ChatPowerLevels,
-        /** Those who made the room. They outrank every level, and Matrix refuses them one. */
-        creators: string[],
-    } | null,
+    name: string | undefined,
+    membersWithoutBot: string[],
+    invitedUserIds: string[],
+    levels: ChatPowerLevels,
 }
+
+type Occupied = { id: string, membersWithoutBot: string[], invitedUserIds: string[] }
 
 type UserLevels = Record<string, number>
 
-/**
- * What it takes to make a space on the homeserver what the database says, in the order it is
- * done. Nothing is read or changed here: the changes are for the caller to carry out.
- */
+/** Reads and changes nothing: the changes are for the caller to carry out, in this order. */
 export function planSpaceChanges(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {
-    const toAdd = wanted.members.filter(userId => !actual.members.includes(userId))
-    const toRemove = actual.members.filter(userId => !wanted.members.includes(userId))
+    const membersToAdd = wanted.members.filter(userId => !actual.membersWithoutBot.includes(userId))
 
     return [
-        ...rename(homeserver, wanted, actual),
-        ...toAdd.map(userId => addMember(homeserver, actual, userId)),
-        ...toRemove.map(userId => removeMember(homeserver, actual, userId)),
-        ...setSpaceAdmins(homeserver, wanted, actual),
-        ...actual.rooms.flatMap(room => setRoomAdmins(homeserver, room, wanted)),
+        ...rename(homeserver, actual, wanted.name),
+        ...membersToAdd.map(userId => addMember(homeserver, actual, userId)),
+        // Before the rooms, which let the members of the space back in.
+        ...removeEveryoneBut(wanted.members, homeserver, actual),
+        ...wanted.rooms.flatMap(wantedRoom => planRoomChanges(homeserver, wanted, actual, wantedRoom)),
     ]
 }
 
-/** What it takes to get everyone out of a space, the rooms of it included. */
-export function planEmptying(homeserver: Homeserver, actual: ActualSpace): Change[] {
-    return actual.members.map(userId => removeMember(homeserver, actual, userId))
+function planRoomChanges(homeserver: Homeserver, wanted: WantedSpace, space: ActualSpace, wantedRoom: WantedRoom): Change[] {
+    const room = space.rooms.find(actualRoom => actualRoom.id === wantedRoom.id)
+    // A room that could not be read is left for a later run.
+    if (!room) return []
+
+    const membersToKeep = wantedRoom.isPrivate ? wantedRoom.pickedMembers : wanted.members
+    // Nobody is put in a room every member of the space may enter. They let themselves in.
+    const membersToAdd = wantedRoom.pickedMembers.filter(userId => !room.membersWithoutBot.includes(userId))
+
+    return [
+        ...rename(homeserver, room, wantedRoom.name),
+        ...list(homeserver, space, room),
+        ...removeEveryoneBut(membersToKeep, homeserver, room),
+        ...membersToAdd.map(userId => addMember(homeserver, room, userId)),
+        ...setModerators(homeserver, room, wanted.admins),
+    ]
 }
 
-function rename(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {
-    if (actual.name === wanted.name) return []
+/** An invitation is taken back too, since whoever holds one lets themselves in with it. */
+export function removeEveryoneBut(userIdsToKeep: string[], homeserver: Homeserver, room: Occupied): Change[] {
+    return [...room.membersWithoutBot, ...room.invitedUserIds]
+        .filter(userId => !userIdsToKeep.includes(userId))
+        .map(userId => removeMember(homeserver, room, userId))
+}
+
+function rename(homeserver: Homeserver, room: { id: string, name: string | undefined }, name: string): Change[] {
+    if (room.name === name) return []
     return [{
-        what: `rename the space to ${wanted.name}`,
-        run: () => homeserver.writeState(actual.roomId, 'm.room.name', { name: wanted.name }),
+        what: `rename ${room.id} to ${name}`,
+        run: () => homeserver.writeState(room.id, 'm.room.name', { name }),
     }]
 }
 
-function addMember(homeserver: Homeserver, actual: ActualSpace, userId: string): Change {
+function list(homeserver: Homeserver, space: ActualSpace, room: ActualRoom): Change[] {
+    if (space.listedRoomIds.includes(room.id)) return []
+    return [{
+        what: `list ${room.id} in ${space.id}`,
+        run: () => homeserver.listRoom(space.id, room.id),
+    }]
+}
+
+function addMember(homeserver: Homeserver, room: { id: string }, userId: string): Change {
     return {
-        what: `add ${userId}`,
-        run: () => homeserver.addMember(actual.roomId, userId),
+        what: `add ${userId} to ${room.id}`,
+        run: () => homeserver.addMember(room.id, userId),
     }
 }
 
-/** Out of the rooms first, since a room lets the members of its space in. */
-function removeMember(homeserver: Homeserver, actual: ActualSpace, userId: string): Change {
+function removeMember(homeserver: Homeserver, room: { id: string }, userId: string): Change {
     return {
-        what: `remove ${userId}`,
-        run: async () => {
-            for (const room of actual.rooms) await homeserver.removeMember(room.id, userId)
-            await homeserver.removeMember(actual.roomId, userId)
-        },
+        what: `remove ${userId} from ${room.id}`,
+        run: () => homeserver.removeMember(room.id, userId),
     }
 }
 
-function setSpaceAdmins(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {
-    const levels = spaceLevelsOf(wanted.admins)
-    if (sameLevels(actual.levels.users ?? {}, levels)) return []
+function setModerators(homeserver: Homeserver, room: ActualRoom, moderators: string[]): Change[] {
+    const levels = moderatorLevelsOf(moderators)
+    if (sameLevels(room.levels.users ?? {}, levels)) return []
     return [{
-        what: 'set the admins of the space',
-        run: () => homeserver.writeState(actual.roomId, 'm.room.power_levels', { ...actual.levels, users: levels }),
+        what: `set the moderators of ${room.id}`,
+        run: () => homeserver.writeState(room.id, 'm.room.power_levels', { ...room.levels, users: levels }),
     }]
 }
 
-/** A room the bot is not in is entered now, and its admins are set on the next run. */
-function setRoomAdmins(homeserver: Homeserver, room: ActualRoom, wanted: WantedSpace): Change[] {
-    if (room.entered === null) {
-        return [{
-            what: `take admin of the room ${room.id}`,
-            run: () => homeserver.takeRoomAdmin(room.id),
-        }]
-    }
-    const current = room.entered.levels
-    const adminsToGiveALevel = wanted.admins.filter(userId => !room.entered?.creators.includes(userId))
-    const levels = roomLevelsOf(current.users ?? {}, adminsToGiveALevel)
-    if (sameLevels(current.users ?? {}, levels)) return []
-    return [{
-        what: `set the admins of the room ${room.id}`,
-        run: () => homeserver.writeState(room.id, 'm.room.power_levels', { ...current, users: levels }),
-    }]
-}
-
-/** In a space the admins are the only ones with a level, apart from the bot that made it. */
-export function spaceLevelsOf(admins: string[]): UserLevels {
-    return Object.fromEntries(admins.map(userId => [userId, SPACE_ADMIN_LEVEL]))
-}
-
-/**
- * In a room, ROOM_ADMIN_LEVEL is the sync's to give and to take: the admins hold it, and no one
- * else does. Every other level is the room's own and is left as it is, a higher one an admin
- * holds among them.
- */
-export function roomLevelsOf(current: UserLevels, admins: string[]): UserLevels {
-    const withoutFormerAdmins = Object.entries(current)
-        .filter(([userId, level]) => level !== ROOM_ADMIN_LEVEL || admins.includes(userId))
-    const raised = admins
-        .filter(userId => (current[userId] ?? 0) < ROOM_ADMIN_LEVEL)
-        .map(userId => [userId, ROOM_ADMIN_LEVEL] as const)
-    return Object.fromEntries([...withoutFormerAdmins, ...raised])
+export function moderatorLevelsOf(moderators: string[]): UserLevels {
+    return Object.fromEntries(moderators.map(userId => [userId, ROOM_MODERATOR_LEVEL]))
 }
 
 function sameLevels(one: UserLevels, other: UserLevels): boolean {

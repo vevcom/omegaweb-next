@@ -27,9 +27,12 @@ export const companyUserAccountFlows = implementAccountFlows({
         if (!companyUser?.active) throw new ServiceError('NOT FOUND', 'Bedriftsbrukeren finnes ikke eller er deaktivert')
         return companyUser.credentials?.credentialsUpdatedAt ?? null
     },
-    writePassword: async (companyUserId, data) => {
+    lockAccount: (prisma, companyUserId) => (
+        prisma.$queryRaw`SELECT id FROM "CompanyUser" WHERE id = ${companyUserId} FOR UPDATE`
+    ),
+    writePassword: async (prisma, companyUserId, data) => {
         const passwordHash = await hashAndEncryptPassword(data.password)
-        await globalPrisma.companyUser.update({
+        await prisma.companyUser.update({
             where: { id: companyUserId },
             data: {
                 sessionEpoch: { increment: 1 },
