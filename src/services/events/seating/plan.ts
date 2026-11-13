@@ -1,4 +1,5 @@
 import { DEFAULT_SEATING_POINTS, MAX_SEATS_PER_TABLE, MAX_TABLES } from './constants'
+import type { NEARNESSES } from './constants'
 
 export type SeatingGuest = { id: number, name: string, committees: string[] }
 /** The guests each guest wants to sit with, most wanted first. */
@@ -6,7 +7,7 @@ export type SeatingWishes = Record<number, number[]>
 /** Each table is its seats in order, null where a seat is empty. */
 export type SeatingPlan = { tables: (number | null)[][], unseated: number[] }
 export type SeatPlace = { table: number, seat: number }
-export type Nearness = 'beside' | 'across' | 'diagonal' | 'table'
+export type Nearness = typeof NEARNESSES[number]
 
 export type SeatingPoints = {
     /** For each wish a guest gets, the nearest first. */
