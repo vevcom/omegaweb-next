@@ -499,6 +499,44 @@ describe('a destroyed space', () => {
         expect(await prisma.chatSpace.count()).toBe(0)
     })
 
+    /** A room Ola made and the space held, with Kari an admin of it, taken out of the space again. */
+    async function spaceWithARoomTakenOutOfIt() {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        adminUserIds = [kari.user.id]
+        const space = await createSpace('Space', [ola])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(space), ola.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.room(room).levels.users[kari.matrixId]).toBe(ROOM_ADMIN_LEVEL)
+
+        homeserver.unlistRoom(await roomIdOf(space), room)
+        return { space, room, ola }
+    }
+
+    test('gives back a room that was taken out of it, with those who are in it', async () => {
+        const { space, room, ola } = await spaceWithARoomTakenOutOfIt()
+
+        await prisma.chatSpace.update({ where: { id: space.id }, data: { destroyedAt: new Date() } })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).members).toEqual([ola.matrixId])
+        expect(homeserver.room(room).levels).toEqual({ users: {} })
+        expect(await prisma.chatSpace.count()).toBe(0)
+    })
+
+    test('keeps its row, and the room\'s record, while such a room cannot be given back', async () => {
+        const { space, room } = await spaceWithARoomTakenOutOfIt()
+        homeserver.broken.push(room)
+
+        await prisma.chatSpace.update({ where: { id: space.id }, data: { destroyedAt: new Date() } })
+        await expect(syncChat(homeserver)).rejects.toThrow(`give back the room ${room}`)
+
+        expect(await prisma.chatSpace.count()).toBe(1)
+        expect(await prisma.chatSpaceRoom.count()).toBe(1)
+    })
+
     test('that was never made on the homeserver is only forgotten', async () => {
         await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Space', destroyedAt: new Date() } })
         await syncChat(homeserver)
