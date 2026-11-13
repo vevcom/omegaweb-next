@@ -3,6 +3,7 @@ import {
     readActiveCommitteeAdminUserIds,
     readActiveCommitteeMemberUserIds,
 } from '@/services/groups/committees/chatSpaceRoles'
+import { readManualChatSpaceAdminUserIds } from '@/services/manualChat/roles'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
@@ -19,6 +20,7 @@ type ByPurpose = Partial<Record<ChatSpacePurpose, ReadUserIdsOfChatSpace>>
  */
 export const chatSpaceAdmins: ByPurpose = {
     COMMITTEE: readActiveCommitteeAdminUserIds,
+    MANUAL: readManualChatSpaceAdminUserIds,
 }
 
 /**

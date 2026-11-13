@@ -16,6 +16,7 @@ export const permissionCategories = [
     'cabin',
     'permission',
     'applications',
+    'chat',
     'public'
 ] as const satisfies string[]
 
@@ -103,6 +104,12 @@ export const permissionConfig = {
         description: 'kan lese andre grupper',
         category: 'groups',
         canBeDefault: true,
+    },
+    MANUAL_CHAT_SPACE_ADMIN: {
+        name: 'Administrer chatområder',
+        description: 'kan opprette, endre og slette chatområder som er manuelle',
+        category: 'chat',
+        canBeDefault: false,
     },
     MANUAL_GROUP_ADMIN: {
         name: 'Administrer andre grupper',

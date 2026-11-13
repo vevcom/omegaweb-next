@@ -1,6 +1,6 @@
 'use client'
 import Tag from '@/components/Chat/SpaceAdmin/Tag'
-import AddMembersPopUp from '@/components/Chat/SpaceAdmin/AddMembersPopUp'
+import AddUsersPopUp from '@/components/Chat/SpaceAdmin/AddUsersPopUp'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import type { ReactNode } from 'react'
@@ -83,10 +83,11 @@ export default function ChatSpacePeople({ spaceId, people, actions }: PropTypes)
                 <div className="flex flex-col gap-2">
                     <h2>Utenfor komiteen</h2>
                     {addMembers && (
-                        <AddMembersPopUp
+                        <AddUsersPopUp
                             spaceId={spaceId}
-                            addMembers={addMembers}
+                            addUsers={addMembers}
                             buttonText="Inviter fra utsiden av komiteen"
+                            whoCanBeAdded="Bare de som har logget inn på chatten kan legges til."
                         />
                     )}
                     {outside.map(person => (

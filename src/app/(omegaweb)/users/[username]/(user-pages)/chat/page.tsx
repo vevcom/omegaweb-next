@@ -1,19 +1,24 @@
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { chatUserOperations } from '@/services/chat/users/operations'
+import { manualChatSpaceOperations } from '@/services/manualChat/operations'
 import { chatClientOrigin } from '@/services/chat/constants'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { serverPage } from '@/app/ServerPage'
-import { externalHref } from '@/lib/sites/href'
+import { appHref, externalHref } from '@/lib/sites/href'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'chat', session)
-        const { hasChatAccount, spaces } = await chatUserOperations.readSpaces({ params: { userId: profile.user.id } })
-        return { hasChatAccount, spaces, chatClientOrigin }
+        const ofUser = { params: { userId: profile.user.id } }
+        const [{ hasChatAccount, spaces }, administeredSpaces] = await Promise.all([
+            chatUserOperations.readSpaces(ofUser),
+            manualChatSpaceOperations.readAdministered(ofUser),
+        ])
+        return { hasChatAccount, spaces, administeredSpaces, chatClientOrigin }
     },
-    render: ({ data: { hasChatAccount, spaces, chatClientOrigin: chat } }) => (
+    render: ({ data: { hasChatAccount, spaces, administeredSpaces, chatClientOrigin: chat } }) => (
         <div className="flex flex-col gap-4">
             <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
                 <h2 className="m-0">Chat</h2>
@@ -45,6 +50,19 @@ const { page, generateMetadata } = serverPage({
                     </ul>
                 }
             </div>
+
+            {administeredSpaces.length > 0 && (
+                <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+                    <h2 className="m-0">Chatområder du styrer</h2>
+                    <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                        {administeredSpaces.map(space => (
+                            <li key={space.id}>
+                                <SiteLink href={appHref(`/admin/chat-spaces/${space.id}`)}>{space.name}</SiteLink>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     ),
 })

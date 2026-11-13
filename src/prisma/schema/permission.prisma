@@ -135,6 +135,9 @@ enum Permission {
 
   // Article categories
   ARTICLE_CATEGORY_ADMIN
+
+  // Can admin all manual chat spaces
+  MANUAL_CHAT_SPACE_ADMIN
 }
 
 model GroupPermission {
