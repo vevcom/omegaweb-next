@@ -15,14 +15,12 @@ model ChatUser {
   spaceMemberships ChatSpaceMember[]
 }
 
-// Which service owns a space, see src/services/chat/spaces.
 enum ChatSpacePurpose {
   COMMITTEE
   MANUAL
 }
 
-// A space on the chat: a group of rooms with a member list. The chat sync makes the Matrix space
-// from the row and keeps its name, members and admins as they are here.
+
 model ChatSpace {
   id      Int              @id @default(autoincrement())
   purpose ChatSpacePurpose
