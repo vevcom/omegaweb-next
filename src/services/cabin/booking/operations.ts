@@ -5,6 +5,8 @@ import { cabinBookingAuth } from './auth'
 import {
     cabinBookingFilterSelection,
     cabinBookingIncluder,
+    cabinFreeCancellationDays,
+    freeCancellationDeadline,
     cabinReservationWindowMs,
     maxCabinBookingNights,
     maxUnpaidReservationsPerBooker,
@@ -18,6 +20,7 @@ import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/ope
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { refundOperations } from '@/services/ledger/refunds/operations'
 import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
@@ -567,6 +570,93 @@ export const cabinBookingOperations = {
                 })
             }
 
+            await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+        },
+    }),
+
+    /** The bookings a user has paid for, the canceled ones too, newest first. */
+    readManyOfUser: defineOperation({
+        paramsSchema: cabinBookingSchemas.params.readManyOfUser,
+        authorizer: ({ params }) => cabinBookingAuth.readManyOfUser.data({ userId: params.userId }),
+        operation: ({ prisma, params }) => prisma.booking.findMany({
+            where: {
+                userId: params.userId,
+                // A canceled booking's payment has been reversed, so validTransactionFilter no longer matches it.
+                ledgerTransactions: { some: { purpose: 'CABIN_BOOKING', state: 'SUCCEEDED' } },
+            },
+            orderBy: { start: 'desc' },
+            select: {
+                id: true,
+                type: true,
+                start: true,
+                end: true,
+                numberOfMembers: true,
+                numberOfNonMembers: true,
+                totalPrice: true,
+                canceled: true,
+                transactionTimeout: true,
+                BookingProduct: { select: { quantity: true, product: { select: { name: true } } } },
+            },
+        }),
+    }),
+
+    /**
+     * Cancels a paid booking up to cabinFreeCancellationDays before check-in and pays the price back
+     * into the booker's ledger account. Later than that, the booker contacts the cabin team.
+     */
+    cancel: defineOperation({
+        paramsSchema: cabinBookingSchemas.params.cancel,
+        authorizer: async ({ params, prisma }) => {
+            const booking = await prisma.booking.findUniqueOrThrow({
+                where: { id: params.bookingId },
+                select: { userId: true },
+            })
+            // A guest booking has no user, so no session matches it.
+            return cabinBookingAuth.cancel.data({ userId: booking.userId ?? -1 })
+        },
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params }) => {
+            const booking = await lockBooking(prisma, params.bookingId)
+            if (booking.canceled !== null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bookingen er allerede avbestilt.')
+            }
+            if (booking.userId === null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Gjestebookinger avbestilles av hyttestyret.')
+            }
+            if (freeCancellationDeadline(booking.start) < new Date()) {
+                throw new Smorekopp(
+                    'BAD PARAMETERS',
+                    `Bookingen kan bare avbestilles fram til ${cabinFreeCancellationDays} dager før innsjekk. `
+                    + 'Ta kontakt med hyttestyret.'
+                )
+            }
+
+            const transaction = await prisma.ledgerTransaction.findFirst({
+                where: { bookingId: booking.id, ...validTransactionFilter },
+                select: { id: true },
+            })
+            if (!transaction) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare betalte bookinger kan avbestilles.')
+            }
+            // The completion worker would otherwise send the confirmation of a booking already canceled.
+            if (booking.transactionTimeout !== null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Betalingen behandles fortsatt. Prøv igjen om litt.')
+            }
+
+            const payerAccount = await ledgerAccountOperations.read({
+                params: { userId: booking.userId },
+                bypassAuth: true,
+                prisma,
+            })
+            await refundOperations.reverseTransaction({
+                params: {
+                    originalTransactionId: transaction.id,
+                    reason: 'Hyttebooking avbestilt.',
+                    refundTo: payerAccount.id,
+                },
+                prisma,
+                bypassAuth: true,
+            })
             await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
         },
     }),

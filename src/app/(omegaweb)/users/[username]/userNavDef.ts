@@ -13,6 +13,7 @@ import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
+import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -22,6 +23,7 @@ import {
     faCircleDot,
     faEnvelope,
     faHatWizard,
+    faHouse,
     faIdCard,
     faKey,
     faMoneyBill,
@@ -73,6 +75,13 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             href: appHref(`/users/${username}/registrations`),
             icon: faCalendarCheck,
             authorizers: () => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
+        },
+        {
+            key: 'cabin-bookings',
+            name: 'Hyttebookinger',
+            href: appHref(`/users/${username}/cabin-bookings`),
+            icon: faHouse,
+            authorizers: () => [cabinBookingAuth.readManyOfUser.data({ userId })],
         },
         {
             key: 'mail',
