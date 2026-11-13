@@ -13,7 +13,7 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementSearchOperation } from '@/services/search/implement'
 import { careerLinks } from '@/app/(careers)/links'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
-import type { SponsorCompany } from './types'
+import type { CompanyExpanded, SponsorCompany } from './types'
 
 export const companyOperations = {
     create: defineOperation({
@@ -30,6 +30,14 @@ export const companyOperations = {
             orderBy: companySponsorOrdering,
             select: sponsorSelection,
         })
+    }),
+    read: defineOperation({
+        paramsSchema: companySchemas.params.read,
+        authorizer: ({ params }) => companyAuth.read.data({ companyId: params.id }),
+        operation: ({ prisma, params: { id } }): Promise<CompanyExpanded> => prisma.company.findUniqueOrThrow({
+            where: { id },
+            include: logoIncluder,
+        }),
     }),
     readPage: defineOperation({
         paramsSchema: companySchemas.params.readPage,
@@ -54,10 +62,9 @@ export const companyOperations = {
             orderBy: companySponsorOrdering,
             include: logoIncluder,
         }),
-        // A company has no page of its own, so the result opens the company list filtered to it.
         toSearchResult: company => ({
             key: `company-${company.id}`,
-            href: careerLinks.companies(company.name),
+            href: careerLinks.company(company),
             label: company.name,
             image: company.logoImage,
         }),
@@ -65,7 +72,7 @@ export const companyOperations = {
     update: defineOperation({
         paramsSchema: companySchemas.params.update,
         dataSchema: companySchemas.data.update,
-        authorizer: () => companyAuth.update,
+        authorizer: ({ params }) => companyAuth.update.data({ companyId: params.id }),
         operation: async ({ prisma, params: { id }, data }) => {
             await prisma.company.update({
                 where: { id },
@@ -99,7 +106,7 @@ export const companyOperations = {
     updateLogo: defineOperation({
         paramsSchema: companySchemas.params.updateLogo,
         dataSchema: companySchemas.data.updateLogo,
-        authorizer: () => companyAuth.updateLogo,
+        authorizer: ({ params }) => companyAuth.updateLogo.data({ companyId: params.id }),
         transaction: 'OPENS',
         operation: async ({ prisma, params: { id }, data }) =>
             // The upload writes the file before the database, so it needs more than the default

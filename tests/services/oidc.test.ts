@@ -17,6 +17,7 @@ import { NextRequest } from 'next/server'
 import { createHash, randomBytes } from 'node:crypto'
 import type { oidcSchemas } from '@/services/auth/oidc/schemas'
 import type { z } from 'zod'
+import type { AnySession } from '@/auth/session/Session'
 
 // The one domain the tests run with, see tests/testDomains.ts: Omega's, which is also the issuer.
 const ISSUER = 'https://omega.ntnu.no'
@@ -51,7 +52,7 @@ function pkce() {
 
 type IssueParams = z.input<typeof oidcSchemas.params.issueCode>
 
-type Actor = { user: { id: number } | null, session: Session<'HAS_USER'> | Session<'NO_USER'> }
+type Actor = { user: { id: number } | null, session: AnySession }
 
 const issue = ({ user, session }: Actor, challenge: string, overrides: Partial<IssueParams> = {}) =>
     oidcOperations.issueCode({

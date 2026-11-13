@@ -13,6 +13,7 @@ import { seedMail } from './standardContent/seedMail'
 import { seedStudyProgrammes } from './standardContent/seedStudyProgrammes'
 import { seedOmegaMembershipGroups } from './standardContent/seedOmegaMembershipGroups'
 import { seedDevCompanies } from './development/seedDevCompanies'
+import { seedDevCompanyUsers } from './development/seedDevCompanyUsers'
 import { seedShop } from './standardContent/seedShop'
 import { seedDevShop } from './development/seedDevShop'
 import { seedDevJobAds } from './development/seedDevJobAds'
@@ -73,6 +74,7 @@ export default async function seed({ devData, logging = true }: { devData: boole
         await step('Seeding development article categories', () => seedDevArticleCategories())
         await step('Seeding development lockers', () => seedDevLockers())
         await step('Seeding development companies', () => seedDevCompanies())
+        await step('Seeding development company users', () => seedDevCompanyUsers())
         await step('Seeding development job ads', () => seedDevJobAds())
         await step('Seeding development careers team', () => seedDevCareersTeam())
         await step('Seeding development revues', () => seedDevRevues())

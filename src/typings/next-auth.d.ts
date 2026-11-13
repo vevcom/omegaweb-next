@@ -4,6 +4,7 @@ import 'next-auth/adapters'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
+import type { CompanyUserOfSession } from '@/services/careers/companies/users/types'
 
 declare module 'next-auth' {
     // Normally we dissallow typing with empty objects, but in this case we
@@ -14,8 +15,10 @@ declare module 'next-auth' {
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface User extends Partial<UserFiltered> {}
 
+    // A session belongs to a user or to a company user, never to both. See `Session.fromToken`.
     interface Session {
-        user: UserFiltered,
+        user: UserFiltered | null,
+        companyUser: CompanyUserOfSession | null,
         permissions: Permission[],
         memberships: MembershipFiltered[],
     }
@@ -23,11 +26,14 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
     interface JWT {
-        provider: 'credentials' | 'feide',
-        user: UserFiltered,
+        // 'company-credentials' is the login of a company user, and the only one that gives a
+        // token with a company user and no user.
+        provider: 'credentials' | 'feide' | 'company-credentials',
+        user: UserFiltered | null,
+        companyUser: CompanyUserOfSession | null,
         permissions: Permission[],
         memberships: MembershipFiltered[],
-        // The user's session epoch when the session started. See `User.sessionEpoch`.
+        // The session epoch of the user or company user when the session started. See `User.sessionEpoch`.
         sessionEpoch: number,
         // When the permissions and memberships above were read, in milliseconds since epoch.
         permissionsReadAt: number,

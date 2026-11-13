@@ -2,6 +2,8 @@ import ResetPasswordForm from '@/pageKits/auth/components/ResetPasswordForm'
 import { authLinks } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { authOperations } from '@/services/auth/operations'
+import { resetPasswordAction } from '@/services/auth/actions'
+import { configureAction } from '@/services/configureAction'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -30,7 +32,12 @@ export function resetPasswordFormPage(config: AuthPagesConfig) {
                     <p>Lenken er ugyldig eller utløpt. Be om en ny lenke for å nullstille passordet.</p>
                 </>
             }
-            return <ResetPasswordForm token={data.token} loginPath={authLinks(config).login()} />
+            return (
+                <ResetPasswordForm
+                    action={configureAction(resetPasswordAction, { params: { token: data.token } })}
+                    navigateOnSuccess={authLinks(config).login()}
+                />
+            )
         },
     })
 }

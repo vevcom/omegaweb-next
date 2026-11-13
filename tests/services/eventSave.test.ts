@@ -1,4 +1,4 @@
-import { Session } from '@/auth/session/Session'
+import { testSession } from 'tests/utils'
 import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -429,7 +429,7 @@ describe('who administrates, and the account', () => {
                 manualGroup: { create: { name: 'heirs', shortName: 'heirs' } },
             },
         })
-        const administrator = Session.fromJsObject({
+        const administrator = testSession({
             user: null,
             permissions: [],
             memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
@@ -460,7 +460,7 @@ describe('who administrates, and the account', () => {
             data: { name: 'somebody elses', groupIds: [owner.id] },
             bypassAuth: true,
         })
-        const administrator = Session.fromJsObject({
+        const administrator = testSession({
             user: null,
             permissions: [],
             memberships: [{ groupId, order: currentOrder, active: true, admin: false }],

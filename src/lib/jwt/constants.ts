@@ -9,6 +9,10 @@ export const OmegaJWTAudienceFields = [
     'verifyemail',
     'linkfeideaccount',
     'sso',
+    // The password and verify email links of a company user, apart from those of a user so a
+    // token for one can never act on the other.
+    'companyresetpassword',
+    'companyverifyemail',
 ] as const
 
 /**
@@ -22,4 +26,6 @@ export const OmegaJWTAudienceAlgorithms = {
     verifyemail: 'HS256',
     linkfeideaccount: 'HS256',
     sso: 'HS256',
+    companyresetpassword: 'HS256',
+    companyverifyemail: 'HS256',
 } as const satisfies Record<OmegaJWTAudience, Algorithm>

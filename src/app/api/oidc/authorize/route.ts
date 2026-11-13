@@ -28,7 +28,11 @@ export const GET = providerRoute(apiHandler({
     session: request => sessionFromCookie(asNextRequest(request)),
     query: async (query, request) => {
         const token = await readSessionToken(asNextRequest(request))
-        if (!token) throw new Smorekopp('UNAUTHENTICATED', 'Logg inn for å fortsette')
+        // A company user's session is for the career site alone and is never handed on to a client,
+        // so to this endpoint a company user is not signed in.
+        if (!token?.user || token.provider === 'company-credentials') {
+            throw new Smorekopp('UNAUTHENTICATED', 'Logg inn for å fortsette')
+        }
         return {
             userId: token.user.id,
             provider: token.provider,

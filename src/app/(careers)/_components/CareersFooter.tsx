@@ -1,4 +1,5 @@
 import CareersWordmark from './CareersWordmark'
+import { careerLinks } from '@/app/(careers)/links'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
@@ -15,12 +16,14 @@ import type { Capabilities } from '@/auth/authorizer/capabilities'
 type PropTypes = {
     capabilities: Capabilities<'canEditSpecialCmsLink'>,
     showOmegaLink: boolean,
+    /** Whether to offer the login of company users, which is for a visitor who is not signed in. */
+    showCompanyLogin: boolean,
 }
 
 const headingClassName = 'mb-2 text-s font-semibold tracking-[0.1em] uppercase text-white'
 const textClassName = 'text-white/80 text-m leading-[1.6]'
 
-export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes) {
+export default function CareersFooter({ capabilities, showOmegaLink, showCompanyLogin }: PropTypes) {
     return (
         <footer className="mt-20 bg-careers-navy">
             <div className={`
@@ -81,6 +84,12 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                     flex justify-between gap-4 py-4
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
+                    {showCompanyLogin && (
+                        <SiteLink href={careerLinks.companyLogin()} className="
+                            text-s text-white/80
+                            hover:text-white
+                        ">Bedriftsinnlogging</SiteLink>
+                    )}
                     {showOmegaLink && (
                         <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className="
                             text-s text-white/80

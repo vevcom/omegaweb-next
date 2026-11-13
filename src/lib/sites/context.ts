@@ -181,6 +181,17 @@ export class DomainContext {
     }
 
     /**
+     * The url of a page of `site` as it is reached from outside, for a link in a mail: on the site's
+     * main domain, or on Omega's with the base path when the site has no domain. Throws when
+     * neither has one, as nothing is reached then.
+     */
+    static siteUrl(site: Site, href: AppHref): string {
+        const url = DomainContext.mainDomainUrl(site, href)
+        if (!url) throw new Error('sites.json gives Omega\'s site no main domain to reach it by')
+        return url
+    }
+
+    /**
      * The url of a page on `site` by the main domain serving it: the site's own, or Omega's with the
      * base path when the site has no domain. Null when neither has one.
      */

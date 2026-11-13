@@ -1,5 +1,4 @@
 import { createAdministrators } from 'tests/eventSetup'
-import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { omegawebSearchOperations } from '@/services/omegawebSearch/operations'
@@ -15,7 +14,9 @@ import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
+import type { Session } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
@@ -27,12 +28,12 @@ let memberGroup: number
 let jobAdId: number
 
 const sessionOf = (permissions: Parameters<typeof Session.fromJsObject>[0]['permissions']) =>
-    Session.fromJsObject({ user: null, permissions, memberships: [] })
+    testSession({ user: null, permissions, memberships: [] })
 
 /** An active member of `memberGroup`, holding no permissions at all. */
 const sessionInMemberGroup = () => {
     const memberships: MembershipFiltered[] = [{ groupId: memberGroup, order: currentOrder, active: true, admin: false }]
-    return Session.fromJsObject({ user: null, permissions: [], memberships })
+    return testSession({ user: null, permissions: [], memberships })
 }
 
 beforeAll(async () => {

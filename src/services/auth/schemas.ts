@@ -1,4 +1,3 @@
-import { userDataFieldSchemas, userSchemas } from '@/services/users/schemas'
 import { siteNameSchema } from '@/lib/sites/site'
 import { z } from 'zod'
 
@@ -33,10 +32,6 @@ const userId = paramsFieldSchemas.pick({
 
 export const authSchemas = {
     data: {
-        sendResetPasswordEmail: userDataFieldSchemas.pick({
-            email: true,
-        }),
-        resetPassword: userSchemas.data.updatePassword,
         sendLinkFeideAccountEmail: dataFieldSchemas.pick({
             usernameOrEmail: true,
         }),
@@ -46,10 +41,6 @@ export const authSchemas = {
         }),
     },
     params: {
-        verifyEmail: token,
-        verifyResetPasswordToken: token,
-        resetPassword: token,
-        sendResetPasswordEmail: paramsFieldSchemas.pick({ site: true }),
         sendLinkFeideAccountEmail: paramsFieldSchemas.pick({ userId: true, site: true }),
         readFeideLoginMatch: userId,
         verifyLinkFeideAccountToken: token,

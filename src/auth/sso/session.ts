@@ -4,7 +4,8 @@ import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
-import type { LoginProvider } from '@/auth/nextAuth/sessionToken'
+import type { AnySession } from '@/auth/session/Session'
+import type { UserLoginProvider } from '@/auth/nextAuth/sessionToken'
 import type { JWT } from 'next-auth/jwt'
 import type { NextRequest, NextResponse } from 'next/server'
 
@@ -39,10 +40,10 @@ export function readSessionToken(request: NextRequest): Promise<JWT | null> {
 }
 
 /** The session of {@link readSessionToken} as the service operations take it, empty for a visitor not signed in. */
-export async function sessionFromCookie(request: NextRequest): Promise<Session<'HAS_USER'> | Session<'NO_USER'>> {
+export async function sessionFromCookie(request: NextRequest): Promise<AnySession> {
     const token = await readSessionToken(request)
     if (!token) return Session.empty()
-    return Session.fromJsObject({ user: token.user, permissions: token.permissions, memberships: token.memberships })
+    return Session.fromToken(token)
 }
 
 /**
@@ -76,7 +77,7 @@ export async function startSession(
     response: NextResponse,
     request: Request,
     userId: number,
-    provider: LoginProvider,
+    provider: UserLoginProvider,
 ): Promise<void> {
     const encode = authOptions.jwt?.encode
     if (!encode) throw new Error('authOptions has no jwt encoder')
