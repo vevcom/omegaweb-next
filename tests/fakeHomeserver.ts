@@ -14,7 +14,7 @@ const SERVER_NAME = 'chat.test'
 /**
  * A homeserver that is only its rooms, their members and their levels, for the chat sync to act
  * on. It refuses what Synapse refuses where the sync depends on it: a level for a room's creator,
- * and a change to a room the bot is not in.
+ * and a change to a room the bot is not in or holds no level in.
  */
 export class FakeHomeserver implements Homeserver {
     readonly botUserId = `@omegaweb:${SERVER_NAME}`
@@ -25,6 +25,8 @@ export class FakeHomeserver implements Homeserver {
     readonly writes: string[] = []
     /** Rooms the homeserver refuses every change to, for a test of what a refusal does. */
     readonly broken: string[] = []
+    /** Changes the homeserver refuses the first time it is asked for them, named as in `writes`. */
+    readonly refusedOnce: string[] = []
     /** Accounts the homeserver fails to look up. */
     readonly unanswered: string[] = []
     private accounts: string[] = []
@@ -71,7 +73,11 @@ export class FakeHomeserver implements Homeserver {
     }
 
     private change(roomId: string, what: string): Room {
-        if (this.broken.includes(roomId)) throw new ChatServerError(500, 'M_UNKNOWN', `${what} refused`)
+        const refusedOnce = this.refusedOnce.indexOf(what)
+        if (refusedOnce !== -1) this.refusedOnce.splice(refusedOnce, 1)
+        if (refusedOnce !== -1 || this.broken.includes(roomId)) {
+            throw new ChatServerError(500, 'M_UNKNOWN', `${what} refused`)
+        }
         this.writes.push(what)
         return this.room(roomId)
     }
@@ -129,8 +135,12 @@ export class FakeHomeserver implements Homeserver {
     readJoinedMembers = (roomId: string) => Promise.resolve([...this.room(roomId).members])
 
     writeState(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
-        if (!this.room(roomId).members.includes(this.botUserId)) {
+        const { members, creators, levels } = this.room(roomId)
+        if (!members.includes(this.botUserId)) {
             throw new ChatServerError(403, 'M_FORBIDDEN', `The bot is not in ${roomId}`)
+        }
+        if (!creators.includes(this.botUserId) && !(this.botUserId in levels.users)) {
+            throw new ChatServerError(403, 'M_FORBIDDEN', `The bot has no level in ${roomId}`)
         }
         const room = this.change(roomId, `${type} in ${roomId}`)
         if (type === 'm.room.name') room.name = content.name as string
@@ -162,7 +172,7 @@ export class FakeHomeserver implements Homeserver {
 
     takeRoomAdmin(roomId: string): Promise<void> {
         const room = this.change(roomId, `take admin of ${roomId}`)
-        room.members.push(this.botUserId)
+        if (!room.members.includes(this.botUserId)) room.members.push(this.botUserId)
         room.levels.users[this.botUserId] = 100
         return Promise.resolve()
     }
