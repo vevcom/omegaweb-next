@@ -27,6 +27,8 @@ export type ChatRoom = {
     name: string | undefined,
     levels: ChatPowerLevels,
     joinedUserIds: string[],
+    /** Whoever the bot has invited and has not yet been joined as. */
+    invitedUserIds: string[],
     listedRoomIds: string[],
 }
 
@@ -192,9 +194,10 @@ export class ChatClient {
     async readRoom(roomId: string): Promise<ChatRoom | null> {
         const state = await this.matrix('GET', `/rooms/${encodeURIComponent(roomId)}/state`)
             .catch(ignoring('M_FORBIDDEN', 'M_NOT_FOUND')) as StateEvent[] | undefined
-        const joinedUserIds = (state ?? [])
-            .filter(event => event.type === 'm.room.member' && event.content.membership === 'join')
+        const userIdsWithMembership = (membership: string) => (state ?? [])
+            .filter(event => event.type === 'm.room.member' && event.content.membership === membership)
             .map(event => event.state_key)
+        const joinedUserIds = userIdsWithMembership('join')
         // Synapse still shows a room to one who has left it, as it was when they left.
         if (!state || !joinedUserIds.includes(this.botUserId)) return null
 
@@ -202,6 +205,7 @@ export class ChatClient {
             name: eventOf(state, 'm.room.name')?.content.name as string | undefined,
             levels: eventOf(state, 'm.room.power_levels')?.content ?? {},
             joinedUserIds,
+            invitedUserIds: userIdsWithMembership('invite'),
             // An unlisted room leaves its event behind, with nothing in it.
             listedRoomIds: state
                 .filter(event => event.type === 'm.space.child' && Array.isArray(event.content.via))
@@ -228,7 +232,10 @@ export class ChatClient {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/join`, {}, userId)
     }
 
-    /** Leaves as the user, which works for every user since the homeserver talks to no other. */
+    /**
+     * Leaves as the user, which also turns down an invitation. It works for every user since the
+     * homeserver talks to no other.
+     */
     async removeMember(roomId: string, userId: string): Promise<void> {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/leave`, {}, userId)
             .catch(ignoring('M_FORBIDDEN', 'M_NOT_FOUND'))

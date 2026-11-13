@@ -166,6 +166,22 @@ describe('a space', () => {
         expect(homeserver.room(spaceRoomId).members).toEqual([homeserver.botUserId])
     })
 
+    test('takes back the invitation of one whose join failed and whose row is removed', async () => {
+        const kari = await createChatUser('kari')
+        const space = await createSpace('Space')
+        await syncChat(homeserver)
+        const spaceRoomId = await spaceRoomIdOf(space)
+        await prisma.chatSpaceMember.create({ data: { spaceId: space.id, chatUserId: kari.chatUser.id } })
+        homeserver.changesRefusedOnce.push(`add ${kari.matrixId} to ${spaceRoomId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow()
+        expect(homeserver.room(spaceRoomId).invited).toEqual([kari.matrixId])
+
+        await prisma.chatSpaceMember.deleteMany({ where: { chatUserId: kari.chatUser.id } })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(spaceRoomId).invited).toEqual([])
+    })
+
     test('is left as it is by a run with nothing to change', async () => {
         const kari = await createChatUser('kari')
         adminUserIds = [kari.user.id]
@@ -333,6 +349,39 @@ describe('a private room of a space', () => {
         expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId])
     })
 
+    async function pick(room: { id: number, spaceId: number }, chatUser: { id: number }) {
+        const spaceMember = await prisma.chatSpaceMember.findUniqueOrThrow({
+            where: { spaceId_chatUserId: { spaceId: room.spaceId, chatUserId: chatUser.id } },
+        })
+        await prisma.chatSpaceRoomMember.create({ data: { roomId: room.id, spaceMemberId: spaceMember.id } })
+    }
+
+    test('gets on a later run a picked member whose join failed', async () => {
+        const { room, roomId, ola } = await privateRoomWithKariPicked()
+        await pick(room, ola.chatUser)
+        homeserver.changesRefusedOnce.push(`add ${ola.matrixId} to ${roomId}`)
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`add ${ola.matrixId} to ${roomId}`)
+        expect(homeserver.room(roomId).invited).toEqual([ola.matrixId])
+
+        await syncChat(homeserver)
+        expect(homeserver.room(roomId).members).toContain(ola.matrixId)
+        expect(homeserver.room(roomId).invited).toEqual([])
+    })
+
+    test('takes back the invitation of one whose join failed and who is picked no longer', async () => {
+        const { room, roomId, ola } = await privateRoomWithKariPicked()
+        await pick(room, ola.chatUser)
+        homeserver.changesRefusedOnce.push(`add ${ola.matrixId} to ${roomId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow()
+
+        await prisma.chatSpaceRoomMember.deleteMany({ where: { spaceMember: { chatUserId: ola.chatUser.id } } })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(roomId).invited).toEqual([])
+        expect(() => homeserver.join(roomId, ola.matrixId)).toThrow('may not let themselves in')
+    })
+
     test('is left as it is by a run with nothing to change', async () => {
         await privateRoomWithKariPicked()
 
@@ -362,6 +411,18 @@ describe('a destroyed room', () => {
         expect(homeserver.room(await spaceRoomIdOf(space)).listedRoomIds).toEqual([])
         expect(homeserver.room(roomId).members).toEqual([])
         expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+
+    test('lets nobody in on an invitation from before it was destroyed', async () => {
+        const { room, roomId } = await roomWithKariInIt()
+        const invited = homeserver.signIn('invited')
+        homeserver.room(roomId).invited.push(invited)
+
+        await prisma.chatSpaceRoom.update({ where: { id: room.id }, ...markDestroyed })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(roomId).invited).toEqual([])
+        expect(() => homeserver.join(roomId, invited)).toThrow('may not let themselves in')
     })
 
     test('that was never made on the homeserver is only forgotten', async () => {

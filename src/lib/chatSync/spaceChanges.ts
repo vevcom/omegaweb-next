@@ -22,6 +22,7 @@ export type ActualSpace = {
     id: string,
     name: string | undefined,
     membersWithoutBot: string[],
+    invitedUserIds: string[],
     listedRoomIds: string[],
     rooms: ActualRoom[],
 }
@@ -30,21 +31,23 @@ export type ActualRoom = {
     id: string,
     name: string | undefined,
     membersWithoutBot: string[],
+    invitedUserIds: string[],
     levels: ChatPowerLevels,
 }
+
+type Occupied = { id: string, membersWithoutBot: string[], invitedUserIds: string[] }
 
 type UserLevels = Record<string, number>
 
 /** Reads and changes nothing: the changes are for the caller to carry out, in this order. */
 export function planSpaceChanges(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {
     const membersToAdd = wanted.members.filter(userId => !actual.membersWithoutBot.includes(userId))
-    const membersToRemove = actual.membersWithoutBot.filter(userId => !wanted.members.includes(userId))
 
     return [
         ...rename(homeserver, actual, wanted.name),
         ...membersToAdd.map(userId => addMember(homeserver, actual, userId)),
         // Before the rooms, which let the members of the space back in.
-        ...membersToRemove.map(userId => removeMember(homeserver, actual, userId)),
+        ...removeEveryoneBut(wanted.members, homeserver, actual),
         ...wanted.rooms.flatMap(wantedRoom => planRoomChanges(homeserver, wanted, actual, wantedRoom)),
     ]
 }
@@ -67,12 +70,9 @@ function planRoomChanges(homeserver: Homeserver, wanted: WantedSpace, space: Act
     ]
 }
 
-export function removeEveryoneBut(
-    userIdsToKeep: string[],
-    homeserver: Homeserver,
-    room: { id: string, membersWithoutBot: string[] },
-): Change[] {
-    return room.membersWithoutBot
+/** An invitation is taken back too, since whoever holds one lets themselves in with it. */
+export function removeEveryoneBut(userIdsToKeep: string[], homeserver: Homeserver, room: Occupied): Change[] {
+    return [...room.membersWithoutBot, ...room.invitedUserIds]
         .filter(userId => !userIdsToKeep.includes(userId))
         .map(userId => removeMember(homeserver, room, userId))
 }
