@@ -1,9 +1,50 @@
 model ChatUser {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int  @unique
+  id Int @id @default(autoincrement())
+  // Null once the user is deleted. The row stays, so the chat sync knows the account to
+  // deactivate and nobody is given the localpart again.
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId Int?  @unique
   // What stands before the colon in the user's Matrix id, @localpart:server. Matrix never lets it
   // change, so it is decided here once and stays when the username changes.
   localpart String   @unique
   createdAt DateTime @default(now())
+  // The name the chat sync last gave the account. Null until the account exists on the homeserver.
+  syncedName    String?
+  deactivatedAt DateTime?
+
+  spaceMemberships ChatSpaceMember[]
+}
+
+// Which service owns a space, see src/services/chat/spaces.
+enum ChatSpacePurpose {
+  COMMITTEE
+  MANUAL
+}
+
+// A space on the chat: a group of rooms with a member list. The chat sync makes the Matrix space
+// from the row and keeps its name, members and admins as they are here.
+model ChatSpace {
+  id      Int              @id @default(autoincrement())
+  purpose ChatSpacePurpose
+  name    String
+  // The id of the Matrix space. Null until the chat sync has made it.
+  matrixRoomId String?   @unique
+  createdAt    DateTime  @default(now())
+  // Set when the owner destroys the space. The chat sync empties the Matrix space and then
+  // deletes the row.
+  destroyedAt DateTime?
+
+  members ChatSpaceMember[]
+}
+
+model ChatSpaceMember {
+  id         Int       @id @default(autoincrement())
+  space      ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId    Int
+  chatUser   ChatUser  @relation(fields: [chatUserId], references: [id], onDelete: Cascade)
+  chatUserId Int
+  createdAt  DateTime  @default(now())
+
+  @@unique([spaceId, chatUserId])
+  @@index([chatUserId])
 }
