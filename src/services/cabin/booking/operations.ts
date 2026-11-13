@@ -477,6 +477,7 @@ export const cabinBookingOperations = {
                             manualFees: params.manualFees,
                             descriptionLong: 'Betaling for hyttebooking',
                             descriptionShort: 'Hytta',
+                            userId: booking.userId ?? undefined,
                         },
                         prisma: tx,
                     })

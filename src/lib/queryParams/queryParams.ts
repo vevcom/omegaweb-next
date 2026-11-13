@@ -6,6 +6,8 @@ import {
     StringArrayQueryParam,
     StringQueryParam,
 } from './queryParam'
+import { ledgerTransactionDirections } from '@/services/ledger/transactions/constants'
+import { LedgerTransactionPurpose } from '@/prisma-generated-pn-types'
 import type { QueryParam } from './queryParam'
 export const QueryParams = {
     eventTags: new StringArrayQueryParam('event-tags'),
@@ -18,6 +20,11 @@ export const QueryParams = {
     token: new StringQueryParam('token'),
     callbackUrl: new LocalPathQueryParam('callbackUrl'),
     frontpageVersion: new EnumQueryParam('frontpage-version', ['logged-out', 'logged-in']),
+    transactionPurpose: new EnumQueryParam('type', Object.values(LedgerTransactionPurpose)),
+    transactionDirection: new EnumQueryParam('direction', [...ledgerTransactionDirections]),
+    // In øre.
+    minAmount: new NumberQueryParam('min-amount'),
+    maxAmount: new NumberQueryParam('max-amount'),
 } as const satisfies Record<string, QueryParam<string | string[] | number | number[] | boolean>>
 
 export type QueryParamNames = typeof QueryParams[keyof typeof QueryParams]['name']

@@ -12,8 +12,8 @@ import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
+import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { appHref } from '@/lib/sites/href'
@@ -85,11 +85,10 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         },
         {
             key: 'account',
-            // The page only ever shows the session user's own account.
             name: 'Konto',
             href: appHref(`/users/${username}/account`),
             icon: faMoneyBill,
-            authorizers: () => [Require.userId().data({ userId })],
+            authorizers: () => [ledgerAccountAuth.read.data({ accounts: [{ userId, groupIds: [] }] })],
         },
         {
             key: 'membership-status',

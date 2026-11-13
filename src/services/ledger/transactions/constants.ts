@@ -1,4 +1,23 @@
-import type { Prisma } from '@/prisma-generated-pn-types'
+import type { LedgerTransactionPurpose, Prisma } from '@/prisma-generated-pn-types'
+
+/** What each purpose is called, which a transaction's title starts with or falls back to, and its search matches. */
+export const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
+    SHOP_PURCHASE: 'Kjøp i butikk',
+    EVENT_PAYMENT: 'Påmelding',
+    CABIN_BOOKING: 'Hyttebooking',
+    DEPOSIT: 'Innskudd',
+    PAYOUT: 'Utbetaling',
+    REFUND: 'Refusjon',
+}
+
+/** Which way the money moves for the account a list of transactions is of. */
+export const ledgerTransactionDirections = ['IN', 'OUT'] as const
+
+/** The account's own entry in a transaction going each way, which is the sign of its balance change. */
+export const ledgerTransactionDirectionFilters = {
+    IN: { funds: { gt: 0 } },
+    OUT: { funds: { lt: 0 } },
+} as const satisfies Record<typeof ledgerTransactionDirections[number], Prisma.LedgerEntryWhereInput>
 
 // How long a PENDING transaction, such as an abandoned Stripe checkout, stays open before the
 // ledger sweeper cancels it.
@@ -25,6 +44,8 @@ export const expandedLedgerTransactionIncluder = {
             // the clientSecret from ExpandedPayment instead.
             stripePayment: { select: { createdAt: true, updatedAt: true } },
             manualPayment: true,
+            // The account of the user it is from, which paying by card alone leaves off the entries.
+            user: { select: { ledgerAccountId: true } },
         },
     },
     booking: {

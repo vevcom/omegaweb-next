@@ -755,6 +755,7 @@ export const eventRegistrationOperations = {
                             manualFees: params.manualFees,
                             descriptionLong: `Betaling for påmelding til ${event.name}`,
                             descriptionShort: 'Arrangement',
+                            userId: params.userId,
                         },
                         prisma: tx,
                     })

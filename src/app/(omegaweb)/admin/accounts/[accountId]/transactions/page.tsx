@@ -1,17 +1,42 @@
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
+import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
+import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
+import { Require } from '@/auth/authorizer/Require'
+import { decodeLedgerTransactionFilters } from '@/components/Ledger/Transactions/decodeLedgerTransactionFilters'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-const { page } = serverPage({
-    operation: ({ params }: PageOperationArgs<{ accountId: string }>) => {
+const { page, generateMetadata } = serverPage({
+    operation: async ({ params, searchParams }: PageOperationArgs<{ accountId: string }>) => {
         const accountId = Number(params.accountId)
-        if (!accountId) notFound()
-        return { accountId }
+
+        if (!accountId) {
+            notFound()
+        }
+
+        return {
+            ledgerAccount: await ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } }),
+            filters: decodeLedgerTransactionFilters(searchParams),
+        }
     },
-    render: ({ data }) => <div className="rounded-round p-(--card-padding)">
-        <TransactionList accountId={data.accountId} />
-    </div>,
+    capabilities: ({ ledgerAccount }) => ({
+        // Owning the account lets the viewer cancel what it pays, which the details tell apart.
+        canCancel: ledgerTransactionAuth.cancel.data({ accounts: [ledgerAccount.ownership] }),
+        // The page is open to the account's owners too, so the fees need a rule of their own.
+        canSeeFees: Require.permission('LEDGER_ADMIN'),
+    }),
+    render: ({ data: { ledgerAccount, filters }, capabilities }) => (
+        <div className="rounded-round p-(--card-padding)">
+            <TransactionList
+                accountId={ledgerAccount.id}
+                filters={filters}
+                capabilities={capabilitiesToJsObject(capabilities)}
+            />
+        </div>
+    ),
 })
 
 export default page
+export { generateMetadata }

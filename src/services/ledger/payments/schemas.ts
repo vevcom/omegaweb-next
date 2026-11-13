@@ -9,6 +9,7 @@ const paramsFieldSchemas = z.object({
     provider: z.nativeEnum(PaymentProvider),
     manualFees: z.number().optional(),
     bankAccountNumber: z.string().optional(),
+    userId: z.number().optional(),
 })
 
 const payment = paramsFieldSchemas.pick({
@@ -24,6 +25,7 @@ export const paymentSchemas = {
             provider: true,
             manualFees: true,
             bankAccountNumber: true,
+            userId: true,
         }),
         initiate: payment,
         cancel: payment,

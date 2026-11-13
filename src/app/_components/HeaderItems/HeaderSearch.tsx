@@ -1,6 +1,7 @@
 'use client'
 import TextInput from '@/UI/TextInput'
-import { useSearchQueryParam } from '@/hooks/useSearchQueryParam'
+import { useQueryParamSetter } from '@/hooks/useQueryParamSetter'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { searchMaxLength } from '@/services/search/constants'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -20,7 +21,7 @@ type PropTypes = {
 export default function HeaderSearch({ defaultValue, label = 'Søk' }: PropTypes) {
     const [value, setValue] = useState(defaultValue)
     const [open, setOpen] = useState(defaultValue !== '')
-    const setSearch = useSearchQueryParam()
+    const setSearch = useQueryParamSetter(QueryParams.search)
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         setValue(event.target.value)

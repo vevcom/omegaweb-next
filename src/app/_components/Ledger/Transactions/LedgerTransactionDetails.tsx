@@ -2,27 +2,42 @@
 import Form from '@/components/Form/Form'
 import { displayAmount } from '@/lib/currency/convert'
 import { displayDate } from '@/lib/dates/displayDate'
-import { Require } from '@/auth/authorizer/Require'
 import { configureAction } from '@/services/configureAction'
 import { cancelLedgerTransactionAction } from '@/services/ledger/transactions/actions'
-import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
-import useAuthorizer from '@/hooks/useAuthorizer'
+import { transactionPurposeNames } from '@/services/ledger/transactions/constants'
+import { payerAccountIds } from '@/services/ledger/transactions/parties'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { LedgerTransactionPurpose, LedgerTransactionState, PaymentProvider } from '@/prisma-generated-pn-types'
 import type { ReactNode } from 'react'
 
 type Props = {
     transaction: ExpandedLedgerTransaction,
     accountId: number,
+    capabilities: CapabilitiesJsObject<'canCancel' | 'canSeeFees'>,
 }
 
-export const transactionPurposeNames: Record<LedgerTransactionPurpose, string> = {
-    SHOP_PURCHASE: 'Kjøp i butikk (for eksempel Kiogeskabet)',
-    EVENT_PAYMENT: 'Arrangementsbetaling',
-    CABIN_BOOKING: 'Hyttebooking',
-    DEPOSIT: 'Innskudd',
-    PAYOUT: 'Utbetaling',
-    REFUND: 'Refusjon',
+// The relations are nullable, for example on transactions migrated from OmegaWeb Basic, so each
+// title falls back to naming the purpose alone.
+export const transactionTitles: Record<LedgerTransactionPurpose, (transaction: ExpandedLedgerTransaction) => string> = {
+    SHOP_PURCHASE: transaction => (
+        transaction.purchase ? `Kjøp i ${transaction.purchase.shop.name}` : transactionPurposeNames.SHOP_PURCHASE
+    ),
+    EVENT_PAYMENT: transaction => {
+        const event = (
+            transaction.eventRegistration?.quota?.variant ?? transaction.eventRegistration?.waitingListVariant
+        )?.event
+        return event ? `${transactionPurposeNames.EVENT_PAYMENT} til ${event.name}` : transactionPurposeNames.EVENT_PAYMENT
+    },
+    CABIN_BOOKING: transaction => (
+        transaction.booking
+            ? `${transactionPurposeNames.CABIN_BOOKING} ${displayDate(transaction.booking.start, false)} `
+                + `– ${displayDate(transaction.booking.end, false)}`
+            : transactionPurposeNames.CABIN_BOOKING
+    ),
+    DEPOSIT: () => transactionPurposeNames.DEPOSIT,
+    PAYOUT: () => transactionPurposeNames.PAYOUT,
+    REFUND: () => transactionPurposeNames.REFUND,
 }
 
 export const transactionStateNames: Record<LedgerTransactionState, string> = {
@@ -44,30 +59,30 @@ function DetailRow({ label, value }: { label: string, value: ReactNode }) {
     </div>
 }
 
-export default function LedgerTransactionDetails({ transaction, accountId }: Props) {
-    const canViewFees = useAuthorizer({ authorizer: Require.permission('LEDGER_ADMIN') }).authorized
-    const canCancel = useAuthorizer({ authorizer: ledgerTransactionAuth.cancel }).authorized
+export default function LedgerTransactionDetails({ transaction, accountId, capabilities }: Props) {
     const totalFunds = (
         transaction.ledgerEntries.reduce((sum, entry) => sum + Math.abs(entry.funds), 0)
         + Math.abs(transaction.payment?.funds ?? 0)
     ) / 2
 
     const accountEntry = transaction.ledgerEntries.find(entry => entry.ledgerAccountId === accountId)
+    // Owning the account is the capability, and the account paying is what makes it apply here.
+    const canCancel = capabilities.canCancel.authorized && payerAccountIds(transaction).includes(accountId)
     // Through the quota the registration holds a place in, or the waiting list it has fallen back to.
     const registrationVariant = transaction.eventRegistration?.quota?.variant
         ?? transaction.eventRegistration?.waitingListVariant
 
     return <div className="w-[min(500px,90vw)] m-6 flex flex-col gap-2">
-        <h3 className="text-base-content">{transactionPurposeNames[transaction.purpose]}</h3>
+        <h3 className="text-base-content">{transactionTitles[transaction.purpose](transaction)}</h3>
 
         <DetailRow label="Dato" value={displayDate(transaction.createdAt)} />
         <DetailRow label="Status" value={transactionStateNames[transaction.state]} />
         <DetailRow label="Beløp" value={displayAmount(totalFunds, false)} />
         {accountEntry && <DetailRow label="Saldoendring" value={displayAmount(accountEntry.funds, false, true)} />}
-        {canViewFees && accountEntry?.fees !== null && accountEntry?.fees !== undefined && (
+        {capabilities.canSeeFees.authorized && accountEntry?.fees !== null && accountEntry?.fees !== undefined && (
             <DetailRow label="Gebyrendring" value={displayAmount(accountEntry.fees, false, true)} />
         )}
-        {transaction.description && <DetailRow label="Beskrivelse" value={transaction.description} />}
+        {transaction.description && <DetailRow label="Kommentar" value={transaction.description} />}
         {transaction.reason && <DetailRow label="Årsak" value={transaction.reason} />}
         {transaction.payment && (
             <DetailRow

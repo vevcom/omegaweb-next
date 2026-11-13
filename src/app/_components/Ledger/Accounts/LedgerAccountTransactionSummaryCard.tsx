@@ -3,19 +3,23 @@ import LedgerTransactionTable, { emptyTransactionsText } from '@/components/Ledg
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { withPageSession } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type { AppHref } from '@/lib/sites/href'
+import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type Props = {
     accountId: number,
     transactionsHref?: AppHref,
+    capabilities: Capabilities<'canCancel' | 'canSeeFees'>,
 }
 
-export default async function LedgerAccountTransactionSummary({ accountId, transactionsHref }: Props) {
+export default async function LedgerAccountTransactionSummary({ accountId, transactionsHref, capabilities }: Props) {
     const transactions = await withPageSession(() => ledgerTransactionOperations.readPage({
         params: { paging: { page: { page: 0, pageSize: 5, cursor: null }, details: { accountId } } },
     }))
+    const rowCapabilities = capabilitiesToJsObject(capabilities)
 
     return <div className="bg-base-100 rounded-round p-(--card-padding)">
         <h2 className="text-base-content">Transaksjoner</h2>
@@ -24,7 +28,12 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
                 <div className="overflow-x-auto">
                     <LedgerTransactionTable>
                         {transactions.map(transaction => (
-                            <LedgerTransactionRow key={transaction.id} accountId={accountId} transaction={transaction} />
+                            <LedgerTransactionRow
+                                key={transaction.id}
+                                accountId={accountId}
+                                transaction={transaction}
+                                capabilities={rowCapabilities}
+                            />
                         ))}
                     </LedgerTransactionTable>
                 </div>

@@ -18,10 +18,13 @@ export const paymentOperations = {
     create: defineOperation({
         authorizer: ({ params }) => paymentAuth.create({ provider: params.provider }),
         paramsSchema: paymentSchemas.params.create,
-        operation: async ({ prisma, params }) => prisma.payment.create({
+        operation: async ({ prisma, params, session }) => prisma.payment.create({
             data: {
                 provider: params.provider,
                 funds: params.funds,
+                // A card payment is charged to the signed in user's card, see initiate. A manual one,
+                // or one with no user signed in, is from the user it is made for.
+                userId: (params.provider === 'STRIPE' ? session.user?.id : undefined) ?? params.userId,
 
                 ...(params.provider === 'STRIPE' && {
                     state: 'PENDING',

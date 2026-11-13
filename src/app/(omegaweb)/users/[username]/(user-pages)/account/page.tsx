@@ -4,6 +4,8 @@ import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/Ledger
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
+import { stripeCustomerAuth } from '@/services/stripeCustomers/auth'
+import { ledgerTransactionAuth } from '@/services/ledger/transactions/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { serverPage } from '@/app/ServerPage'
@@ -25,6 +27,11 @@ const { page, generateMetadata } = serverPage({
             Require.permission('LEDGER_ADMIN'),
         ),
         canSeeFees: Require.permission('LEDGER_ADMIN'),
+        // Cards are self-service, so a ledger admin viewing another user's account neither sees
+        // their cards nor gets a Stripe deposit, which would charge the admin's own card.
+        canUseCards: stripeCustomerAuth.createSession.data({ userId: data.userId }),
+        // Owning the account lets the viewer cancel what it pays, which the details tell apart.
+        canCancel: ledgerTransactionAuth.cancel.data({ accounts: [data.ledgerAccount.ownership] }),
         // Unfreezing takes more than freezing, so the rule follows the state the button changes.
         canFreeze: data.ledgerAccount.frozen
             ? ledgerAccountAuth.updateAsAdmin({ accounts: [data.ledgerAccount.ownership] })
@@ -36,11 +43,13 @@ const { page, generateMetadata } = serverPage({
                 ledgerAccount={data.ledgerAccount}
                 capabilities={capabilities}
                 showFees={capabilities.canSeeFees.authorized}
+                depositPaymentMethods={capabilities.canUseCards.authorized ? undefined : ['MANUAL']}
             />
-            <LedgerAccountPaymentMethods userId={data.userId} />
+            {capabilities.canUseCards.authorized && <LedgerAccountPaymentMethods userId={data.userId} />}
             <LedgerAccountTransactionSummary
                 accountId={data.ledgerAccount.id}
                 transactionsHref={appHref(`/users/${data.username}/account/transactions`)}
+                capabilities={capabilities}
             />
         </div>
     ),
