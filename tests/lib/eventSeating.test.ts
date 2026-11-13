@@ -1,5 +1,4 @@
 import {
-    DEFAULT_SEATING_POINTS,
     createSeatingPlan,
     displaySeats,
     moveGuest,
@@ -12,6 +11,7 @@ import {
     sidesOf,
     swapGuests,
 } from '@/services/events/seating/plan'
+import { DEFAULT_SEATING_POINTS } from '@/services/events/seating/constants'
 import { describe, expect, test } from '@jest/globals'
 import type { SeatingGuest, SeatingPlan, SeatingWishes } from '@/services/events/seating/plan'
 

@@ -1,9 +1,11 @@
 'use client'
+import AdminSection from './AdminSection'
 import Form from '@/components/Form/Form'
 import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
+import StatTile from '@/components/UI/StatTile'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -11,8 +13,8 @@ import {
     saveEventSeatingPlanAction,
     setEventSeatingPublishedAction,
 } from '@/services/events/seating/actions'
+import { DEFAULT_SEATING_POINTS } from '@/services/events/seating/constants'
 import {
-    DEFAULT_SEATING_POINTS,
     createSeatingPlan,
     displaySeats,
     firstEmptySeat,
@@ -30,24 +32,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faLockOpen } from '@fortawesome/free-solid-svg-icons'
 import { MotionConfig, motion } from 'framer-motion'
 import { Fragment, useState } from 'react'
-import type { DragEvent, ReactNode } from 'react'
+import type { DragEvent } from 'react'
 import type { Nearness, SeatPlace, SeatingPlan, SeatingPoints } from '@/services/events/seating/plan'
 import type { SeatingBoard } from '@/services/events/seating/types'
 
 const DEFAULT_SEATS_PER_TABLE = 8
 
-const sectionClassName = `
-    flex flex-col gap-2 p-3 rounded-inner bg-base-200
-    [&>h3]:m-0 [&>h3]:text-m
-    [&>p]:m-0 [&>p]:text-s
-`
-
-function Stat({ label, value }: { label: string, value: ReactNode }) {
-    return <div className="flex flex-col p-3 rounded-inner bg-base-200">
-        <strong className="text-l">{value}</strong>
-        <span className="text-s text-base-content/80">{label}</span>
-    </div>
-}
 
 const WISH_ORDINALS = ['Første', 'Andre', 'Tredje']
 const NEARNESS_LABELS: Record<Nearness, string> = {
@@ -116,7 +106,13 @@ function placementsOf(plan: SeatingPlan, locked: number[]) {
         .sort((first, second) => first.registrationId - second.registrationId)
 }
 
-function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: SeatingBoard, onDiscard: () => void }) {
+function SeatingEditor({ eventId, board, onDiscard, points, setPoints }: {
+    eventId: number,
+    board: SeatingBoard,
+    onDiscard: () => void,
+    points: SeatingPoints,
+    setPoints: (points: SeatingPoints) => void,
+}) {
     const { guests, wishes } = board
     const guestIds = guests.map(guest => guest.id)
     const firstSeats = board.seats.length > 0
@@ -130,7 +126,6 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
     const [selected, setSelected] = useState<number | null>(null)
     const [dragged, setDragged] = useState<number | null>(null)
     const [drafts, setDrafts] = useState(0)
-    const [points, setPoints] = useState(DEFAULT_SEATING_POINTS)
 
     // Registrations can change behind an open plan, which must not throw away the work on it.
     const plan = reconcilePlan(workingPlan, guestIds)
@@ -274,17 +269,14 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
         </motion.li>
     }
 
-    const moveHereButton = (tableIndex: number | null) => selected !== null && <button
+    const moveHereButton = (tableIndex: number | null) => selected !== null && <Button
         type="button"
+        variant="text"
         disabled={tableIndex !== null && tableIsFull(tableIndex)}
         onClick={() => moveToTable(selected, tableIndex)}
-        className="
-            border-none bg-transparent text-s text-primary underline cursor-pointer
-            disabled:text-base-content/80 disabled:no-underline disabled:cursor-default
-        "
     >
         Flytt hit
-    </button>
+    </Button>
 
     const renderSeat = (tableIndex: number, seat: number) => {
         const guestId = plan.tables[tableIndex][seat]
@@ -327,8 +319,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                 grid grid-cols-2 gap-2
                 max-mobile:grid-cols-1
             ">
-                <section className={sectionClassName}>
-                    <h3>Ønsker</h3>
+                <AdminSection title="Ønsker">
                     <p>
                         {board.wishesEnd
                             ? `${wishing} av ${guests.length} har sendt ønsker.`
@@ -346,9 +337,8 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                             defaultValue={board.wishesEnd ?? undefined}
                         />
                     </Form>
-                </section>
-                <section className={sectionClassName}>
-                    <h3>Publisering</h3>
+                </AdminSection>
+                <AdminSection title="Publisering">
                     <p>
                         {board.publishedAt
                             ? 'Gjestene ser bordet sitt. Det du lagrer vises for dem med en gang.'
@@ -364,7 +354,7 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         disabled={!board.publishedAt && hasUnsavedPlan}
                         refreshOnSuccess
                     />
-                </section>
+                </AdminSection>
             </div>
 
             <Form
@@ -380,7 +370,6 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-end gap-3">
                         <TextInput
-                            name="seatsText"
                             label="Bord og plasser"
                             value={seatsText}
                             onChange={event => changeSeats(event.target.value)}
@@ -400,9 +389,9 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
                         grid grid-cols-3 gap-2
                         max-mobile:grid-cols-1
                     ">
-                        <Stat label="fikk minst ett ønske" value={`${summary.gotAWish} av ${summary.wishing}`} />
-                        <Stat label="fikk alle ønskene" value={`${summary.gotAllWishes} av ${summary.wishing}`} />
-                        <Stat
+                        <StatTile label="fikk minst ett ønske" value={`${summary.gotAWish} av ${summary.wishing}`} />
+                        <StatTile label="fikk alle ønskene" value={`${summary.gotAllWishes} av ${summary.wishing}`} />
+                        <StatTile
                             label="komiteer samlet ved ett bord"
                             value={`${summary.committeesTogether} av ${summary.committees}`}
                         />
@@ -466,5 +455,14 @@ function SeatingEditor({ eventId, board, onDiscard }: { eventId: number, board: 
 /** Collecting wishes, placing the guests at tables, and publishing the result to them. */
 export default function EventSeating({ eventId, board }: { eventId: number, board: SeatingBoard }) {
     const [discards, setDiscards] = useState(0)
-    return <SeatingEditor key={discards} eventId={eventId} board={board} onDiscard={() => setDiscards(discards + 1)} />
+    const [points, setPoints] = useState(DEFAULT_SEATING_POINTS)
+    // The plan is state, so the editor starts over with every saved version, or it would save an old plan as the newest.
+    return <SeatingEditor
+        key={`${board.version}-${discards}`}
+        eventId={eventId}
+        board={board}
+        onDiscard={() => setDiscards(discards + 1)}
+        points={points}
+        setPoints={setPoints}
+    />
 }

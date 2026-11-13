@@ -4,16 +4,13 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { userOperations } from '@/services/users/operations'
+import { createAdministrators } from 'tests/eventSetup'
 import { describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
 const soon = new Date(Date.now() + 24 * HOUR)
 
 async function setUp(key: string) {
-    const order = (await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })).order
-    const group = await prisma.group.create({
-        data: { groupType: 'MANUAL_GROUP', order, manualGroup: { create: { name: key, shortName: key } } },
-    })
     const event = await eventOperations.create({
         data: {
             name: 'Julebord',
@@ -21,7 +18,8 @@ async function setUp(key: string) {
             eventStart: new Date(Date.now() + 48 * HOUR),
             eventEnd: new Date(Date.now() + 50 * HOUR),
             takesRegistration: false,
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            canBeViewedBy: 'ALL',
+            visibilityAdminRequirements: await createAdministrators(key),
         },
         bypassAuth: true,
     })
@@ -38,7 +36,7 @@ async function setUp(key: string) {
         },
         bypassAuth: true,
     })
-    await prisma.event.update({ where: { id: event.id }, data: { published: true, canBeViewedBy: 'ALL' } })
+    await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     const variant = await prisma.eventVariant.findFirstOrThrow({
         where: { eventId: event.id },
         select: { id: true, quotas: { select: { id: true } } },
@@ -109,7 +107,7 @@ describe('wishes', () => {
         await eventSeatingOperations.openWishes({ params, data: { wishesEnd: soon }, bypassAuth: true })
         await expectRefused(update(3))
 
-        await prisma.event.update({ where: { id: params.id }, data: { seatingWishesEnd: new Date(Date.now() - HOUR) } })
+        await prisma.eventSeating.update({ where: { eventId: params.id }, data: { wishesEnd: new Date(Date.now() - HOUR) } })
         await expectRefused(update(0))
     })
 
@@ -129,6 +127,17 @@ describe('wishes', () => {
         const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
         expect(Object.values(board.wishes).flat()).not.toContain(second.id)
     })
+})
+
+test('opening the wishes and publishing leave the version of the setup form alone', async () => {
+    const { params } = await setUp('seat-setup')
+    const updatedAt = async () => (await prisma.event.findUniqueOrThrow({ where: { id: params.id } })).updatedAt
+    const before = await updatedAt()
+
+    await eventSeatingOperations.openWishes({ params, data: { wishesEnd: soon }, bypassAuth: true })
+    await eventSeatingOperations.setPublished({ params, data: { published: true }, bypassAuth: true })
+
+    expect(await updatedAt()).toEqual(before)
 })
 
 describe('the plan', () => {

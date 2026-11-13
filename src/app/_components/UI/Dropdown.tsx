@@ -13,7 +13,8 @@ export type DropdownOption<ValueType> = {
 }
 
 export type PropTypes<ValueType> = {
-    name: string,
+    /** Left out for a dropdown that is part of a larger field, which posts the value itself. */
+    name?: string,
     label: string,
     defaultValue?: ValueType,
     value?: ValueType,
@@ -314,7 +315,7 @@ export default function Dropdown<ValueType extends string | number>({
                     />
                 )
             }
-            <input type="hidden" name={name} value={value ?? ''} readOnly />
+            {name && <input type="hidden" name={name} value={value ?? ''} readOnly />}
         </div>
     )
 }

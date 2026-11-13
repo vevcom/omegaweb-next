@@ -293,7 +293,6 @@ export const eventOperations = {
         },
     }),
 
-
     create: defineOperation({
         dataSchema: eventSchemas.data.create,
         authorizer: () => eventAuth.create,
