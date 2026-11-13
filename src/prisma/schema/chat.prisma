@@ -50,15 +50,16 @@ model ChatSpaceMember {
   @@index([chatUserId])
 }
 
-// A room the chat sync has taken into a space, where the space's admins are admins from then on.
-// A room is in one space at most, and is taken into one only when whoever listed it there could
-// hand it over, see src/lib/chatSync/spaceChanges.ts. The row goes when the room leaves the space.
 model ChatSpaceRoom {
   id           Int       @id @default(autoincrement())
   space        ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   spaceId      Int
-  matrixRoomId String    @unique
+  name         String
+  // Null until the chat sync has made the room.
+  matrixRoomId String?   @unique
   createdAt    DateTime  @default(now())
+  // The chat sync empties the room and then deletes the row.
+  destroyedAt  DateTime?
 
   @@index([spaceId])
 }

@@ -1,17 +1,12 @@
 import '@pn-server-only'
-import { planEmptying, planSpaceChanges, roomsThatAre } from './spaceChanges'
+import { planSpaceChanges, removeEveryoneBut } from './spaceChanges'
 import { chatSpaceAdmins } from '@/services/chat/spaces/admins'
 import { prisma } from '@/prisma-pn-client-instance'
-import type { ActualRoom, ActualSpace, RoomRecords, WantedSpace } from './spaceChanges'
-import type { Homeserver, ListedRoom } from './client'
+import type { ActualRoom, ActualSpace, WantedRoom, WantedSpace } from './spaceChanges'
+import type { Homeserver } from './client'
 import type { SyncReport } from './report'
-import type { ChatSpace } from '@/prisma-generated-pn-types'
+import type { ChatSpace, ChatSpaceRoom } from '@/prisma-generated-pn-types'
 
-/**
- * Makes every space on the homeserver what its row says. The rooms of a space are their makers':
- * the sync creates none, and in one that is handed over to the space it only decides who the
- * admins are.
- */
 export async function syncSpaces(homeserver: Homeserver, report: SyncReport): Promise<void> {
     const spaces = await prisma.chatSpace.findMany({ orderBy: { id: 'asc' } })
     for (const space of spaces) {
@@ -25,34 +20,70 @@ export async function syncSpaces(homeserver: Homeserver, report: SyncReport): Pr
 }
 
 async function syncSpace(homeserver: Homeserver, space: ChatSpace, report: SyncReport): Promise<void> {
-    const roomId = space.matrixRoomId ?? await createSpace(homeserver, space)
+    const spaceRoomId = space.matrixRoomId ?? await createSpace(homeserver, space)
+
+    await destroyRoomsMarkedDestroyed(homeserver, space, spaceRoomId, report)
+    await createRoomsNotYetMade(homeserver, space, spaceRoomId, report)
 
     const admins = await readAdmins(space)
-    await keepAsMembers(space, admins)
+    await makeAdminsMembers(space, admins)
 
     const wanted = await readWantedSpace(homeserver, space, admins)
-    const actual = await readActualSpace(homeserver, space, roomId)
+    const actual = await readActualSpace(homeserver, spaceRoomId, wanted.rooms, report)
 
-    await report.carryOutAll(planSpaceChanges(homeserver, roomRecordsOf(space), wanted, actual))
+    await report.carryOutAll(planSpaceChanges(homeserver, wanted, actual))
 }
 
-/**
- * A destroyed space is emptied, left by the bot with the rooms it holds, and then forgotten, the
- * records of its rooms with it. Until it is empty, and every room it was taken out of is given
- * back, the row stays: the record of such a room is what has a later run give it back.
- */
+/** The row stays until the space and its rooms are emptied, so a later run takes up what this one could not do. */
 async function destroySpace(homeserver: Homeserver, space: ChatSpace, report: SyncReport): Promise<void> {
     if (space.matrixRoomId !== null) {
-        const actual = await readActualSpace(homeserver, space, space.matrixRoomId)
-
-        const emptied = await report.carryOutAll(planEmptying(homeserver, roomRecordsOf(space), actual))
+        const emptied = await tryToEmptyAndLeave(homeserver, space.matrixRoomId, report)
         if (!emptied) return
 
-        const roomsTheBotIsIn = roomsThatAre('HELD', actual).filter(room => room.members.includes(homeserver.botUserId))
-        for (const room of roomsTheBotIsIn) await homeserver.leave(room.id)
-        await homeserver.leave(actual.roomId)
+        const rooms = await prisma.chatSpaceRoom.findMany({ where: { spaceId: space.id } })
+        for (const room of rooms) {
+            const destroyed = await tryToDestroyRoom(homeserver, room, report)
+            if (!destroyed) return
+        }
     }
     await prisma.chatSpace.delete({ where: { id: space.id } })
+}
+
+async function destroyRoomsMarkedDestroyed(
+    homeserver: Homeserver,
+    space: ChatSpace,
+    spaceRoomId: string,
+    report: SyncReport,
+): Promise<void> {
+    const rooms = await prisma.chatSpaceRoom.findMany({ where: { spaceId: space.id, destroyedAt: { not: null } } })
+    for (const room of rooms) {
+        const { matrixRoomId } = room
+        const unlisted = matrixRoomId === null || await report.carryOut({
+            what: `unlist ${matrixRoomId}`,
+            run: () => homeserver.unlistRoom(spaceRoomId, matrixRoomId),
+        })
+        if (unlisted) await tryToDestroyRoom(homeserver, room, report)
+    }
+}
+
+async function tryToDestroyRoom(homeserver: Homeserver, room: ChatSpaceRoom, report: SyncReport): Promise<boolean> {
+    if (room.matrixRoomId !== null) {
+        const emptied = await tryToEmptyAndLeave(homeserver, room.matrixRoomId, report)
+        if (!emptied) return false
+    }
+    await prisma.chatSpaceRoom.delete({ where: { id: room.id } })
+    return true
+}
+
+async function tryToEmptyAndLeave(homeserver: Homeserver, roomId: string, report: SyncReport): Promise<boolean> {
+    const room = await homeserver.readRoom(roomId)
+    // The bot left it on an earlier run.
+    if (!room) return true
+
+    const membersWithoutBot = withoutBot(homeserver, room.joinedUserIds)
+    const emptied = await report.carryOutAll(removeEveryoneBut([], homeserver, { id: roomId, membersWithoutBot }))
+    if (!emptied) return false
+    return report.carryOut({ what: `leave ${roomId}`, run: () => homeserver.leave(roomId) })
 }
 
 async function createSpace(homeserver: Homeserver, space: ChatSpace): Promise<string> {
@@ -61,9 +92,29 @@ async function createSpace(homeserver: Homeserver, space: ChatSpace): Promise<st
     return roomId
 }
 
+async function createRoomsNotYetMade(
+    homeserver: Homeserver,
+    space: ChatSpace,
+    spaceRoomId: string,
+    report: SyncReport,
+): Promise<void> {
+    const rooms = await prisma.chatSpaceRoom.findMany({
+        where: { spaceId: space.id, matrixRoomId: null, destroyedAt: null },
+        orderBy: { id: 'asc' },
+    })
+    for (const room of rooms) {
+        await report.carryOut({
+            what: `make the room ${room.name}`,
+            run: async () => {
+                const matrixRoomId = await homeserver.createRoom(spaceRoomId, room.name)
+                await prisma.chatSpaceRoom.update({ where: { id: room.id }, data: { matrixRoomId } })
+            },
+        })
+    }
+}
+
 type Admin = { id: number }
 
-/** The ChatUsers of a space's admins, whom the service that owns the space names. */
 async function readAdmins(space: ChatSpace): Promise<Admin[]> {
     const userIds = await chatSpaceAdmins[space.purpose]?.({ prisma, spaceId: space.id }) ?? []
     return prisma.chatUser.findMany({
@@ -72,8 +123,7 @@ async function readAdmins(space: ChatSpace): Promise<Admin[]> {
     })
 }
 
-/** An admin is a member. So one who stops being an admin stays in the space, until they are removed. */
-async function keepAsMembers(space: ChatSpace, admins: Admin[]): Promise<void> {
+async function makeAdminsMembers(space: ChatSpace, admins: Admin[]): Promise<void> {
     await prisma.chatSpaceMember.createMany({
         data: admins.map(admin => ({ spaceId: space.id, chatUserId: admin.id })),
         skipDuplicates: true,
@@ -100,50 +150,52 @@ async function readWantedSpace(homeserver: Homeserver, space: ChatSpace, admins:
         name: space.name,
         members: members.map(userIdOf),
         admins: members.filter(member => adminIds.includes(member.chatUserId)).map(userIdOf),
+        rooms: await readWantedRooms(space),
     }
 }
 
-async function readActualSpace(homeserver: Homeserver, space: ChatSpace, roomId: string): Promise<ActualSpace> {
-    const { name, levels, rooms: listed } = await homeserver.readSpace(roomId)
-    const members = await homeserver.readJoinedMembers(roomId)
-
-    return {
-        roomId,
-        name,
-        members: members.filter(userId => userId !== homeserver.botUserId),
-        levels,
-        rooms: await readRooms(homeserver, space, listed),
-    }
-}
-
-/** The rooms the space lists, and those it has taken in and lists no longer. */
-async function readRooms(homeserver: Homeserver, space: ChatSpace, listed: ListedRoom[]): Promise<ActualRoom[]> {
-    const listedIds = listed.map(room => room.id)
-    const records = await prisma.chatSpaceRoom.findMany({
-        where: { OR: [{ spaceId: space.id }, { matrixRoomId: { in: listedIds } }] },
-        select: { matrixRoomId: true, spaceId: true },
+async function readWantedRooms(space: ChatSpace): Promise<WantedRoom[]> {
+    const rooms = await prisma.chatSpaceRoom.findMany({
+        where: { spaceId: space.id, destroyedAt: null },
+        select: { matrixRoomId: true, name: true },
+        orderBy: { id: 'asc' },
     })
-    const takenIn = records.filter(record => record.spaceId === space.id).map(record => record.matrixRoomId)
-    const takenIntoOf = (roomId: string): ActualRoom['takenInto'] => {
-        if (takenIn.includes(roomId)) return 'THIS_SPACE'
-        return records.some(record => record.matrixRoomId === roomId) ? 'ANOTHER_SPACE' : null
-    }
+    return rooms.flatMap(room => (room.matrixRoomId === null ? [] : [{ id: room.matrixRoomId, name: room.name }]))
+}
+
+async function readActualSpace(
+    homeserver: Homeserver,
+    spaceRoomId: string,
+    wantedRooms: WantedRoom[],
+    report: SyncReport,
+): Promise<ActualSpace> {
+    const space = await homeserver.readRoom(spaceRoomId)
+    if (!space) throw new Error(`The bot cannot read the space ${spaceRoomId}`)
 
     const rooms: ActualRoom[] = []
-    for (const id of Array.from(new Set([...listedIds, ...takenIn]))) {
+    for (const { id } of wantedRooms) {
+        const room = await homeserver.readRoom(id)
+        if (!room) {
+            report.refuse(`read the room ${id}`, 'the bot is not in it')
+            continue
+        }
         rooms.push({
             id,
-            listedBy: listed.find(room => room.id === id)?.listedBy ?? null,
-            takenInto: takenIntoOf(id),
-            ...await homeserver.readRoom(id),
+            name: room.name,
+            membersWithoutBot: withoutBot(homeserver, room.joinedUserIds),
+            levels: room.levels,
         })
     }
-    return rooms
+
+    return {
+        id: spaceRoomId,
+        name: space.name,
+        membersWithoutBot: withoutBot(homeserver, space.joinedUserIds),
+        listedRoomIds: space.listedRoomIds,
+        rooms,
+    }
 }
 
-function roomRecordsOf(space: ChatSpace): RoomRecords {
-    return {
-        takeIn: roomId => prisma.chatSpaceRoom.create({ data: { spaceId: space.id, matrixRoomId: roomId } }),
-        forget: roomId => prisma.chatSpaceRoom.deleteMany({ where: { spaceId: space.id, matrixRoomId: roomId } }),
-    }
+function withoutBot(homeserver: Homeserver, userIds: string[]): string[] {
+    return userIds.filter(userId => userId !== homeserver.botUserId)
 }
