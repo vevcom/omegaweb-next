@@ -4,6 +4,7 @@ import SpaceMembers from './SpaceMembers'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { configureAction } from '@/services/configureAction'
+import type { ReactNode } from 'react'
 import type {
     ChatSpaceAdminActions,
     ChatSpaceMemberOverview,
@@ -15,9 +16,11 @@ type PropTypes = {
     rooms: ChatSpaceRoomOverview[],
     members: ChatSpaceMemberOverview[],
     actions: ChatSpaceAdminActions,
+    /** For an owner whose members are not simply added and removed. It stands where the list of members would. */
+    membersSection?: ReactNode,
 }
 
-export default function SpaceAdmin({ space, rooms, members, actions }: PropTypes) {
+export default function SpaceAdmin({ space, rooms, members, actions, membersSection }: PropTypes) {
     return (
         <div className="flex flex-col gap-8">
             {actions.update && (
@@ -31,7 +34,7 @@ export default function SpaceAdmin({ space, rooms, members, actions }: PropTypes
                 </Form>
             )}
             <SpaceRooms spaceId={space.id} rooms={rooms} spaceMembers={members} actions={actions} />
-            <SpaceMembers spaceId={space.id} members={members} actions={actions} />
+            {membersSection ?? <SpaceMembers spaceId={space.id} members={members} actions={actions} />}
         </div>
     )
 }
