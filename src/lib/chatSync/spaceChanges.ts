@@ -161,23 +161,37 @@ function takeIn(homeserver: Homeserver, records: RoomRecords, room: ActualRoom):
 
 /**
  * The room is left to its makers: without the level the sync gave, without the bot, and with
- * inviting at the level Matrix gives it when a room names none.
+ * inviting at the level Matrix gives it when a room names none. What is left of the sync's in the
+ * room tells how far an earlier run got, so one that was stopped halfway is taken up from there,
+ * and a bot that is out of the room or without its level gets back in to take the levels it gave.
+ * A room nobody is in has no one for a level to be held by, and is only forgotten.
  */
 function giveBack(homeserver: Homeserver, records: RoomRecords, room: ActualRoom): Change {
+    const users = room.levels.users ?? {}
+    const botIsIn = room.members.includes(homeserver.botUserId)
+    const botHasItsLevel = (users[homeserver.botUserId] ?? 0) >= ROOM_INVITE_LEVEL
+    const hasLevelsToTake = room.members.length > 0
+        && (homeserver.botUserId in users || Object.values(users).includes(ROOM_ADMIN_LEVEL))
+
     return {
         what: `give back the room ${room.id}`,
         run: async () => {
-            if (room.members.includes(homeserver.botUserId)) {
-                const users = roomLevelsOf(room.levels.users ?? {}, [])
-                Reflect.deleteProperty(users, homeserver.botUserId)
-                const levels = { ...room.levels, users }
-                Reflect.deleteProperty(levels, 'invite')
-                await homeserver.writeState(room.id, 'm.room.power_levels', levels)
-                await homeserver.leave(room.id)
+            if (hasLevelsToTake) {
+                if (!botIsIn || !botHasItsLevel) await homeserver.takeRoomAdmin(room.id)
+                await homeserver.writeState(room.id, 'm.room.power_levels', levelsGivenBack(homeserver, room))
             }
+            if (botIsIn || hasLevelsToTake) await homeserver.leave(room.id)
             await records.forget(room.id)
         },
     }
+}
+
+function levelsGivenBack(homeserver: Homeserver, room: ActualRoom): ChatPowerLevels {
+    const users = roomLevelsOf(room.levels.users ?? {}, [])
+    Reflect.deleteProperty(users, homeserver.botUserId)
+    const levels = { ...room.levels, users }
+    Reflect.deleteProperty(levels, 'invite')
+    return levels
 }
 
 function setSpaceAdmins(homeserver: Homeserver, wanted: WantedSpace, actual: ActualSpace): Change[] {

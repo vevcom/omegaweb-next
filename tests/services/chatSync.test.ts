@@ -383,6 +383,69 @@ describe('a room', () => {
     })
 })
 
+describe('a room that is given back', () => {
+    /** A room Ola made, which a space holds and Kari is an admin of, taken out of the space again. */
+    async function roomTakenOutOfItsSpace() {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        adminUserIds = [kari.user.id]
+        const space = await createSpace('Space', [ola])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(space), ola.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.room(room).levels.users[kari.matrixId]).toBe(ROOM_ADMIN_LEVEL)
+
+        homeserver.unlistRoom(await roomIdOf(space), room)
+        return { room, ola }
+    }
+
+    test('by a bot that was thrown out of it has the bot back in, to take the levels it gave', async () => {
+        const { room, ola } = await roomTakenOutOfItsSpace()
+        homeserver.room(room).members = [ola.matrixId]
+
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).members).toEqual([ola.matrixId])
+        expect(homeserver.room(room).levels).toEqual({ users: {} })
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+
+    test('and that the bot could not leave is left by it on a later run', async () => {
+        const { room, ola } = await roomTakenOutOfItsSpace()
+        homeserver.refusedOnce.push(`leave ${room}`)
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`give back the room ${room}`)
+        expect(homeserver.room(room).members).toEqual([ola.matrixId, homeserver.botUserId])
+        expect(homeserver.room(room).levels).toEqual({ users: {} })
+        expect(await prisma.chatSpaceRoom.count()).toBe(1)
+
+        await syncChat(homeserver)
+        expect(homeserver.room(room).members).toEqual([ola.matrixId])
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+
+    test('stays the space\'s on record while the bot is kept from taking the levels it gave', async () => {
+        const { room, ola } = await roomTakenOutOfItsSpace()
+        homeserver.room(room).members = [ola.matrixId]
+        homeserver.broken.push(room)
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`give back the room ${room}`)
+        expect(await prisma.chatSpaceRoom.count()).toBe(1)
+    })
+
+    test('with nobody in it is only forgotten', async () => {
+        const { room } = await roomTakenOutOfItsSpace()
+        homeserver.room(room).members = []
+        const settled = homeserver.writes.length
+
+        await syncChat(homeserver)
+
+        expect(homeserver.writes).toHaveLength(settled)
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+})
+
 describe('the levels of a room', () => {
     test('are the room\'s own, but for the one level the sync gives and takes', () => {
         const current = { '@bot:x': 100, '@moderator:x': 50, '@former:x': ROOM_ADMIN_LEVEL, '@owner:x': 100 }
