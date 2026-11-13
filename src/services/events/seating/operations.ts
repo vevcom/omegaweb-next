@@ -11,99 +11,6 @@ import { defineOperation, type PrismaPossibleTransaction } from '@/services/serv
 import type { OwnSeating, SeatingBoard } from './types'
 import type { SeatingPlan } from './plan'
 
-/** Those with a place at the event. Someone in several variants still takes one seat. */
-async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
-    const registrations = await prisma.eventRegistration.findMany({
-        where: seatedInEvent(eventId),
-        orderBy: { id: 'asc' },
-        select: {
-            id: true,
-            userId: true,
-            tableId: true,
-            seat: true,
-            seatLocked: true,
-            contact: { select: { name: true } },
-            seatingWishes: { orderBy: { rank: 'asc' }, select: { wishedRegistrationId: true } },
-            user: {
-                select: {
-                    firstname: true,
-                    lastname: true,
-                    memberships: {
-                        where: { active: true, group: { committee: { isNot: null } } },
-                        select: { group: { select: { committee: { select: { name: true } } } } },
-                    },
-                },
-            },
-        },
-    })
-    const seen = new Set<number>()
-    const seated = registrations.filter(({ userId }) => {
-        if (userId === null) return true
-        if (seen.has(userId)) return false
-        seen.add(userId)
-        return true
-    })
-    // A wish for someone who has since lost their place stays in the database but no longer counts.
-    const seatedIds = new Set(seated.map(({ id }) => id))
-    return seated.map(registration => ({
-        ...registration,
-        seatingWishes: registration.seatingWishes.filter(wish => seatedIds.has(wish.wishedRegistrationId)),
-        name: registration.user
-            ? `${registration.user.firstname} ${registration.user.lastname}`
-            : registration.contact?.name ?? 'Ukjent',
-    }))
-}
-
-/** When the wishes close and when the tables were published. An event without a row has neither. */
-async function readSeating(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
-    const seating = await prisma.eventSeating.findUnique({
-        where: { eventId },
-        select: { wishesEnd: true, publishedAt: true },
-    })
-    return seating ?? { wishesEnd: null, publishedAt: null }
-}
-
-function readTables(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
-    return prisma.eventTable.findMany({ where: { eventId }, orderBy: { order: 'asc' }, select: { id: true, seats: true } })
-}
-
-// The info channel, which those with a place are subscribed to.
-async function notifyGuests(
-    prisma: PrismaPossibleTransaction<boolean>,
-    eventId: number,
-    userIds: number[],
-    title: string,
-    message: (eventName: string) => string,
-) {
-    if (userIds.length === 0) return
-    const event = await prisma.event.findUniqueOrThrow({
-        where: { id: eventId },
-        select: { id: true, name: true, infoNotificationChannelId: true },
-    })
-    await eventNotificationOperations.internal.createInfoNotification.internalCall({
-        params: { channelId: event.infoNotificationChannelId },
-        data: { title, message: message(event.name), url: omegaEventLinks.event(event), audience: { userIds } },
-    })
-}
-
-/** Who sits where. A registration without a seat at one of the tables is left without a table. */
-function planOf(
-    tables: { id: number, seats: number }[],
-    registrations: { id: number, tableId: number | null, seat: number | null }[],
-): SeatingPlan {
-    const plan: SeatingPlan = { tables: tables.map(table => Array<number | null>(table.seats).fill(null)), unseated: [] }
-    registrations.forEach(({ id, tableId, seat }) => {
-        const index = tables.findIndex(table => table.id === tableId)
-        if (index === -1 || seat === null || seat >= tables[index].seats) plan.unseated.push(id)
-        else plan.tables[index][seat] = id
-    })
-    return plan
-}
-
-const userIdsOf = (registrations: { userId: number | null }[]) => (
-    registrations.flatMap(({ userId }) => (userId === null ? [] : [userId]))
-)
-
 export const eventSeatingOperations = {
     readBoard: defineOperation({
         paramsSchema: eventSeatingSchemas.params.readBoard,
@@ -308,3 +215,96 @@ export const eventSeatingOperations = {
         },
     }),
 } as const
+
+/** Those with a place at the event. Someone in several variants still takes one seat. */
+async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
+    const registrations = await prisma.eventRegistration.findMany({
+        where: seatedInEvent(eventId),
+        orderBy: { id: 'asc' },
+        select: {
+            id: true,
+            userId: true,
+            tableId: true,
+            seat: true,
+            seatLocked: true,
+            contact: { select: { name: true } },
+            seatingWishes: { orderBy: { rank: 'asc' }, select: { wishedRegistrationId: true } },
+            user: {
+                select: {
+                    firstname: true,
+                    lastname: true,
+                    memberships: {
+                        where: { active: true, group: { committee: { isNot: null } } },
+                        select: { group: { select: { committee: { select: { name: true } } } } },
+                    },
+                },
+            },
+        },
+    })
+    const seen = new Set<number>()
+    const seated = registrations.filter(({ userId }) => {
+        if (userId === null) return true
+        if (seen.has(userId)) return false
+        seen.add(userId)
+        return true
+    })
+    // A wish for someone who has since lost their place stays in the database but no longer counts.
+    const seatedIds = new Set(seated.map(({ id }) => id))
+    return seated.map(registration => ({
+        ...registration,
+        seatingWishes: registration.seatingWishes.filter(wish => seatedIds.has(wish.wishedRegistrationId)),
+        name: registration.user
+            ? `${registration.user.firstname} ${registration.user.lastname}`
+            : registration.contact?.name ?? 'Ukjent',
+    }))
+}
+
+/** When the wishes close and when the tables were published. An event without a row has neither. */
+async function readSeating(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
+    const seating = await prisma.eventSeating.findUnique({
+        where: { eventId },
+        select: { wishesEnd: true, publishedAt: true },
+    })
+    return seating ?? { wishesEnd: null, publishedAt: null }
+}
+
+function readTables(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
+    return prisma.eventTable.findMany({ where: { eventId }, orderBy: { order: 'asc' }, select: { id: true, seats: true } })
+}
+
+// The info channel, which those with a place are subscribed to.
+async function notifyGuests(
+    prisma: PrismaPossibleTransaction<boolean>,
+    eventId: number,
+    userIds: number[],
+    title: string,
+    message: (eventName: string) => string,
+) {
+    if (userIds.length === 0) return
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { id: true, name: true, infoNotificationChannelId: true },
+    })
+    await eventNotificationOperations.internal.createInfoNotification.internalCall({
+        params: { channelId: event.infoNotificationChannelId },
+        data: { title, message: message(event.name), url: omegaEventLinks.event(event), audience: { userIds } },
+    })
+}
+
+/** Who sits where. A registration without a seat at one of the tables is left without a table. */
+function planOf(
+    tables: { id: number, seats: number }[],
+    registrations: { id: number, tableId: number | null, seat: number | null }[],
+): SeatingPlan {
+    const plan: SeatingPlan = { tables: tables.map(table => Array<number | null>(table.seats).fill(null)), unseated: [] }
+    registrations.forEach(({ id, tableId, seat }) => {
+        const index = tables.findIndex(table => table.id === tableId)
+        if (index === -1 || seat === null || seat >= tables[index].seats) plan.unseated.push(id)
+        else plan.tables[index][seat] = id
+    })
+    return plan
+}
+
+function userIdsOf(registrations: { userId: number | null }[]) {
+    return registrations.flatMap(({ userId }) => (userId === null ? [] : [userId]))
+}

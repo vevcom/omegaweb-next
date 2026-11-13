@@ -23,7 +23,6 @@ type PropTypes = Omit<SetupFormPropTypes, 'event'> & {
     >,
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
-    /** Null when the event takes no registration, or they could not be read. */
     seatingBoard: SeatingBoard | null,
 }
 
