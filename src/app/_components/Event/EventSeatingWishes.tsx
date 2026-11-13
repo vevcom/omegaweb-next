@@ -1,10 +1,12 @@
 'use client'
 import DateDisplay from '@/components/Date/Date'
 import Form from '@/components/Form/Form'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import { configureAction } from '@/services/configureAction'
 import { updateEventSeatingWishesAction } from '@/services/events/seating/actions'
-import { MAX_WISHES, sidesOf } from '@/services/events/seating/plan'
+import { MAX_WISHES } from '@/services/events/seating/constants'
+import { sidesOf } from '@/services/events/seating/plan'
 import { Fragment, useState } from 'react'
 import type { OwnSeating } from '@/services/events/seating/types'
 
@@ -67,10 +69,9 @@ export default function EventSeatingWishes({ eventId, seating }: { eventId: numb
         <p className="m-0 text-base-content/80">
             Hvem vil du sitte med? Svar innen <DateDisplay date={seating.wishesEnd ?? new Date()} includeSeconds={false} />.
         </p>
-        <input type="hidden" name="wishes" value={JSON.stringify(chosen)} />
+        <JsonFieldInput name="wishes" value={chosen} />
         {wishes.map((wish, index) => <SearchableDropdown
             key={index}
-            name={`wish${index}`}
             label={`Ønske ${index + 1}`}
             value={wish}
             options={[

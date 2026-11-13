@@ -1,7 +1,7 @@
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-const ombulFileSizeMb = 10
+export const ombulFileSizeMb = 50
 export const maxOmbulFileSize = ombulFileSizeMb * 1024 * 1024
 
 export const expandedOmbulIncluder = {
