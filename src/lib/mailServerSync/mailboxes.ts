@@ -1,4 +1,5 @@
 import '@pn-server-only'
+import { creationId } from './client'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerAccount, MailServerClient } from './client'
@@ -52,11 +53,6 @@ type WantedGroup = {
 /** The address of the mailbox of an alias: the alias's own, as the server writes addresses. */
 export function mailboxAddressOf(aliasAddress: string): string {
     return aliasAddress.toLowerCase()
-}
-
-/** The id a creation is sent under, see sync.ts. */
-export function creationId(address: string, index: number): string {
-    return `${address.replace(/[^A-Za-z0-9_-]/g, '_')}-${index}`
 }
 
 /**
