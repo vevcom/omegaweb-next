@@ -1,6 +1,7 @@
 'use server'
 import { makeAction } from '@/services/serverAction'
 import { committeeOperations } from '@/services/groups/committees/operations'
+import { committeeChatSpaceOperations } from '@/services/groups/committees/chatSpace'
 
 export const createCommitteeAction = makeAction(committeeOperations.create)
 export const updateCommitteeAction = makeAction(committeeOperations.update)
@@ -46,3 +47,13 @@ export const updateCommitteeArticleCmsParagraphAction = makeAction(
 export const updateCommitteeArticleCmsLinkAction = makeAction(
     committeeOperations.updateArticle.articleSections.cmsLink
 )
+
+export const createCommitteeChatSpaceAction = makeAction(committeeChatSpaceOperations.create)
+export const destroyCommitteeChatSpaceAction = makeAction(committeeChatSpaceOperations.destroy)
+export const addCommitteeChatSpaceMembersAction = makeAction(committeeChatSpaceOperations.addMembers)
+export const removeCommitteeChatSpaceMembersAction = makeAction(committeeChatSpaceOperations.removeMembers)
+export const createCommitteeChatSpaceRoomAction = makeAction(committeeChatSpaceOperations.createRoom)
+export const updateCommitteeChatSpaceRoomAction = makeAction(committeeChatSpaceOperations.updateRoom)
+export const destroyCommitteeChatSpaceRoomAction = makeAction(committeeChatSpaceOperations.destroyRoom)
+export const addCommitteeChatSpaceRoomMembersAction = makeAction(committeeChatSpaceOperations.addRoomMembers)
+export const removeCommitteeChatSpaceRoomMembersAction = makeAction(committeeChatSpaceOperations.removeRoomMembers)
