@@ -1,3 +1,5 @@
+import { DEFAULT_SEATING_POINTS, MAX_SEATS_PER_TABLE, MAX_TABLES } from './constants'
+
 export type SeatingGuest = { id: number, name: string, committees: string[] }
 /** The guests each guest wants to sit with, most wanted first. */
 export type SeatingWishes = Record<number, number[]>
@@ -18,18 +20,6 @@ export type SeatingPoints = {
     emptySeat: number,
 }
 
-export const DEFAULT_SEATING_POINTS: SeatingPoints = {
-    // The first wish a guest gets is worth the most, so everyone getting one beats a few getting all three.
-    wishes: [20, 4, 2],
-    mutual: 2,
-    nearness: { beside: 100, across: 100, diagonal: 75, table: 20 },
-    // Lower than a first wish, so a committee is split rather than leaving someone with none of their wishes.
-    committeeSplit: 5,
-    emptySeat: 1,
-}
-export const MAX_WISHES = 3
-export const MAX_TABLES = 200
-export const MAX_SEATS_PER_TABLE = 100
 const UNSEATED_PENALTY = 100
 const ITERATIONS = 300_000
 const START_TEMPERATURE = 4

@@ -1,4 +1,4 @@
-import { MAX_SEATS_PER_TABLE, MAX_TABLES, MAX_WISHES } from './plan'
+import { MAX_SEATS_PER_TABLE, MAX_TABLES, MAX_WISHES } from './constants'
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 

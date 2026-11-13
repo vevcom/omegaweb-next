@@ -39,11 +39,8 @@ model Event {
 
   published Boolean @default(false)
 
-  // Guests can wish for who to sit with until this. Null until the wishes have been opened.
-  seatingWishesEnd   DateTime?
-  // Guests see their table from this on.
-  seatingPublishedAt DateTime?
-  seatingTables      EventTable[]
+  seating       EventSeating?
+  seatingTables EventTable[]
 
   careerFrontpageHighlights CareerFrontpageHighlight[]
 
@@ -163,6 +160,17 @@ model EventQuota {
 enum EventRegistrationState {
   IN_QUOTA
   WAITING_LIST
+}
+
+// Kept off Event, since a write to that row starts the setup form over. An event has no row until its wishes are opened or its tables published.
+model EventSeating {
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int   @id
+
+  // Guests can wish for who to sit with until this. Null until the wishes have been opened.
+  wishesEnd   DateTime?
+  // Guests see their table from this on.
+  publishedAt DateTime?
 }
 
 model EventTable {

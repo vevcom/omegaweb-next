@@ -154,7 +154,7 @@ export function eventPage(config: EventPagesConfig) {
             const statistics = administers && event.takesRegistration
                 ? await withFallback(eventOperations.readStatistics({ params: { id: event.id } }), null)
                 : null
-            const seatingBoard = event.takesRegistration
+            const seatingBoard = administers && event.takesRegistration
                 ? await withFallback(eventSeatingOperations.readBoard({ params: { id: event.id } }), null)
                 : null
             const ownSeating = event.takesRegistration && session.user

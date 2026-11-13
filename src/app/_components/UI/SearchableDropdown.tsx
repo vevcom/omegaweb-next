@@ -144,7 +144,7 @@ export default function SearchableDropdown<ValueType extends string | number>({
                     />
                 )
             }
-            <input type="hidden" name={name} value={value ?? ''} readOnly />
+            {name && <input type="hidden" name={name} value={value ?? ''} readOnly />}
         </div>
     )
 }

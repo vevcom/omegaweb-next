@@ -1,6 +1,11 @@
--- AlterTable
-ALTER TABLE "Event" ADD COLUMN     "seatingPublishedAt" TIMESTAMP(3),
-ADD COLUMN     "seatingWishesEnd" TIMESTAMP(3);
+-- CreateTable
+CREATE TABLE "EventSeating" (
+    "eventId" INTEGER NOT NULL,
+    "wishesEnd" TIMESTAMP(3),
+    "publishedAt" TIMESTAMP(3),
+
+    CONSTRAINT "EventSeating_pkey" PRIMARY KEY ("eventId")
+);
 
 -- AlterTable
 ALTER TABLE "EventRegistration" ADD COLUMN     "seatLocked" BOOLEAN NOT NULL DEFAULT false,
@@ -50,3 +55,6 @@ ALTER TABLE "EventSeatingWish" ADD CONSTRAINT "EventSeatingWish_wishedRegistrati
 -- AddForeignKey
 ALTER TABLE "EventRegistration" ADD CONSTRAINT "EventRegistration_tableId_fkey" FOREIGN KEY ("tableId") REFERENCES "EventTable"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
+
+-- AddForeignKey
+ALTER TABLE "EventSeating" ADD CONSTRAINT "EventSeating_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;

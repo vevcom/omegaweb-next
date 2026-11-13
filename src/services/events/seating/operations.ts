@@ -3,7 +3,7 @@ import { eventSeatingAuth } from './auth'
 import { eventSeatingSchemas } from './schemas'
 import { placesOf } from './plan'
 import { readEventAccess } from '@/services/events/access'
-import { lockEvent } from '@/services/events/registration/queue'
+import { lockEvent, seatedInEvent } from '@/services/events/registration/queue'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { ServiceError } from '@/services/error'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
@@ -14,7 +14,7 @@ import type { SeatingPlan } from './plan'
 /** Those with a place at the event. Someone in several variants still takes one seat. */
 async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
     const registrations = await prisma.eventRegistration.findMany({
-        where: { state: 'IN_QUOTA', quota: { variant: { eventId } } },
+        where: seatedInEvent(eventId),
         orderBy: { id: 'asc' },
         select: {
             id: true,
@@ -54,17 +54,35 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
     }))
 }
 
+/** When the wishes close and when the tables were published. An event without a row has neither. */
+async function readSeating(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
+    const seating = await prisma.eventSeating.findUnique({
+        where: { eventId },
+        select: { wishesEnd: true, publishedAt: true },
+    })
+    return seating ?? { wishesEnd: null, publishedAt: null }
+}
+
+function readTables(prisma: PrismaPossibleTransaction<boolean>, eventId: number) {
+    return prisma.eventTable.findMany({ where: { eventId }, orderBy: { order: 'asc' }, select: { id: true, seats: true } })
+}
+
 // The info channel, which those with a place are subscribed to.
-function notifyGuests(
-    event: { id: number, name: string, infoNotificationChannelId: number },
+async function notifyGuests(
+    prisma: PrismaPossibleTransaction<boolean>,
+    eventId: number,
     userIds: number[],
     title: string,
-    message: string,
+    message: (eventName: string) => string,
 ) {
-    if (userIds.length === 0) return null
-    return eventNotificationOperations.internal.createInfoNotification.internalCall({
+    if (userIds.length === 0) return
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { id: true, name: true, infoNotificationChannelId: true },
+    })
+    await eventNotificationOperations.internal.createInfoNotification.internalCall({
         params: { channelId: event.infoNotificationChannelId },
-        data: { title, message, url: omegaEventLinks.event(event), audience: { userIds } },
+        data: { title, message: message(event.name), url: omegaEventLinks.event(event), audience: { userIds } },
     })
 }
 
@@ -93,21 +111,13 @@ export const eventSeatingOperations = {
             eventSeatingAuth.readBoard.data(await readEventAccess(prisma, params.id))
         ),
         operation: async ({ prisma, params }): Promise<SeatingBoard> => {
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                select: {
-                    seatingWishesEnd: true,
-                    seatingPublishedAt: true,
-                    seatingTables: { orderBy: { order: 'asc' }, select: { id: true, seats: true } },
-                },
-            })
+            const seating = await readSeating(prisma, params.id)
+            const tables = await readTables(prisma, params.id)
             const registrations = await readSeatedRegistrations(prisma, params.id)
-            const tableIds = event.seatingTables.map(table => table.id)
 
             return {
-                wishesEnd: event.seatingWishesEnd,
-                publishedAt: event.seatingPublishedAt,
-                seats: event.seatingTables.map(table => table.seats),
+                ...seating,
+                seats: tables.map(table => table.seats),
                 guests: registrations.map(({ id, name, user }) => ({
                     id,
                     name,
@@ -117,9 +127,9 @@ export const eventSeatingOperations = {
                     id,
                     seatingWishes.map(wish => wish.wishedRegistrationId),
                 ])),
-                plan: planOf(event.seatingTables, registrations),
+                plan: planOf(tables, registrations),
                 locked: registrations.flatMap(registration => (registration.seatLocked ? [registration.id] : [])),
-                version: Math.max(0, ...tableIds),
+                version: Math.max(0, ...tables.map(table => table.id)),
             }
         },
     }),
@@ -130,28 +140,21 @@ export const eventSeatingOperations = {
             eventSeatingAuth.readOwn.data(await readEventAccess(prisma, params.id))
         ),
         operation: async ({ prisma, params, session }): Promise<OwnSeating | null> => {
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                select: {
-                    seatingWishesEnd: true,
-                    seatingPublishedAt: true,
-                    seatingTables: { orderBy: { order: 'asc' }, select: { id: true, seats: true } },
-                },
-            })
-            if (!event.seatingWishesEnd && !event.seatingPublishedAt) return null
+            const { wishesEnd, publishedAt } = await readSeating(prisma, params.id)
+            if (!wishesEnd && !publishedAt) return null
 
             const registrations = await readSeatedRegistrations(prisma, params.id)
             const own = registrations.find(registration => registration.userId === session.user?.id)
             if (!own) return null
 
-            const plan = planOf(event.seatingTables, registrations)
-            const place = event.seatingPublishedAt ? placesOf(plan).get(own.id) : undefined
+            const plan = planOf(await readTables(prisma, params.id), registrations)
+            const place = publishedAt ? placesOf(plan).get(own.id) : undefined
             const nameOf = (id: number | null) => registrations.find(registration => registration.id === id)?.name ?? null
             return {
-                wishesEnd: event.seatingWishesEnd,
+                wishesEnd,
                 options: registrations.flatMap(({ id, name }) => (id === own.id ? [] : [{ id, name }])),
                 wishes: own.seatingWishes.map(wish => wish.wishedRegistrationId),
-                published: event.seatingPublishedAt !== null,
+                published: publishedAt !== null,
                 table: place ? {
                     number: place.table + 1,
                     seats: plan.tables[place.table].map(nameOf),
@@ -169,11 +172,8 @@ export const eventSeatingOperations = {
         ),
         transaction: 'OPENS',
         operation: async ({ prisma, params, data, session }) => {
-            const { seatingWishesEnd } = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                select: { seatingWishesEnd: true },
-            })
-            if (!seatingWishesEnd || seatingWishesEnd < new Date()) {
+            const { wishesEnd } = await readSeating(prisma, params.id)
+            if (!wishesEnd || wishesEnd < new Date()) {
                 throw new ServiceError('BAD PARAMETERS', 'Fristen for å sende ønsker er ute')
             }
 
@@ -209,18 +209,20 @@ export const eventSeatingOperations = {
         operation: async ({ prisma, params, data }) => {
             if (data.wishesEnd < new Date()) throw new ServiceError('BAD PARAMETERS', 'Fristen må være frem i tid')
 
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                select: { id: true, name: true, infoNotificationChannelId: true, seatingWishesEnd: true },
+            const before = await readSeating(prisma, params.id)
+            await prisma.eventSeating.upsert({
+                where: { eventId: params.id },
+                create: { eventId: params.id, wishesEnd: data.wishesEnd },
+                update: { wishesEnd: data.wishesEnd },
             })
-            await prisma.event.update({ where: { id: params.id }, data: { seatingWishesEnd: data.wishesEnd } })
 
-            if (event.seatingWishesEnd) return
+            if (before.wishesEnd) return
             await notifyGuests(
-                event,
+                prisma,
+                params.id,
                 userIdsOf(await readSeatedRegistrations(prisma, params.id)),
                 'Hvem vil du sitte med?',
-                `Du kan nå ønske deg hvem du vil sitte med på ${event.name}.`,
+                eventName => `Du kan nå ønske deg hvem du vil sitte med på ${eventName}.`,
             )
         },
     }),
@@ -287,19 +289,21 @@ export const eventSeatingOperations = {
             eventSeatingAuth.setPublished.data(await readEventAccess(prisma, params.id))
         ),
         operation: async ({ prisma, params, data }) => {
-            const event = await prisma.event.update({
-                where: { id: params.id },
-                data: { seatingPublishedAt: data.published ? new Date() : null },
-                select: { id: true, name: true, infoNotificationChannelId: true },
+            const publishedAt = data.published ? new Date() : null
+            await prisma.eventSeating.upsert({
+                where: { eventId: params.id },
+                create: { eventId: params.id, publishedAt },
+                update: { publishedAt },
             })
             if (!data.published) return
 
             const registrations = await readSeatedRegistrations(prisma, params.id)
             await notifyGuests(
-                event,
+                prisma,
+                params.id,
                 userIdsOf(registrations.filter(registration => registration.tableId !== null)),
                 'Bordplasseringen er klar',
-                `Nå kan du se hvor du sitter på ${event.name}.`,
+                eventName => `Nå kan du se hvor du sitter på ${eventName}.`,
             )
         },
     }),
