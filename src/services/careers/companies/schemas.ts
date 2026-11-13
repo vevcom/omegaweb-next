@@ -42,9 +42,11 @@ export const companySchemas = {
             description: true,
         }),
         update: dataFieldSchemas.partial().pick({
-            name: true,
             description: true,
             website: true,
+        }),
+        updateName: dataFieldSchemas.pick({
+            name: true,
         }),
         updateSponsorTier: dataFieldSchemas.pick({
             sponsorTier: true,
@@ -62,6 +64,7 @@ export const companySchemas = {
             }),
         ),
         update: id,
+        updateName: id,
         updateSponsorTier: id,
         updateLogo: id,
         destroy: id,

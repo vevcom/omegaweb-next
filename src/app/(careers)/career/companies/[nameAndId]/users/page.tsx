@@ -68,6 +68,7 @@ const { page, generateMetadata } = serverPage({
                         <TextInput name="lastname" label="Etternavn" />
                         <TextInput name="email" label="E-post" />
                         <Checkbox name="admin" label="Administrator for bedriften" />
+                        <p>Brukeren får en e-post med en lenke for å velge passord.</p>
                     </Form>
                 </section>
             )}

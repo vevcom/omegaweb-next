@@ -59,8 +59,8 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                     submitText="Send lenke for å velge passord"
                 >
                     <p>
-                        Brukeren får en e-post med en lenke for å velge passord. Slik logger en ny bruker inn
-                        første gang, og slik byttes et glemt passord.
+                        Brukeren får en e-post med en lenke for å velge passord. En ny bruker fikk en da de
+                        ble registrert. Send en ny om den er utløpt, eller om passordet er glemt.
                     </p>
                     {sentTo && <p>Lenken er sendt til {sentTo}.</p>}
                 </Form>
