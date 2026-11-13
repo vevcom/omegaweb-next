@@ -137,6 +137,8 @@ function SeatingEditor({ eventId, board, onDiscard, points, setPoints }: {
     const selectedGuest = guests.find(guest => guest.id === selected)
     const wishNames = selectedGuest && (wishes[selectedGuest.id] ?? []).map(nameOf).join(', ')
     const tableIsFull = (index: number) => firstEmptySeat(plan, index) === null
+    // An unreadable text leaves the tables as they were, which must not be saved or drafted from as if it said so.
+    const seatsAreValid = parseSeats(seatsText) !== null
     const wishing = guests.filter(guest => wishes[guest.id]?.length).length
 
     const placements = placementsOf(plan, locked)
@@ -361,6 +363,7 @@ function SeatingEditor({ eventId, board, onDiscard, points, setPoints }: {
                 action={configureAction(saveEventSeatingPlanAction, { params: { id: eventId } })}
                 saveBar
                 submitText="Lagre"
+                disabled={!seatsAreValid}
                 refreshOnSuccess
             >
                 {/* The plan is held in state, so discarding starts the editor over from what is saved. */}
@@ -375,12 +378,12 @@ function SeatingEditor({ eventId, board, onDiscard, points, setPoints }: {
                             onChange={event => changeSeats(event.target.value)}
                             className="w-56!"
                         />
-                        <Button type="button" onClick={draft} className="m-0!">
+                        <Button type="button" onClick={draft} disabled={!seatsAreValid} className="m-0!">
                             {plan.tables.flat().length === 0 ? 'Lag utkast' : 'Lag nytt utkast'}
                         </Button>
                         <span className="pb-2 text-s text-base-content/80">{guests.length} gjester, {places} plasser</span>
                     </div>
-                    {!parseSeats(seatsText) && <p className="m-0 text-s text-error">
+                    {!seatsAreValid && <p className="m-0 text-s text-error">
                         Skriv bordene som 5x8, eller hvert bord for seg som 10, 10, 8, 8.
                     </p>}
                     <PointsEditor points={points} onChange={setPoints} />
