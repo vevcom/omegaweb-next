@@ -1,6 +1,6 @@
 import type { companySchemas } from './schemas'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
-import type { ExpandedCmsImage } from '@/cms/images/types'
+import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { Company } from '@/prisma-generated-pn-types'
 
 export type CompanyCursor = InferPagingCursor<typeof companySchemas.params.readPage>
@@ -8,9 +8,9 @@ export type CompanyCursor = InferPagingCursor<typeof companySchemas.params.readP
 export type CompanyDetails = InferPagingDetails<typeof companySchemas.params.readPage>
 
 export type CompanyExpanded = Company & {
-    logo: ExpandedCmsImage
+    logoImage: ExpandedImage | null
 }
 
 export type SponsorCompany = Pick<Company, 'id' | 'name' | 'website' | 'sponsorTier'> & {
-    logo: ExpandedCmsImage
+    logoImage: ExpandedImage | null
 }

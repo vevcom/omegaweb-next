@@ -1,14 +1,14 @@
 import { companyOperations } from '@/services/careers/companies/operations'
+import { standardStoreFiles } from '@/lib/standardStore/files'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
-import { getImageForCmsImageRelation } from '@/seeder/src/standardContent/seedImages'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
-import type { ImagesAvailablieForCms } from '@/seeder/src/standardContent/seedImages'
+import type { StandardStoreFile } from '@/lib/standardStore/files'
 import type { Data } from '@/services/serviceOperation'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 
 type SeedCompanyConfig = Data<typeof companyOperations.create> & {
-    logo: ImagesAvailablieForCms,
+    logo: StandardStoreFile,
     sponsor?: {
         sponsorTier: CompanySponsorTier,
         website: string | null,
@@ -26,13 +26,13 @@ export const seedCompaniesConfig = [
     {
         name: 'Kongsberg Gruppen',
         description: 'Internasjonalt teknologikonsern innen forsvar, maritime systemer og romfart.',
-        logo: { dynamicImageSeededForCmsName: 'kongsberg' },
+        logo: standardStoreFiles.kongsberg,
         sponsor: { sponsorTier: 'SPONSOR', website: 'https://www.kongsberg.com' },
     },
     {
         name: 'Nordic Semiconductor',
         description: 'Trondheimsbasert produsent av trådløse kretsløsninger for IoT.',
-        logo: { dynamicImageSeededForCmsName: 'nordic' },
+        logo: standardStoreFiles.nordic,
         sponsor: { sponsorTier: 'MAIN', website: 'https://www.nordicsemi.com' },
     },
 ] as const satisfies SeedCompanyConfig[]
@@ -41,36 +41,29 @@ export const seedCompaniesConfig = [
  * Upserts the companies given by the config, keyed on the unique company name. An
  * existing company is left untouched - its description and logo may have been edited
  * through the admin pages since, and a seed run should not undo that. The single
- * exception is a logo that never got an image connected at all; see attachMissingLogo.
+ * exception is a company with no logo at all; see uploadMissingLogo.
  */
 export const seedCompanies = defineSeedOperation(async (prisma: PrismaClient) => {
     await Promise.all(seedCompaniesConfig.map(company => upsertCompany(prisma, company)))
 })
 
 async function upsertCompany(prisma: PrismaClient, company: SeedCompanyConfig) {
-    // Looked up before anything is written. companyOperations.create commits on its own,
-    // so a logo that cannot be resolved afterwards leaves a company the name check skips
-    // on every later run - permanently stuck with a logo pointing at no image.
-    const logo = await getImageForCmsImageRelation(company.logo, prisma)
-
     return upsert({
         checkExistence: () => prisma.company.findUnique({
             where: { name: company.name },
             select: { id: true },
         }),
-        create: () => createCompany(prisma, company, logo.id),
-        update: () => attachMissingLogo(prisma, company.name, logo.id),
+        create: () => createCompany(prisma, company),
+        update: () => uploadMissingLogo(prisma, company),
     })
 }
 
-async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig, imageId: number) {
+async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig) {
     const createdCompany = await companyOperations.create({
         data: { name: company.name, description: company.description }
     })
 
-    // companyOperations.create makes the logo CmsImage but has no way to point it at an
-    // actual image, so the image is connected here.
-    await connectLogo(prisma, createdCompany.id, imageId)
+    await uploadLogo(createdCompany.id, company.logo)
 
     if (company.sponsor) {
         await companyOperations.updateSponsorTier({
@@ -87,31 +80,24 @@ async function createCompany(prisma: PrismaClient, company: SeedCompanyConfig, i
 }
 
 /**
- * The one thing an existing company is not left alone about. A logo CmsImage with no image
- * on it is an earlier run that died between creating the company and connecting its logo,
- * and nothing else will ever fill it in - the name check makes every later run skip the
- * company entirely. A logo that already has an image is untouched, so one swapped through
- * the admin pages stays swapped.
+ * The one thing an existing company is not left alone about. A company with no logo is an
+ * earlier run that died between creating the company and uploading its logo, and nothing else
+ * will ever fill it in - the name check makes every later run skip the company entirely. A
+ * company that has a logo is untouched, so one swapped through the admin pages stays swapped.
  */
-async function attachMissingLogo(prisma: PrismaClient, name: string, imageId: number) {
+async function uploadMissingLogo(prisma: PrismaClient, company: SeedCompanyConfig) {
     const existing = await prisma.company.findUniqueOrThrow({
-        where: { name },
-        select: { id: true, logo: { select: { imageId: true } } },
+        where: { name: company.name },
+        select: { id: true, logoImageId: true },
     })
-    if (existing.logo.imageId !== null) return
+    if (existing.logoImageId !== null) return
 
-    await connectLogo(prisma, existing.id, imageId)
+    await uploadLogo(existing.id, company.logo)
 }
 
-async function connectLogo(prisma: PrismaClient, companyId: number, imageId: number) {
-    await prisma.company.update({
-        where: { id: companyId },
-        data: {
-            logo: {
-                update: {
-                    image: { connect: { id: imageId } }
-                }
-            }
-        }
+async function uploadLogo(companyId: number, logo: StandardStoreFile) {
+    await companyOperations.updateLogo({
+        params: { id: companyId },
+        data: { imageFile: await logo.file() },
     })
 }

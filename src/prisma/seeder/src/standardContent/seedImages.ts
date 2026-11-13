@@ -11,6 +11,7 @@ import { generateProfileImagesCollectionFromConfig } from '@/services/users/prof
 import { generateFlairImagesCollectionFromConfig } from '@/services/flairs/flairImageCollection'
 import { generatePromoImagesCollectionFromConfig } from '@/services/promo/promoImageCollection'
 import { generateCareerTeamImagesCollectionFromConfig } from '@/services/careers/team/persons/careerTeamImageCollection'
+import { generateCompanyLogosCollectionFromConfig } from '@/services/careers/companies/companyLogoCollection'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { StandardStoreFile } from '@/lib/standardStore/files'
 
@@ -24,16 +25,6 @@ export const seedDynamicImagesForCms = [
         standardStoreFile: standardStoreFiles.kappemann,
         name: 'kappemann',
         alt: 'En kappemann',
-    },
-    {
-        standardStoreFile: standardStoreFiles.kongsberg,
-        name: 'kongsberg',
-        alt: 'Kongsberg',
-    },
-    {
-        standardStoreFile: standardStoreFiles.nordic,
-        name: 'nordic',
-        alt: 'Nordic',
     },
     {
         standardStoreFile: standardStoreFiles.ohma,
@@ -80,6 +71,7 @@ export const seedImages = defineSeedOperation(async (prisma: PrismaClient) => {
         generateFlairImagesCollectionFromConfig.internalCall({}),
         generatePromoImagesCollectionFromConfig.internalCall({}),
         generateCareerTeamImagesCollectionFromConfig.internalCall({}),
+        generateCompanyLogosCollectionFromConfig.internalCall({}),
     ])
 
     await Promise.all(

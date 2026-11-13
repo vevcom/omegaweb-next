@@ -6,10 +6,10 @@ import {
     sponsorSelection,
 } from './constants'
 import { companySchemas } from './schemas'
+import { companyLogoImageOperations } from './companyLogoCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { cmsImageOperations } from '@/cms/images/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { careerLinks } from '@/app/(careers)/links'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
@@ -19,20 +19,7 @@ export const companyOperations = {
     create: defineOperation({
         dataSchema: companySchemas.data.create,
         authorizer: () => companyAuth.create,
-        transaction: 'RUNS_IN',
-        operation: async ({ prisma, data }) => {
-            const logo = await cmsImageOperations.create.internalCall({
-                data: {},
-                prisma,
-                operationImplementationFields: { special: null },
-            })
-            return prisma.company.create({
-                data: {
-                    ...data,
-                    logo: { connect: { id: logo.id } },
-                },
-            })
-        },
+        operation: ({ prisma, data }) => prisma.company.create({ data }),
     }),
     readSponsors: defineOperation({
         authorizer: () => companyAuth.readSponsors,
@@ -72,7 +59,7 @@ export const companyOperations = {
             key: `company-${company.id}`,
             href: careerLinks.companies(company.name),
             label: company.name,
-            image: company.logo.image,
+            image: company.logoImage,
         }),
     }),
     update: defineOperation({
@@ -109,26 +96,58 @@ export const companyOperations = {
             })
         },
     }),
-    updateCmsImageLogo: cmsImageOperations.update.implement({
-        implementationParamsSchema: companySchemas.params.updateCmsImageLogo,
-        authorizer: () => companyAuth.updateCmsImageLogo,
-        ownershipCheck: async ({ implementationParams, params, prisma }) =>
-            (await prisma.company.findUniqueOrThrow({
-                where: { id: implementationParams.companyId },
-                select: { logoId: true }
-            }))?.logoId === params.cmsImageId
+    updateLogo: defineOperation({
+        paramsSchema: companySchemas.params.updateLogo,
+        dataSchema: companySchemas.data.updateLogo,
+        authorizer: () => companyAuth.updateLogo,
+        transaction: 'OPENS',
+        operation: async ({ prisma, params: { id }, data }) =>
+            // The upload writes the file before the database, so it needs more than the default
+            // transaction timeout.
+            prisma.$transaction(async tx => {
+                const company = await tx.company.findUniqueOrThrow({
+                    where: { id },
+                    select: { name: true, logoImageId: true },
+                })
+                const uploadedImage = await companyLogoImageOperations.uploadImage.internalCall({
+                    prisma: tx,
+                    data: {
+                        imageFile: data.imageFile,
+                        imageName: 'Logo',
+                        imageAlt: `Logoen til ${company.name}`.slice(0, 100),
+                    },
+                })
+                await tx.company.update({
+                    where: { id },
+                    data: { logoImageId: uploadedImage.id },
+                })
+                // The previous logo is an upload owned by this company alone, so nothing else shows it.
+                if (company.logoImageId !== null) {
+                    await companyLogoImageOperations.destroyImage.internalCall({
+                        prisma: tx,
+                        params: { imageId: company.logoImageId },
+                    })
+                }
+                return uploadedImage
+            }, { timeout: 20000 }),
     }),
     destroy: defineOperation({
         paramsSchema: companySchemas.params.destroy,
         authorizer: () => companyAuth.destroy,
-        transaction: 'RUNS_IN',
+        transaction: 'OPENS',
         operation: async ({ prisma, params: { id } }) => {
-            // The logo is on the company's side of the relation, so it does not cascade.
-            const company = await prisma.company.delete({
-                where: { id },
-                select: { logoId: true },
+            await prisma.$transaction(async tx => {
+                const company = await tx.company.delete({
+                    where: { id },
+                    select: { logoImageId: true },
+                })
+                if (company.logoImageId !== null) {
+                    await companyLogoImageOperations.destroyImage.internalCall({
+                        prisma: tx,
+                        params: { imageId: company.logoImageId },
+                    })
+                }
             })
-            await cmsImageOperations.destroy.internalCall({ params: { cmsImageId: company.logoId }, prisma })
         },
     }),
 } as const

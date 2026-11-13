@@ -6,6 +6,7 @@ import { profileImagesImagePanelOperations } from '@/services/users/profileImage
 import { standardImagesImagePanelOperations } from '@/services/images/standard/standardImageCollection'
 import { promoImagesImagePanelOperations } from '@/services/promo/promoImageCollection'
 import { careerTeamImagesImagePanelOperations } from '@/services/careers/team/persons/careerTeamImageCollection'
+import { companyLogosImagePanelOperations } from '@/services/careers/companies/companyLogoCollection'
 
 /**
  * This is an assembly of all the `panel operations` - operations needed to display an
@@ -22,4 +23,5 @@ export const specialImagePanelOperations = {
     standardImages: standardImagesImagePanelOperations,
     promoImages: promoImagesImagePanelOperations,
     careerTeamImages: careerTeamImagesImagePanelOperations,
+    companyLogos: companyLogosImagePanelOperations,
 } as const
