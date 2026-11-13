@@ -232,7 +232,10 @@ export class ChatClient {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/join`, {}, userId)
     }
 
-    /** Takes a user out of a room by leaving as them. A room they are not in is left alone. */
+    /**
+     * Takes a user out of a room by leaving as them. A room they are not in is left alone. Every
+     * user is this homeserver's, which talks to no other, so there is none it cannot leave as.
+     */
     async removeMember(roomId: string, userId: string): Promise<void> {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/leave`, {}, userId)
             .catch(ignoring('M_FORBIDDEN', 'M_NOT_FOUND'))
