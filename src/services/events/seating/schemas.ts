@@ -27,6 +27,7 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number().int(),
+    registrationId: z.number().int(),
 })
 
 const eventId = paramsFieldSchemas.pick({ id: true })
@@ -45,5 +46,6 @@ export const eventSeatingSchemas = {
         updateWishes: eventId,
         savePlan: eventId,
         setPublished: eventId,
+        handOver: paramsFieldSchemas.pick({ registrationId: true }),
     },
 }

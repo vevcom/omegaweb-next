@@ -2,6 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
+import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { userOperations } from '@/services/users/operations'
 import { createAdministrators } from 'tests/eventSetup'
@@ -31,7 +32,10 @@ async function setUp(key: string) {
                 registrationStart: new Date(Date.now() - HOUR),
                 registrationEnd: soon,
                 takesPayment: false,
-                quotas: [{ name: 'Alle', places: 3, visibilityRequirements: [] }],
+                quotas: [
+                    { name: 'Alle', places: 3, visibilityRequirements: [] },
+                    { name: 'Ekstra', places: 1, visibilityRequirements: [] },
+                ],
             }],
         },
         bypassAuth: true,
@@ -39,7 +43,7 @@ async function setUp(key: string) {
     await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     const variant = await prisma.eventVariant.findFirstOrThrow({
         where: { eventId: event.id },
-        select: { id: true, quotas: { select: { id: true } } },
+        select: { id: true, quotas: { orderBy: { name: 'asc' }, select: { id: true } } },
     })
     const users = await Promise.all(['first', 'second', 'third', 'waiting'].map(name => userOperations.create({
         data: {
@@ -64,7 +68,7 @@ async function setUp(key: string) {
         permissions: [],
         memberships: [],
     })
-    return { params: { id: event.id }, first, second, third, waiting, sessionOf }
+    return { params: { id: event.id }, first, second, third, waiting, sessionOf, extraQuotaId: variant.quotas[1].id }
 }
 
 const expectRefused = (promise: Promise<unknown>) => expect(promise).rejects.toBeInstanceOf(Smorekopp)
@@ -203,6 +207,57 @@ describe('the plan', () => {
             bypassAuth: true,
         }))
         expect((await eventSeatingOperations.readBoard({ params, bypassAuth: true })).plan.tables).toEqual([[first.id]])
+    })
+
+    test('follows someone in several variants when the registration they sit on is removed', async () => {
+        const { params, first, second, sessionOf, extraQuotaId } = await setUp('seat-heir')
+        const other = await prisma.eventRegistration.create({
+            data: { state: 'IN_QUOTA', quotaId: extraQuotaId, userId: first.userId },
+        })
+        await eventSeatingOperations.openWishes({ params, data: { wishesEnd: soon }, bypassAuth: true })
+        await eventSeatingOperations.updateWishes({ params, data: { wishes: [second.id] }, session: sessionOf(0) })
+        await eventSeatingOperations.updateWishes({ params, data: { wishes: [first.id] }, session: sessionOf(1) })
+        await eventSeatingOperations.savePlan({
+            params,
+            data: {
+                version: 0,
+                seats: [2],
+                placements: [
+                    { registrationId: first.id, table: 0, seat: 0, locked: true },
+                    { registrationId: second.id, table: 0, seat: 1, locked: false },
+                ],
+            },
+            bypassAuth: true,
+        })
+
+        await eventRegistrationOperations.destroyAsAdmin({ params: { registrationId: first.id }, bypassAuth: true })
+
+        const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
+        expect(board.plan.tables).toEqual([[other.id, second.id]])
+        expect(board.locked).toEqual([other.id])
+        expect(board.wishes[other.id]).toEqual([second.id])
+        expect(board.wishes[second.id]).toEqual([other.id])
+    })
+
+    test('leaves the seat empty when the one who sat there is removed', async () => {
+        const { params, first, second } = await setUp('seat-left')
+        await eventSeatingOperations.savePlan({
+            params,
+            data: {
+                version: 0,
+                seats: [2],
+                placements: [
+                    { registrationId: first.id, table: 0, seat: 0, locked: false },
+                    { registrationId: second.id, table: 0, seat: 1, locked: false },
+                ],
+            },
+            bypassAuth: true,
+        })
+
+        await eventRegistrationOperations.destroyAsAdmin({ params: { registrationId: first.id }, bypassAuth: true })
+
+        const board = await eventSeatingOperations.readBoard({ params, bypassAuth: true })
+        expect(board.plan.tables).toEqual([[null, second.id]])
     })
 
     test('refuses two guests in one seat', async () => {

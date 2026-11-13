@@ -7,7 +7,7 @@ import { lockEvent, seatedInEvent } from '@/services/events/registration/queue'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { ServiceError } from '@/services/error'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
-import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { OwnSeating, SeatingBoard } from './types'
 import type { SeatingPlan } from './plan'
 
@@ -214,6 +214,66 @@ export const eventSeatingOperations = {
             )
         },
     }),
+
+    internal: {
+        /**
+         * Call it before a registration loses its place. Someone in several variants keeps their seat
+         * and wishes, which move to another registration of theirs with a place at the event. Anyone
+         * else leaves their seat empty.
+         */
+        handOver: defineSubOperation({
+            paramsSchema: () => eventSeatingSchemas.params.handOver,
+            transaction: 'RUNS_IN',
+            operation: () => async ({ prisma, params }): Promise<void> => {
+                const leaving = await prisma.eventRegistration.findUnique({
+                    where: { id: params.registrationId, state: 'IN_QUOTA' },
+                    select: {
+                        id: true,
+                        userId: true,
+                        tableId: true,
+                        seat: true,
+                        seatLocked: true,
+                        quota: { select: { variant: { select: { eventId: true } } } },
+                    },
+                })
+                if (!leaving?.quota) return
+
+                const heir = leaving.userId === null ? null : await prisma.eventRegistration.findFirst({
+                    where: {
+                        ...seatedInEvent(leaving.quota.variant.eventId),
+                        userId: leaving.userId,
+                        id: { not: leaving.id },
+                    },
+                    orderBy: { id: 'asc' },
+                    select: { id: true },
+                })
+
+                if (leaving.tableId !== null) {
+                    // Emptied first, since a seat holds one registration at a time.
+                    await prisma.eventRegistration.update({
+                        where: { id: leaving.id },
+                        data: { tableId: null, seat: null, seatLocked: false },
+                    })
+                }
+                if (!heir) return
+
+                if (leaving.tableId !== null) {
+                    await prisma.eventRegistration.update({
+                        where: { id: heir.id },
+                        data: { tableId: leaving.tableId, seat: leaving.seat, seatLocked: leaving.seatLocked },
+                    })
+                }
+                await prisma.eventSeatingWish.updateMany({
+                    where: { registrationId: leaving.id },
+                    data: { registrationId: heir.id },
+                })
+                await prisma.eventSeatingWish.updateMany({
+                    where: { wishedRegistrationId: leaving.id },
+                    data: { wishedRegistrationId: heir.id },
+                })
+            },
+        }),
+    },
 } as const
 
 /** Those with a place at the event. Someone in several variants still takes one seat. */
@@ -229,6 +289,7 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
             seatLocked: true,
             contact: { select: { name: true } },
             seatingWishes: { orderBy: { rank: 'asc' }, select: { wishedRegistrationId: true } },
+            _count: { select: { seatingWishedBy: true } },
             user: {
                 select: {
                     firstname: true,
@@ -241,13 +302,21 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
             },
         },
     })
+    // The seat and wishes of someone in several variants are on one registration, which is the guest
+    // for as long as it has a place. Otherwise the guest is their first registration.
+    const holdsSeating = (registration: typeof registrations[number]) => (
+        registration.tableId !== null || registration.seatingWishes.length > 0 || registration._count.seatingWishedBy > 0
+    )
     const seen = new Set<number>()
-    const seated = registrations.filter(({ userId }) => {
+    const seated = [
+        ...registrations.filter(holdsSeating),
+        ...registrations.filter(registration => !holdsSeating(registration)),
+    ].filter(({ userId }) => {
         if (userId === null) return true
         if (seen.has(userId)) return false
         seen.add(userId)
         return true
-    })
+    }).sort((first, second) => first.id - second.id)
     // A wish for someone who has since lost their place stays in the database but no longer counts.
     const seatedIds = new Set(seated.map(({ id }) => id))
     return seated.map(registration => ({
