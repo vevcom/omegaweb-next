@@ -74,9 +74,13 @@ export function planSpaceChanges(
     ]
 }
 
-/** What it takes to get everyone out of a space and out of the rooms it holds. */
-export function planEmptying(homeserver: Homeserver, actual: ActualSpace): Change[] {
+/**
+ * What it takes to get everyone out of a space and out of the rooms it holds. A room it was taken
+ * out of is given back as it is, with those who are in it.
+ */
+export function planEmptying(homeserver: Homeserver, records: RoomRecords, actual: ActualSpace): Change[] {
     return [
+        ...roomsThatAre('GIVEN_BACK', actual).map(room => giveBack(homeserver, records, room)),
         ...roomsThatAre('HELD', actual).flatMap(room => keepToMembers(homeserver, room, [])),
         ...actual.members.map(userId => removeMember(homeserver, actual, userId)),
     ]

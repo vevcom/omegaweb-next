@@ -38,13 +38,14 @@ async function syncSpace(homeserver: Homeserver, space: ChatSpace, report: SyncR
 
 /**
  * A destroyed space is emptied, left by the bot with the rooms it holds, and then forgotten, the
- * records of its rooms with it. Until it is empty the row stays.
+ * records of its rooms with it. Until it is empty, and every room it was taken out of is given
+ * back, the row stays: the record of such a room is what has a later run give it back.
  */
 async function destroySpace(homeserver: Homeserver, space: ChatSpace, report: SyncReport): Promise<void> {
     if (space.matrixRoomId !== null) {
         const actual = await readActualSpace(homeserver, space, space.matrixRoomId)
 
-        const emptied = await report.carryOutAll(planEmptying(homeserver, actual))
+        const emptied = await report.carryOutAll(planEmptying(homeserver, roomRecordsOf(space), actual))
         if (!emptied) return
 
         const roomsTheBotIsIn = roomsThatAre('HELD', actual).filter(room => room.members.includes(homeserver.botUserId))
