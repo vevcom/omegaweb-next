@@ -1,5 +1,5 @@
 'use client'
-import WaitingForChatTag from './WaitingForChatTag'
+import Tag from './Tag'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import UserList from '@/components/User/UserList/UserList'
@@ -52,7 +52,7 @@ export default function SpaceMembers({ spaceId, members, actions }: PropTypes) {
                         "
                     >
                         <span className="grow truncate">{name}</span>
-                        {!member.onHomeserver && <WaitingForChatTag>Venter på chatkonto</WaitingForChatTag>}
+                        {!member.onHomeserver && <Tag>Venter på chatkonto</Tag>}
                         {removeMembers && (
                             <Form
                                 className="w-auto!"
