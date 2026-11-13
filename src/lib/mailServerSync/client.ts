@@ -76,9 +76,21 @@ export type MailServerSetArgs<Name extends MailServerObjectName> = {
     destroy?: string[],
 }
 
+/** An object on the server as a refusal names it. */
+type MailServerObjectReference = {
+    object: string,
+    id: string,
+}
+
 type MailServerSetError = {
     type: string,
     description?: string,
+    /** What of the object was refused, such as `email` for an address that is taken. */
+    properties?: string[],
+    /** The object that stands in the way: the one that holds the address, or the one that is linked. */
+    objectId?: MailServerObjectReference,
+    /** The objects that link to one the server will not destroy. */
+    linkedObjects?: MailServerObjectReference[],
 }
 
 /** A set as the server answers it. */
@@ -97,7 +109,10 @@ export type MailServerSetOutcome = {
     updated: number,
     /** How many of the destructions were applied. */
     destroyed: number,
-    /** What the server refused, one line each, such as `create MailingList styret-0 (primaryKeyViolation)`. */
+    /**
+     * What the server refused, one line each, with what the server says stands in the way, such as
+     * `create Account styret-0 (primaryKeyViolation: email is held by MailingList b)`.
+     */
     refused: string[],
 }
 
@@ -369,8 +384,22 @@ export class MailServerClient {
     }
 }
 
+const nameOf = ({ object, id }: MailServerObjectReference) => `${object} ${id}`
+
+/**
+ * A refusal with all the server says of it. An address that is taken names the object that holds
+ * it, which is the only way to tell what the sync did not recognise as its own.
+ */
 function describeError(error: MailServerSetError): string {
-    return error.description ? `${error.type}: ${error.description}` : `${error.type}`
+    const details: string[] = []
+    if (error.description) details.push(error.description)
+    if (error.type === 'primaryKeyViolation' && error.objectId) {
+        details.push(`${error.properties?.join(', ') || 'it'} is held by ${nameOf(error.objectId)}`)
+    }
+    if (error.linkedObjects && error.linkedObjects.length > 0) {
+        details.push(`linked from ${error.linkedObjects.map(nameOf).join(', ')}`)
+    }
+    return details.length > 0 ? `${error.type}: ${details.join(', ')}` : error.type
 }
 
 function describeRefusals(verb: string, refusals: Record<string, MailServerSetError> | undefined): string[] {

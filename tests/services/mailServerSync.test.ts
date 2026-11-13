@@ -44,6 +44,14 @@ type SetCall = {
     args: SetArgs,
 }
 
+/** A refusal as Stalwart answers it: an address that is taken names the object that holds it. */
+type Refusal = {
+    type: string,
+    properties?: string[],
+    objectId?: { object: string, id: string },
+    linkedObjects?: { object: string, id: string }[],
+}
+
 type StoredScript = {
     id: string,
     name: string,
@@ -241,18 +249,18 @@ class FakeMailServer {
         const table = this.objects[object]
 
         const created: Record<string, { id: string }> = {}
-        const notCreated: Record<string, { type: string }> = {}
+        const notCreated: Record<string, Refusal> = {}
         for (const [creationId, value] of Object.entries(args.create ?? {})) {
             const refusal = this.refusalOf(object, value)
             if (refusal) {
-                notCreated[creationId] = { type: refusal }
+                notCreated[creationId] = refusal
                 continue
             }
             created[creationId] = { id: this.add(object, value).id }
         }
 
         const updated: Record<string, null> = {}
-        const notUpdated: Record<string, { type: string }> = {}
+        const notUpdated: Record<string, Refusal> = {}
         for (const [id, changes] of Object.entries(args.update ?? {})) {
             const existing = table.get(id)
             if (!existing) {
@@ -264,8 +272,9 @@ class FakeMailServer {
                 continue
             }
             const addresses = object === 'Domain' ? [] : this.addressesOf({ ...existing, ...changes })
-            if (addresses.some(address => this.holds(address, id))) {
-                notUpdated[id] = { type: 'primaryKeyViolation' }
+            const holder = addresses.map(address => this.holderOf(address, id)).find(Boolean)
+            if (holder) {
+                notUpdated[id] = { type: 'primaryKeyViolation', properties: ['email'], objectId: holder }
                 continue
             }
             this.store(object, { ...existing, ...changes })
@@ -273,14 +282,19 @@ class FakeMailServer {
         }
 
         const destroyed: string[] = []
-        const notDestroyed: Record<string, { type: string }> = {}
+        const notDestroyed: Record<string, Refusal> = {}
         for (const id of args.destroy ?? []) {
-            // The server keeps a group that an account is a member of.
-            const linked = object === 'Account' && Array.from(table.values()).some(account =>
+            // The server keeps a group that an account is a member of, and names the members.
+            const members = object !== 'Account' ? [] : Array.from(table.values()).filter(account =>
                 Object.hasOwn(account.memberGroupIds ?? {}, id)
             )
-            if (linked) notDestroyed[id] = { type: 'objectIsLinked' }
-            else if (table.delete(id)) destroyed.push(id)
+            if (members.length > 0) {
+                notDestroyed[id] = {
+                    type: 'objectIsLinked',
+                    objectId: { object, id },
+                    linkedObjects: members.map(member => ({ object, id: member.id })),
+                }
+            } else if (table.delete(id)) destroyed.push(id)
             else notDestroyed[id] = { type: 'notFound' }
         }
 
@@ -293,24 +307,29 @@ class FakeMailServer {
         return [value, ...aliases].map(({ name, domainId }) => `${String(name).toLowerCase()}@${String(domainId)}`)
     }
 
-    /** Whether an address is a list's or an account's other than the object `exceptId`: an address is one object's. */
-    private holds(address: string, exceptId?: string): boolean {
-        return [...Array.from(this.objects.MailingList.values()), ...Array.from(this.objects.Account.values())]
-            .some(existing => existing.id !== exceptId && this.addressesOf(existing).includes(address))
+    /** The list or the account, other than the object `exceptId`, that an address is: an address is one object's. */
+    private holderOf(address: string, exceptId?: string): { object: string, id: string } | undefined {
+        for (const object of ['MailingList', 'Account'] as const) {
+            const holder = Array.from(this.objects[object].values())
+                .find(existing => existing.id !== exceptId && this.addressesOf(existing).includes(address))
+            if (holder) return { object, id: holder.id }
+        }
+        return undefined
     }
 
     /**
      * Why a creation is refused: an address taken, a domain that does not exist, or an empty
      * description, which Stalwart refuses where null is fine.
      */
-    private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): string | null {
-        if (value.description === '') return 'invalidPatch'
+    private refusalOf(object: MailServerObjectName, value: Record<string, unknown>): Refusal | null {
+        if (value.description === '') return { type: 'invalidPatch' }
         if (object === 'Domain') {
-            const taken = Array.from(this.objects.Domain.values()).some(existing => existing.name === value.name)
-            return taken ? 'primaryKeyViolation' : null
+            const taken = Array.from(this.objects.Domain.values()).find(existing => existing.name === value.name)
+            return taken ? { type: 'primaryKeyViolation', properties: ['name'], objectId: { object, id: taken.id } } : null
         }
-        if (!this.objects.Domain.has(String(value.domainId))) return 'invalidForeignKey'
-        return this.addressesOf(value).some(address => this.holds(address)) ? 'primaryKeyViolation' : null
+        if (!this.objects.Domain.has(String(value.domainId))) return { type: 'invalidForeignKey' }
+        const holder = this.addressesOf(value).map(address => this.holderOf(address)).find(Boolean)
+        return holder ? { type: 'primaryKeyViolation', properties: ['email'], objectId: holder } : null
     }
 }
 
@@ -1157,8 +1176,10 @@ describe('syncing the mailboxes of users', () => {
             '@type': 'User', name: 'test-squatted', domainId: server.domain(TEST_DOMAIN)?.id,
         })
 
-        await expect(syncMailServer({ client: server.client(), webmail }))
-            .rejects.toThrow(/refused to create Account test-squatted_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        await expect(syncMailServer({ client: server.client(), webmail })).rejects.toThrow(new RegExp(
+            'refused to create Account test-squatted_omega_ntnu_no-\\d+ \\(primaryKeyViolation: '
+            + `email is held by Account ${squatter.id}\\)$`
+        ))
         expect(server.account(blocked.address)?.id).toBe(squatter.id)
         expect(signInNamesOf(server, squatter)).toEqual([])
         expect(server.activeScript(squatter.id)).toBeUndefined()
@@ -1221,10 +1242,14 @@ describe('a change the server refuses', () => {
         const { alias: free } = await createTestAlias('test-free')
         const server = serverWithOurDomain()
         // An account that is not ours at the alias's address, which the server lets no list share.
-        server.add('Account', { '@type': 'User', name: 'test-blocked', domainId: server.domain(TEST_DOMAIN)?.id })
+        const squatter = server.add('Account', {
+            '@type': 'User', name: 'test-blocked', domainId: server.domain(TEST_DOMAIN)?.id,
+        })
 
-        await expect(syncMailServer({ client: server.client() }))
-            .rejects.toThrow(/refused to create MailingList test-blocked_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        await expect(syncMailServer({ client: server.client() })).rejects.toThrow(new RegExp(
+            'refused to create MailingList test-blocked_omega_ntnu_no-\\d+ \\(primaryKeyViolation: '
+            + `email is held by Account ${squatter.id}\\)$`
+        ))
         expect(server.mailingList(blocked.address)).toBeUndefined()
         expect(server.mailingList(free.address)).toBeDefined()
     })
@@ -1245,8 +1270,10 @@ describe('a change the server refuses', () => {
             '@type': 'User', name: 'test-kept-going', domainId: server.domain(webmail.domain)?.id,
         })
 
-        await expect(run(server))
-            .rejects.toThrow(/refused to create Account test-blocked-box_omega_ntnu_no-\d+ \(primaryKeyViolation\)$/)
+        await expect(run(server)).rejects.toThrow(new RegExp(
+            'refused to create Account test-blocked-box_omega_ntnu_no-\\d+ \\(primaryKeyViolation: '
+            + `email is held by Account ${squatter.id}\\)$`
+        ))
         expect(server.account(blocked.address)?.id).toBe(squatter.id)
         expect(await storedMailboxId(blocked.id)).toBeNull()
 
@@ -1258,6 +1285,22 @@ describe('a change the server refuses', () => {
             .toContain(`redirect "${forwardingAddressOf(free.address, webmail.domain)}";`)
     })
 
+    test('a run that is refused much names the first refusals and counts the rest', async () => {
+        const server = serverWithAccounts()
+        const domainId = server.domain(TEST_DOMAIN)?.id
+        // An account that is not ours at the address of every alias, so every mailbox is refused its address.
+        const aliases = await prisma.mailAlias.findMany({ select: { address: true } })
+        for (let index = 0; index < 25; index += 1) await createTestAlias(`test-many-${index}`)
+        const held = [...aliases.map(alias => alias.address.split('@')[0]),
+            ...Array.from({ length: 25 }, (_, index) => `test-many-${index}`)]
+        const squatters = held.map(name => server.add('Account', { '@type': 'User', name, domainId }))
+
+        const failure = await run(server).then(() => null, (error: unknown) => String(error))
+        expect(failure).toContain(`(primaryKeyViolation: email is held by Account ${squatters[0].id})`)
+        expect(failure?.match(/create Account/g)).toHaveLength(20)
+        expect(failure).toMatch(new RegExp(`; and ${held.length - 20} more changes$`))
+    })
+
     test('a stale mailbox the server keeps and a script it refuses do not stop the run', async () => {
         const { alias: scriptless } = await createTestAlias('test-no-script')
         const { alias: other } = await createTestAlias('test-other-box')
@@ -1266,14 +1309,14 @@ describe('a change the server refuses', () => {
         // A group no alias has, with a member whose memberships are not the sync's, so the server keeps it.
         const elsewhere = server.add('Domain', { name: 'elsewhere.example' })
         const stale = server.add('Account', { '@type': 'Group', name: 'test-gone', domainId })
-        server.add('Account', {
+        const outsider = server.add('Account', {
             '@type': 'User', name: 'outsider', domainId: elsewhere.id, memberGroupIds: { [stale.id]: true },
         })
         const refusing = server.add('Account', { '@type': 'Group', name: 'test-no-script', domainId })
         server.accountsRefusingScripts.add(refusing.id)
 
         await expect(run(server)).rejects.toThrow([
-            `refused to destroy Account ${stale.id} (objectIsLinked); `,
+            `refused to destroy Account ${stale.id} (objectIsLinked: linked from Account ${outsider.id}); `,
             `create script (invalidScript) as the Sieve script of account ${refusing.id}, `,
             `the mailbox of ${scriptless.address}`,
         ].join(''))

@@ -94,7 +94,7 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
         const refused = [...domains.refused, ...revoked.refused]
         throw new Error(`Mail server sync left the aliases as they were, since the server lacks ${
             missing.join(' and ')}, which the mailboxes take and the infrastructure's plan for the mail server adds${
-            refused.length > 0 ? `. The server also refused to ${refused.join('; ')}` : ''}`)
+            refused.length > 0 ? `. The server also refused to ${namedRefusals(refused)}` : ''}`)
     }
 
     // The lists first: the first run with mailboxes frees the aliases' addresses of the lists that
@@ -118,10 +118,20 @@ export async function syncMailServer(options: SyncMailServerOptions = {}): Promi
     }
     const refused = [...domains.refused, ...lists.refused, ...mailboxes.refused]
     if (refused.length > 0) {
-        throw new Error(`Mail server sync did the rest, and the server refused to ${refused.join('; ')}`)
+        throw new Error(`Mail server sync did the rest, and the server refused to ${namedRefusals(refused)}`)
     }
     if (changes === 0) logger.debug('Mail server sync found the server in step with the database')
     return false
+}
+
+/** How many refusals a run names. A run that is refused everything says so every minute. */
+const MAX_NAMED_REFUSALS = 20
+
+/** The refusals of a run as its error names them: the first ones, and how many more there are. */
+function namedRefusals(refused: string[]): string {
+    const named = refused.slice(0, MAX_NAMED_REFUSALS).join('; ')
+    const more = refused.length - MAX_NAMED_REFUSALS
+    return more > 0 ? `${named}; and ${more} more changes` : named
 }
 
 /**
