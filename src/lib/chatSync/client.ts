@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART, CHAT_MAS_CLIENT_ID, SPACE_ADMIN_LEVEL } from './constants'
+import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART, CHAT_MAS_CLIENT_ID, ROOM_MODERATOR_LEVEL } from './constants'
 
 export type ChatFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'status' | 'json'>>
 
@@ -21,49 +21,50 @@ type StateEvent = {
 
 const eventOf = (state: StateEvent[], type: string) => state.find(event => event.type === type && event.state_key === '')
 
-/** The content of a room's m.room.power_levels: who holds which level, and what each level may do. */
 export type ChatPowerLevels = Record<string, unknown> & { users?: Record<string, number> }
 
-/** A room a space lists, and who listed it there. */
-export type ListedRoom = { id: string, listedBy: string }
-
-/** A room as it is on the homeserver. */
 export type ChatRoom = {
+    name: string | undefined,
     levels: ChatPowerLevels,
-    /** Those who made the room, where that outranks every level. They are never among the levels. */
-    creators: string[],
-    members: string[],
+    joinedUserIds: string[],
+    listedRoomIds: string[],
 }
 
-/** From this version of a room on, its creators outrank every level, and Matrix refuses them one. */
-const FIRST_ROOM_VERSION_OF_CREATOR_POWER = 12
+/** From this version of a room on, its creator outranks every level, so nobody takes the bot's power away. */
+const ROOM_VERSION_WITH_CREATOR_POWER = '12'
 
-/** A request the homeserver or MAS refused. `errcode` is Matrix's own code, when there is one. */
+const membersOfSpaceLetThemselvesIn = (spaceRoomId: string) => ({
+    join_rule: 'restricted',
+    allow: [{ type: 'm.room_membership', room_id: spaceRoomId }],
+})
+
+const LEVEL_NOBODY_IS_GIVEN = 100
+const onlyTheBotChangesAnything = {
+    invite: LEVEL_NOBODY_IS_GIVEN,
+    kick: LEVEL_NOBODY_IS_GIVEN,
+    ban: LEVEL_NOBODY_IS_GIVEN,
+    state_default: LEVEL_NOBODY_IS_GIVEN,
+}
+
 export class ChatServerError extends Error {
     constructor(readonly status: number, readonly errcode: string | undefined, message: string) {
         super(message)
     }
 }
 
-/** How long a token for MAS's admin api or Synapse's is used before a new one is asked for. */
 const TOKEN_REUSE_MS = 4 * 60 * 1000
 const ADMIN_SESSION_LIFETIME_S = 60 * 60
 
 type Token = { value: string, renewAt: number }
 
-/** What the sync asks of the homeserver, which a test answers without one. */
 export type Homeserver = Pick<ChatClient,
     | 'botUserId' | 'userIdOf' | 'registerBot'
     | 'hasAccount' | 'writeDisplayName' | 'deactivate'
-    | 'createSpace' | 'readSpace' | 'readRoom' | 'readJoinedMembers' | 'writeState'
-    | 'addMember' | 'removeMember' | 'takeRoomAdmin' | 'leave'
+    | 'createSpace' | 'createRoom' | 'readRoom' | 'writeState' | 'listRoom' | 'unlistRoom'
+    | 'addMember' | 'removeMember' | 'leave'
 >
 
-/**
- * The homeserver as the app acts on it, in the three ways chat-infrastructure sets up: as an
- * application service, which acts as its bot or as any user of the homeserver, as a client of MAS's
- * admin api, and through that as an admin of Synapse.
- */
+/** Acts as the application service, as a client of MAS's admin api, and through MAS as an admin of Synapse. */
 export class ChatClient {
     private readonly fetch: ChatFetch
     private masToken: Token | null = null
@@ -95,7 +96,6 @@ export class ChatClient {
         return answer
     }
 
-    /** A call as the application service: as the bot, or as `asUserId` when it is given. */
     private matrix(method: string, path: string, body?: unknown, asUserId?: string): Promise<unknown> {
         const url = new URL(`/_matrix/client/v3${path}`, this.config.homeserverUrl)
         if (asUserId) url.searchParams.set('user_id', asUserId)
@@ -112,7 +112,6 @@ export class ChatClient {
         return this.request(url.toString(), await this.readSynapseAdminToken(), method, body)
     }
 
-    /** The app signs in to MAS's admin api as a client, with its secret and no user. */
     private async readMasToken(): Promise<string> {
         if (this.masToken && this.masToken.renewAt > Date.now()) return this.masToken.value
         const response = await this.fetch(new URL('/oauth2/token', this.config.masUrl).toString(), {
@@ -158,84 +157,75 @@ export class ChatClient {
         }).catch(ignoring('M_USER_IN_USE'))
     }
 
-    /**
-     * A space only the bot lets anyone into, where SPACE_ADMIN_LEVEL adds and removes rooms and
-     * every other change is the bot's. The bot's power in it is its creator's, which no rewrite of
-     * the levels takes away, and that holds from the room version asked for here.
-     */
     async createSpace(name: string): Promise<string> {
         const created = await this.matrix('POST', '/createRoom', {
             name,
             preset: 'private_chat',
-            room_version: String(FIRST_ROOM_VERSION_OF_CREATOR_POWER),
+            room_version: ROOM_VERSION_WITH_CREATOR_POWER,
             creation_content: { type: 'm.space' },
+            power_level_content_override: { ...onlyTheBotChangesAnything, events: {} },
+        }) as { room_id: string }
+        return created.room_id
+    }
+
+    async createRoom(spaceRoomId: string, name: string): Promise<string> {
+        const created = await this.matrix('POST', '/createRoom', {
+            name,
+            preset: 'private_chat',
+            room_version: ROOM_VERSION_WITH_CREATOR_POWER,
+            initial_state: [
+                { type: 'm.room.join_rules', state_key: '', content: membersOfSpaceLetThemselvesIn(spaceRoomId) },
+            ],
             power_level_content_override: {
-                events: { 'm.space.child': SPACE_ADMIN_LEVEL },
-                invite: 100,
-                kick: 100,
-                ban: 100,
-                state_default: 100,
+                ...onlyTheBotChangesAnything,
+                redact: ROOM_MODERATOR_LEVEL,
+                events: { 'm.room.pinned_events': ROOM_MODERATOR_LEVEL },
             },
         }) as { room_id: string }
         return created.room_id
     }
 
-    private async readState(roomId: string): Promise<StateEvent[]> {
-        return await this.matrix('GET', `/rooms/${encodeURIComponent(roomId)}/state`) as StateEvent[]
-    }
+    /** Null for a room the bot is not in, or that the homeserver does not have. */
+    async readRoom(roomId: string): Promise<ChatRoom | null> {
+        const state = await this.matrix('GET', `/rooms/${encodeURIComponent(roomId)}/state`)
+            .catch(ignoring('M_FORBIDDEN', 'M_NOT_FOUND')) as StateEvent[] | undefined
+        const joinedUserIds = (state ?? [])
+            .filter(event => event.type === 'm.room.member' && event.content.membership === 'join')
+            .map(event => event.state_key)
+        // Synapse still shows a room to one who has left it, as it was when they left.
+        if (!state || !joinedUserIds.includes(this.botUserId)) return null
 
-    /** A space's name, its levels, and the rooms it lists. */
-    async readSpace(roomId: string): Promise<{ name: string | undefined, levels: ChatPowerLevels, rooms: ListedRoom[] }> {
-        const state = await this.readState(roomId)
         return {
             name: eventOf(state, 'm.room.name')?.content.name as string | undefined,
             levels: eventOf(state, 'm.room.power_levels')?.content ?? {},
-            // A room taken out of a space leaves its event behind, with nothing in it.
-            rooms: state
+            joinedUserIds,
+            // An unlisted room leaves its event behind, with nothing in it.
+            listedRoomIds: state
                 .filter(event => event.type === 'm.space.child' && Array.isArray(event.content.via))
-                .map(event => ({ id: event.state_key, listedBy: event.sender })),
-        }
-    }
-
-    /**
-     * A room, read as an admin of the homeserver, so that it can be read before the bot is in it. A
-     * room the homeserver does not have reads as one with nobody in it.
-     */
-    async readRoom(roomId: string): Promise<ChatRoom> {
-        const answer = await this.synapseAdmin('GET', `/v1/rooms/${encodeURIComponent(roomId)}/state`)
-            .catch(ignoring(404)) as { state: StateEvent[] } | undefined
-        const state = answer?.state ?? []
-        return {
-            levels: eventOf(state, 'm.room.power_levels')?.content ?? {},
-            creators: creatorsOf(state),
-            members: state
-                .filter(event => event.type === 'm.room.member' && event.content.membership === 'join')
                 .map(event => event.state_key),
         }
     }
 
-    async readJoinedMembers(roomId: string): Promise<string[]> {
-        const answer = await this.matrix('GET', `/rooms/${encodeURIComponent(roomId)}/joined_members`) as {
-            joined: Record<string, unknown>,
-        }
-        return Object.keys(answer.joined)
+    async writeState(roomId: string, type: string, content: Record<string, unknown>, stateKey = ''): Promise<void> {
+        const keyPath = stateKey === '' ? '' : `/${encodeURIComponent(stateKey)}`
+        await this.matrix('PUT', `/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(type)}${keyPath}`, content)
     }
 
-    async writeState(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
-        await this.matrix('PUT', `/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(type)}`, content)
+    async listRoom(spaceRoomId: string, roomId: string): Promise<void> {
+        await this.writeState(spaceRoomId, 'm.space.child', { via: [this.config.serverName] }, roomId)
     }
 
-    /** Puts a user in a room the bot may invite to, with no invite for them to accept. */
+    async unlistRoom(spaceRoomId: string, roomId: string): Promise<void> {
+        await this.writeState(spaceRoomId, 'm.space.child', {}, roomId)
+    }
+
     async addMember(roomId: string, userId: string): Promise<void> {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/invite`, { user_id: userId })
             .catch(ignoring('M_FORBIDDEN'))
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/join`, {}, userId)
     }
 
-    /**
-     * Takes a user out of a room by leaving as them. A room they are not in is left alone. Every
-     * user is this homeserver's, which talks to no other, so there is none it cannot leave as.
-     */
+    /** Leaves as the user, which works for every user since the homeserver talks to no other. */
     async removeMember(roomId: string, userId: string): Promise<void> {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/leave`, {}, userId)
             .catch(ignoring('M_FORBIDDEN', 'M_NOT_FOUND'))
@@ -245,22 +235,12 @@ export class ChatClient {
         await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/leave`, {})
     }
 
-    /** Gives the bot the highest level in a room someone else made, and puts it in the room. */
-    async takeRoomAdmin(roomId: string): Promise<void> {
-        const room = encodeURIComponent(roomId)
-        await this.synapseAdmin('POST', `/v1/rooms/${room}/make_room_admin`, { user_id: this.botUserId })
-        await this.matrix('POST', `/rooms/${encodeURIComponent(roomId)}/join`, {})
-    }
-
     async hasAccount(userId: string): Promise<boolean> {
         const account = await this.synapseAdmin('GET', `/v2/users/${encodeURIComponent(userId)}`).catch(ignoring(404))
         return account !== undefined
     }
 
-    /**
-     * Sets what a user is called, which they cannot do themselves. Only for an account that exists:
-     * Synapse makes the account it is asked to change when there is none.
-     */
+    /** Only for an account that exists, since Synapse makes the account it is asked to change. */
     async writeDisplayName(userId: string, displayName: string): Promise<void> {
         await this.synapseAdmin('PUT', `/v2/users/${encodeURIComponent(userId)}`, { displayname: displayName })
     }
@@ -276,7 +256,6 @@ export class ChatClient {
         return { id: created.data.id }
     }
 
-    /** Deactivates an account, which signs it out and takes it out of every room. One that is gone stays gone. */
     async deactivate(localpart: string): Promise<void> {
         const user = await this.readMasUser(localpart)
         if (!user || user.deactivated) return
@@ -284,15 +263,6 @@ export class ChatClient {
     }
 }
 
-function creatorsOf(state: StateEvent[]): string[] {
-    const creation = eventOf(state, 'm.room.create')
-    const creatorsOutrankLevels = Number(creation?.content.room_version) >= FIRST_ROOM_VERSION_OF_CREATOR_POWER
-    if (!creation || !creatorsOutrankLevels) return []
-    const additionalCreators = creation.content.additional_creators
-    return [creation.sender, ...(Array.isArray(additionalCreators) ? additionalCreators as string[] : [])]
-}
-
-/** For `.catch`: lets the refusals named pass, by Matrix's code or by status, and throws any other. */
 function ignoring(...refusals: (string | number)[]) {
     return (error: unknown): undefined => {
         if (!(error instanceof ChatServerError)) throw error

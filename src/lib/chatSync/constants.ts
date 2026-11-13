@@ -37,18 +37,5 @@ export const CHAT_ADMIN_LOCALPART = 'omegaweb-admin'
 /** Whether the homeserver's accounts and spaces are kept in step with the database. */
 export const chatIsManaged = Object.values(chatServer).every(value => value !== undefined)
 
-/** The level a space's admins have in the space, which adds and removes its rooms and nothing else. */
-export const SPACE_ADMIN_LEVEL = 50
-
-/**
- * The level a space's admins have in the rooms of the space. It is one below the bot's, so the bot
- * can take it back, and a level nobody gives by hand, so those who hold it are the ones the sync
- * gave it to.
- */
-export const ROOM_ADMIN_LEVEL = 99
-
-/**
- * The level it takes to invite into a room a space holds: the bot's. Who is in a space is decided
- * here, so nobody is let into its rooms from the chat.
- */
-export const ROOM_INVITE_LEVEL = 100
+/** What a space's admins hold in its rooms: it removes what others wrote and pins messages. */
+export const ROOM_MODERATOR_LEVEL = 50
