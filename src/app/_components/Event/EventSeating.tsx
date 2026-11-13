@@ -13,7 +13,7 @@ import {
     saveEventSeatingPlanAction,
     setEventSeatingPublishedAction,
 } from '@/services/events/seating/actions'
-import { DEFAULT_SEATING_POINTS } from '@/services/events/seating/constants'
+import { DEFAULT_SEATING_POINTS, NEARNESSES } from '@/services/events/seating/constants'
 import {
     createSeatingPlan,
     displaySeats,
@@ -73,7 +73,7 @@ function PointsEditor({ points, onChange }: { points: SeatingPoints, onChange: (
         </div>
         <p className="m-0 mt-2 font-bold">Prosent av poengene etter hvor nær de sitter</p>
         <div className="flex flex-wrap items-end gap-2">
-            {(Object.keys(NEARNESS_LABELS) as Nearness[]).map(nearness => field(
+            {NEARNESSES.map(nearness => field(
                 NEARNESS_LABELS[nearness],
                 points.nearness[nearness],
                 changed => ({ ...points, nearness: { ...points.nearness, [nearness]: changed } }),

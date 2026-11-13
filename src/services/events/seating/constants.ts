@@ -1,5 +1,8 @@
 import type { SeatingPoints } from './plan'
 
+/** How near two guests at a table sit, the nearest first. */
+export const NEARNESSES = ['beside', 'across', 'diagonal', 'table'] as const
+
 export const MAX_WISHES = 3
 export const MAX_TABLES = 200
 export const MAX_SEATS_PER_TABLE = 100
