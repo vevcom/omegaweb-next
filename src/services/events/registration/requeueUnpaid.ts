@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { fixVariantPlaces, notifyPromoted } from './fixState'
 import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { lockEvent } from './queue'
+import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { escapeHtml } from '@/lib/html/escapeHtml'
 import logger from '@/lib/logger'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -101,6 +102,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
             })
             if (!stillUnpaid) return null
 
+            await eventSeatingOperations.internal.handOver.internalCall({ prisma: tx, params: { registrationId } })
             await tx.eventRegistration.update({
                 where: { id: registrationId },
                 data: {

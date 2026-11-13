@@ -26,6 +26,7 @@ import {
     waitingInEvent,
     waitingInVariant,
 } from './queue'
+import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { dotOperations } from '@/services/dots/operations'
 import { displayDate } from '@/lib/dates/displayDate'
 import { Smorekopp } from '@/services/error'
@@ -192,6 +193,10 @@ const destroyRegistration = defineSubOperation({
                     }
                 }
 
+                await eventSeatingOperations.internal.handOver.internalCall({
+                    prisma: tx,
+                    params: { registrationId: params.registrationId },
+                })
                 await tx.eventRegistration.delete({ where: { id: params.registrationId } })
                 return await fixVariantPlaces(tx, variantId)
             })
