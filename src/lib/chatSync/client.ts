@@ -24,6 +24,20 @@ const eventOf = (state: StateEvent[], type: string) => state.find(event => event
 /** The content of a room's m.room.power_levels: who holds which level, and what each level may do. */
 export type ChatPowerLevels = Record<string, unknown> & { users?: Record<string, number> }
 
+/** A room a space lists, and who listed it there. */
+export type ListedRoom = { id: string, listedBy: string }
+
+/** A room as it is on the homeserver. */
+export type ChatRoom = {
+    levels: ChatPowerLevels,
+    /** Those who made the room, where that outranks every level. They are never among the levels. */
+    creators: string[],
+    members: string[],
+}
+
+/** From this version of a room on, its creators outrank every level, and Matrix refuses them one. */
+const FIRST_ROOM_VERSION_OF_CREATOR_POWER = 12
+
 /** A request the homeserver or MAS refused. `errcode` is Matrix's own code, when there is one. */
 export class ChatServerError extends Error {
     constructor(readonly status: number, readonly errcode: string | undefined, message: string) {
@@ -169,33 +183,32 @@ export class ChatClient {
     }
 
     /** A space's name, its levels, and the rooms it lists. */
-    async readSpace(roomId: string): Promise<{ name: string | undefined, levels: ChatPowerLevels, roomIds: string[] }> {
+    async readSpace(roomId: string): Promise<{ name: string | undefined, levels: ChatPowerLevels, rooms: ListedRoom[] }> {
         const state = await this.readState(roomId)
         return {
             name: eventOf(state, 'm.room.name')?.content.name as string | undefined,
             levels: eventOf(state, 'm.room.power_levels')?.content ?? {},
             // A room taken out of a space leaves its event behind, with nothing in it.
-            roomIds: state
+            rooms: state
                 .filter(event => event.type === 'm.space.child' && Array.isArray(event.content.via))
-                .map(event => event.state_key),
+                .map(event => ({ id: event.state_key, listedBy: event.sender })),
         }
     }
 
     /**
-     * The levels of a room and those who created it, who outrank every level and are never among
-     * them. Null for a room the bot is not in, which it cannot read.
+     * A room, read as an admin of the homeserver, so that it can be read before the bot is in it. A
+     * room the homeserver does not have reads as one with nobody in it.
      */
-    async readRoom(roomId: string): Promise<{ levels: ChatPowerLevels, creators: string[] } | null> {
-        const state = await this.readState(roomId).catch(ignoring('M_FORBIDDEN'))
-        if (!state) return null
-        const creation = eventOf(state, 'm.room.create')
-        const additionalCreators = creation?.content.additional_creators
+    async readRoom(roomId: string): Promise<ChatRoom> {
+        const answer = await this.synapseAdmin('GET', `/v1/rooms/${encodeURIComponent(roomId)}/state`)
+            .catch(ignoring(404)) as { state: StateEvent[] } | undefined
+        const state = answer?.state ?? []
         return {
             levels: eventOf(state, 'm.room.power_levels')?.content ?? {},
-            creators: [
-                ...(creation ? [creation.sender] : []),
-                ...(Array.isArray(additionalCreators) ? additionalCreators as string[] : []),
-            ],
+            creators: creatorsOf(state),
+            members: state
+                .filter(event => event.type === 'm.room.member' && event.content.membership === 'join')
+                .map(event => event.state_key),
         }
     }
 
@@ -264,6 +277,14 @@ export class ChatClient {
         if (!user || user.deactivated) return
         await this.mas('POST', `/users/${user.id}/deactivate`, {})
     }
+}
+
+function creatorsOf(state: StateEvent[]): string[] {
+    const creation = eventOf(state, 'm.room.create')
+    const creatorsOutrankLevels = Number(creation?.content.room_version) >= FIRST_ROOM_VERSION_OF_CREATOR_POWER
+    if (!creation || !creatorsOutrankLevels) return []
+    const additionalCreators = creation.content.additional_creators
+    return [creation.sender, ...(Array.isArray(additionalCreators) ? additionalCreators as string[] : [])]
 }
 
 /** For `.catch`: lets the refusals named pass, by Matrix's code or by status, and throws any other. */

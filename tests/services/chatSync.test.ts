@@ -1,6 +1,6 @@
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { syncChat } from '@/lib/chatSync/sync'
-import { roomLevelsOf, spaceLevelsOf } from '@/lib/chatSync/spaceChanges'
+import { canHandOver, roomLevelsOf, spaceLevelsOf } from '@/lib/chatSync/spaceChanges'
 import { ROOM_ADMIN_LEVEL, SPACE_ADMIN_LEVEL } from '@/lib/chatSync/constants'
 import { chatSpaceAdmins } from '@/services/chat/spaces/admins'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -116,7 +116,7 @@ describe('a space', () => {
         expect(homeserver.room(await roomIdOf(space)).members).toContain(ola.matrixId)
     })
 
-    test('loses a member whose row is removed, in its rooms too', async () => {
+    test('loses a member whose row is removed, in the rooms it holds too', async () => {
         const kari = await createChatUser('kari')
         const ola = await createChatUser('ola')
         const space = await createSpace('Space', [kari, ola])
@@ -124,6 +124,7 @@ describe('a space', () => {
         const roomId = await roomIdOf(space)
         const room = homeserver.makeRoom(roomId, kari.matrixId)
         homeserver.room(room).members.push(ola.matrixId)
+        await syncChat(homeserver)
 
         await prisma.chatSpaceMember.deleteMany({ where: { chatUserId: ola.chatUser.id } })
         await syncChat(homeserver)
@@ -206,7 +207,7 @@ describe('the admins of a space', () => {
         expect(homeserver.room(await roomIdOf(space)).levels.users).toEqual({ [kari.matrixId]: SPACE_ADMIN_LEVEL })
     })
 
-    test('are admins of the rooms of the space, from the run after the bot has entered them', async () => {
+    test('are admins of the rooms of the space, from the run after a room is taken in', async () => {
         const kari = await createChatUser('kari')
         const ola = await createChatUser('ola')
         adminUserIds = [kari.user.id]
@@ -237,6 +238,91 @@ describe('the admins of a space', () => {
         await syncChat(homeserver)
         await syncChat(homeserver)
         expect(homeserver.room(room).levels.users).toEqual({ [homeserver.botUserId]: 100 })
+    })
+})
+
+describe('a room', () => {
+    async function spaceWithAdmin(name: string, admin: { user: { id: number } }) {
+        adminUserIds = [admin.user.id]
+        const space = await createSpace(name)
+        await syncChat(homeserver)
+        return roomIdOf(space)
+    }
+
+    test('listed by someone it is not theirs to hand over is left as it is', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const spaceRoomId = await spaceWithAdmin('Space', kari)
+        const olasRoom = homeserver.makeRoomOutsideSpaces(ola.matrixId)
+        homeserver.room(olasRoom).members.push(kari.matrixId)
+        const settled = homeserver.writes.length
+
+        homeserver.listRoom(spaceRoomId, olasRoom, kari.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+
+        expect(homeserver.writes).toHaveLength(settled)
+        expect(homeserver.room(olasRoom).members).toEqual([ola.matrixId, kari.matrixId])
+        expect(homeserver.room(olasRoom).levels.users).toEqual({})
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+
+    test('is theirs to hand over who made it, or who holds the level that changes levels in it', () => {
+        const room = {
+            creators: ['@maker:x'],
+            members: [],
+            levels: { users: { '@owner:x': 100, '@moderator:x': 50 }, events: { 'm.room.power_levels': 100 } },
+        }
+        expect(canHandOver(room, '@maker:x')).toBe(true)
+        expect(canHandOver(room, '@owner:x')).toBe(true)
+        expect(canHandOver(room, '@moderator:x')).toBe(false)
+        expect(canHandOver(room, '@member:x')).toBe(false)
+        // A room the homeserver does not have.
+        expect(canHandOver({ creators: [], members: [], levels: {} }, '@member:x')).toBe(false)
+    })
+
+    test('is in one space, the first to list it, and its admins are that space\'s', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const first = await createSpace('First')
+        const second = await createSpace('Second')
+        chatSpaceAdmins.MANUAL = ({ spaceId }) => Promise.resolve(spaceId === first.id ? [kari.user.id] : [ola.user.id])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(first), kari.matrixId)
+        homeserver.listRoom(await roomIdOf(second), room, kari.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).levels.users).toEqual({ [homeserver.botUserId]: 100 })
+        expect(await prisma.chatSpaceRoom.findMany()).toMatchObject([{ spaceId: first.id, matrixRoomId: room }])
+
+        const settled = homeserver.writes.length
+        await syncChat(homeserver)
+        expect(homeserver.writes).toHaveLength(settled)
+    })
+
+    test('taken out of its space is given back, and can then be taken into another', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const first = await createSpace('First', [ola])
+        const second = await createSpace('Second')
+        chatSpaceAdmins.MANUAL = ({ spaceId }) => Promise.resolve(spaceId === first.id ? [kari.user.id] : [])
+        await syncChat(homeserver)
+        const room = homeserver.makeRoom(await roomIdOf(first), ola.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.room(room).levels.users[kari.matrixId]).toBe(ROOM_ADMIN_LEVEL)
+
+        homeserver.unlistRoom(await roomIdOf(first), room)
+        await syncChat(homeserver)
+
+        expect(homeserver.room(room).members).toEqual([ola.matrixId])
+        expect(homeserver.room(room).levels.users).toEqual({})
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+
+        homeserver.listRoom(await roomIdOf(second), room, ola.matrixId)
+        await syncChat(homeserver)
+        expect(await prisma.chatSpaceRoom.findMany()).toMatchObject([{ spaceId: second.id, matrixRoomId: room }])
     })
 })
 
@@ -271,6 +357,23 @@ describe('a destroyed space', () => {
 
         expect(homeserver.room(roomId).members).toEqual([])
         expect(homeserver.room(room).members).toEqual([])
+        expect(await prisma.chatSpace.count()).toBe(0)
+    })
+
+    test('leaves a room it lists but does not hold as it is', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        adminUserIds = [kari.user.id]
+        const space = await createSpace('Space', [kari, ola])
+        await syncChat(homeserver)
+        const olasRoom = homeserver.makeRoomOutsideSpaces(ola.matrixId)
+        homeserver.room(olasRoom).members.push(kari.matrixId)
+        homeserver.listRoom(await roomIdOf(space), olasRoom, kari.matrixId)
+
+        await prisma.chatSpace.update({ where: { id: space.id }, data: { destroyedAt: new Date() } })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(olasRoom).members).toEqual([ola.matrixId, kari.matrixId])
         expect(await prisma.chatSpace.count()).toBe(0)
     })
 
