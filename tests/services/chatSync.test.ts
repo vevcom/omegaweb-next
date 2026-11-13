@@ -413,6 +413,26 @@ describe('a destroyed room', () => {
         expect(await prisma.chatSpaceRoom.count()).toBe(0)
     })
 
+    test('is closed before it is emptied, and keeps its row while it cannot be closed', async () => {
+        const { room, roomId, kari } = await roomWithKariInIt()
+        homeserver.changesRefusedOnce.push(`close ${roomId}`)
+
+        await prisma.chatSpaceRoom.update({ where: { id: room.id }, ...markDestroyed })
+        await expect(syncChat(homeserver)).rejects.toThrow(`close ${roomId}`)
+        expect(homeserver.room(roomId).members).toContain(kari.matrixId)
+        expect(await prisma.chatSpaceRoom.count()).toBe(1)
+
+        const before = homeserver.writes.length
+        await syncChat(homeserver)
+        expect(homeserver.writes.slice(before)).toEqual([
+            expect.stringContaining('unlist'),
+            `close ${roomId}`,
+            `remove ${kari.matrixId} from ${roomId}`,
+            `leave ${roomId}`,
+        ])
+        expect(await prisma.chatSpaceRoom.count()).toBe(0)
+    })
+
     test('lets nobody in on an invitation from before it was destroyed', async () => {
         const { room, roomId } = await roomWithKariInIt()
         const invited = homeserver.signIn('invited')
@@ -436,7 +456,7 @@ describe('a destroyed room', () => {
 
     test('keeps its row while the homeserver will not let someone out of it', async () => {
         const { room, roomId, kari } = await roomWithKariInIt()
-        homeserver.roomsRefusingEveryChange.push(roomId)
+        homeserver.changesRefusedOnce.push(`remove ${kari.matrixId} from ${roomId}`)
 
         await prisma.chatSpaceRoom.update({ where: { id: room.id }, ...markDestroyed })
         await expect(syncChat(homeserver)).rejects.toThrow(`remove ${kari.matrixId} from ${roomId}`)
@@ -444,14 +464,15 @@ describe('a destroyed room', () => {
         expect(await prisma.chatSpaceRoom.count()).toBe(1)
     })
 
-    test('that the bot could not leave is left by it on a later run', async () => {
-        const { room, roomId } = await roomWithKariInIt()
+    test('that the bot could not leave lets no member of the space back in, and is left on a later run', async () => {
+        const { room, roomId, kari } = await roomWithKariInIt()
         homeserver.changesRefusedOnce.push(`leave ${roomId}`)
 
         await prisma.chatSpaceRoom.update({ where: { id: room.id }, ...markDestroyed })
         await expect(syncChat(homeserver)).rejects.toThrow(`leave ${roomId}`)
         expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId])
         expect(await prisma.chatSpaceRoom.count()).toBe(1)
+        expect(() => homeserver.join(roomId, kari.matrixId)).toThrow('may not let themselves in')
 
         await syncChat(homeserver)
         expect(homeserver.room(roomId).members).toEqual([])
@@ -504,13 +525,12 @@ describe('a destroyed space', () => {
         await syncChat(homeserver)
         const roomId = await roomIdOf(room)
         homeserver.join(roomId, kari.matrixId)
-        homeserver.roomsRefusingEveryChange.push(roomId)
+        homeserver.changesRefusedOnce.push(`remove ${kari.matrixId} from ${roomId}`)
 
         await prisma.chatSpace.update({ where: { id: space.id }, ...markDestroyed })
         await expect(syncChat(homeserver)).rejects.toThrow(`remove ${kari.matrixId} from ${roomId}`)
         expect(await prisma.chatSpace.count()).toBe(1)
 
-        homeserver.roomsRefusingEveryChange.length = 0
         await syncChat(homeserver)
         expect(homeserver.room(roomId).members).toEqual([])
         expect(await prisma.chatSpace.count()).toBe(0)

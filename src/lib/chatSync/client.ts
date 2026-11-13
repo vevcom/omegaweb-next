@@ -64,7 +64,7 @@ type Token = { value: string, renewAt: number }
 export type Homeserver = Pick<ChatClient,
     | 'botUserId' | 'userIdOf' | 'registerBot'
     | 'hasAccount' | 'writeDisplayName' | 'deactivate'
-    | 'createSpace' | 'createRoom' | 'readRoom' | 'writeState' | 'listRoom' | 'unlistRoom'
+    | 'createSpace' | 'createRoom' | 'closeRoom' | 'readRoom' | 'writeState' | 'listRoom' | 'unlistRoom'
     | 'addMember' | 'removeMember' | 'leave'
 >
 
@@ -216,6 +216,11 @@ export class ChatClient {
     async writeState(roomId: string, type: string, content: Record<string, unknown>, stateKey = ''): Promise<void> {
         const keyPath = stateKey === '' ? '' : `/${encodeURIComponent(stateKey)}`
         await this.matrix('PUT', `/rooms/${encodeURIComponent(roomId)}/state/${encodeURIComponent(type)}${keyPath}`, content)
+    }
+
+    /** From then on only whom the bot invites gets in, also in a room the members of its space let themselves into. */
+    async closeRoom(roomId: string): Promise<void> {
+        await this.writeState(roomId, 'm.room.join_rules', { join_rule: 'invite' })
     }
 
     async listRoom(spaceRoomId: string, roomId: string): Promise<void> {

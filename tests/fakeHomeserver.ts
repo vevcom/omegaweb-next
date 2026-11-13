@@ -148,6 +148,11 @@ export class FakeHomeserver implements Homeserver {
         return Promise.resolve()
     }
 
+    closeRoom(roomId: string): Promise<void> {
+        this.changeAsBot(roomId, `close ${roomId}`).isPrivate = true
+        return Promise.resolve()
+    }
+
     listRoom(spaceRoomId: string, roomId: string): Promise<void> {
         this.changeAsBot(spaceRoomId, `list ${roomId}`).listedRoomIds.push(roomId)
         return Promise.resolve()
