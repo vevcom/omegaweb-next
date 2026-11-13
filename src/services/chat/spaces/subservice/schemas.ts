@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { zfd } from 'zod-form-data'
 
 const dataFieldSchemas = z.object({
-    name: z.string().trim().min(2).max(50),
+    name: z.string().trim().min(1).max(50),
     userIds: zfd.repeatable(z.coerce.number().array()),
     isPrivate: Zpn.checkboxOrBoolean({ label: 'Privat' }),
 })

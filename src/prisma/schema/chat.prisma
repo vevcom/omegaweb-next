@@ -32,8 +32,9 @@ model ChatSpace {
   // deletes the row.
   destroyedAt DateTime?
 
-  members ChatSpaceMember[]
-  rooms   ChatSpaceRoom[]
+  members   ChatSpaceMember[]
+  rooms     ChatSpaceRoom[]
+  committee Committee?
 }
 
 model ChatSpaceMember {

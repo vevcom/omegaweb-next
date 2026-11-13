@@ -10,6 +10,7 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     shortName: z.string(),
+    groupId: z.coerce.number(),
 })
 
 const committee = dataFieldSchemas.pick({
@@ -23,6 +24,10 @@ const committeeId = paramsFieldSchemas.pick({
 
 const committeeShortName = paramsFieldSchemas.pick({
     shortName: true,
+})
+
+const committeeGroupId = paramsFieldSchemas.pick({
+    groupId: true,
 })
 
 export const committeeSchemas = {
@@ -46,5 +51,8 @@ export const committeeSchemas = {
         destroy: committeeId,
         update: committeeId,
         updateArticle: committeeShortName,
+        readChatSpace: committeeGroupId,
+        createChatSpace: committeeGroupId,
+        chatSpace: committeeGroupId,
     },
 }
