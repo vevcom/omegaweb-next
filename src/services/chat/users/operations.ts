@@ -4,6 +4,11 @@ import { chatUserSchemas } from './schemas'
 import { CHAT_LOCALPART_ATTEMPTS, chatLocalpartAt, isReservedChatLocalpart } from './localpart'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
+import { allNotificationMethodsOn } from '@/services/notifications/constants'
+
+const subscribableChannel = {
+    select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
+} as const
 
 export const chatUserOperations = {
     /**
@@ -50,7 +55,7 @@ export const chatUserOperations = {
         },
     }),
 
-    /** The spaces a user is in. None for a user who has not signed in to the chat. */
+    /** The spaces a user is in, each with its two notification channels. None for one who has not signed in to the chat. */
     readSpaces: defineOperation({
         paramsSchema: chatUserSchemas.params.readSpaces,
         authorizer: ({ params }) => chatUserAuth.readSpaces.data({ userId: params.userId }),
@@ -62,7 +67,13 @@ export const chatUserOperations = {
                         where: { space: { destroyedAt: null } },
                         select: {
                             space: {
-                                select: { id: true, name: true, committee: { select: { shortName: true } } },
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    committee: { select: { shortName: true } },
+                                    mentionsNotificationChannel: subscribableChannel,
+                                    allNotificationChannel: subscribableChannel,
+                                },
                             },
                         },
                         orderBy: { space: { name: 'asc' } },
