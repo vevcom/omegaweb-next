@@ -41,5 +41,7 @@ export const cabinBookingAuth = {
 
     // A guest has no session to cancel with, so the cabin team cancels a guest booking.
     cancel: Require.userId(),
+
+    cancelAsAdmin: Require.permission('CABIN_ADMIN'),
 } as const
 

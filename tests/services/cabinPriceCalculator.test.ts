@@ -1,6 +1,7 @@
 import {
     calculateCabinBookingPrice,
     calculateTotalCabinBookingPrice,
+    hasPriceOn,
 } from '@/services/cabin/booking/cabinPriceCalculator'
 import { describe, expect, test } from '@jest/globals'
 import type { CabinProductExtended } from '@/services/cabin/product/types'
@@ -162,5 +163,23 @@ describe('cabin booking price', () => {
     test('refuses a night the product has no price for', () => {
         // The bed has no summer prices.
         expect(() => priceOf({ products: [bed], start: '2026-06-02', end: '2026-06-03' })).toThrow()
+    })
+})
+
+describe('nights without a price', () => {
+    const weekdayBed: CabinProductExtended = {
+        ...bed,
+        id: 3,
+        CabinProductPrice: [price(spring, SUNDAY_TO_THURSDAY, 200_00)],
+    }
+
+    test('cannot be booked, which closes the weekends to beds priced only on weekdays', () => {
+        expect(hasPriceOn(date('2026-03-05'), [weekdayBed], pricePeriods)).toBe(true)
+        expect(hasPriceOn(date('2026-03-06'), [weekdayBed], pricePeriods)).toBe(false)
+        expect(hasPriceOn(date('2026-03-06'), [bed], pricePeriods)).toBe(true)
+    })
+
+    test('include every night before the first price period', () => {
+        expect(hasPriceOn(date('2025-12-31'), [cabin], pricePeriods)).toBe(false)
     })
 })

@@ -16,4 +16,5 @@ export const updateSpecialCmsParagraphCabinContractAction = makeAction(
 )
 export const releaseCabinBookingReservationAction = makeAction(cabinBookingOperations.releaseReservation)
 export const cancelCabinBookingAction = makeAction(cabinBookingOperations.cancel)
+export const cancelCabinBookingAsAdminAction = makeAction(cabinBookingOperations.cancelAsAdmin)
 export const connectCabinToLedgerAccountAction = makeAction(cabinBookingOperations.connectToLedgerAccount)

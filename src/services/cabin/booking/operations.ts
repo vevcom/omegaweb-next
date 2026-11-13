@@ -21,6 +21,7 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { refundOperations } from '@/services/ledger/refunds/operations'
+import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'
 import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
@@ -596,6 +597,7 @@ export const cabinBookingOperations = {
                 canceled: true,
                 transactionTimeout: true,
                 BookingProduct: { select: { quantity: true, product: { select: { name: true } } } },
+                ledgerTransactions: { select: { refundOf: { select: { id: true } } } },
             },
         }),
     }),
@@ -643,21 +645,79 @@ export const cabinBookingOperations = {
                 throw new Smorekopp('BAD PARAMETERS', 'Betalingen behandles fortsatt. Prøv igjen om litt.')
             }
 
-            const payerAccount = await ledgerAccountOperations.read({
-                params: { userId: booking.userId },
-                bypassAuth: true,
-                prisma,
+            await refundBooking(prisma, booking, transaction.id)
+            await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
+        },
+    }),
+
+    /**
+     * Cancels any booking as the cabin team, whatever its dates. A payment attempt still under way is
+     * canceled with it, and a paid booking is refunded when `refund` is set.
+     */
+    cancelAsAdmin: defineOperation({
+        paramsSchema: cabinBookingSchemas.params.cancelAsAdmin,
+        dataSchema: cabinBookingSchemas.data.cancelAsAdmin,
+        authorizer: () => cabinBookingAuth.cancelAsAdmin,
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params, data }) => {
+            const booking = await lockBooking(prisma, params.bookingId)
+            if (booking.canceled !== null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Bookingen er allerede avbestilt.')
+            }
+
+            const attempt = await prisma.ledgerTransaction.findFirst({
+                where: { bookingId: booking.id, OR: [{ state: 'PENDING' }, validTransactionFilter] },
+                select: { id: true, state: true },
             })
-            await refundOperations.reverseTransaction({
-                params: {
-                    originalTransactionId: transaction.id,
-                    reason: 'Hyttebooking avbestilt.',
-                    refundTo: payerAccount.id,
-                },
-                prisma,
-                bypassAuth: true,
-            })
+            if (attempt?.state === 'PENDING') {
+                await ledgerTransactionOperations.cancel({ params: { id: attempt.id }, prisma, bypassAuth: true })
+            }
+            if (attempt?.state === 'SUCCEEDED') {
+                if (booking.transactionTimeout !== null) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Betalingen behandles fortsatt. Prøv igjen om litt.')
+                }
+                if (data.refund) await refundBooking(prisma, booking, attempt.id)
+            }
+
             await prisma.booking.update({ where: { id: booking.id }, data: { canceled: new Date() } })
         },
     }),
 } as const
+
+/**
+ * Pays a canceled booking back: a user's into their ledger account, and a guest's through Stripe by
+ * hand, which a manual review asks the ledger admins for.
+ */
+async function refundBooking(
+    prisma: Prisma.TransactionClient,
+    booking: { id: number, userId: number | null },
+    transactionId: number,
+) {
+    if (booking.userId === null) {
+        await manualReviewOperations.create({
+            params: {
+                transactionId,
+                problem: 'CABIN_GUEST_REFUND',
+                problemDescription: `Booking ${booking.id} ble avbestilt med refusjon. Refunder betalingen i Stripe.`,
+            },
+            prisma,
+            bypassAuth: true,
+        })
+        return
+    }
+
+    const payerAccount = await ledgerAccountOperations.read({
+        params: { userId: booking.userId },
+        bypassAuth: true,
+        prisma,
+    })
+    await refundOperations.reverseTransaction({
+        params: {
+            originalTransactionId: transactionId,
+            reason: 'Hyttebooking avbestilt.',
+            refundTo: payerAccount.id,
+        },
+        prisma,
+        bypassAuth: true,
+    })
+}
