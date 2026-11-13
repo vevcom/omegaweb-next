@@ -6,6 +6,7 @@ import { publishProblems } from './publishProblems'
 import { lockEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
 import {
+    eventArchiveOrder,
     eventListSelection,
     eventQuotaOrder,
     eventVariantOrder,
@@ -442,6 +443,7 @@ export const eventOperations = {
                     ...prismaWhereFilter
                 },
                 select: eventListSelection,
+                orderBy: eventArchiveOrder,
             })
             return events.map(withTagsAndVariantSummary)
         }
