@@ -106,7 +106,8 @@ async function createRoomsNotYetMade(
         await report.carryOut({
             what: `make the room ${room.name}`,
             run: async () => {
-                const matrixRoomId = await homeserver.createRoom(spaceRoomId, room.name)
+                const { name, isPrivate } = room
+                const matrixRoomId = await homeserver.createRoom({ name, spaceRoomId, isPrivate })
                 await prisma.chatSpaceRoom.update({ where: { id: room.id }, data: { matrixRoomId } })
             },
         })
@@ -145,22 +146,37 @@ async function readWantedSpace(homeserver: Homeserver, space: ChatSpace, admins:
         select: { chatUserId: true, chatUser: { select: { localpart: true } } },
     })
     const userIdOf = (member: typeof members[number]) => homeserver.userIdOf(member.chatUser.localpart)
+    const memberUserIds = members.map(userIdOf)
 
     return {
         name: space.name,
-        members: members.map(userIdOf),
+        members: memberUserIds,
         admins: members.filter(member => adminIds.includes(member.chatUserId)).map(userIdOf),
-        rooms: await readWantedRooms(space),
+        rooms: await readWantedRooms(homeserver, space, memberUserIds),
     }
 }
 
-async function readWantedRooms(space: ChatSpace): Promise<WantedRoom[]> {
+async function readWantedRooms(homeserver: Homeserver, space: ChatSpace, memberUserIds: string[]): Promise<WantedRoom[]> {
     const rooms = await prisma.chatSpaceRoom.findMany({
         where: { spaceId: space.id, destroyedAt: null },
-        select: { matrixRoomId: true, name: true },
+        select: {
+            matrixRoomId: true,
+            name: true,
+            isPrivate: true,
+            pickedMembers: { select: { spaceMember: { select: { chatUser: { select: { localpart: true } } } } } },
+        },
         orderBy: { id: 'asc' },
     })
-    return rooms.flatMap(room => (room.matrixRoomId === null ? [] : [{ id: room.matrixRoomId, name: room.name }]))
+    return rooms.flatMap(({ matrixRoomId, name, isPrivate, pickedMembers }) => {
+        if (matrixRoomId === null) return []
+        const pickedUserIds = pickedMembers.map(({ spaceMember }) => homeserver.userIdOf(spaceMember.chatUser.localpart))
+        return [{
+            id: matrixRoomId,
+            name,
+            isPrivate,
+            pickedMembers: pickedUserIds.filter(userId => memberUserIds.includes(userId)),
+        }]
+    })
 }
 
 async function readActualSpace(

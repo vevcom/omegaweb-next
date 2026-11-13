@@ -284,6 +284,64 @@ describe('a room of a space', () => {
     })
 })
 
+describe('a private room of a space', () => {
+    async function privateRoomWithKariPicked() {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        const space = await createSpace('Space', [kari, ola])
+        const room = await prisma.chatSpaceRoom.create({
+            data: {
+                spaceId: space.id,
+                name: 'Styret',
+                isPrivate: true,
+                pickedMembers: { create: { spaceMember: { connect: { spaceId_chatUserId: {
+                    spaceId: space.id,
+                    chatUserId: kari.chatUser.id,
+                } } } } },
+            },
+        })
+        await syncChat(homeserver)
+        return { space, room, roomId: await roomIdOf(room), kari, ola }
+    }
+
+    test('has those picked for it, whom the sync puts there, and lets no one else in', async () => {
+        const { roomId, kari, ola } = await privateRoomWithKariPicked()
+
+        expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId, kari.matrixId])
+        expect(() => homeserver.join(roomId, ola.matrixId)).toThrow('may not let themselves in')
+    })
+
+    test('loses a member who is picked no longer, and one who got in past the application', async () => {
+        const { room, roomId, ola } = await privateRoomWithKariPicked()
+        homeserver.room(roomId).members.push(ola.matrixId)
+
+        await prisma.chatSpaceRoomMember.deleteMany({ where: { roomId: room.id } })
+        await syncChat(homeserver)
+
+        expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId])
+    })
+
+    test('loses a member who is removed from the space, and does not get them back with the space', async () => {
+        const { space, roomId, kari } = await privateRoomWithKariPicked()
+
+        await prisma.chatSpaceMember.deleteMany({ where: { chatUserId: kari.chatUser.id } })
+        await syncChat(homeserver)
+        expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId])
+
+        await prisma.chatSpaceMember.create({ data: { spaceId: space.id, chatUserId: kari.chatUser.id } })
+        await syncChat(homeserver)
+        expect(homeserver.room(roomId).members).toEqual([homeserver.botUserId])
+    })
+
+    test('is left as it is by a run with nothing to change', async () => {
+        await privateRoomWithKariPicked()
+
+        const settled = homeserver.writes.length
+        await syncChat(homeserver)
+        expect(homeserver.writes).toHaveLength(settled)
+    })
+})
+
 describe('a destroyed room', () => {
     async function roomWithKariInIt() {
         const kari = await createChatUser('kari')

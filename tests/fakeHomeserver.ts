@@ -1,5 +1,5 @@
 import { ChatServerError } from '@/lib/chatSync/client'
-import type { ChatPowerLevels, ChatRoom, Homeserver } from '@/lib/chatSync/client'
+import type { ChatPowerLevels, ChatRoom, Homeserver, NewRoom } from '@/lib/chatSync/client'
 
 type Room = {
     name: string | undefined,
@@ -8,6 +8,7 @@ type Room = {
     listedRoomIds: string[],
     /** Null for a space. */
     spaceRoomId: string | null,
+    isPrivate: boolean,
 }
 
 const SERVER_NAME = 'chat.test'
@@ -35,11 +36,13 @@ export class FakeHomeserver implements Homeserver {
         return this.userIdOf(localpart)
     }
 
-    /** What a user does in the client. Only a member of the space gets into one of its rooms. */
+    /** What a user does in the client. Only a member of the space gets in, and nobody into a private room. */
     join(roomId: string, userId: string): void {
         const room = this.room(roomId)
         const isMemberOfSpace = room.spaceRoomId !== null && this.room(room.spaceRoomId).members.includes(userId)
-        if (!isMemberOfSpace) throw new ChatServerError(403, 'M_FORBIDDEN', `${userId} is not in the space of ${roomId}`)
+        if (room.isPrivate || !isMemberOfSpace) {
+            throw new ChatServerError(403, 'M_FORBIDDEN', `${userId} may not let themselves into ${roomId}`)
+        }
         room.members.push(userId)
     }
 
@@ -95,19 +98,20 @@ export class FakeHomeserver implements Homeserver {
     }
 
     createSpace(name: string): Promise<string> {
-        return Promise.resolve(this.create(`!space${++this.created}:${SERVER_NAME}`, name, null))
+        return Promise.resolve(this.create(`!space${++this.created}:${SERVER_NAME}`, name, null, false))
     }
 
-    createRoom(spaceRoomId: string, name: string): Promise<string> {
+    createRoom({ name, spaceRoomId, isPrivate }: NewRoom): Promise<string> {
         if (this.roomsRefusingEveryChange.includes(spaceRoomId)) {
             throw new ChatServerError(500, 'M_UNKNOWN', `create ${name} refused`)
         }
-        return Promise.resolve(this.create(`!room${++this.created}:${SERVER_NAME}`, name, spaceRoomId))
+        return Promise.resolve(this.create(`!room${++this.created}:${SERVER_NAME}`, name, spaceRoomId, isPrivate))
     }
 
-    private create(roomId: string, name: string, spaceRoomId: string | null): string {
+    private create(roomId: string, name: string, spaceRoomId: string | null, isPrivate: boolean): string {
         this.writes.push(`create ${name}`)
-        this.rooms.set(roomId, { name, members: [this.botUserId], levels: { users: {} }, listedRoomIds: [], spaceRoomId })
+        const levels = { users: {} }
+        this.rooms.set(roomId, { name, members: [this.botUserId], levels, listedRoomIds: [], spaceRoomId, isPrivate })
         return roomId
     }
 
