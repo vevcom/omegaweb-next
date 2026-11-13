@@ -9,6 +9,7 @@ import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { OmegaJWTAudience } from '@/lib/jwt/types'
+import type { Awaitable } from '@/lib/awaitable'
 import type { z } from 'zod'
 
 type Prisma = PrismaPossibleTransaction<false>
@@ -37,17 +38,19 @@ export type AccountKind<Verified extends { email: string }, PasswordSchema exten
      * When the account's password was last set, null for an account that has none yet. Throws
      * NOT FOUND for an account that does not exist or may not sign in.
      */
-    readCredentialsUpdatedAt: (prisma: Prisma, accountId: number) => Promise<Date | null>,
+    readCredentialsUpdatedAt: (prisma: Prisma, accountId: number) => Awaitable<Date | null>,
+    /** Holds the account's row until the transaction ends, so neither its email nor its password changes meanwhile. */
+    lockAccount: (prisma: Prisma, accountId: number) => Awaitable<unknown>,
     /** Sets the password, and ends the sessions started with the old one. */
-    writePassword: (accountId: number, data: z.output<PasswordSchema>) => Promise<void>,
+    writePassword: (prisma: Prisma, accountId: number, data: z.output<PasswordSchema>) => Awaitable<void>,
     /** Marks `email` as verified, if it is the account's email and is not verified already. */
-    markEmailVerified: (prisma: Prisma, accountId: number, email: string) => Promise<void>,
+    markEmailVerified: (prisma: Prisma, accountId: number, email: string) => Awaitable<void>,
     /** The account's email as it stands. Throws NOT FOUND for an account that does not exist. */
-    readEmail: (prisma: Prisma, accountId: number) => Promise<{ email: string, emailVerified: Date | null }>,
+    readEmail: (prisma: Prisma, accountId: number) => Awaitable<{ email: string, emailVerified: Date | null }>,
     /** Makes `email` the account's email, verified now. A taken email fails on the unique constraint. */
-    writeVerifiedEmail: (prisma: Prisma, accountId: number, email: string) => Promise<Verified>,
+    writeVerifiedEmail: (prisma: Prisma, accountId: number, email: string) => Awaitable<Verified>,
     /** Tells the old address of the change, once it has happened. Must not throw. */
-    notifyEmailChanged: (verified: Verified, oldEmail: string) => Promise<void>,
+    notifyEmailChanged: (verified: Verified, oldEmail: string) => Awaitable<void>,
     /**
      * Sends the password link to the account with this email, and does nothing when there is none.
      * It is run without being awaited, so that how long it takes says nothing of whether there is one.
@@ -69,26 +72,33 @@ export type AccountKind<Verified extends { email: string }, PasswordSchema exten
 export function implementAccountFlows<Verified extends { email: string }, PasswordSchema extends z.ZodTypeAny>(
     kind: AccountKind<Verified, PasswordSchema>,
 ) {
+    /** What a reset password link says of itself. Whether it still stands is for verifyResetPasswordToken. */
+    function readResetPasswordToken(token: string) {
+        const payload = verifyJWT(token, kind.audiences.resetPassword)
+
+        if (!payload.sub || !payload.iat) {
+            throw new ServiceError('JWT INVALID', 'Lenken for å nullstille passordet er ugyldig')
+        }
+
+        return {
+            accountId: Number(payload.sub),
+            issuedAt: new Date(payload.iat * 1000),
+            // Tokens issued before the email claim was added carry none.
+            email: typeof payload.email === 'string' ? payload.email : null,
+        }
+    }
+
     const verifyResetPasswordToken = defineOperation({
         paramsSchema: accountSchemas.params.verifyResetPasswordToken,
         authorizer: () => Require.nothing(),
         operation: async ({ prisma, params }) => {
-            const payload = verifyJWT(params.token, kind.audiences.resetPassword)
-
-            if (!payload.sub || !payload.iat) {
-                throw new ServiceError('JWT INVALID', 'Lenken for å nullstille passordet er ugyldig')
-            }
-
-            const accountId = Number(payload.sub)
+            const { accountId, issuedAt, email } = readResetPasswordToken(params.token)
             const credentialsUpdatedAt = await kind.readCredentialsUpdatedAt(prisma, accountId)
 
             // The link is spent by the password it sets: it is older than that password from then on.
-            if (credentialsUpdatedAt && credentialsUpdatedAt > new Date(payload.iat * 1000)) {
+            if (credentialsUpdatedAt && credentialsUpdatedAt > issuedAt) {
                 throw new ServiceError('JWT INVALID', 'Passordet er allerede endret')
             }
-
-            // Tokens issued before the email claim was added carry none.
-            const email = typeof payload.email === 'string' ? payload.email : null
 
             // The link is for whoever reads the mail at the address it was sent to. Once the account
             // has left that address, its reader must no longer be able to set the password.
@@ -104,10 +114,14 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
         paramsSchema: accountSchemas.params.resetPassword,
         dataSchema: kind.passwordSchema,
         authorizer: () => Require.nothing(),
+        transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) => {
-            const { accountId, email } = await verifyResetPasswordToken({ params })
+            // The link is checked and the password written with the account held, or the account could
+            // leave the link's address, or the link be used once more, between the two.
+            await kind.lockAccount(prisma, readResetPasswordToken(params.token).accountId)
+            const { accountId, email } = await verifyResetPasswordToken({ params, prisma })
 
-            await kind.writePassword(accountId, data as z.output<PasswordSchema>)
+            await kind.writePassword(prisma, accountId, data as z.output<PasswordSchema>)
 
             // Following the link proves the address, which is the account's, so it need not be verified again.
             if (email) await kind.markEmailVerified(prisma, accountId, email)

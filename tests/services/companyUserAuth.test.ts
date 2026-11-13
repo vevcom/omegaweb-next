@@ -134,6 +134,20 @@ describe('choosing a password as a company user', () => {
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
     })
 
+    test('a link used twice at once sets one password', async () => {
+        const companyUser = await createCompanyUser('konto-samtidig@example.com')
+        const token = passwordToken(companyUser.id, companyUser.email)
+
+        const outcomes = await Promise.allSettled([
+            choosePassword(token),
+            choosePassword(token, 'et-annet-langt-passord-456'),
+        ])
+
+        expect(outcomes.map(outcome => outcome.status).sort()).toEqual(['fulfilled', 'rejected'])
+        const stored = await prisma.companyUser.findUniqueOrThrow({ where: { id: companyUser.id } })
+        expect(stored.sessionEpoch).toBe(companyUser.sessionEpoch + 1)
+    })
+
     test('a link sent to an email the company user has since left sets no password', async () => {
         const companyUser = await createCompanyUser('konto-byttet@example.com')
 

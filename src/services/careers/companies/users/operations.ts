@@ -4,6 +4,8 @@ import { companyUserOrdering, companyUserSelection, companyUserWithCompanySelect
 import { companyUserSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
+import { sendCompanyUserPasswordMail } from '@/lib/email/systemMail/companyUserPassword'
+import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { CompanyUserFiltered, CompanyUserWithCompany } from './types'
@@ -50,19 +52,28 @@ export const companyUserOperations = {
     }),
 
     /**
-     * Registers a person as a user of the company. The company user has no password yet, so
-     * they cannot sign in before they have been sent a link to choose one.
+     * Registers a person as a user of the company. The company user has no password yet, so they
+     * are mailed the link to choose one by, which is how they sign in the first time.
      */
     create: defineOperation({
         paramsSchema: companyUserSchemas.params.create,
         dataSchema: companyUserSchemas.data.create,
         authorizer: ({ params }) => companyUserAuth.create.data({ companyId: params.companyId }),
-        operation: ({ prisma, params, data }): Promise<CompanyUserFiltered> => refusingTakenEmail(
-            () => prisma.companyUser.create({
-                data: { ...data, companyId: params.companyId },
-                select: companyUserSelection,
+        operation: async ({ prisma, params, data }): Promise<CompanyUserFiltered> => {
+            const { company, ...companyUser } = await refusingTakenEmail(
+                () => prisma.companyUser.create({
+                    data: { ...data, companyId: params.companyId },
+                    select: { ...companyUserSelection, company: { select: { name: true } } },
+                })
+            )
+
+            // Not awaited: the company user exists either way, and the link can be sent again from their page.
+            void sendCompanyUserPasswordMail({ ...companyUser, company }).catch((error: unknown) => {
+                logger.error(`Failed to send the password link to the new company user ${companyUser.id}`, { error })
             })
-        ),
+
+            return companyUser
+        },
     }),
 
     update: defineOperation({

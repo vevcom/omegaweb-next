@@ -2,12 +2,14 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { companyUserOperations } from '@/services/careers/companies/users/operations'
+import { recordSentMail, waitUntil } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const companyAdmin = Session.fromJsObject({ user: null, permissions: ['COMPANY_ADMIN'], memberships: [] })
 
 let companyId: number
 let otherCompanyId: number
+let sentMail: ReturnType<typeof recordSentMail>
 
 async function register(email: string, admin = false) {
     return await companyUserOperations.create({
@@ -22,6 +24,7 @@ beforeAll(async () => {
     const otherCompany = await prisma.company.create({ data: { name: 'Brukertest To AS', description: '' } })
     companyId = company.id
     otherCompanyId = otherCompany.id
+    sentMail = recordSentMail()
 })
 
 describe('company users', () => {
@@ -47,6 +50,15 @@ describe('company users', () => {
         const read = await companyUserOperations.read({ params: { id: companyUser.id }, session: companyAdmin })
         expect(read.credentials).toBeNull()
         expect(read.company.name).toBe('Brukertest AS')
+    })
+
+    test('a registered company user is mailed the link to choose a password by', async () => {
+        await register('ny-lenke@example.com')
+
+        // The mail is sent without being awaited.
+        const mailsToThem = () => sentMail.mock.calls.filter(([mail]) => mail.to === 'ny-lenke@example.com')
+        await waitUntil(() => mailsToThem().length > 0)
+        expect(mailsToThem()[0][0].subject).toBe('Velg passord hos Contactor')
     })
 
     test('an email belongs to one company user, across companies', async () => {

@@ -8,7 +8,8 @@ import { companyAuth } from '@/services/careers/companies/auth'
 import {
     destroyCompanyAction,
     updateCompanyAction,
-    updateCompanyLogoAction
+    updateCompanyLogoAction,
+    updateCompanyNameAction
 } from '@/services/careers/companies/actions'
 import { configureAction } from '@/services/configureAction'
 import type { AppHref } from '@/lib/sites/href'
@@ -24,10 +25,11 @@ type PropTypes = {
 }
 
 /**
- * The forms for managing a company: its details, logo, sponsor tier and removal. Each form is
+ * The forms for managing a company: its name, details, logo, sponsor tier and removal. Each form is
  * only shown to a user its authorizer lets through, so nothing is rendered for one who may do none of it.
  */
 export default function CompanySettings({ company, closePopUpOnSuccess, navigateOnDestroy }: PropTypes) {
+    const canUpdateName = useAuthorizer({ authorizer: companyAuth.updateName })
     const canUpdate = useAuthorizer({ authorizer: companyAuth.update.data({ companyId: company.id }) })
     const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo.data({ companyId: company.id }) })
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
@@ -36,6 +38,17 @@ export default function CompanySettings({ company, closePopUpOnSuccess, navigate
 
     return (
         <>
+            {canUpdateName.authorized && (
+                <Form
+                    title="Navn"
+                    action={configureAction(updateCompanyNameAction, params)}
+                    refreshOnSuccess
+                    closePopUpOnSuccess={closePopUpOnSuccess}
+                    submitText="Lagre"
+                >
+                    <TextInput name="name" label="Navn" defaultValue={company.name} />
+                </Form>
+            )}
             {canUpdate.authorized && (
                 <Form
                     title="Rediger bedrift"
@@ -44,7 +57,6 @@ export default function CompanySettings({ company, closePopUpOnSuccess, navigate
                     closePopUpOnSuccess={closePopUpOnSuccess}
                     submitText="Lagre"
                 >
-                    <TextInput name="name" label="Navn" defaultValue={company.name} />
                     <TextInput name="description" label="Beskrivelse" defaultValue={company.description} />
                     <TextInput name="website" label="Nettside" defaultValue={company.website ?? ''} />
                 </Form>

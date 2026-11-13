@@ -28,11 +28,13 @@ export const userAccountFlows = implementAccountFlows({
         })
         return user.credentials?.credentialsUpdatedAt ?? null
     },
-    writePassword: async (userId, data) => {
+    lockAccount: (prisma, userId) => prisma.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR UPDATE`,
+    writePassword: async (prisma, userId, data) => {
         await userOperations.updatePassword({
             params: { id: userId },
             data,
             bypassAuth: true,
+            prisma,
         })
     },
     markEmailVerified: async (prisma, userId, email) => {
@@ -41,7 +43,7 @@ export const userAccountFlows = implementAccountFlows({
             data: { emailVerified: new Date() },
         })
     },
-    readEmail: (prisma, userId) => userOperations.read({ params: { id: userId }, bypassAuth: true }),
+    readEmail: (prisma, userId) => userOperations.read({ params: { id: userId }, bypassAuth: true, prisma }),
     writeVerifiedEmail: (prisma, userId, email) => prisma.user.update({
         where: { id: userId },
         data: {

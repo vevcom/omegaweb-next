@@ -1,9 +1,8 @@
 import { siteNameSchema } from '@/lib/sites/site'
+import { userDataFieldSchemas } from '@/services/users/schemas'
 import { z } from 'zod'
 
-const email = z.object({ email: z.string().trim().toLowerCase().max(200)
-    .min(2)
-    .email() })
+const email = userDataFieldSchemas.pick({ email: true })
 const token = z.object({ token: z.string() })
 const site = z.object({ site: siteNameSchema })
 

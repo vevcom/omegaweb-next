@@ -9,6 +9,7 @@ import {
 } from '@/auth/nextAuth/sessionToken'
 import { companyOperations } from '@/services/careers/companies/operations'
 import { companyUserOperations } from '@/services/careers/companies/users/operations'
+import { recordSentMail } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { AnySession, SessionMaybeUser } from '@/auth/session/Session'
 import type { UserFiltered } from '@/services/users/types'
@@ -46,6 +47,8 @@ beforeAll(async () => {
     adminId = await createCompanyUser(companyId, 'sesjon-admin@example.com', true)
     colleagueId = await createCompanyUser(companyId, 'sesjon-kollega@example.com', false)
     outsiderId = await createCompanyUser(otherCompanyId, 'sesjon-annen@example.com', true)
+    // A registered company user is mailed their password link.
+    recordSentMail()
 })
 
 describe('the kinds of session', () => {
@@ -247,7 +250,7 @@ describe('what a company user may do', () => {
             .rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
     })
 
-    test('an admin of the company changes its details, but not its sponsor tier', async () => {
+    test('an admin of the company changes its details, but not its name or its sponsor tier', async () => {
         const admin = await sessionOfCompanyUser(adminId)
         const outsider = await sessionOfCompanyUser(outsiderId)
 
@@ -269,5 +272,25 @@ describe('what a company user may do', () => {
             data: { sponsorTier: 'MAIN' },
             session: admin,
         })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+
+        const { name } = company
+        await expect(companyOperations.updateName({
+            params: { id: companyId },
+            data: { name: 'Et navn bedriften ga seg selv' },
+            session: admin,
+        })).rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+        // A name sent with the details is not among them, and is left alone.
+        const detailsWithAName = { name: 'Et navn sendt med detaljene', description: 'Ny beskrivelse' }
+        await companyOperations.update({ params: { id: companyId }, data: detailsWithAName, session: admin })
+        expect(await prisma.company.findUniqueOrThrow({ where: { id: companyId } }))
+            .toMatchObject({ name, description: 'Ny beskrivelse' })
+
+        const companyAdmin = Session.fromJsObject({ user: null, permissions: ['COMPANY_ADMIN'], memberships: [] })
+        await companyOperations.updateName({
+            params: { id: companyId },
+            data: { name: `${name} Gruppen` },
+            session: companyAdmin,
+        })
+        expect((await prisma.company.findUniqueOrThrow({ where: { id: companyId } })).name).toBe(`${name} Gruppen`)
     })
 })

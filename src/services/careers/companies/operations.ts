@@ -80,6 +80,17 @@ export const companyOperations = {
             })
         },
     }),
+    updateName: defineOperation({
+        paramsSchema: companySchemas.params.updateName,
+        dataSchema: companySchemas.data.updateName,
+        authorizer: () => companyAuth.updateName,
+        operation: async ({ prisma, params: { id }, data }) => {
+            await prisma.company.update({
+                where: { id },
+                data,
+            })
+        },
+    }),
     updateSponsorTier: defineOperation({
         paramsSchema: companySchemas.params.updateSponsorTier,
         dataSchema: companySchemas.data.updateSponsorTier,
