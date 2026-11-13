@@ -165,6 +165,14 @@ const MAX_OBJECTS_PER_CALL = 500
 /** How long the server gets to answer, so one that takes the connection and then says nothing does not hold the worker. */
 const REQUEST_TIMEOUT_MS = 30 * 1000
 
+/**
+ * The id a creation is sent under and reported back by. JMAP ids allow only letters, digits, _ and
+ * -, so an address is made safe, with its index so two addresses cannot end up alike.
+ */
+export function creationId(address: string, index: number): string {
+    return `${address.replace(/[^A-Za-z0-9_-]/g, '_')}-${index}`
+}
+
 function chunksOf<Item>(items: Item[], size: number): Item[][] {
     const count = Math.ceil(items.length / size)
     return Array.from({ length: count }, (_, index) => items.slice(index * size, (index + 1) * size))
