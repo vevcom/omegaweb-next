@@ -4,6 +4,7 @@ import type { ChatPowerLevels, ChatRoom, Homeserver, NewRoom } from '@/lib/chatS
 type Room = {
     name: string | undefined,
     members: string[],
+    invited: string[],
     levels: ChatPowerLevels & { users: Record<string, number> },
     listedRoomIds: string[],
     /** Null for a space. */
@@ -36,13 +37,18 @@ export class FakeHomeserver implements Homeserver {
         return this.userIdOf(localpart)
     }
 
-    /** What a user does in the client. Only a member of the space gets in, and nobody into a private room. */
+    /**
+     * What a user does in the client. An invitation gets them in. Without one only a member of the
+     * space gets in, and nobody into a private room.
+     */
     join(roomId: string, userId: string): void {
         const room = this.room(roomId)
+        const isInvited = room.invited.includes(userId)
         const isMemberOfSpace = room.spaceRoomId !== null && this.room(room.spaceRoomId).members.includes(userId)
-        if (room.isPrivate || !isMemberOfSpace) {
+        if (!isInvited && (room.isPrivate || !isMemberOfSpace)) {
             throw new ChatServerError(403, 'M_FORBIDDEN', `${userId} may not let themselves into ${roomId}`)
         }
+        room.invited = room.invited.filter(invited => invited !== userId)
         room.members.push(userId)
     }
 
@@ -93,6 +99,7 @@ export class FakeHomeserver implements Homeserver {
         this.accounts = this.accounts.filter(account => account !== userId)
         this.rooms.forEach(room => {
             room.members = room.members.filter(member => member !== userId)
+            room.invited = room.invited.filter(invited => invited !== userId)
         })
         return Promise.resolve()
     }
@@ -111,7 +118,8 @@ export class FakeHomeserver implements Homeserver {
     private create(roomId: string, name: string, spaceRoomId: string | null, isPrivate: boolean): string {
         this.writes.push(`create ${name}`)
         const levels = { users: {} }
-        this.rooms.set(roomId, { name, members: [this.botUserId], levels, listedRoomIds: [], spaceRoomId, isPrivate })
+        const members = [this.botUserId]
+        this.rooms.set(roomId, { name, members, invited: [], levels, listedRoomIds: [], spaceRoomId, isPrivate })
         return roomId
     }
 
@@ -122,6 +130,7 @@ export class FakeHomeserver implements Homeserver {
             name: room.name,
             levels: room.levels,
             joinedUserIds: [...room.members],
+            invitedUserIds: [...room.invited],
             listedRoomIds: [...room.listedRoomIds],
         })
     }
@@ -150,17 +159,27 @@ export class FakeHomeserver implements Homeserver {
         return Promise.resolve()
     }
 
+    /** An add refused once is a join that failed after its invitation was sent, which leaves the invitation. */
     addMember(roomId: string, userId: string): Promise<void> {
         if (!this.accounts.includes(userId)) throw new ChatServerError(403, 'M_FORBIDDEN', `No account ${userId}`)
-        this.changeAsBot(roomId, `add ${userId} to ${roomId}`).members.push(userId)
+        const add = `add ${userId} to ${roomId}`
+        const invitedBeforeTheJoinFails = this.room(roomId).invited
+        if (this.changesRefusedOnce.includes(add) && !invitedBeforeTheJoinFails.includes(userId)) {
+            invitedBeforeTheJoinFails.push(userId)
+        }
+
+        const room = this.changeAsBot(roomId, add)
+        room.invited = room.invited.filter(invited => invited !== userId)
+        room.members.push(userId)
         return Promise.resolve()
     }
 
     removeMember(roomId: string, userId: string): Promise<void> {
         const room = this.room(roomId)
-        if (!room.members.includes(userId)) return Promise.resolve()
+        if (!room.members.includes(userId) && !room.invited.includes(userId)) return Promise.resolve()
         this.change(roomId, `remove ${userId} from ${roomId}`)
         room.members = room.members.filter(member => member !== userId)
+        room.invited = room.invited.filter(invited => invited !== userId)
         return Promise.resolve()
     }
 

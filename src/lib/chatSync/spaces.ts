@@ -80,8 +80,11 @@ async function tryToEmptyAndLeave(homeserver: Homeserver, roomId: string, report
     // The bot left it on an earlier run.
     if (!room) return true
 
+    const { invitedUserIds } = room
     const membersWithoutBot = withoutBot(homeserver, room.joinedUserIds)
-    const emptied = await report.carryOutAll(removeEveryoneBut([], homeserver, { id: roomId, membersWithoutBot }))
+    const emptied = await report.carryOutAll(
+        removeEveryoneBut([], homeserver, { id: roomId, membersWithoutBot, invitedUserIds })
+    )
     if (!emptied) return false
     return report.carryOut({ what: `leave ${roomId}`, run: () => homeserver.leave(roomId) })
 }
@@ -199,6 +202,7 @@ async function readActualSpace(
             id,
             name: room.name,
             membersWithoutBot: withoutBot(homeserver, room.joinedUserIds),
+            invitedUserIds: room.invitedUserIds,
             levels: room.levels,
         })
     }
@@ -207,6 +211,7 @@ async function readActualSpace(
         id: spaceRoomId,
         name: space.name,
         membersWithoutBot: withoutBot(homeserver, space.joinedUserIds),
+        invitedUserIds: space.invitedUserIds,
         listedRoomIds: space.listedRoomIds,
         rooms,
     }
