@@ -7,6 +7,7 @@ import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroups/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
+import { manualChatSpaceAuth } from '@/services/manualChat/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
@@ -143,6 +144,12 @@ export const adminNavDef = defineGroupedNavDef([
                     manualGroupAuth.create,
                     manualGroupAuth.update,
                 ],
+            },
+            {
+                key: 'chat-spaces',
+                name: 'Chatområder',
+                href: appHref('/admin/chat-spaces'),
+                authorizers: () => [manualChatSpaceAuth.readAll],
             },
         ],
     },

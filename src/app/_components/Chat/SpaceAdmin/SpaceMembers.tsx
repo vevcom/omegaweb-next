@@ -1,6 +1,6 @@
 'use client'
 import Tag from './Tag'
-import AddMembersPopUp from './AddMembersPopUp'
+import AddUsersPopUp from './AddUsersPopUp'
 import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import type { ChatSpaceAdminActions, ChatSpaceMemberOverview } from '@/services/chat/spaces/types'
@@ -17,7 +17,14 @@ export default function SpaceMembers({ spaceId, members, actions }: PropTypes) {
     return (
         <section className="flex flex-col gap-2">
             <h2>Medlemmer</h2>
-            {addMembers && <AddMembersPopUp spaceId={spaceId} addMembers={addMembers} buttonText="Legg til medlemmer" />}
+            {addMembers && (
+                <AddUsersPopUp
+                    spaceId={spaceId}
+                    addUsers={addMembers}
+                    buttonText="Legg til medlemmer"
+                    whoCanBeAdded="Bare de som har logget inn på chatten kan legges til."
+                />
+            )}
             {members.length === 0 && <p className="text-base-content/80 italic">Chatområdet har ingen medlemmer.</p>}
             {members.map(member => {
                 const name = `${member.firstname} ${member.lastname}`
