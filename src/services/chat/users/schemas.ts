@@ -10,5 +10,6 @@ export const chatUserSchemas = {
     params: {
         optIn: ofUser,
         read: ofUser,
+        readSpaces: ofUser,
     },
 }
