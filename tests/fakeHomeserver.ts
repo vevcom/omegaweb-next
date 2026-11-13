@@ -1,12 +1,12 @@
 import { ChatServerError } from '@/lib/chatSync/client'
-import type { ChatPowerLevels, Homeserver } from '@/lib/chatSync/client'
+import type { ChatPowerLevels, Homeserver, ListedRoom } from '@/lib/chatSync/client'
 
 type Room = {
     name: string | undefined,
     members: string[],
     levels: ChatPowerLevels & { users: Record<string, number> },
     creators: string[],
-    roomIds: string[],
+    listed: ListedRoom[],
 }
 
 const SERVER_NAME = 'chat.test'
@@ -14,7 +14,7 @@ const SERVER_NAME = 'chat.test'
 /**
  * A homeserver that is only its rooms, their members and their levels, for the chat sync to act
  * on. It refuses what Synapse refuses where the sync depends on it: a level for a room's creator,
- * and anything in a room the bot is not in.
+ * and a change to a room the bot is not in.
  */
 export class FakeHomeserver implements Homeserver {
     readonly botUserId = `@omegaweb:${SERVER_NAME}`
@@ -40,10 +40,26 @@ export class FakeHomeserver implements Homeserver {
 
     /** What an admin does in the client: makes a room in a space, which is theirs. */
     makeRoom(spaceRoomId: string, creator: string): string {
-        const roomId = `!room${++this.created}:${SERVER_NAME}`
-        this.rooms.set(roomId, { name: 'Room', members: [creator], levels: { users: {} }, creators: [creator], roomIds: [] })
-        this.room(spaceRoomId).roomIds.push(roomId)
+        const roomId = this.makeRoomOutsideSpaces(creator)
+        this.listRoom(spaceRoomId, roomId, creator)
         return roomId
+    }
+
+    /** What anyone does in the client: makes a room, which is theirs. */
+    makeRoomOutsideSpaces(creator: string): string {
+        const roomId = `!room${++this.created}:${SERVER_NAME}`
+        this.rooms.set(roomId, { name: 'Room', members: [creator], levels: { users: {} }, creators: [creator], listed: [] })
+        return roomId
+    }
+
+    /** What an admin does in the client: adds a room to a space, which Matrix lets them do with any room. */
+    listRoom(spaceRoomId: string, roomId: string, listedBy: string): void {
+        this.room(spaceRoomId).listed.push({ id: roomId, listedBy })
+    }
+
+    unlistRoom(spaceRoomId: string, roomId: string): void {
+        const space = this.room(spaceRoomId)
+        space.listed = space.listed.filter(room => room.id !== roomId)
     }
 
     room(roomId: string): Room {
@@ -89,24 +105,28 @@ export class FakeHomeserver implements Homeserver {
             members: [this.botUserId],
             levels: { users: {} },
             creators: [this.botUserId],
-            roomIds: [],
+            listed: [],
         })
         return Promise.resolve(roomId)
     }
 
     readSpace(roomId: string) {
-        const { name, levels, roomIds } = this.room(roomId)
-        return Promise.resolve({ name, levels, roomIds: [...roomIds] })
+        const { name, levels, listed } = this.room(roomId)
+        return Promise.resolve({ name, levels, rooms: [...listed] })
     }
 
     readRoom(roomId: string) {
-        const { members, levels, creators } = this.room(roomId)
-        return Promise.resolve(members.includes(this.botUserId) ? { levels, creators } : null)
+        const room = this.rooms.get(roomId)
+        if (!room) return Promise.resolve({ levels: {}, creators: [], members: [] })
+        return Promise.resolve({ levels: room.levels, creators: room.creators, members: [...room.members] })
     }
 
     readJoinedMembers = (roomId: string) => Promise.resolve([...this.room(roomId).members])
 
     writeState(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {
+        if (!this.room(roomId).members.includes(this.botUserId)) {
+            throw new ChatServerError(403, 'M_FORBIDDEN', `The bot is not in ${roomId}`)
+        }
         const room = this.change(roomId, `${type} in ${roomId}`)
         if (type === 'm.room.name') room.name = content.name as string
         if (type === 'm.room.power_levels') {
