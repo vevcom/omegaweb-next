@@ -79,6 +79,10 @@ class FakeMailServer {
     readonly authorizations: string[] = []
     /** What a test has the server refuse: a script for these accounts. */
     readonly accountsRefusingScripts = new Set<string>()
+    /** The most ids the server gives for one query, 5000 on Stalwart, which a test lowers to page with few objects. */
+    maxIdsInQuery = 5000
+    /** Has the server give the first page of a query whatever position is asked for. */
+    queryIgnoresPosition = false
     private nextId = 1
 
     readonly fetch: MailServerFetch = (url, init) => {
@@ -215,7 +219,10 @@ class FakeMailServer {
         const table = this.objects[object]
 
         if (match[2] === 'query') {
-            return [method, { ids: Array.from(table.keys()) }, callId]
+            // Stalwart gives the ids from the position asked for, a page of them at most, and no error for the rest.
+            const position = this.queryIgnoresPosition ? 0 : Number(args.position ?? 0)
+            const ids = Array.from(table.keys()).slice(position, position + this.maxIdsInQuery)
+            return [method, { ids, position, ...(args.calculateTotal ? { total: table.size } : {}) }, callId]
         }
         if (match[2] === 'get') {
             const ids = this.resolveIds(args, previous)
@@ -506,6 +513,28 @@ describe('the mail server client', () => {
             }),
         })
         await expect(failing.listAll('Domain')).rejects.toThrow(/401 Unauthorized.*x:Domain\/query.*nope/)
+    })
+
+    test('reads every page of a listing the server gives a page of at a time', async () => {
+        const server = serverWithOurDomain()
+        const domainId = server.domain(TEST_DOMAIN)?.id
+        const names = Array.from({ length: 8 }, (_, index) => `test-paged-${index}`)
+        names.forEach(name => server.add('MailingList', { name, domainId }))
+        server.maxIdsInQuery = 3
+
+        const lists = await server.client().listAll('MailingList')
+        expect(lists.map(list => list.name).sort()).toEqual(names)
+    })
+
+    test('throws when the server gives fewer objects than it counts', async () => {
+        const server = serverWithOurDomain()
+        const domainId = server.domain(TEST_DOMAIN)?.id
+        Array.from({ length: 5 }, (_, index) => server.add('MailingList', { name: `test-cut-${index}`, domainId }))
+        server.maxIdsInQuery = 3
+        server.queryIgnoresPosition = true
+
+        await expect(server.client().listAll('MailingList'))
+            .rejects.toThrow('Mail server gave 3 of the 5 ids it counts for x:MailingList/query')
     })
 })
 
@@ -1283,6 +1312,32 @@ describe('a change the server refuses', () => {
         expect(Object.keys(server.objects.Account.get(member.id)?.memberGroupIds ?? {})).toEqual([mailbox?.id])
         expect(server.activeScript(mailbox?.id)?.content)
             .toContain(`redirect "${forwardingAddressOf(free.address, webmail.domain)}";`)
+    })
+
+    test('a server with more accounts than it lists at once is in step after one run', async () => {
+        const user = await createTestUser('test-beyond-page', 'test-beyond-page@test.test')
+        const { alias, list } = await createTestAlias('test-beyond-page-box')
+        await mailOperations.createMailingListUserRelation({
+            data: { userId: user.id, mailingListId: list.id },
+            bypassAuth: true,
+        })
+        const server = serverWithAccounts()
+        const member = server.add('Account', {
+            '@type': 'User', name: 'test-beyond-page', domainId: server.domain(webmail.domain)?.id,
+        })
+        // Far fewer than the server holds once the first run has given every alias its mailbox.
+        server.maxIdsInQuery = 2
+
+        await run(server)
+        const mailbox = server.account(alias.address)
+        const accounts = server.objects.Account.size
+        expect(accounts).toBeGreaterThan(2 * server.maxIdsInQuery)
+
+        // The second run sees all of them, so it creates none anew and is refused nothing.
+        await run(server)
+        expect(server.objects.Account.size).toBe(accounts)
+        expect(server.account(alias.address)?.id).toBe(mailbox?.id)
+        expect(Object.keys(server.objects.Account.get(member.id)?.memberGroupIds ?? {})).toEqual([mailbox?.id])
     })
 
     test('a run that is refused much names the first refusals and counts the rest', async () => {

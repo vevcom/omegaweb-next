@@ -156,7 +156,8 @@ const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'ur
  * The most the server takes at once, which it says in its session as `maxCallsInRequest`,
  * `maxObjectsInGet` and `maxObjectsInSet`: it refuses a request with more method calls, and a get
  * or a set of more objects, whole. These are Stalwart's defaults, and the client splits its work
- * to stay within them.
+ * to stay within them. A query is different: the server answers one for more ids than it gives at
+ * once with the first of them, 5000 by default, and no error, see {@link MailServerClient.listAll}.
  */
 const MAX_CALLS_PER_REQUEST = 16
 const MAX_OBJECTS_PER_CALL = 500
@@ -243,12 +244,36 @@ export class MailServerClient {
         return methodResponses
     }
 
-    /** Every object of a kind on the server: a query for all ids, and gets of as many at a time as the server takes. */
+    /**
+     * The ids of every object of a kind. The server gives a query's ids a page at a time, however
+     * many are asked for, so the query is asked again from where the last page ended until the
+     * server has given as many as it counts.
+     *
+     * @throws when the server gave fewer ids than it counts, since a caller that took a part of
+     * the objects for all of them would create the rest anew and be refused each one.
+     */
+    private async queryAllIds(object: MailServerObjectName): Promise<string[]> {
+        const method = `x:${object}/query`
+        const ids = new Set<string>()
+        let total: number | undefined = undefined
+        for (;;) {
+            const [[, queried]] = await this.send([[method, { position: ids.size, calculateTotal: true }, 'query']])
+            const page = ((queried.ids as string[] | undefined) ?? []).filter(id => !ids.has(id))
+            page.forEach(id => ids.add(id))
+            total = typeof queried.total === 'number' ? queried.total : undefined
+            // A page with nothing new also ends it, so a server that goes on giving the same page cannot hold the worker.
+            if (page.length === 0 || (total !== undefined && ids.size >= total)) break
+        }
+        if (total !== undefined && ids.size < total) {
+            throw new Error(`Mail server gave ${ids.size} of the ${total} ids it counts for ${method}`)
+        }
+        return Array.from(ids)
+    }
+
+    /** Every object of a kind on the server: queries for all ids, and gets of as many at a time as the server takes. */
     async listAll<Name extends MailServerObjectName>(object: Name): Promise<MailServerObjects[Name][]> {
-        const queryMethod = `x:${object}/query`
         const getMethod = `x:${object}/get`
-        const [[, queried]] = await this.send([[queryMethod, {}, 'query']])
-        const ids = (queried.ids as string[] | undefined) ?? []
+        const ids = await this.queryAllIds(object)
 
         const objects: MailServerObjects[Name][] = []
         for (const chunk of chunksOf(ids, MAX_OBJECTS_PER_CALL)) {
