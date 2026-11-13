@@ -13,6 +13,7 @@ const mySpaces = implementChatSpaces({
         update: () => Require.user(),
         destroy: () => Require.user(),
         setMembers: () => Require.user(),
+        setRooms: () => Require.user(),
     },
     ownershipCheck: async ({ prisma: client, spaceId }) =>
         (await client.chatSpace.findUniqueOrThrow({ where: { id: spaceId } })).name.startsWith('Mine'),
@@ -98,5 +99,37 @@ describe('the chat spaces of a service', () => {
         expect(await prisma.chatSpace.findUniqueOrThrow({ where: { id: space.id } }))
             .toMatchObject({ destroyedAt: expect.any(Date) })
         await expect(mySpaces.read({ params, session })).rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+    })
+
+    test('have rooms, which are made, renamed, and destroyed by being marked for the chat sync to empty', async () => {
+        const { session } = await createUser('spaces-rooms')
+        const space = await createMine()
+        const anotherSpace = await createMine()
+        const params = { spaceId: space.id }
+
+        const room = await mySpaces.createRoom({ params, session, data: { name: 'Prat' } })
+        await mySpaces.updateRoom({ params: { ...params, roomId: room.id }, session, data: { name: 'Skravling' } })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toEqual([
+            { id: room.id, name: 'Skravling', onHomeserver: false },
+        ])
+
+        const roomOfAnotherSpace = { spaceId: anotherSpace.id, roomId: room.id }
+        await expect(mySpaces.destroyRoom({ params: roomOfAnotherSpace, session }))
+            .rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+
+        await mySpaces.destroyRoom({ params: { ...params, roomId: room.id }, session })
+        await expect(mySpaces.readRooms({ params, session })).resolves.toEqual([])
+        expect(await prisma.chatSpaceRoom.findUniqueOrThrow({ where: { id: room.id } }))
+            .toMatchObject({ destroyedAt: expect.any(Date) })
+    })
+
+    test('take no room once they are destroyed', async () => {
+        const { session } = await createUser('spaces-rooms-late')
+        const space = await createMine()
+        const params = { spaceId: space.id }
+        await mySpaces.destroy({ params, session })
+
+        await expect(mySpaces.createRoom({ params, session, data: { name: 'Prat' } }))
+            .rejects.toMatchObject({ errorCode: 'NOT FOUND' })
     })
 })

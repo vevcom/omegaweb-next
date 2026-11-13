@@ -8,17 +8,22 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     spaceId: z.coerce.number().min(1),
+    roomId: z.coerce.number().min(1),
 })
 
 const ofSpace = paramsFieldSchemas.pick({ spaceId: true })
+const ofRoom = paramsFieldSchemas.pick({ spaceId: true, roomId: true })
+const name = dataFieldSchemas.pick({ name: true })
 const users = dataFieldSchemas.pick({ userIds: true })
 
 export const chatSpaceSchemas = {
     data: {
-        create: dataFieldSchemas.pick({ name: true }),
-        update: dataFieldSchemas.pick({ name: true }),
+        create: name,
+        update: name,
         addMembers: users,
         removeMembers: users,
+        createRoom: name,
+        updateRoom: name,
     },
     params: {
         read: ofSpace,
@@ -27,5 +32,9 @@ export const chatSpaceSchemas = {
         destroy: ofSpace,
         addMembers: ofSpace,
         removeMembers: ofSpace,
+        readRooms: ofSpace,
+        createRoom: ofSpace,
+        updateRoom: ofRoom,
+        destroyRoom: ofRoom,
     },
 }

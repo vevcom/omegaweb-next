@@ -5,12 +5,9 @@ import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
 const liveSpace = (spaceId: number) => ({ id: spaceId, destroyedAt: null })
+const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => ({ id: roomId, spaceId, destroyedAt: null })
 
-/**
- * The spaces of the chat. A space is owned by the service that implements these, which its purpose
- * names. The operations only write rows: the chat sync (src/lib/chatSync) is what makes the
- * homeserver follow, within the interval of the chat worker.
- */
+/** These only write rows. The chat sync (src/lib/chatSync) makes the homeserver follow. */
 export const chatSpaceOperations = {
     create: defineSubOperation({
         dataSchema: () => chatSpaceSchemas.data.create,
@@ -27,7 +24,6 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** Those picked for the space, with whether their account is on the homeserver yet. */
     readMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.readMembers,
         operation: () => async ({ prisma, params }) => {
@@ -56,7 +52,6 @@ export const chatSpaceOperations = {
         }),
     }),
 
-    /** Marks the space destroyed. The chat sync takes everyone out of it and then deletes the row. */
     destroy: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
@@ -64,7 +59,6 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** Only those with a chat account can be members, which is to say those who have signed in to the chat. */
     addMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.addMembers,
         dataSchema: () => chatSpaceSchemas.data.addMembers,
@@ -83,7 +77,7 @@ export const chatSpaceOperations = {
         },
     }),
 
-    /** An admin of the space who is removed is put back by the chat sync, see src/lib/chatSync/spaces.ts. */
+    /** The chat sync puts an admin of the space who is removed back. */
     removeMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.removeMembers,
         dataSchema: () => chatSpaceSchemas.data.removeMembers,
@@ -91,6 +85,44 @@ export const chatSpaceOperations = {
             await prisma.chatSpaceMember.deleteMany({
                 where: { spaceId: params.spaceId, chatUser: { userId: { in: data.userIds } } },
             })
+        },
+    }),
+
+    readRooms: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.readRooms,
+        operation: () => async ({ prisma, params }) => {
+            const rooms = await prisma.chatSpaceRoom.findMany({
+                where: { spaceId: params.spaceId, destroyedAt: null },
+                select: { id: true, name: true, matrixRoomId: true },
+                orderBy: { id: 'asc' },
+            })
+            return rooms.map(({ id, name, matrixRoomId }) => ({ id, name, onHomeserver: matrixRoomId !== null }))
+        },
+    }),
+
+    createRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.createRoom,
+        dataSchema: () => chatSpaceSchemas.data.createRoom,
+        operation: () => async ({ prisma, params, data }) => {
+            const space = await prisma.chatSpace.findFirst({ where: liveSpace(params.spaceId), select: { id: true } })
+            if (!space) throw new ServiceError('NOT FOUND', 'Fant ikke chatområdet')
+            return prisma.chatSpaceRoom.create({ data: { spaceId: space.id, name: data.name } })
+        },
+    }),
+
+    updateRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.updateRoom,
+        dataSchema: () => chatSpaceSchemas.data.updateRoom,
+        operation: () => ({ prisma, params, data }) => prisma.chatSpaceRoom.update({
+            where: liveRoom(params),
+            data: { name: data.name },
+        }),
+    }),
+
+    destroyRoom: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.destroyRoom,
+        operation: () => async ({ prisma, params }) => {
+            await prisma.chatSpaceRoom.update({ where: liveRoom(params), data: { destroyedAt: new Date() } })
         },
     }),
 } as const
