@@ -201,4 +201,28 @@ describe('the chat spaces of a service', () => {
         expect((await channelsOf()).mentions.name).toBe(`Mine, omdøpt (chat #${space.id}): omtaler`)
         expect((await channelsOf()).all.id).toBe(made.all.id)
     })
+
+    test('tell those who set their members who can be added: anyone with a chat account, a former student too', async () => {
+        const { session } = await createUser('spaces-addable-admin', { chatAccount: false })
+        const formerStudent = await createUser('spaces-addable-former')
+        await createUser('spaces-addable-without', { chatAccount: false })
+        const archived = await createUser('spaces-addable-archived')
+        await prisma.user.update({ where: { id: archived.user.id }, data: { archived: true } })
+        const space = await createMine()
+        const firstPage = {
+            paging: {
+                page: { page: 0 as const, pageSize: 50, cursor: null },
+                details: { partOfName: 'spaces-addable', groups: [] },
+            },
+        }
+
+        const addable = await mySpaces.readAddableUsers({ params: { spaceId: space.id, ...firstPage }, session })
+        expect(addable.map(user => user.username)).toEqual(['spaces-addable-former'])
+        await mySpaces.addMembers({ params: { spaceId: space.id }, session, data: { userIds: [formerStudent.user.id] } })
+
+        // None of them is an active student, so the user list itself shows none of them.
+        await expect(userOperations.readPage({ params: firstPage, bypassAuth: true })).resolves.toEqual([])
+        await expect(mySpaces.readAddableUsers({ params: { spaceId: space.id, ...firstPage }, session: Session.empty() }))
+            .rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+    })
 })

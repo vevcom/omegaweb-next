@@ -7,6 +7,7 @@ export const updateManualChatSpaceAction = makeAction(manualChatSpaceOperations.
 export const destroyManualChatSpaceAction = makeAction(manualChatSpaceOperations.destroy)
 export const addManualChatSpaceAdminsAction = makeAction(manualChatSpaceOperations.addAdmins)
 export const removeManualChatSpaceAdminsAction = makeAction(manualChatSpaceOperations.removeAdmins)
+export const readManualChatSpaceAddableUsersAction = makeAction(manualChatSpaceOperations.readAddableUsers)
 export const addManualChatSpaceMembersAction = makeAction(manualChatSpaceOperations.addMembers)
 export const removeManualChatSpaceMembersAction = makeAction(manualChatSpaceOperations.removeMembers)
 export const createManualChatSpaceRoomAction = makeAction(manualChatSpaceOperations.createRoom)
