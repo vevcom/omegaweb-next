@@ -15,7 +15,7 @@ const names = [
 
 // Secrets production may run without, since mail and chat are optional. The test container has the
 // development values set, so they are cleared before each test.
-const optionalNames = ['EMAIL_ADMIN_PASSWORD', 'CHAT_AS_TOKEN', 'CHAT_MAS_CLIENT_SECRET'] as const
+const optionalNames = ['EMAIL_ADMIN_PASSWORD', 'CHAT_AS_TOKEN', 'CHAT_MAS_CLIENT_SECRET', 'CHAT_HS_TOKEN'] as const
 
 const devValues = parseEnv(readFileSync('.env.default', 'utf8'))
 
