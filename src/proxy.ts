@@ -3,6 +3,7 @@ import { DomainContext, isAppWidePath } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { appHref } from '@/lib/sites/href'
+import { CHAT_APPSERVICE_PATH } from '@/services/chat/appservice/constants'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -23,9 +24,11 @@ export function proxy(request: NextRequest) {
     const browserPath = pathname + search
     const context = DomainContext.fromBrowser(domain, browserPath)
 
-    // Once domains are configured, a host that is not one of them gets nothing but the healthcheck.
+    // Once domains are configured, a host that is not one of them gets nothing but what is asked for
+    // from inside the cluster, by the app's own name there: the healthcheck, and the chat's homeserver.
     const configuredHost = context.siteDomain() !== null || context.isDedicatedAuthDomain()
-    if (!configuredHost && DomainContext.hasDomains() && pathname !== '/api/health') {
+    const isAskedForInsideCluster = pathname === '/api/health' || pathname.startsWith(`${CHAT_APPSERVICE_PATH}/`)
+    if (!configuredHost && DomainContext.hasDomains() && !isAskedForInsideCluster) {
         const aliased = DomainContext.domainOfAlias(domain)
         if (aliased) return NextResponse.redirect(`${aliased.origin}${browserPath}`, 308)
         // A body, so no browser takes the empty answer for a file to download.

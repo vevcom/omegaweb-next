@@ -70,6 +70,7 @@ model ChatSpaceRoom {
   isPrivate    Boolean   @default(false)
 
   pickedMembers ChatSpaceRoomMember[]
+  messages      ChatRoomMessage[]
 
   @@index([spaceId])
 }
@@ -84,4 +85,20 @@ model ChatSpaceRoomMember {
 
   @@unique([roomId, spaceMemberId])
   @@index([spaceMemberId])
+}
+
+// A message the homeserver has told of, kept for the chat worker to notify of. What it says is
+// never stored. A row stays a while after it is notified of, so a message told of twice is one.
+model ChatRoomMessage {
+  id                 Int           @id @default(autoincrement())
+  room               ChatSpaceRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId             Int
+  matrixEventId      String        @unique
+  senderMatrixId     String
+  mentionedMatrixIds String[]
+  mentionsRoom       Boolean       @default(false)
+  sentAt             DateTime
+  notifiedAt         DateTime?
+
+  @@index([notifiedAt])
 }
