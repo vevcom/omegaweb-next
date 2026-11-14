@@ -248,7 +248,7 @@ export const userOperations = {
      * service whose own rule decides who may be picked from it. Archived users are never among them.
      */
     readPageOf: defineSubOperation({
-        paramsSchema: () => userSchemas.params.readPage,
+        paramsSchema: () => userSchemas.params.readPageOf,
         operation: ({ where }: { where: Prisma.UserWhereInput }) => ({ prisma, params }) =>
             readUserPage(prisma, params, { AND: [userPartitions.unarchived, where] }),
     }),
