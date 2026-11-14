@@ -39,6 +39,9 @@ model Event {
 
   published Boolean @default(false)
 
+  seating       EventSeating?
+  seatingTables EventTable[]
+
   careerFrontpageHighlights CareerFrontpageHighlight[]
 
   // The notifications sent to those who may register, or are registered, resolved when they are sent.
@@ -157,6 +160,42 @@ enum EventRegistrationState {
   WAITING_LIST
 }
 
+// Kept off Event, since a write to that row starts the setup form over. An event has no row until its wishes are opened or its tables published.
+model EventSeating {
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int   @id
+
+  // Guests can wish for who to sit with until this. Null until the wishes have been opened.
+  wishesEnd   DateTime?
+  // Guests see their table from this on.
+  publishedAt DateTime?
+}
+
+model EventTable {
+  id      Int   @id @default(autoincrement())
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+  order   Int
+  seats   Int
+
+  registrations EventRegistration[]
+
+  @@unique([eventId, order])
+}
+
+model EventSeatingWish {
+  registration         EventRegistration @relation(name: "wishFrom", fields: [registrationId], references: [id], onDelete: Cascade)
+  registrationId       Int
+  wishedRegistration   EventRegistration @relation(name: "wishFor", fields: [wishedRegistrationId], references: [id], onDelete: Cascade)
+  wishedRegistrationId Int
+  // The most wanted first, from 0.
+  rank                 Int
+
+  @@id([registrationId, wishedRegistrationId])
+  @@unique([registrationId, rank])
+  @@index([wishedRegistrationId])
+}
+
 model EventRegistration {
   id                   Int                    @id @default(autoincrement())
   state                EventRegistrationState
@@ -188,6 +227,15 @@ model EventRegistration {
   company          Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
 
+  table       EventTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableId     Int?
+  // From 0 along one side of the table, then along the other. Means nothing without a table.
+  seat        Int?
+  // Kept at its seat when a new seating draft is made.
+  seatLocked  Boolean     @default(false)
+  seatingWishes     EventSeatingWish[] @relation(name: "wishFrom")
+  seatingWishedBy   EventSeatingWish[] @relation(name: "wishFor")
+
   ledgerTransactions LedgerTransaction[]
 
   @@unique([quotaId, userId])
@@ -195,4 +243,5 @@ model EventRegistration {
   @@index([quotaId, queuedAt])
   @@index([waitingListVariantId, queuedAt])
   @@index([userId])
+  @@unique([tableId, seat])
 }

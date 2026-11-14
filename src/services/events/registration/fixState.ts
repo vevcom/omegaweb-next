@@ -2,6 +2,7 @@ import '@pn-server-only'
 import { eventRegistrationQueueOrder } from './constants'
 import { registrationsOfVariant } from './queue'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
+import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Smorekopp } from '@/services/error'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
@@ -110,6 +111,14 @@ export async function fixVariantPlaces(
         }
     })
 
+    const requeued = evicted.filter(registration => waiting.includes(registration))
+    for (const registration of requeued) {
+        await eventSeatingOperations.internal.handOver.internalCall({
+            prisma: tx,
+            params: { registrationId: registration.id },
+        })
+    }
+
     await Promise.all([
         ...moves.map(({ registration, quotaId }) => tx.eventRegistration.update({
             where: { id: registration.id },
@@ -120,7 +129,7 @@ export async function fixVariantPlaces(
                 promotedAt: promoted.includes(registration) && registration.id !== joining ? now : undefined,
             },
         })),
-        ...evicted.filter(registration => waiting.includes(registration)).map(registration => tx.eventRegistration.update({
+        ...requeued.map(registration => tx.eventRegistration.update({
             where: { id: registration.id },
             data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId, promotedAt: null },
         })),
