@@ -117,6 +117,7 @@ export default function EditMailAlias({
             <h3 className="m-0">Eiere</h3>
             <VisibilityAdmin
                 visibility={owners}
+                verb="ser og kobler dette"
                 visibilityId={focusedAlias.ownerVisibilityId}
                 updateVisibilityAction={configureAction(
                     updateMailAliasVisibilityAction,

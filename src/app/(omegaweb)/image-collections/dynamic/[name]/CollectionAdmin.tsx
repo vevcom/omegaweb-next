@@ -169,7 +169,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                             {
                                 canUpdateRegularVisibility && (
                                     <div>
-                                        <h3>Vanlig visning</h3>
+                                        <h3>Hvem kan se albumet?</h3>
                                         <VisibilityAdmin
                                             visibility={doubleLevelVisibility.regularLevel}
                                             visibilityId={collection.visibilityRegularId}
@@ -177,6 +177,8 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                                 updateDynamicImageCollectionRegularLevelVisibilityAction,
                                                 { implementationParams: { collectionId } }
                                             )}
+                                            verb="kan se albumet"
+                                            everyone="Alle"
                                         />
                                     </div>
                                 )
@@ -184,7 +186,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                             {
                                 canUpdateAdminVisibility && (
                                     <div>
-                                        <h3>Adminvisning</h3>
+                                        <h3>Hvem kan administrere albumet?</h3>
                                         <VisibilityAdmin
                                             visibility={doubleLevelVisibility.adminLevel}
                                             visibilityId={collection.visibilityAdminId}
@@ -192,6 +194,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                                 updateDynamicImageCollectionAdminLevelVisibilityAction,
                                                 { implementationParams: { collectionId } }
                                             )}
+                                            verb="kan administrere albumet"
                                         />
                                     </div>
                                 )

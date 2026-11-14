@@ -128,7 +128,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                         {
                             canUpdateRegularVisibility && (
                                 <div>
-                                    <h3>Vanlig visning</h3>
+                                    <h3>Hvem kan lese nyheten?</h3>
                                     <VisibilityAdmin
                                         visibility={doubleLevelVisibility.regularLevel}
                                         visibilityId={news.visibilityRegularId}
@@ -136,6 +136,8 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                                             updateNewsRegularLevelVisibilityAction,
                                             { implementationParams: { id: news.id } }
                                         )}
+                                        verb="kan lese nyheten"
+                                        everyone="Alle"
                                     />
                                 </div>
                             )
@@ -143,7 +145,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                         {
                             canUpdateAdminVisibility && (
                                 <div>
-                                    <h3>Adminvisning</h3>
+                                    <h3>Hvem kan administrere nyheten?</h3>
                                     <VisibilityAdmin
                                         visibility={doubleLevelVisibility.adminLevel}
                                         visibilityId={news.visibilityAdminId}
@@ -151,6 +153,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                                             updateNewsAdminLevelVisibilityAction,
                                             { implementationParams: { id: news.id } }
                                         )}
+                                        verb="kan administrere nyheten"
                                     />
                                 </div>
                             )

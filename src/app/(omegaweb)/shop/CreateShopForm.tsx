@@ -20,9 +20,9 @@ export default function CreateShopForm() {
           */}
         <div className="flex flex-col gap-[0.5rem]">
             <h3>Hvem kan administrere butikken?</h3>
-            <VisibilityMatrixEditor name="visibilityAdminRequirements" />
-            <h3>Hvem kan handle i butikken? (tomt betyr alle)</h3>
-            <VisibilityMatrixEditor name="visibilityRegularRequirements" />
+            <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere butikken" />
+            <h3>Hvem kan handle i butikken?</h3>
+            <VisibilityMatrixEditor name="visibilityRegularRequirements" verb="kan handle i butikken" everyone="Alle" />
         </div>
     </Form>
 }

@@ -8,9 +8,18 @@ type PropTypes = {
     visibility: VisibilityMatrix,
     visibilityId: number,
     updateVisibilityAction: UpdateVisibilityAction,
+    /** See VisibilityMatrixEditor. */
+    verb: string,
+    everyone?: string,
 }
 
-export default function VisibilityAdmin({ visibility, visibilityId, updateVisibilityAction }: PropTypes) {
+export default function VisibilityAdmin({
+    visibility,
+    visibilityId,
+    updateVisibilityAction,
+    verb,
+    everyone,
+}: PropTypes) {
     return (
         <Form
             className="flex flex-col gap-[0.5em] min-w-[350px]"
@@ -19,7 +28,12 @@ export default function VisibilityAdmin({ visibility, visibilityId, updateVisibi
             refreshOnSuccess
             action={configureAction(updateVisibilityAction, { params: { visibilityId } })}
         >
-            <VisibilityMatrixEditor name="requirements" defaultValue={visibility.requirements} />
+            <VisibilityMatrixEditor
+                name="requirements"
+                defaultValue={visibility.requirements}
+                verb={verb}
+                everyone={everyone}
+            />
         </Form>
     )
 }

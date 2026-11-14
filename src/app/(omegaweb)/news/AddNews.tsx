@@ -35,9 +35,9 @@ export default function AddNews() {
                   */}
                 <div className="flex flex-col gap-[0.5rem]">
                     <h3>Hvem kan administrere nyheten?</h3>
-                    <VisibilityMatrixEditor name="visibilityAdminRequirements" />
-                    <h3>Hvem kan lese nyheten? (tomt betyr alle)</h3>
-                    <VisibilityMatrixEditor name="visibilityRegularRequirements" />
+                    <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere nyheten" />
+                    <h3>Hvem kan lese nyheten?</h3>
+                    <VisibilityMatrixEditor name="visibilityRegularRequirements" verb="kan lese nyheten" everyone="Alle" />
                 </div>
             </Form>
         </div>

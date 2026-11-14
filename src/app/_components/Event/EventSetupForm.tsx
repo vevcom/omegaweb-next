@@ -3,7 +3,8 @@ import EventLocationInput from './EventLocationInput'
 import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
-import EventVariantsField, { EventVariantsFieldInput } from './EventVariantsField'
+import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } from './EventVariantsField'
+import EventWhoCanWhat, { EventQuotaAudiences } from './EventWhoCanWhat'
 import { eventSetupFromForm, variantsFromForm } from '@/services/events/setupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
@@ -34,14 +35,14 @@ export const eventSetupTabs = [
     { key: 'rules', label: 'Regler' },
     { key: 'registration', label: 'Påmelding' },
     { key: 'payment', label: 'Betaling' },
-    { key: 'access', label: 'Tilgang' },
+    { key: 'access', label: 'Hvem kan hva' },
 ]
 
 /** The tab each part of the setup is put right on, for the dots on the tabs. */
 const tabOfPart = {
     time: 'about',
     location: 'about',
-    visibility: 'rules',
+    visibility: 'access',
     registration: 'registration',
     payment: 'payment',
     administrators: 'access',
@@ -92,6 +93,12 @@ function SetupForm({
     const lockedTag = config.lockedTag
     // Whether the rules tab has the waiting list switched on, for the registration tab to show it.
     const [waitingList, setWaitingList] = useState(event.waitingList)
+    // Who sees and administrates the event as the form has it, for the access tab to show what that gives.
+    const [shown, setShown] = useState({
+        canBeViewedBy: event.canBeViewedBy,
+        adminRequirements: access.adminVisibility.requirements,
+    })
+    const { variants } = useEventVariantsField()
     const saveSetup: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     // The schema of the save tells a variant by its place in the list, so the errors are given its name here.
     const save: ActionFormData<Event> = async formData => {
@@ -105,6 +112,7 @@ function SetupForm({
         const setup = eventSetupFromForm(values, { ...event, adminVisibility: access.adminVisibility })
         reportDots(setupStatuses(eventSetupChecks(setup), tabOfPart))
         setWaitingList(values.getAll('waitingList').includes('on'))
+        setShown({ canBeViewedBy: setup.canBeViewedBy, adminRequirements: setup.adminVisibility.requirements })
     }
 
     return <Form
@@ -173,15 +181,6 @@ function SetupForm({
         </FormTab>
 
         <FormTab tab="rules">
-            <FormSection legend="Synlighet">
-                <SelectString
-                    className="max-w-[300px]"
-                    label="Hvem kan se arrangementet"
-                    name="canBeViewedBy"
-                    options={eventCanBeViewedByOptions}
-                    defaultValue={event.canBeViewedBy}
-                />
-            </FormSection>
             <FormSection legend="Påmelding" columns={2}>
                 <Slider
                     label="Venteliste"
@@ -211,13 +210,44 @@ function SetupForm({
         </FormTab>
 
         <FormTab tab="access">
+            <FormSection legend="Hvem kan se arrangementet">
+                <SelectString
+                    className="max-w-[300px]"
+                    label="Hvem kan se arrangementet"
+                    name="canBeViewedBy"
+                    options={eventCanBeViewedByOptions}
+                    defaultValue={event.canBeViewedBy}
+                />
+            </FormSection>
+            <div className="flex flex-col gap-2 pb-4">
+                <p className="m-0 font-medium">Hvem kan melde seg på</p>
+                <EventQuotaAudiences variants={variants} />
+            </div>
             {adminVisibilityKnown ? <div className="flex flex-col gap-3 pb-4">
                 <p className="m-0 font-medium">Hvem kan administrere arrangementet</p>
                 <p className="m-0 text-s text-base-content/80">
-                    Uten krav kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.
+                    Uten grupper kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.
                 </p>
-                <VisibilityMatrixEditor name="adminRequirements" defaultValue={access.adminVisibility.requirements} />
+                <VisibilityMatrixEditor
+                    name="adminRequirements"
+                    defaultValue={access.adminVisibility.requirements}
+                    verb="kan administrere arrangementet"
+                />
             </div> : <p className="m-0 text-base-content/80">Du kan ikke se hvem som administrerer arrangementet.</p>}
+            {adminVisibilityKnown && <>
+                <p className="m-0 font-medium">Slik blir det</p>
+                <EventWhoCanWhat access={{
+                    ...access,
+                    canBeViewedBy: shown.canBeViewedBy,
+                    // The save refuses an empty editor, so until then no one is shown as administrating.
+                    adminVisibility: {
+                        requirements: shown.adminRequirements.length > 0 ? shown.adminRequirements : [{ conditions: [] }],
+                    },
+                    quotaVisibilities: variants.flatMap(variant => variant.quotas.map(quota => ({
+                        requirements: quota.visibilityRequirements,
+                    }))),
+                }} />
+            </>}
         </FormTab>
     </Form>
 }

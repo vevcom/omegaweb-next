@@ -18,6 +18,10 @@ import type { ChangeEvent } from 'react'
 export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options' | 'defaultValue' | 'value' | 'onChange'> & {
     options: SearchableDropdownOption<ValueType>[],
     defaultValues?: ValueType[],
+    /** Makes the picked options controlled by the caller, who is told of each change through `onChange`. */
+    values?: ValueType[],
+    /** Leaves showing the picked options to the caller. */
+    hideSelected?: boolean,
     onChange?: (values: ValueType[]) => void,
 }
 
@@ -30,6 +34,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     name,
     label,
     defaultValues = [],
+    values: controlledValues,
+    hideSelected = false,
     options,
     onChange,
     color = 'base',
@@ -38,7 +44,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     disabled,
 }: PropTypes<ValueType>) {
     const [searchTerm, setSearchTerm] = useState('')
-    const [values, setValues] = useState<ValueType[]>(defaultValues)
+    const [uncontrolledValues, setValues] = useState<ValueType[]>(defaultValues)
+    const values = controlledValues ?? uncontrolledValues
 
     const filteredOptions = options.filter(option =>
         (option.label ?? String(option.value)).toLowerCase().includes(searchTerm.toLowerCase())
@@ -132,7 +139,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     )
                 }
             </div>
-            {selectedOptions.length > 0 && (
+            {!hideSelected && selectedOptions.length > 0 && (
                 <ul className="flex flex-wrap gap-1 mt-2 list-none p-0">
                     {selectedOptions.map(option => (
                         <li
