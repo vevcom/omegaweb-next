@@ -45,10 +45,12 @@ export const chatSpaceNotificationOperations = {
             transaction: 'RUNS_IN',
             operation: () => async ({ params, data }): Promise<ChatSpaceChannelIds> => {
                 const names = chatSpaceChannelNames(data.name, params.spaceId)
-                const [mentions, all] = await Promise.all([
-                    channels.mentions.internal.createAsConfigured.internalCall({ data: { name: names.mentions } }),
-                    channels.all.internal.createAsConfigured.internalCall({ data: { name: names.all } }),
-                ])
+                // One after the other: the first makes the channel they sit under when it is not there
+                // yet, and two at once would both make it.
+                const mentions = await channels.mentions.internal.createAsConfigured.internalCall({
+                    data: { name: names.mentions },
+                })
+                const all = await channels.all.internal.createAsConfigured.internalCall({ data: { name: names.all } })
                 return { mentionsNotificationChannelId: mentions.id, allNotificationChannelId: all.id }
             },
         }),

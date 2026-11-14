@@ -225,4 +225,18 @@ describe('the chat spaces of a service', () => {
         await expect(mySpaces.readAddableUsers({ params: { spaceId: space.id, ...firstPage }, session: Session.empty() }))
             .rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
     })
+
+    test('are made when the chat channel their channels sit under is not there yet', async () => {
+        const channelsOfSpaces = { purpose: { in: ['CHAT_SPACE_MENTIONS' as const, 'CHAT_SPACE_ALL' as const] } }
+        await prisma.notificationChannel.deleteMany({ where: channelsOfSpaces })
+        await prisma.notificationChannel.deleteMany({ where: { special: 'CHAT' } })
+
+        const space = await createMine()
+
+        const chat = await prisma.notificationChannel.findUniqueOrThrow({ where: { special: 'CHAT' } })
+        expect(await prisma.notificationChannel.findMany({
+            where: { id: { in: [space.mentionsNotificationChannelId, space.allNotificationChannelId] } },
+            select: { parentId: true },
+        })).toEqual([{ parentId: chat.id }, { parentId: chat.id }])
+    })
 })
