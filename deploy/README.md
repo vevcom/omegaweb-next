@@ -45,6 +45,11 @@ An overlay includes `base` and fills in what it leaves open:
   client id it signs users in through the provider with. Left unset, the provider knows no chat.
   The chat's own settings for this are documented in chat-infrastructure. `CHAT_CLIENT_URL` is the
   origin of the chat client, which a user's chat page links to. Left unset, nothing links to it.
+- **Hearing from the chat.** `CHAT_HS_TOKEN` is the token the homeserver signs what it sends the
+  app with, a secret the chat has too. The homeserver is told where the app is in its own config,
+  as the app's address inside the cluster followed by `/api/chat/appservice`: the app answers there
+  for any host, as it does the healthcheck. Left unset, the app takes nothing from the homeserver
+  and no notification is made for the chat.
 - **The chat sync.** `CHAT_HOMESERVER_URL` is Synapse and `CHAT_MAS_URL` MAS's admin api, both as
   the worker reaches them inside the cluster, and `CHAT_SERVER_NAME` is the server name of the
   homeserver. `CHAT_AS_TOKEN` and `CHAT_MAS_CLIENT_SECRET` are secrets the chat has too. With all

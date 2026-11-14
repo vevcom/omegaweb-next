@@ -25,6 +25,12 @@ export const chatServer = {
     masClientSecret: envValue('CHAT_MAS_CLIENT_SECRET'),
 }
 
+/**
+ * What Synapse signs the events it sends the app with, see src/services/chat/appservice. Left
+ * unset, the app takes none.
+ */
+export const chatHomeserverToken = envValue('CHAT_HS_TOKEN')
+
 /** The id the app has as a client in MAS's config, which chat-infrastructure fixes. */
 export const CHAT_MAS_CLIENT_ID = '0000000000000000000MEGAWEB'
 
