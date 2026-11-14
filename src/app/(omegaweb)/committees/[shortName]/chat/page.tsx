@@ -5,6 +5,7 @@ import Form from '@/components/Form/Form'
 import { configureAction } from '@/services/configureAction'
 import {
     addCommitteeChatSpaceMembersAction,
+    readCommitteeChatSpaceAddableUsersAction,
     addCommitteeChatSpaceRoomMembersAction,
     createCommitteeChatSpaceAction,
     createCommitteeChatSpaceRoomAction,
@@ -58,6 +59,7 @@ const { page, generateMetadata } = serverPage({
 
         const { space, rooms, members, people } = chatSpace
         const membersActions = capabilities.canSetMembers.authorized ? {
+            readAddableUsers: configureAction(readCommitteeChatSpaceAddableUsersAction, ofCommittee),
             addMembers: configureAction(addCommitteeChatSpaceMembersAction, ofCommittee),
             removeMembers: configureAction(removeCommitteeChatSpaceMembersAction, ofCommittee),
         } : {}

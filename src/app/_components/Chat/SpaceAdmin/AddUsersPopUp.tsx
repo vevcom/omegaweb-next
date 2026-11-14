@@ -5,9 +5,10 @@ import UserList from '@/components/User/UserList/UserList'
 import UsersSelectionProvider, { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
 import { configureAction } from '@/services/configureAction'
-import { useContext } from 'react'
+import { useContext, useMemo } from 'react'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { ChatSpaceAdminActions } from '@/services/chat/spaces/types'
+import type { UserDetails } from '@/services/users/types'
 
 /** Any action that takes a space and some users, such as adding them to it or picking them as its admins. */
 export type UsersOfSpaceAction = NonNullable<ChatSpaceAdminActions['addMembers']>
@@ -17,10 +18,18 @@ type PropTypes = {
     addUsers: UsersOfSpaceAction,
     buttonText: string,
     whoCanBeAdded?: string,
+    /** Reads the users to pick among. Left out, they are the user list's own: the active students. */
+    readAddableUsers?: ChatSpaceAdminActions['readAddableUsers'],
 }
 
-export default function AddUsersPopUp({ spaceId, addUsers, buttonText, whoCanBeAdded }: PropTypes) {
+export default function AddUsersPopUp({ spaceId, addUsers, buttonText, whoCanBeAdded, readAddableUsers }: PropTypes) {
     const popUpKey: PopUpKeyType = `${buttonText} in chat space ${spaceId}`
+    // The same object across renders, since the list starts over when its details are replaced.
+    const listDetails = useMemo((): UserDetails => ({
+        groups: [],
+        partOfName: '',
+        readPage: readAddableUsers && (({ params }) => readAddableUsers({ params: { ...params, spaceId } })),
+    }), [readAddableUsers, spaceId])
 
     return (
         <PopUp
@@ -31,7 +40,7 @@ export default function AddUsersPopUp({ spaceId, addUsers, buttonText, whoCanBeA
             <UserPagingProvider
                 serverRenderedData={[]}
                 startPage={{ page: 0, pageSize: 50 }}
-                details={{ groups: [], partOfName: '' }}
+                details={listDetails}
             >
                 <UsersSelectionProvider>
                     <AddSelectedUsers

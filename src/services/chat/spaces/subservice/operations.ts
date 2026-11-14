@@ -2,11 +2,13 @@ import '@pn-server-only'
 import { chatSpaceSchemas } from './schemas'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { reserveId } from '@/lib/reserveId'
+import { userOperations } from '@/services/users/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
 const liveSpace = (spaceId: number) => ({ id: spaceId, destroyedAt: null })
+const hasChatAccount = { chatUser: { deactivatedAt: null } } as const
 const userOverview = { id: true, username: true, firstname: true, lastname: true } as const
 const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => ({ id: roomId, spaceId, destroyedAt: null })
 
@@ -75,6 +77,20 @@ export const chatSpaceOperations = {
         operation: () => async ({ prisma, params }) => {
             await prisma.chatSpace.update({ where: liveSpace(params.spaceId), data: { destroyedAt: new Date() } })
         },
+    }),
+
+    /**
+     * A page of those who can be added to a space, as the user list reads its pages: everyone with
+     * a chat account, which is whom `addMembers` takes. A former student is among them, whom the
+     * user list itself only shows to a user admin.
+     */
+    readAddableUsers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.readAddableUsers,
+        operation: () => ({ prisma, params }) => userOperations.readPageOf.internalCall({
+            prisma,
+            params: { paging: params.paging },
+            operationImplementationFields: { where: hasChatAccount },
+        }),
     }),
 
     addMembers: defineSubOperation({

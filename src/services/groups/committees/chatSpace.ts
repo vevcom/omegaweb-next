@@ -151,6 +151,7 @@ export const committeeChatSpaceOperations = {
     read,
     create,
     destroy: implemented.destroy,
+    readAddableUsers: implemented.readAddableUsers,
     addMembers: implemented.addMembers,
     removeMembers: implemented.removeMembers,
     createRoom: implemented.createRoom,

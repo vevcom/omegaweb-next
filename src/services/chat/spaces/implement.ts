@@ -64,6 +64,11 @@ export function implementChatSpaces<
             authorizer: args => authorizers.destroy({ ...args, spaceId: args.params.spaceId }),
             ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
         }),
+        readAddableUsers: chatSpaceOperations.readAddableUsers.implement<ImplementationParamsSchema>({
+            implementationParamsSchema,
+            authorizer: args => authorizers.setMembers({ ...args, spaceId: args.params.spaceId }),
+            ownershipCheck: args => ownsSpace({ ...args, spaceId: args.params.spaceId }),
+        }),
         addMembers: chatSpaceOperations.addMembers.implement<ImplementationParamsSchema>({
             implementationParamsSchema,
             authorizer: args => authorizers.setMembers({ ...args, spaceId: args.params.spaceId }),

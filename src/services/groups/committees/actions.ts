@@ -50,6 +50,7 @@ export const updateCommitteeArticleCmsLinkAction = makeAction(
 
 export const createCommitteeChatSpaceAction = makeAction(committeeChatSpaceOperations.create)
 export const destroyCommitteeChatSpaceAction = makeAction(committeeChatSpaceOperations.destroy)
+export const readCommitteeChatSpaceAddableUsersAction = makeAction(committeeChatSpaceOperations.readAddableUsers)
 export const addCommitteeChatSpaceMembersAction = makeAction(committeeChatSpaceOperations.addMembers)
 export const removeCommitteeChatSpaceMembersAction = makeAction(committeeChatSpaceOperations.removeMembers)
 export const createCommitteeChatSpaceRoomAction = makeAction(committeeChatSpaceOperations.createRoom)

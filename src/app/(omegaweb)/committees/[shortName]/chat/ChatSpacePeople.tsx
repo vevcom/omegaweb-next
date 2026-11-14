@@ -10,13 +10,13 @@ import type { CommitteeChatSpacePerson } from '@/services/groups/committees/chat
 type PropTypes = {
     spaceId: number,
     people: CommitteeChatSpacePerson[],
-    actions: Pick<ChatSpaceAdminActions, 'addMembers' | 'removeMembers'>,
+    actions: Pick<ChatSpaceAdminActions, 'readAddableUsers' | 'addMembers' | 'removeMembers'>,
 }
 
 const nameOf = (person: CommitteeChatSpacePerson) => `${person.firstname} ${person.lastname}`
 
 export default function ChatSpacePeople({ spaceId, people, actions }: PropTypes) {
-    const { addMembers, removeMembers } = actions
+    const { readAddableUsers, addMembers, removeMembers } = actions
     const ofSpace = { params: { spaceId } }
     const active = people.filter(person => person.standing === 'ACTIVE')
     const inactive = people
@@ -86,6 +86,7 @@ export default function ChatSpacePeople({ spaceId, people, actions }: PropTypes)
                         <AddUsersPopUp
                             spaceId={spaceId}
                             addUsers={addMembers}
+                            readAddableUsers={readAddableUsers}
                             buttonText="Inviter fra utsiden av komiteen"
                             whoCanBeAdded="Bare de som har logget inn på chatten kan legges til."
                         />
