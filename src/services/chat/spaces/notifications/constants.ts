@@ -1,12 +1,16 @@
-import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import type { NotificationMethodGeneral } from '@/services/notifications/types'
 
-export const chatSpaceMentionsChannelMethods: NotificationMethodGeneral = allNotificationMethodsOn
+/** A message is read when it is written or not at all, so neither channel is held for the weekly mail. */
+export const chatSpaceMentionsChannelMethods: NotificationMethodGeneral = {
+    email: true,
+    emailWeekly: false,
+    push: true,
+}
 
-/** A mail per message is noise, so every message reaches a user by push or in the weekly mail alone. */
+/** A mail per message is noise, so every message reaches a user by push alone. */
 export const chatSpaceAllChannelMethods: NotificationMethodGeneral = {
     email: false,
-    emailWeekly: true,
+    emailWeekly: false,
     push: true,
 }
 

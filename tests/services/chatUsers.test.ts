@@ -144,7 +144,7 @@ describe('the spaces of a chat user', () => {
                     mentionsNotificationChannel: expect.objectContaining({ id: space.mentionsNotificationChannelId }),
                     allNotificationChannel: expect.objectContaining({
                         id: space.allNotificationChannelId,
-                        availableMethods: { email: false, emailWeekly: true, push: true },
+                        availableMethods: { email: false, emailWeekly: false, push: true },
                     }),
                 }],
             })
