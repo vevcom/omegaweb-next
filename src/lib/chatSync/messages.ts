@@ -1,11 +1,19 @@
 import '@pn-server-only'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { prisma } from '@/prisma-pn-client-instance'
-import type { Homeserver } from './client'
+import type { ChatPowerLevels, Homeserver } from './client'
 import type { SyncReport } from './report'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 const MESSAGES_PER_RUN = 200
+/**
+ * A message is notified of soon or not at all. One that could not be for this long is let go, so
+ * it does not stand first in every run, and so is what piled up while the homeserver or the worker
+ * was away, which nobody wants to hear of hours later.
+ */
+const NOTIFIED_OF_WITHIN_MS = 60 * 60 * 1000
+/** What a room says it takes to mention everyone in it, when it says nothing: Matrix's default. */
+const DEFAULT_LEVEL_TO_MENTION_ROOM = 50
 /** The homeserver may tell of a message again for as long as it has not been answered, and then it is known. */
 const KEPT_AFTER_NOTIFIED_MS = 24 * 60 * 60 * 1000
 /** Where a notification leads: the user's own chat page, since a notification only links within the site. */
@@ -23,28 +31,38 @@ const withRoomAndSpace = {
 
 type MessageToNotifyOf = Prisma.ChatRoomMessageGetPayload<{ include: typeof withRoomAndSpace }>
 
+type RoomAsItIs = {
+    /** Without the bot. */
+    inRoom: string[],
+    levels: ChatPowerLevels,
+}
+const roomNobodyIsIn: RoomAsItIs = { inRoom: [], levels: {} }
+
 /**
  * Makes a notification of every message the homeserver has told of, see
  * src/services/chat/appservice: one that mentions someone in the space's channel for mentions, to
  * those mentioned, and any other in its channel for every message, to everyone in the room. The
- * one who wrote is never notified, and neither is anyone who is not in the room.
+ * one who wrote is never notified, and neither is anyone who is not in the room. A mention of the
+ * whole room counts only from one the room lets mention it, as Matrix has it.
  */
 export async function notifyOfMessages(homeserver: Homeserver, report: SyncReport): Promise<void> {
+    const tooLongAgo = new Date(Date.now() - NOTIFIED_OF_WITHIN_MS)
     const messages = await prisma.chatRoomMessage.findMany({
-        where: { notifiedAt: null },
+        where: { notifiedAt: null, sentAt: { gte: tooLongAgo } },
         include: withRoomAndSpace,
         orderBy: { id: 'asc' },
         take: MESSAGES_PER_RUN,
     })
 
-    const othersInRoomByMatrixRoomId = new Map<string, Promise<string[]>>()
-    const readThoseInRoom = (matrixRoomId: string) => {
-        const alreadyRead = othersInRoomByMatrixRoomId.get(matrixRoomId)
+    const roomsRead = new Map<string, Promise<RoomAsItIs>>()
+    const readRoom = (matrixRoomId: string) => {
+        const alreadyRead = roomsRead.get(matrixRoomId)
         if (alreadyRead) return alreadyRead
-        const reading = homeserver.readRoom(matrixRoomId).then(
-            room => (room?.joinedUserIds ?? []).filter(userId => userId !== homeserver.botUserId)
-        )
-        othersInRoomByMatrixRoomId.set(matrixRoomId, reading)
+        const reading = homeserver.readRoom(matrixRoomId).then((room): RoomAsItIs => (room ? {
+            inRoom: room.joinedUserIds.filter(userId => userId !== homeserver.botUserId),
+            levels: room.levels,
+        } : roomNobodyIsIn))
+        roomsRead.set(matrixRoomId, reading)
         return reading
     }
 
@@ -52,22 +70,37 @@ export async function notifyOfMessages(homeserver: Homeserver, report: SyncRepor
         await report.carryOut({
             what: `notify of the message ${message.matrixEventId}`,
             run: async () => {
-                const inRoom = message.room.matrixRoomId === null ? [] : await readThoseInRoom(message.room.matrixRoomId)
-                await notifyOf(homeserver, message, inRoom)
+                const { matrixRoomId } = message.room
+                await notifyOf(homeserver, message, matrixRoomId === null ? roomNobodyIsIn : await readRoom(matrixRoomId))
             },
         })
     }
 
     await prisma.chatRoomMessage.deleteMany({
-        where: { notifiedAt: { lt: new Date(Date.now() - KEPT_AFTER_NOTIFIED_MS) } },
+        where: {
+            OR: [
+                { notifiedAt: { lt: new Date(Date.now() - KEPT_AFTER_NOTIFIED_MS) } },
+                { notifiedAt: null, sentAt: { lt: tooLongAgo } },
+            ],
+        },
     })
 }
 
-async function notifyOf(homeserver: Homeserver, message: MessageToNotifyOf, inRoom: string[]): Promise<void> {
+function mayMentionRoom(levels: ChatPowerLevels, matrixId: string): boolean {
+    const { notifications, users_default: usersDefault } = levels as {
+        notifications?: { room?: number },
+        users_default?: number,
+    }
+    const levelToMentionRoom = notifications?.room ?? DEFAULT_LEVEL_TO_MENTION_ROOM
+    return (levels.users?.[matrixId] ?? usersDefault ?? 0) >= levelToMentionRoom
+}
+
+async function notifyOf(homeserver: Homeserver, message: MessageToNotifyOf, { inRoom, levels }: RoomAsItIs): Promise<void> {
     const { room } = message
     const othersInRoom = inRoom.filter(matrixId => matrixId !== message.senderMatrixId)
-    const mentionsSomeone = message.mentionsRoom || message.mentionedMatrixIds.length > 0
-    const mentioned = message.mentionsRoom
+    const mentionsRoom = message.mentionsRoom && mayMentionRoom(levels, message.senderMatrixId)
+    const mentionsSomeone = mentionsRoom || message.mentionedMatrixIds.length > 0
+    const mentioned = mentionsRoom
         ? othersInRoom
         : othersInRoom.filter(matrixId => message.mentionedMatrixIds.includes(matrixId))
     const recipients = mentionsSomeone ? mentioned : othersInRoom
@@ -76,7 +109,7 @@ async function notifyOf(homeserver: Homeserver, message: MessageToNotifyOf, inRo
         readUserIds(homeserver, recipients),
         readNameOf(homeserver, message.senderMatrixId),
     ])
-    const wrote = message.mentionsRoom ? 'nevnte alle' : 'nevnte deg'
+    const wrote = mentionsRoom ? 'nevnte alle' : 'nevnte deg'
     const notification = {
         title: `${sender} ${mentionsSomeone ? wrote : 'skrev'} i ${room.name}`,
         message: `Meldingen ligger i rommet ${room.name} i chatområdet ${room.space.name}.`,
