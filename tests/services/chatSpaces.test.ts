@@ -188,13 +188,13 @@ describe('the chat spaces of a service', () => {
             name: `Mine (chat #${space.id}): omtaler`,
             purpose: 'CHAT_SPACE_MENTIONS',
             parent: { special: 'CHAT' },
-            availableMethods: { email: true, emailWeekly: true, push: true },
+            availableMethods: { email: true, emailWeekly: false, push: true },
         })
         expect(made.all).toMatchObject({
             name: `Mine (chat #${space.id}): alle meldinger`,
             purpose: 'CHAT_SPACE_ALL',
             parent: { special: 'CHAT' },
-            availableMethods: { email: false, emailWeekly: true, push: true },
+            availableMethods: { email: false, emailWeekly: false, push: true },
         })
 
         await mySpaces.update({ params: { spaceId: space.id }, session, data: { name: 'Mine, omdøpt' } })
