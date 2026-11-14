@@ -128,6 +128,7 @@ export const manualChatSpaceOperations = {
     removeAdmins,
     update: implemented.update,
     destroy: implemented.destroy,
+    readAddableUsers: implemented.readAddableUsers,
     addMembers: implemented.addMembers,
     removeMembers: implemented.removeMembers,
     createRoom: implemented.createRoom,

@@ -1,4 +1,5 @@
 import { Zpn } from '@/lib/fields/zpn'
+import { userSchemas } from '@/services/users/schemas'
 import { z } from 'zod'
 import { zfd } from 'zod-form-data'
 
@@ -37,6 +38,7 @@ export const chatSpaceSchemas = {
         addMembers: ofSpace,
         removeMembers: ofSpace,
         readRooms: ofSpace,
+        readAddableUsers: userSchemas.params.readPage.merge(ofSpace),
         createRoom: ofSpace,
         updateRoom: ofRoom,
         destroyRoom: ofRoom,

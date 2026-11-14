@@ -1,10 +1,14 @@
 import '@pn-server-only'
 import { chatSpaceSchemas } from './schemas'
+import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
+import { reserveId } from '@/lib/reserveId'
+import { userOperations } from '@/services/users/operations'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { ChatSpacePurpose } from '@/prisma-generated-pn-types'
 
 const liveSpace = (spaceId: number) => ({ id: spaceId, destroyedAt: null })
+const hasChatAccount = { chatUser: { deactivatedAt: null } } as const
 const userOverview = { id: true, username: true, firstname: true, lastname: true } as const
 const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => ({ id: roomId, spaceId, destroyedAt: null })
 
@@ -12,8 +16,15 @@ const liveRoom = ({ spaceId, roomId }: { spaceId: number, roomId: number }) => (
 export const chatSpaceOperations = {
     create: defineSubOperation({
         dataSchema: () => chatSpaceSchemas.data.create,
-        operation: ({ purpose }: { purpose: ChatSpacePurpose }) =>
-            ({ prisma, data }) => prisma.chatSpace.create({ data: { purpose, name: data.name } }),
+        transaction: 'RUNS_IN',
+        operation: ({ purpose }: { purpose: ChatSpacePurpose }) => async ({ prisma, data }) => {
+            const id = await reserveId(prisma, 'ChatSpace')
+            const notificationChannelIds = await chatSpaceNotificationOperations.internal.createChannels.internalCall({
+                params: { spaceId: id },
+                data: { name: data.name },
+            })
+            return prisma.chatSpace.create({ data: { id, purpose, name: data.name, ...notificationChannelIds } })
+        },
     }),
 
     read: defineSubOperation({
@@ -47,10 +58,18 @@ export const chatSpaceOperations = {
     update: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.update,
         dataSchema: () => chatSpaceSchemas.data.update,
-        operation: () => ({ prisma, params, data }) => prisma.chatSpace.update({
-            where: liveSpace(params.spaceId),
-            data: { name: data.name },
-        }),
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const space = await prisma.chatSpace.update({
+                where: liveSpace(params.spaceId),
+                data: { name: data.name },
+            })
+            await chatSpaceNotificationOperations.internal.renameChannels.internalCall({
+                params: { spaceId: space.id },
+                data: { name: space.name },
+            })
+            return space
+        },
     }),
 
     destroy: defineSubOperation({
@@ -58,6 +77,20 @@ export const chatSpaceOperations = {
         operation: () => async ({ prisma, params }) => {
             await prisma.chatSpace.update({ where: liveSpace(params.spaceId), data: { destroyedAt: new Date() } })
         },
+    }),
+
+    /**
+     * A page of those who can be added to a space, as the user list reads its pages: everyone with
+     * a chat account, which is whom `addMembers` takes. A former student is among them, whom the
+     * user list itself only shows to a user admin.
+     */
+    readAddableUsers: defineSubOperation({
+        paramsSchema: () => chatSpaceSchemas.params.readAddableUsers,
+        operation: () => ({ prisma, params }) => userOperations.readPageOf.internalCall({
+            prisma,
+            params: { paging: params.paging },
+            operationImplementationFields: { where: hasChatAccount },
+        }),
     }),
 
     addMembers: defineSubOperation({

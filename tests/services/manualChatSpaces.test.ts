@@ -1,3 +1,4 @@
+import { createChatSpace } from 'tests/chatSpaces'
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { testSession } from 'tests/utils'
 import { syncChat } from '@/lib/chatSync/sync'
@@ -121,7 +122,7 @@ describe('a manual chat space', () => {
 
     test('is not a committee\'s space, which this service leaves alone', async () => {
         const boss = await createUser('sjef', { mayAdministerSpaces: true })
-        const committees = await prisma.chatSpace.create({ data: { purpose: 'COMMITTEE', name: 'Komité' } })
+        const committees = await createChatSpace({ purpose: 'COMMITTEE', name: 'Komité' })
 
         await expect(manualChatSpaceOperations.read({ ...ofSpace(committees), session: boss.session }))
             .rejects.toMatchObject({ errorCode: 'NOT FOUND' })

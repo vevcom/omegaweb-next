@@ -1,3 +1,4 @@
+import { createChatSpace } from 'tests/chatSpaces'
 import { implementChatSpaces } from '@/services/chat/spaces/implement'
 import { Require } from '@/auth/authorizer/Require'
 import { userOperations } from '@/services/users/operations'
@@ -55,8 +56,8 @@ describe('the chat spaces of a service', () => {
 
     test('are only the spaces the service owns', async () => {
         const { session } = await createUser('spaces-owner')
-        const anothers = await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Andres' } })
-        const committees = await prisma.chatSpace.create({ data: { purpose: 'COMMITTEE', name: 'Mine' } })
+        const anothers = await createChatSpace({ name: 'Andres' })
+        const committees = await createChatSpace({ purpose: 'COMMITTEE', name: 'Mine' })
 
         for (const space of [anothers, committees]) {
             await expect(mySpaces.read({ params: { spaceId: space.id }, session }))
@@ -165,5 +166,63 @@ describe('the chat spaces of a service', () => {
 
         await expect(mySpaces.addRoomMembers({ params: ofPrat, session, data: { userIds: [kari.user.id] } }))
             .rejects.toMatchObject({ errorCode: 'BAD DATA' })
+    })
+
+    test('have a channel for mentions and one for every other message, named for them under the chat channel', async () => {
+        const { session } = await createUser('spaces-channels')
+        const space = await createMine()
+        const channelsOf = async () => {
+            const { mentionsNotificationChannel: mentions, allNotificationChannel: all } =
+                await prisma.chatSpace.findUniqueOrThrow({
+                    where: { id: space.id },
+                    select: {
+                        mentionsNotificationChannel: { include: { availableMethods: true, parent: true } },
+                        allNotificationChannel: { include: { availableMethods: true, parent: true } },
+                    },
+                })
+            return { mentions, all }
+        }
+
+        const made = await channelsOf()
+        expect(made.mentions).toMatchObject({
+            name: `Mine (chat #${space.id}): omtaler`,
+            purpose: 'CHAT_SPACE_MENTIONS',
+            parent: { special: 'CHAT' },
+            availableMethods: { email: true, emailWeekly: false, push: true },
+        })
+        expect(made.all).toMatchObject({
+            name: `Mine (chat #${space.id}): alle meldinger`,
+            purpose: 'CHAT_SPACE_ALL',
+            parent: { special: 'CHAT' },
+            availableMethods: { email: false, emailWeekly: false, push: true },
+        })
+
+        await mySpaces.update({ params: { spaceId: space.id }, session, data: { name: 'Mine, omdøpt' } })
+        expect((await channelsOf()).mentions.name).toBe(`Mine, omdøpt (chat #${space.id}): omtaler`)
+        expect((await channelsOf()).all.id).toBe(made.all.id)
+    })
+
+    test('tell those who set their members who can be added: anyone with a chat account, a former student too', async () => {
+        const { session } = await createUser('spaces-addable-admin', { chatAccount: false })
+        const formerStudent = await createUser('spaces-addable-former')
+        await createUser('spaces-addable-without', { chatAccount: false })
+        const archived = await createUser('spaces-addable-archived')
+        await prisma.user.update({ where: { id: archived.user.id }, data: { archived: true } })
+        const space = await createMine()
+        const firstPage = {
+            paging: {
+                page: { page: 0 as const, pageSize: 50, cursor: null },
+                details: { partOfName: 'spaces-addable', groups: [] },
+            },
+        }
+
+        const addable = await mySpaces.readAddableUsers({ params: { spaceId: space.id, ...firstPage }, session })
+        expect(addable.map(user => user.username)).toEqual(['spaces-addable-former'])
+        await mySpaces.addMembers({ params: { spaceId: space.id }, session, data: { userIds: [formerStudent.user.id] } })
+
+        // None of them is an active student, so the user list itself shows none of them.
+        await expect(userOperations.readPage({ params: firstPage, bypassAuth: true })).resolves.toEqual([])
+        await expect(mySpaces.readAddableUsers({ params: { spaceId: space.id, ...firstPage }, session: Session.empty() }))
+            .rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
     })
 })

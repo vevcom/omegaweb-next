@@ -23,7 +23,7 @@ import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { sendUserInvitationEmail } from '@/lib/email/systemMail/userInvitation'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
@@ -34,7 +34,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import logger from '@/lib/logger'
 import crypto from 'node:crypto'
-import type { UserPagingReturn, UserPartition } from './types'
+import type { UserPagingReturn } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
@@ -230,7 +230,7 @@ export const userOperations = {
     readPage: defineOperation({
         paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'activeOmegaStudents'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.activeOmegaStudents),
     }),
 
     /**
@@ -240,7 +240,17 @@ export const userOperations = {
     readUnarchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readUnarchivedPage,
         authorizer: () => userAuth.readUnarchivedPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'unarchived'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.unarchived),
+    }),
+
+    /**
+     * A page of the user list as readPage, covering the users the implementing service says, for a
+     * service whose own rule decides who may be picked from it. Archived users are never among them.
+     */
+    readPageOf: defineSubOperation({
+        paramsSchema: () => userSchemas.params.readPage,
+        operation: ({ where }: { where: Prisma.UserWhereInput }) => ({ prisma, params }) =>
+            readUserPage(prisma, params, { AND: [userPartitions.unarchived, where] }),
     }),
 
     /**
@@ -249,7 +259,7 @@ export const userOperations = {
     readArchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readArchivedPage,
         authorizer: () => userAuth.readArchivedPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'archived'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.archived),
     }),
 
     /**
@@ -710,7 +720,7 @@ type ReadUserPageParams = z.infer<typeof userSchemas.params.readPage>
 async function readUserPage(
     prisma: Prisma.TransactionClient,
     params: ReadUserPageParams,
-    partition: UserPartition,
+    usersCovered: Prisma.UserWhereInput,
 ): Promise<UserPagingReturn[]> {
     const { page, details } = params.paging
     const words = details.partOfName.split(' ')
@@ -774,7 +784,7 @@ async function readUserPage(
         },
         where: {
             AND: [
-                userPartitions[partition],
+                usersCovered,
                 ...words.map((word, index) => {
                     const condition = {
                         [index === words.length - 1 ? 'contains' : 'equals']: word,

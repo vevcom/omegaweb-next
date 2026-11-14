@@ -4,13 +4,14 @@ import { chatServer } from './constants'
 import { SyncReport } from './report'
 import { deactivateAccountsOfDeletedUsers, syncNames } from './accounts'
 import { syncSpaces } from './spaces'
+import { notifyOfMessages } from './messages'
 import logger from '@/lib/logger'
 import type { Homeserver } from './client'
 
 /**
  * Brings the chat's homeserver in step with the database: the accounts, and then the spaces, which
- * are made of them. What users make themselves, the rooms and their messages, is left alone. Run
- * by the chat worker (src/workers/definitions.ts).
+ * are made of them. Then it makes the notifications of the messages the homeserver has told of.
+ * Run by the chat worker (src/workers/definitions.ts).
  *
  * @throws once the run is through, when the homeserver refused any change.
  */
@@ -21,6 +22,7 @@ export async function syncChat(homeserver: Homeserver = chatClientFromEnv()): Pr
     await deactivateAccountsOfDeletedUsers(homeserver, report)
     await syncNames(homeserver, report)
     await syncSpaces(homeserver, report)
+    await notifyOfMessages(homeserver, report)
 
     if (report.carriedOut > 0) logger.info(`Chat sync made ${report.carriedOut} changes`)
     if (report.refused.length > 0) {

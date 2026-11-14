@@ -8,6 +8,7 @@ import { manualChatSpaceAuth } from '@/services/manualChat/auth'
 import {
     addManualChatSpaceAdminsAction,
     addManualChatSpaceMembersAction,
+    readManualChatSpaceAddableUsersAction,
     addManualChatSpaceRoomMembersAction,
     createManualChatSpaceRoomAction,
     destroyManualChatSpaceAction,
@@ -41,6 +42,7 @@ const { page, generateMetadata } = serverPage({
         const actions = {
             ...(capabilities.canUpdate.authorized ? { update: updateManualChatSpaceAction } : {}),
             ...(capabilities.canSetMembers.authorized ? {
+                readAddableUsers: readManualChatSpaceAddableUsersAction,
                 addMembers: addManualChatSpaceMembersAction,
                 removeMembers: removeManualChatSpaceMembersAction,
             } : {}),

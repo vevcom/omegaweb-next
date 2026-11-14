@@ -62,6 +62,9 @@ export const notificationChannelSchemas = {
             description: true,
             parentId: true,
         }),
+        createAsConfigured: dataFieldSchemas.pick({ name: true }).extend({
+            parentId: dataFieldSchemas.shape.parentId.optional(),
+        }),
         update: dataFieldSchemas.pick({
             name: true,
             description: true,

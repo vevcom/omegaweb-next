@@ -1,3 +1,4 @@
+import { createChatSpace } from 'tests/chatSpaces'
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { syncChat } from '@/lib/chatSync/sync'
 import { ROOM_MODERATOR_LEVEL } from '@/lib/chatSync/constants'
@@ -41,11 +42,8 @@ async function createChatUser(localpart: string, { signedIn = true } = {}) {
     return { user, chatUser, matrixId: homeserver.userIdOf(localpart) }
 }
 
-async function createSpace(name: string, members: { chatUser: { id: number } }[] = []) {
-    return prisma.chatSpace.create({
-        data: { purpose: 'MANUAL', name, members: { create: members.map(member => ({ chatUserId: member.chatUser.id })) } },
-    })
-}
+const createSpace = (name: string, members: { chatUser: { id: number } }[] = []) =>
+    createChatSpace({ name, memberChatUserIds: members.map(member => member.chatUser.id) })
 
 const spaceRoomIdOf = async (space: { id: number }) =>
     (await prisma.chatSpace.findUniqueOrThrow({ where: { id: space.id } })).matrixRoomId!
@@ -549,10 +547,12 @@ describe('a destroyed space', () => {
         expect(homeserver.room(roomId).members).toEqual([])
         expect(await prisma.chatSpace.count()).toBe(0)
         expect(await prisma.chatSpaceRoom.count()).toBe(0)
+        const channelIds = [space.mentionsNotificationChannelId, space.allNotificationChannelId]
+        expect(await prisma.notificationChannel.count({ where: { id: { in: channelIds } } })).toBe(0)
     })
 
     test('that was never made on the homeserver is only forgotten', async () => {
-        await prisma.chatSpace.create({ data: { purpose: 'MANUAL', name: 'Space', destroyedAt: new Date() } })
+        await createChatSpace({ name: 'Space', destroyed: true })
         await syncChat(homeserver)
         expect(homeserver.rooms.size).toBe(0)
         expect(await prisma.chatSpace.count()).toBe(0)

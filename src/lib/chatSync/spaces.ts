@@ -1,6 +1,7 @@
 import '@pn-server-only'
 import { planSpaceChanges, removeEveryoneBut } from './spaceChanges'
 import { chatSpaceAdmins, chatSpaceStandingMembers } from '@/services/chat/spaces/admins'
+import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ActualRoom, ActualSpace, WantedRoom, WantedSpace } from './spaceChanges'
 import type { Homeserver } from './client'
@@ -48,7 +49,15 @@ async function destroySpace(homeserver: Homeserver, space: ChatSpace, report: Sy
             if (!destroyed) return
         }
     }
-    await prisma.chatSpace.delete({ where: { id: space.id } })
+    await prisma.$transaction(async tx => {
+        const { mentionsNotificationChannelId, allNotificationChannelId } = await tx.chatSpace.delete({
+            where: { id: space.id },
+        })
+        await chatSpaceNotificationOperations.internal.destroyChannels.internalCall({
+            prisma: tx,
+            params: { mentionsNotificationChannelId, allNotificationChannelId },
+        })
+    })
 }
 
 async function destroyRoomsMarkedDestroyed(

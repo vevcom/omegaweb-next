@@ -8,11 +8,11 @@ import type { ChatSpaceAdminActions, ChatSpaceMemberOverview } from '@/services/
 type PropTypes = {
     spaceId: number,
     members: ChatSpaceMemberOverview[],
-    actions: Pick<ChatSpaceAdminActions, 'addMembers' | 'removeMembers'>,
+    actions: Pick<ChatSpaceAdminActions, 'readAddableUsers' | 'addMembers' | 'removeMembers'>,
 }
 
 export default function SpaceMembers({ spaceId, members, actions }: PropTypes) {
-    const { addMembers, removeMembers } = actions
+    const { readAddableUsers, addMembers, removeMembers } = actions
 
     return (
         <section className="flex flex-col gap-2">
@@ -21,6 +21,7 @@ export default function SpaceMembers({ spaceId, members, actions }: PropTypes) {
                 <AddUsersPopUp
                     spaceId={spaceId}
                     addUsers={addMembers}
+                    readAddableUsers={readAddableUsers}
                     buttonText="Legg til medlemmer"
                     whoCanBeAdded="Bare de som har logget inn på chatten kan legges til."
                 />
