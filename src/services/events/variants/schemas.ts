@@ -6,6 +6,8 @@ import { z } from 'zod'
 const dataFieldSchemas = z.object({
     name: z.string().trim().min(1, 'Varianten må ha et navn').max(50, 'Navnet kan ha maks 50 tegn'),
     registrationStart: Zpn.date({ label: 'Påmeldingsstart' }),
+    description: z.string().trim().max(120, 'Maks 120 tegn').nullish()
+        .transform(value => value || null),
     registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }),
     takesPayment: Zpn.checkboxOrBoolean({ label: 'Tar betaling' }).default(false),
     price: z.coerce.number({ invalid_type_error: 'Prisen må være et tall' })
@@ -34,6 +36,7 @@ const paramsFieldSchemas = z.object({
 
 const variantFields = {
     name: true,
+    description: true,
     registrationStart: true,
     registrationEnd: true,
     takesPayment: true,

@@ -351,6 +351,9 @@ export function eventPage(config: EventPagesConfig) {
                                     key={view.variant.id}
                                     title={severalVariants ? view.variant.name : 'Påmelding'}
                                 >
+                                    {view.variant.description && (
+                                        <p className="m-0 font-medium">{view.variant.description}</p>
+                                    )}
                                     {!view.variant.takesRegistration && (
                                         <p className="m-0 text-base-content/80">Varianten har ingen plasser ennå.</p>
                                     )}

@@ -21,6 +21,19 @@ import type { ReactNode } from 'react'
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
 
+function VariantDescription({ variant, onChange }: {
+    variant: VariantDraft,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <TextInput
+        label="Kort info over påmeldingen, for eksempel når de skal møte"
+        maxLength={120}
+        value={variant.description ?? ''}
+        onChange={event => onChange({ description: event.target.value })}
+        className="max-w-none! mt-0!"
+    />
+}
+
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     quota: QuotaDraft,
     index: number,
@@ -249,6 +262,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
 
         {variants.length === 1 && <AdminSection>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
+            <VariantDescription variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
                 variant={variants[0]}
                 waitingList={waitingList}
@@ -278,6 +292,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                     </Button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
+                <VariantDescription variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow
                     variant={variant}
                     waitingList={waitingList}
