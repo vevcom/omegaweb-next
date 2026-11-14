@@ -36,3 +36,10 @@ export const roomMessageEventSchema = z.object({
 })
 
 export type RoomMessageEvent = z.infer<typeof roomMessageEventSchema>
+
+/** A removal of a message as Matrix sends it. Which message stands in one of two places, by the room's version. */
+export const roomRedactionEventSchema = z.object({
+    type: z.literal('m.room.redaction'),
+    redacts: z.string().optional(),
+    content: z.object({ redacts: z.string().optional() }).optional(),
+})

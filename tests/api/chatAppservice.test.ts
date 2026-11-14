@@ -99,6 +99,37 @@ describe('what the homeserver sends the app', () => {
         expect(await loaded.prisma.chatRoomMessage.count()).toBe(0)
     })
 
+    test('forgets a message that is removed before it is notified of, and keeps one that was notified of', async () => {
+        await createRoomOfASpace()
+        const removalOf = (eventId: string, where: 'TOP' | 'CONTENT') => ({
+            type: 'm.room.redaction',
+            event_id: `$removal-of-${eventId}`,
+            room_id: ROOM,
+            sender: KARI,
+            ...(where === 'TOP' ? { redacts: eventId } : {}),
+            content: where === 'CONTENT' ? { redacts: eventId } : {},
+        })
+
+        await send([message('$earlier', text), message('$notified', text)])
+        await loaded.prisma.chatRoomMessage.updateMany({
+            where: { matrixEventId: '$notified' },
+            data: { notifiedAt: new Date() },
+        })
+        await send([
+            removalOf('$earlier', 'TOP'),
+            removalOf('$notified', 'TOP'),
+            message('$same-transaction', text),
+            removalOf('$same-transaction', 'CONTENT'),
+            message('$stays', text),
+        ])
+
+        const kept = await loaded.prisma.chatRoomMessage.findMany({
+            select: { matrixEventId: true },
+            orderBy: { id: 'asc' },
+        })
+        expect(kept.map(row => row.matrixEventId)).toEqual(['$notified', '$stays'])
+    })
+
     test('keeps a message once, however many times it is sent', async () => {
         await createRoomOfASpace()
 

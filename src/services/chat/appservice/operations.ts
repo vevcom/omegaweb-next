@@ -1,6 +1,6 @@
 import '@pn-server-only'
 import { chatAppserviceAuth } from './auth'
-import { chatAppserviceSchemas, roomMessageEventSchema } from './schemas'
+import { chatAppserviceSchemas, roomMessageEventSchema, roomRedactionEventSchema } from './schemas'
 import { chatHomeserverToken } from '@/lib/chatSync/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import type { RoomMessageEvent } from './schemas'
@@ -11,7 +11,8 @@ export const chatAppserviceOperations = {
     /**
      * What the homeserver sends the app as its application service: every event in every room, a
      * few at a time. The messages in the rooms of the spaces are kept for the chat worker to notify
-     * of, without what they say. Everything else is let go, direct messages among it.
+     * of, without what they say. One that is removed before it is notified of is forgotten.
+     * Everything else is let go, direct messages among it.
      */
     receiveTransaction: defineOperation({
         paramsSchema: chatAppserviceSchemas.params.receiveTransaction,
@@ -27,7 +28,10 @@ export const chatAppserviceOperations = {
                     return message.success ? [message.data] : []
                 })
                 .filter(message => !isEditOfEarlierMessage(message))
-            if (messages.length === 0) return
+            const removedEventIds = data.events.flatMap(event => {
+                const removal = roomRedactionEventSchema.safeParse(event)
+                return removal.success ? removal.data.redacts ?? removal.data.content?.redacts ?? [] : []
+            })
 
             const rooms = await prisma.chatSpaceRoom.findMany({
                 where: {
@@ -55,6 +59,10 @@ export const chatAppserviceOperations = {
                         sentAt: new Date(message.origin_server_ts),
                     }]
                 }),
+            })
+            // After the messages are kept, so one removed in the transaction that brought it goes too.
+            await prisma.chatRoomMessage.deleteMany({
+                where: { matrixEventId: { in: removedEventIds }, notifiedAt: null },
             })
         },
     }),
