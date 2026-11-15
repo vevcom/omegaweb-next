@@ -5,9 +5,9 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {
-    readCareersFrontpageSpecialCmsLinkAction,
     updateCareersFrontpageSpecialCmsLinkAction,
 } from '@/services/careers/frontpage/actions'
+import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons'
@@ -67,7 +67,7 @@ export default function CareersFooter({ capabilities, showOmegaLink, showCompany
                             [&>a:hover]:text-white
                         `}
                         capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
-                        readSpecialCmsLinkAction={readCareersFrontpageSpecialCmsLinkAction}
+                        readSpecialCmsLink={careersFrontpageOperations.cmsLinks.read}
                         updateCmsLinkAction={updateCareersFrontpageSpecialCmsLinkAction}
                     />
                 </div>

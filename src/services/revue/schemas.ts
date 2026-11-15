@@ -21,6 +21,6 @@ export const revueSchemas = {
         read: paramsFieldSchemas.pick({ year: true }),
         update: revueId,
         destroy: revueId,
-        updateArticle: revueId,
+        article: revueId,
     },
 }

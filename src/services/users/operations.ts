@@ -10,7 +10,7 @@ import {
     userPrivateSelection,
     userProfileSelection
 } from './constants'
-import { userProfileImageOperations } from './profileImageCollection'
+import { profileImageCollection } from './profileImageCollection'
 import { vevenMailAddressOperations } from './vevenMailAddress'
 import { implementSearchOperation } from '@/services/search/implement'
 import { omegaLinks } from '@/app/(omegaweb)/links'
@@ -681,7 +681,7 @@ export const userOperations = {
                     where: { username: params.username },
                 })
 
-                const uploadedImage = await userProfileImageOperations.uploadImage.internalCall({
+                const uploadedImage = await profileImageCollection.internal.uploadImage.internalCall({
                     prisma: tx,
                     data: {
                         imageFile: data.imageFile,
@@ -702,7 +702,7 @@ export const userOperations = {
                 // A previous imageId is always an upload owned 1:1 by this user (never the shared
                 // default, since that's only ever resolved at read time) - safe to destroy.
                 if (existingUser.imageId) {
-                    await userProfileImageOperations.destroyImage.internalCall({
+                    await profileImageCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingUser.imageId }
                     })

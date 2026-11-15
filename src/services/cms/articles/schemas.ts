@@ -43,7 +43,7 @@ export const articleSchemas = {
         }),
     },
     params: {
-        generateSpecialArticleFromConfig: special,
+        createSpecial: special,
         readSpecial: special,
         destroy: articleId,
         update: articleId,

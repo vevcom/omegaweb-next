@@ -23,7 +23,7 @@ afterEach(async () => {
 })
 
 async function readRoot() {
-    return specialNotificationChannelOperations.channels.ROOT.readChannel({ bypassAuth: true })
+    return specialNotificationChannelOperations.channels.ROOT.read({ bypassAuth: true })
 }
 
 async function createManualChannel(name: string, parentId: number) {
@@ -135,11 +135,11 @@ describe('the special and the manual notification channels', () => {
     })
 
     test('a special channel is created from its config when it is missing', async () => {
-        const before = await contactorNotificationChannel.readChannel({ bypassAuth: true })
+        const before = await contactorNotificationChannel.read({ bypassAuth: true })
         await prisma.notificationChannel.delete({ where: { id: before.id } })
         await prisma.notificationMethod.delete({ where: { id: before.availableMethodsId } })
 
-        const recreated = await contactorNotificationChannel.readChannel({ bypassAuth: true })
+        const recreated = await contactorNotificationChannel.read({ bypassAuth: true })
         expect(recreated.id).not.toBe(before.id)
         expect(recreated).toMatchObject({
             special: 'CONTACTOR',
@@ -214,7 +214,7 @@ describe('the channels an event owns', () => {
 
     test('an event is made with its three channels under the EVENT channel', async () => {
         const [own, info, general] = await readChannelsOfEvent(eventId)
-        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+        const parent = await eventNotificationChannel.read({ bypassAuth: true })
 
         expect(own).toMatchObject({ purpose: 'EVENT', parentId: parent.id })
         expect(info).toMatchObject({ purpose: 'EVENT_INFO', parentId: own.id })
@@ -289,7 +289,7 @@ describe('the channels an event owns', () => {
     })
 
     test("an event's channels take no rows of their own: the parent's subscribers follow through them", async () => {
-        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+        const parent = await eventNotificationChannel.read({ bypassAuth: true })
         await notificationSubscriptionOperations.update({
             params: { userId, channelId: parent.id },
             data: { email: true, emailWeekly: true, push: false },

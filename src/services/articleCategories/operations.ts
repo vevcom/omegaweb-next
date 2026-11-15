@@ -3,10 +3,9 @@ import { articleCategoryAuth } from './auth'
 import { articleCategorySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { implementArticleOperations } from '@/cms/articles/implement'
 import { articleOperations } from '@/cms/articles/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
@@ -50,8 +49,34 @@ async function readDoubleLevelMatrixByName(prisma: PrismaPossibleTransaction<fal
         where: { name },
         select: { id: true }
     })
-    return visibility.readDoubleLevelMatrixInternal({ params: { id }, prisma })
+    return visibility.internal.readDoubleLevelMatrix.internalCall({ params: { id }, prisma })
 }
+
+const article = implementArticleOperations({
+    maxNameLength: 30,
+    authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.updateArticle.data({
+        visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
+            params: { id: implementationParams.articleCategoryId },
+            prisma
+        })
+    }),
+    implementationParamsSchema: articleCategorySchemas.params.article,
+    ownedArticles: ({ implementationParams, prisma }) => prisma.article.findMany({
+        where: {
+            articleCategoryId: implementationParams.articleCategoryId
+        },
+        include: {
+            coverImage: true,
+            articleSections: {
+                include: {
+                    cmsImage: true,
+                    cmsLink: true,
+                    cmsParagraph: true
+                }
+            }
+        }
+    })
+})
 
 export const articleCategoryOperations = {
     visibility,
@@ -61,11 +86,11 @@ export const articleCategoryOperations = {
         dataSchema: articleCategorySchemas.data.create,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
-            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityRegular = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityRegularRequirements },
             })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityAdmin = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
@@ -103,16 +128,16 @@ export const articleCategoryOperations = {
                 where: { articleCategoryId: params.id },
                 select: { id: true },
             })
-            await Promise.all(articles.map(article =>
-                articleOperations.destroy.internalCall({ params: { articleId: article.id }, prisma })
+            await Promise.all(articles.map(({ id }) =>
+                article.internal.destroy.internalCall({ params: { articleId: id }, prisma })
             ))
 
             const category = await prisma.articleCategory.delete({ where: { id: params.id } })
-            await visibilityOperations.destroy.internalCall({
+            await visibility.internal.destroy.internalCall({
                 prisma,
                 params: { visibilityId: category.visibilityAdminId },
             })
-            await visibilityOperations.destroy.internalCall({
+            await visibility.internal.destroy.internalCall({
                 prisma,
                 params: { visibilityId: category.visibilityRegularId },
             })
@@ -122,7 +147,7 @@ export const articleCategoryOperations = {
 
     update: defineOperation({
         authorizer: async ({ params, prisma }) => articleCategoryAuth.update.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         paramsSchema: articleCategorySchemas.params.update,
         dataSchema: articleCategorySchemas.data.update,
@@ -140,17 +165,12 @@ export const articleCategoryOperations = {
 
     addArticleToCategory: defineOperation({
         authorizer: async ({ params, prisma }) => articleCategoryAuth.addArticleToCategory.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         paramsSchema: articleCategorySchemas.params.addArticleToCategory,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
-            const article = await articleOperations.create.internalCall({
-                data: {},
-                prisma,
-                dataSchemaImplementationFields: { maxNameLength: 30 },
-                operationImplementationFields: { special: null }
-            })
+            const createdArticle = await article.internal.create.internalCall({ data: {}, prisma })
             await prisma.articleCategory.update({
                 where: {
                     id: params.id
@@ -158,58 +178,34 @@ export const articleCategoryOperations = {
                 data: {
                     articles: {
                         connect: {
-                            id: article.id
+                            id: createdArticle.id
                         }
                     }
                 }
             })
-            return article
+            return createdArticle
         }
     }),
 
     removeArticleFromCategory: articleOperations.destroy.implement({
         authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.removeArticleFromCategory.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
                 params: { id: implementationParams.articleCategoryId },
                 prisma
             })
         }),
         implementationParamsSchema: articleCategorySchemas.params.removeArticleFromCategory,
         ownershipCheck: async ({ prisma, params, implementationParams }) => {
-            const article = await prisma.article.findUnique({
+            const found = await prisma.article.findUnique({
                 where: { id: params.articleId },
                 select: { articleCategoryId: true },
             })
-            if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
-            return article.articleCategoryId === implementationParams.articleCategoryId
+            if (!found) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
+            return found.articleCategoryId === implementationParams.articleCategoryId
         }
     }),
 
-    updateArticle: implementUpdateArticleOperations({
-        authorizer: async ({ implementationParams, prisma }) => articleCategoryAuth.updateArticle.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
-                params: { id: implementationParams.articleCategoryId },
-                prisma
-            })
-        }),
-        implementationParamsSchema: articleCategorySchemas.params.updateArticle,
-        ownedArticles: ({ implementationParams, prisma }) => prisma.article.findMany({
-            where: {
-                articleCategoryId: implementationParams.articleCategoryId
-            },
-            include: {
-                coverImage: true,
-                articleSections: {
-                    include: {
-                        cmsImage: true,
-                        cmsLink: true,
-                        cmsParagraph: true
-                    }
-                }
-            }
-        })
-    }),
-
+    article,
     readAll: defineOperation({
         authorizer: () => articleCategoryAuth.readAll,
         operation: async ({ prisma }, prismaWhereFilter) => {
@@ -264,7 +260,10 @@ export const articleCategoryOperations = {
             return {
                 ...category,
                 coverImage,
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params: { id: category.id }, prisma }),
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
+                    params: { id: category.id },
+                    prisma,
+                }),
             }
         }
     }),
@@ -275,16 +274,16 @@ export const articleCategoryOperations = {
         }),
         implementationParamsSchema: articleCategorySchemas.params.readArticleInCategory,
         ownershipCheck: async ({ prisma, params, implementationParams }) => {
-            const article = await prisma.article.findUnique({
+            const found = await prisma.article.findUnique({
                 where: { id: params.articleId },
                 select: { articleCategoryId: true },
             })
-            if (!article) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
+            if (!found) throw new ServiceError('NOT FOUND', 'Artikkel ikke funnet.')
             const category = await prisma.articleCategory.findUniqueOrThrow({
                 where: { name: implementationParams.articleCategoryName },
                 select: { id: true },
             })
-            return article.articleCategoryId === category.id
+            return found.articleCategoryId === category.id
         }
     })
 } as const

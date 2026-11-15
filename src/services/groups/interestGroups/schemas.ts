@@ -29,7 +29,7 @@ export const interestGroupSchemas = {
         read: interestGroupId,
         update: interestGroupId,
         destroy: interestGroupId,
-        updateArticleSection: paramsFieldSchemas.pick({
+        articleSection: paramsFieldSchemas.pick({
             interestGroupId: true,
         }),
     },

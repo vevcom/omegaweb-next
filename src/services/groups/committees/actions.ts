@@ -18,34 +18,34 @@ export const updateCommitteeParagraphAction = makeAction(committeeOperations.upd
 export const updateCommitteeLogoAction = makeAction(committeeOperations.updateLogo)
 
 export const updateCommitteeArticleAction = makeAction(
-    committeeOperations.updateArticle.update
+    committeeOperations.article.update
 )
 export const updateCommitteeArticleAddSectionAction = makeAction(
-    committeeOperations.updateArticle.addSection
+    committeeOperations.article.addSection
 )
 export const updateCommitteeArticleReorderSectionsAction = makeAction(
-    committeeOperations.updateArticle.reorderSections
+    committeeOperations.article.reorderSections
 )
 export const updateCommitteeArticleCoverImageAction = makeAction(
-    committeeOperations.updateArticle.coverImage
+    committeeOperations.article.coverImage
 )
 export const updateCommitteeArticleSectionAction = makeAction(
-    committeeOperations.updateArticle.articleSections.update
+    committeeOperations.article.articleSections.update
 )
 export const updateCommitteeArticleSectionsAddPartAction = makeAction(
-    committeeOperations.updateArticle.articleSections.addPart
+    committeeOperations.article.articleSections.addPart
 )
 export const updateCommitteeArticleSectionsRemovePartAction = makeAction(
-    committeeOperations.updateArticle.articleSections.removePart
+    committeeOperations.article.articleSections.removePart
 )
 export const updateCommitteeArticleCmsImageAction = makeAction(
-    committeeOperations.updateArticle.articleSections.cmsImage
+    committeeOperations.article.articleSections.cmsImage
 )
 export const updateCommitteeArticleCmsParagraphAction = makeAction(
-    committeeOperations.updateArticle.articleSections.cmsParagraph
+    committeeOperations.article.articleSections.cmsParagraph
 )
 export const updateCommitteeArticleCmsLinkAction = makeAction(
-    committeeOperations.updateArticle.articleSections.cmsLink
+    committeeOperations.article.articleSections.cmsLink
 )
 
 export const createCommitteeChatSpaceAction = makeAction(committeeChatSpaceOperations.create)

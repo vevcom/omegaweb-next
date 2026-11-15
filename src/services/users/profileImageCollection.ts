@@ -3,11 +3,7 @@ import { profileImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { rasterExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    internalOperations: userProfileImageOperations,
-    specialCollectionPanelOperations: profileImagesImagePanelOperations,
-    generateCollectionFromConfig: generateProfileImagesCollectionFromConfig
-} = implementSpecialCollection({
+export const profileImageCollection = implementSpecialCollection({
     special: 'PROFILEIMAGES',
     allowedExtensions: rasterExtensions,
     imagePanelAuth: profileImagesImagePanelAuth,

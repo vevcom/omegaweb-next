@@ -16,8 +16,8 @@ const create = defineSubOperation({
     })
 })
 
-const generateSpecialCmsLinkFromConfig = defineSubOperation({
-    paramsSchema: () => cmsLinkSchemas.params.generateSpecialCmsLinkFromConfig,
+const createSpecial = defineSubOperation({
+    paramsSchema: () => cmsLinkSchemas.params.createSpecial,
     operation: () => async ({ params: { special } }) => create.internalCall({
         data: { url: './', text: 'Lenketekst' },
         operationImplementationFields: { special }
@@ -26,7 +26,7 @@ const generateSpecialCmsLinkFromConfig = defineSubOperation({
 
 export const cmsLinkOperations = {
     create,
-    generateSpecialCmsLinkFromConfig,
+    createSpecial,
 
     destroy: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.destroy,
@@ -65,7 +65,7 @@ export const cmsLinkOperations = {
             })
             if (cmsLink) return cmsLink
             logger.error(`Could not find special cms link with special ${special} - creating it!`)
-            return await generateSpecialCmsLinkFromConfig.internalCall({ params: { special } })
+            return await createSpecial.internalCall({ params: { special } })
         }
     }),
 

@@ -5,7 +5,6 @@ import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import {
-    readSpecialCmsParagraphGeneralInfoAction,
     updateSpecialCmsParagraphContentGeneralInfoAction
 } from '@/services/groups/interestGroups/actions'
 import { interestGroupOperations } from '@/services/groups/interestGroups/operations'
@@ -42,7 +41,7 @@ const { page, generateMetadata } = serverPage({
     operation: async () => interestGroupOperations.readMany({}),
     capabilities: () => ({
         canCreate: interestGroupAuth.create,
-        canEditGeneralInfo: interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo,
+        canEditGeneralInfo: interestGroupAuth.generalInfo.updateContent,
     }),
     metadata: () => ({ title: 'Interessegrupper' }),
     render: ({ data: interestGroups, capabilities, session }) => (
@@ -57,7 +56,7 @@ const { page, generateMetadata } = serverPage({
                     <SpecialCmsParagraph
                         capabilities={{ canEdit: capabilities.canEditGeneralInfo }}
                         special="INTEREST_GROUP_GENERAL_INFO"
-                        readSpecialCmsParagraphAction={readSpecialCmsParagraphGeneralInfoAction}
+                        readSpecialCmsParagraph={interestGroupOperations.generalInfo.read}
                         updateCmsParagraphAction={updateSpecialCmsParagraphContentGeneralInfoAction}
                     />
                 </div>

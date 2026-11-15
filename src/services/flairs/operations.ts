@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { flairAuth } from './auth'
 import { flairSchemas } from './schemas'
-import { flairImageOperations } from './flairImageCollection'
+import { flairImageCollection } from './flairImageCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
@@ -14,7 +14,7 @@ export const flairOperations = {
         dataSchema: flairSchemas.data.create,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
-            const image = await flairImageOperations.uploadImage.internalCall({ prisma, data })
+            const image = await flairImageCollection.internal.uploadImage.internalCall({ prisma, data })
             await lockRanks(prisma)
             const { _max: { rank: lastRank } } = await prisma.flair.aggregate({ _max: { rank: true } })
             return await prisma.flair.create({
@@ -61,7 +61,7 @@ export const flairOperations = {
                     where: { id: params.flairId }
                 })
                 const uploadedImage =
-                    await flairImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                    await flairImageCollection.internal.uploadImage.internalCall({ prisma: tx, data })
                 await tx.flair.update({
                     where: { id: existingFlair.id },
                     data: {
@@ -73,7 +73,7 @@ export const flairOperations = {
                     }
                 })
                 if (existingFlair.imageId) {
-                    await flairImageOperations.destroyImage.internalCall({
+                    await flairImageCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingFlair.imageId }
                     })
@@ -178,7 +178,7 @@ export const flairOperations = {
                 await flairsBelow.reduce((previousMove, flairBelow) => previousMove.then(async () => {
                     await tx.flair.update({ where: { id: flairBelow.id }, data: { rank: flairBelow.rank - 1 } })
                 }), Promise.resolve())
-                await flairImageOperations.destroyImage.internalCall({
+                await flairImageCollection.internal.destroyImage.internalCall({
                     prisma: tx,
                     params: {
                         imageId: flair.imageId,

@@ -6,11 +6,11 @@ export const createRevueGroupAction = makeAction(revueGroupOperations.create)
 export const updateRevueGroupAction = makeAction(revueGroupOperations.update)
 export const destroyRevueGroupAction = makeAction(revueGroupOperations.destroy)
 
-export const updateRevueGroupArticleSectionAction = makeAction(revueGroupOperations.updateArticleSection.update)
-export const addPartToRevueGroupArticleSectionAction = makeAction(revueGroupOperations.updateArticleSection.addPart)
+export const updateRevueGroupArticleSectionAction = makeAction(revueGroupOperations.articleSection.update)
+export const addPartToRevueGroupArticleSectionAction = makeAction(revueGroupOperations.articleSection.addPart)
 export const removePartFromRevueGroupArticleSectionAction = makeAction(
-    revueGroupOperations.updateArticleSection.removePart
+    revueGroupOperations.articleSection.removePart
 )
-export const updateRevueGroupCmsImageAction = makeAction(revueGroupOperations.updateArticleSection.cmsImage)
-export const updateRevueGroupCmsParagraphAction = makeAction(revueGroupOperations.updateArticleSection.cmsParagraph)
-export const updateRevueGroupCmsLinkAction = makeAction(revueGroupOperations.updateArticleSection.cmsLink)
+export const updateRevueGroupCmsImageAction = makeAction(revueGroupOperations.articleSection.cmsImage)
+export const updateRevueGroupCmsParagraphAction = makeAction(revueGroupOperations.articleSection.cmsParagraph)
+export const updateRevueGroupCmsLinkAction = makeAction(revueGroupOperations.articleSection.cmsLink)

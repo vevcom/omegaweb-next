@@ -21,9 +21,10 @@ export const cabinBookingAuth = {
 
     connectToLedgerAccount: Require.allOf(Require.permission('CABIN_ADMIN'), ledgerAccountAccess('LEDGER_ADMIN')),
 
-    readSpecialCmsParagraphCabinContract: Require.permission('CABIN_USE'),
-
-    updateSpecialCmsParagraphContentCabinContract: Require.permission('CABIN_ADMIN'),
+    contract: {
+        read: Require.permission('CABIN_USE'),
+        updateContent: Require.permission('CABIN_ADMIN'),
+    },
 
     // Domain access only: may this session pay for *this* booking - owns it (session, or the
     // matching secret for a guest booking with no session to check ownership against) or holds

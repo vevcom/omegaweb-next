@@ -3,7 +3,7 @@ import { ombulAuth } from './auth'
 import { ombulSchemas } from './schemas'
 import { ombulStore } from './store'
 import { expandedOmbulIncluder, ombulOrderBy } from './constants'
-import { ombulCoverImageOperations } from './ombulCoverCollection'
+import { ombulCoverCollection } from './ombulCoverCollection'
 import { newOmbulNotificationChannel } from './newOmbulNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineOperation } from '@/services/serviceOperation'
@@ -51,7 +51,7 @@ export const ombulOperations = {
 
             const file = await ombulStore.createFile(ombulFile)
             const ombul = await prisma.$transaction(async tx => {
-                const coverImage = await ombulCoverImageOperations.uploadImage.internalCall({
+                const coverImage = await ombulCoverCollection.internal.uploadImage.internalCall({
                     prisma: tx,
                     data: {
                         imageFile: ombulCoverImage,
@@ -91,7 +91,7 @@ export const ombulOperations = {
                 })
             })
 
-            await newOmbulNotificationChannel.internalOperations.createNotification.internalCall({
+            await newOmbulNotificationChannel.internal.createNotification.internalCall({
                 data: {
                     title: 'Ny ombul',
                     message: `Ny ombul er ute! ${ombul.name}`,
@@ -149,7 +149,7 @@ export const ombulOperations = {
                 })
 
                 const uploadedImage =
-                    await ombulCoverImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                    await ombulCoverCollection.internal.uploadImage.internalCall({ prisma: tx, data })
 
                 await tx.ombul.update({
                     where: { id: existingOmbul.id },
@@ -160,7 +160,7 @@ export const ombulOperations = {
                     }
                 })
 
-                await ombulCoverImageOperations.destroyImage.internalCall({
+                await ombulCoverCollection.internal.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: existingOmbul.coverImageId }
                 })
@@ -196,7 +196,7 @@ export const ombulOperations = {
                         id: params.id
                     }
                 })
-                await ombulCoverImageOperations.destroyImage.internalCall({
+                await ombulCoverCollection.internal.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: deleted.coverImageId }
                 })

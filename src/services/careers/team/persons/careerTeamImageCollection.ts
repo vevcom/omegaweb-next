@@ -3,11 +3,7 @@ import { careerTeamImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { rasterExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    internalOperations: careerTeamImageOperations,
-    specialCollectionPanelOperations: careerTeamImagesImagePanelOperations,
-    generateCollectionFromConfig: generateCareerTeamImagesCollectionFromConfig
-} = implementSpecialCollection({
+export const careerTeamImageCollection = implementSpecialCollection({
     special: 'CAREERTEAMIMAGES',
     allowedExtensions: rasterExtensions,
     imagePanelAuth: careerTeamImagesImagePanelAuth,

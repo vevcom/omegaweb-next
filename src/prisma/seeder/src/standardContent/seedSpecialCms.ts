@@ -14,7 +14,8 @@ import { SpecialCmsArticle, SpecialCmsImage, SpecialCmsLink, SpecialCmsParagraph
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import type { ImagesAvailablieForCms } from './seedImages'
-import type { SeedArticleConfig, UpdateArticleOperationsReference } from '@/seeder/src/buildArticleFromConfig'
+import type { SeedArticleConfig } from '@/seeder/src/buildArticleFromConfig'
+import type { UpdateArticleOperations } from '@/services/cms/articles/implement'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
 /**
@@ -85,7 +86,7 @@ const seedSpecialCmsLinkConfig: Record<SpecialCmsLink, SeedCmsLinkConfig> = {
  * Each entry names its owner's update operations instead.
  */
 type SeedSpecialArticleConfig = SeedArticleConfig & {
-    updateOperations: UpdateArticleOperationsReference,
+    updateOperations: UpdateArticleOperations,
 }
 
 const seedSpecialCmsArticleConfig: Record<SpecialCmsArticle, SeedSpecialArticleConfig> = {
@@ -182,7 +183,7 @@ async function upsertSpecialCmsImage(
             select: { id: true }
         }),
         create: async () => {
-            const cmsImage = await cmsImageOperations.generateSpecialCmsImageFromConfig.internalCall({
+            const cmsImage = await cmsImageOperations.createSpecial.internalCall({
                 params: { special }
             })
             const image = await getImageForCmsImageRelation(imageConfig, prisma)
@@ -206,7 +207,7 @@ async function upsertSpecialCmsParagraph(
             select: { id: true }
         }),
         create: async () => {
-            const paragraph = await cmsParagraphOperations.generateSpecialCmsParagraphFromConfig.internalCall({
+            const paragraph = await cmsParagraphOperations.createSpecial.internalCall({
                 params: { special }
             })
             return cmsParagraphOperations.updateContent.internalCall({
@@ -229,7 +230,7 @@ async function upsertSpecialCmsLink(
             select: { id: true }
         }),
         create: async () => {
-            const cmsLink = await cmsLinkOperations.generateSpecialCmsLinkFromConfig.internalCall({
+            const cmsLink = await cmsLinkOperations.createSpecial.internalCall({
                 params: { special }
             })
             return cmsLinkOperations.update.internalCall({
@@ -261,7 +262,7 @@ async function createSpecialCmsArticle(
     special: SpecialCmsArticle,
     { updateOperations, ...article }: SeedSpecialArticleConfig
 ) {
-    const createdArticle = await articleOperations.generateSpecialArticleFromConfig.internalCall({
+    const createdArticle = await articleOperations.createSpecial.internalCall({
         params: { special }
     })
 

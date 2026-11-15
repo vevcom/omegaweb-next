@@ -6,7 +6,6 @@ import { ServiceError } from '@/services/error'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { productImageIncluder } from '@/services/shop/product/constants'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import type { ExtendedShop } from './types'
 
@@ -43,11 +42,11 @@ export const shopOperations = {
         authorizer: () => shopAuth.create,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
-            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityRegular = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityRegularRequirements },
             })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityAdmin = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
@@ -74,7 +73,7 @@ export const shopOperations = {
      */
     read: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.read.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.read,
         operation: async ({ prisma, params }): Promise<ExtendedShop> => {
@@ -105,7 +104,7 @@ export const shopOperations = {
                     ...product,
                     soldElsewhere: _count.ShopProduct > 1,
                 })),
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
             }
         }
     }),
@@ -116,7 +115,7 @@ export const shopOperations = {
      */
     update: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.update.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.update,
         dataSchema: shopSchemas.data.update,
@@ -137,7 +136,7 @@ export const shopOperations = {
      */
     connectToLedgerAccount: defineOperation({
         authorizer: async ({ params, data, prisma }) => shopAuth.connectToLedgerAccount.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
         }),
         paramsSchema: shopSchemas.params.connectToLedgerAccount,
@@ -164,7 +163,7 @@ export const shopOperations = {
      */
     createProduct: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.createProduct.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.createProduct,
         dataSchema: shopSchemas.data.createProduct,
@@ -194,7 +193,7 @@ export const shopOperations = {
      */
     connectProduct: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.connectProduct.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.connectProduct,
         dataSchema: shopSchemas.data.connectProduct,
@@ -221,7 +220,7 @@ export const shopOperations = {
     /** Changes the price of a product in the shop, and whether it is on sale there. */
     updateProduct: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.updateProduct.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
                 params: { shopId: params.shopId },
                 prisma,
             }),
@@ -242,7 +241,7 @@ export const shopOperations = {
     /** The products of the catalogue the shop does not sell yet, for its administrators to pick from. */
     readProductsToConnect: defineOperation({
         authorizer: async ({ params, prisma }) => shopAuth.readProductsToConnect.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma }),
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.readProductsToConnect,
         operation: async ({ prisma, params }) => prisma.product.findMany({

@@ -69,32 +69,32 @@ async function createNews(prisma: PrismaClient, news: SeedNewsConfig) {
     })
 
     await buildArticleFromConfig({
-        updateName: data => newsOperations.updateArticle.update({
+        updateName: data => newsOperations.article.update({
             implementationParams: { newsId: createdNews.id },
             params: { articleId: createdNews.article.id },
             data
         }),
-        updateCoverImage: data => newsOperations.updateArticle.coverImage({
+        updateCoverImage: data => newsOperations.article.coverImage({
             implementationParams: { newsId: createdNews.id },
             params: { cmsImageId: createdNews.article.coverImage.id },
             data
         }),
-        addSection: data => newsOperations.updateArticle.addSection({
+        addSection: data => newsOperations.article.addSection({
             implementationParams: { newsId: createdNews.id },
             params: { articleId: createdNews.article.id },
             data
         }),
-        updateSectionParagraph: (paragraphId, data) => newsOperations.updateArticle.articleSections.cmsParagraph({
+        updateSectionParagraph: (paragraphId, data) => newsOperations.article.articleSections.cmsParagraph({
             implementationParams: { newsId: createdNews.id },
             params: { paragraphId },
             data
         }),
-        updateSectionImage: (cmsImageId, data) => newsOperations.updateArticle.articleSections.cmsImage({
+        updateSectionImage: (cmsImageId, data) => newsOperations.article.articleSections.cmsImage({
             implementationParams: { newsId: createdNews.id },
             params: { cmsImageId },
             data
         }),
-        updateSectionLink: (linkId, data) => newsOperations.updateArticle.articleSections.cmsLink({
+        updateSectionLink: (linkId, data) => newsOperations.article.articleSections.cmsLink({
             implementationParams: { newsId: createdNews.id },
             params: { linkId },
             data

@@ -31,9 +31,9 @@ const ctaLayout = 'w-full m-0! py-5! px-6!'
 export default async function LoggedOutLandingPage() {
     const session = await ServerSession.fromNextAuth()
     const capabilities = runCapabilities(session, {
-        canEditSpecialCmsImage: frontpageAuth.updateSpecialCmsImage,
-        canEditSpecialCmsParagraph: frontpageAuth.updateSpecialCmsParagraphContentSection,
-        canEditSpecialCmsLink: frontpageAuth.updateSpecialCmsLink,
+        canEditSpecialCmsImage: frontpageAuth.cmsImages.update,
+        canEditSpecialCmsParagraph: frontpageAuth.cmsParagraphs.updateContent,
+        canEditSpecialCmsLink: frontpageAuth.cmsLinks.update,
     })
 
     return (

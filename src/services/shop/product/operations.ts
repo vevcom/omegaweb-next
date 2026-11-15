@@ -142,7 +142,7 @@ async function soleShopVisibility(
     })
     if (sellers.length !== 1) return EMPTY_VISIBILITY
 
-    return shopOperations.visibility.readDoubleLevelMatrixInternal({
+    return shopOperations.visibility.internal.readDoubleLevelMatrix.internalCall({
         params: { shopId: sellers[0].shopId },
         prisma,
     })
