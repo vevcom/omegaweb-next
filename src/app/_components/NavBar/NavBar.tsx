@@ -42,13 +42,7 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                 </li>
 
                 <PageTitleSetter title="" />
-                <li
-                    className="
-                        min-w-0 ml-2 flex items-center
-                        max-mobile:[body:has([data-slide-sidebar-toggle])_&]:pr-[calc(44px+2*var(--gap))]
-                    "
-                    data-nav-title
-                >
+                <li className="min-w-0 ml-2 flex items-center" data-nav-title>
                     <NavBarTitle />
                 </li>
                 <li className="grow"></li>
@@ -60,10 +54,15 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                     ))
                 }
                 <li className="
-                    flex w-auto ml-auto items-center gap-1
-                    max-mobile:hidden
+                    mr-1
+                    empty:hidden
                 ">
                     <EditModeNavIcon className="[--edit-mode-icon-size:20px] size-12" />
+                </li>
+                <li className="
+                    flex w-auto items-center gap-1
+                    max-mobile:hidden
+                ">
                     <OmegaSearchButton />
                     <ReportButton/>
                     <div className="
@@ -88,6 +87,13 @@ export default function NavBar({ isLoggedIn, profileImage, navItems }: PropTypes
                         <UserNavigation isLoggedIn={isLoggedIn} />
                     </div>
                 </li>
+                <li
+                    aria-hidden
+                    className="
+                        hidden shrink-0 w-[calc(44px+2*var(--gap))]
+                        max-mobile:[body:has([data-slide-sidebar-toggle])_&]:block
+                    "
+                />
             </ul>
         </nav>
     )

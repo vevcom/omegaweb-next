@@ -9,7 +9,7 @@ import {
     VisibilityHeaderItemPopUp,
 } from '@/components/HeaderItems/HeaderItemPopUp'
 import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
-import useEditMode from '@/hooks/useEditMode'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import Button from '@/components/UI/Button'
 import { configureAction } from '@/services/configureAction'
@@ -38,26 +38,27 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
     const router = useSiteRouter()
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
-    const canUploadOne = useEditMode({
+    const canUploadOne = useAuthorizer({
         authorizer: dynamicImageAuth.uploadImage.data({ visibility: doubleLevelMatrix })
-    })
-    const canUploadMany = useEditMode({
+    }).authorized
+    const canUploadMany = useAuthorizer({
         authorizer: dynamicImageAuth.uploadManyImages.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateCollection = useEditMode({
+    }).authorized
+    const canUpdateCollection = useAuthorizer({
         authorizer: dynamicImageAuth.updateCollection.data({ visibility: doubleLevelMatrix })
-    })
-    const canDestroyCollection = useEditMode({
+    }).authorized
+    const canDestroyCollection = useAuthorizer({
         authorizer: dynamicImageAuth.destroyCollection.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateRegularVisibility = useEditMode({
+    }).authorized
+    const canUpdateRegularVisibility = useAuthorizer({
         authorizer: dynamicImageAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateAdminVisibility = useEditMode({
+    }).authorized
+    const canUpdateAdminVisibility = useAuthorizer({
         authorizer: dynamicImageAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
-    })
+    }).authorized
 
-    const [uploadOption, setUploadOption] = useState<'MANY' | 'ONE'>(canUploadMany ? 'MANY' : 'ONE')
+    const [chosenUploadOption, setUploadOption] = useState<'MANY' | 'ONE' | null>(null)
+    const uploadOption = chosenUploadOption ?? (canUploadMany ? 'MANY' : 'ONE')
 
     const canUpload = canUploadOne || canUploadMany
     const canOpenEditPopUp = canUpdateCollection || canDestroyCollection
