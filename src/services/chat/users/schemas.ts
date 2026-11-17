@@ -11,5 +11,6 @@ export const chatUserSchemas = {
         optIn: ofUser,
         read: ofUser,
         readSpaces: ofUser,
+        readDirectMessage: ofUser,
     },
 }

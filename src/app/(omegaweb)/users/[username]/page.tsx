@@ -9,10 +9,12 @@ import { userAuth } from '@/services/users/auth'
 import { configureAction } from '@/services/configureAction'
 import { sexConfig } from '@/services/users/constants'
 import { flairOperations } from '@/services/flairs/operations'
+import { chatUserOperations } from '@/services/chat/users/operations'
 import { serverPage } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
+import DirectMessageButton from '@/app/(omegaweb)/users/[username]/DirectMessageButton'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { siteRedirect } from '@/app/domainContextOfRequest'
 import { appHref } from '@/lib/sites/href'
@@ -43,9 +45,15 @@ const { page, generateMetadata } = serverPage({
 
         const profile = await userOperations.readProfile({ params: { username: params.username } })
         const flairs = await flairOperations.readUserFlairs({ params: { userId: profile.user.id } })
+        const isOwnProfile = profile.user.id === session.user?.id
+        const directMessage = isOwnProfile
+            ? null
+            : await chatUserOperations.readDirectMessage({ params: { userId: profile.user.id } })
 
         return {
             profile,
+            isOwnProfile,
+            directMessage,
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
@@ -53,8 +61,8 @@ const { page, generateMetadata } = serverPage({
         canUpdateBio: userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
     }),
     metadata: () => ({ title: 'Profil' }),
-    render: ({ data, capabilities, session }) => {
-        const { profile, flairs } = data
+    render: ({ data, capabilities }) => {
+        const { profile, flairs, isOwnProfile, directMessage } = data
 
         const { committeeMemberships, activeStudyProgrammes, activeInterestGroups } = profile.groups
 
@@ -76,8 +84,6 @@ const { page, generateMetadata } = serverPage({
                 ? `rgb(${flairs[0].colorR}, ${flairs[0].colorG}, ${flairs[0].colorB})`
                 : 'transparent'
         } as React.CSSProperties
-        const isOwnProfile = profile.user.id === session.user?.id
-
         function memberhipTitle(): string {
             switch (omegaMembership.level) {
                 case 'SOELLE':
@@ -209,6 +215,12 @@ const { page, generateMetadata } = serverPage({
                             </div>
                             <div className="flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-2">
+                                    {directMessage?.chatIsSetUp && (
+                                        <DirectMessageButton
+                                            url={directMessage.url}
+                                            firstname={profile.user.firstname}
+                                        />
+                                    )}
                                     {isOwnProfile && (
                                         <SiteLink href={appHref('/logout')}>
                                             <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
