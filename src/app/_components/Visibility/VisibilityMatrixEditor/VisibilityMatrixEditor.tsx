@@ -1,5 +1,6 @@
 'use client'
 import Button from '@/components/UI/Button'
+import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import { SelectNumber, SelectString } from '@/components/UI/Select'
 import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import { useGroups } from '@/contexts/ClientData'
@@ -13,20 +14,32 @@ import type { VisibilityCondition, VisibilityRequirement } from '@/services/visi
 import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
+    /** What no requirements at all means for this matrix, where it is not that everyone passes. */
+    emptyMeans?: string,
+} & ({
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
     defaultValue?: VisibilityRequirement[],
-    /** What no requirements at all means for this matrix, where it is not that everyone passes. */
-    emptyMeans?: string,
-}
+} | {
+    /** For a form that needs the matrix as it is edited, and posts it itself. */
+    requirements: VisibilityRequirement[],
+    onChange: (requirements: VisibilityRequirement[]) => void,
+})
 
 /**
  * A form field editing one visibility matrix, posted as JSON under `name` like any other field.
  * Whether that creates the thing it will guard or updates an existing visibility is the form's
  * business.
+ * Given `requirements` and `onChange` instead, it is controlled, for a form that needs the matrix as it is edited.
  */
-export default function VisibilityMatrixEditor({ name, defaultValue = [], emptyMeans }: PropTypes) {
-    const [requirements, onChange] = useState<VisibilityRequirement[]>(defaultValue)
+export default function VisibilityMatrixEditor(props: PropTypes) {
+    const { emptyMeans } = props
+    const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
+        'defaultValue' in props ? props.defaultValue ?? [] : [],
+    )
+    const controlled = 'requirements' in props
+    const requirements = controlled ? props.requirements : ownRequirements
+    const onChange = controlled ? props.onChange : setOwnRequirements
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
 
@@ -98,7 +111,11 @@ export default function VisibilityMatrixEditor({ name, defaultValue = [], emptyM
 
     return (
         <div className="flex flex-col gap-[0.5em]">
-            <input type="hidden" name={name} value={JSON.stringify(requirements)} />
+            {'name' in props && <JsonFieldInput
+                name={props.name}
+                value={requirements}
+                onReset={() => setOwnRequirements(props.defaultValue ?? [])}
+            />}
             <p className="italic">
                 {emptyMeans !== undefined && requirements.length === 0
                     ? emptyMeans

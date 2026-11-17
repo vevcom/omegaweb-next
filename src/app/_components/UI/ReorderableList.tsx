@@ -63,27 +63,32 @@ function ReorderableItem<Item>({
 type PropTypes<Item> = {
     items: Item[],
     getId: (item: Item) => number,
-    /** Stores the new order, given as every item's id from first to last. */
-    saveOrder: (ids: number[]) => Promise<ActionReturn<unknown>>,
     /** Renders an item. Place `handle` where the item is dragged from. */
     renderItem: (item: Item, extras: { handle: ReactNode, index: number }) => ReactNode,
     className?: string,
     itemClassName?: string,
     itemStyle?: CSSProperties,
-}
+} & ({
+    /** Stores the new order, given as every item's id from first to last. */
+    saveOrder: (ids: number[]) => Promise<ActionReturn<unknown>>,
+} | {
+    /** Takes the new order where the items are held in state, so nothing is saved from here. */
+    onReorder: (ids: number[]) => void,
+})
 
 /**
- * A list reordered by dragging each item's handle, which saves the whole new order in one action
- * when an item is dropped.
+ * A list reordered by dragging each item's handle. With `saveOrder` it saves the whole new order
+ * in one action when an item is dropped. With `onReorder` it hands the order to whoever holds the
+ * items.
  */
 export default function ReorderableList<Item>({
     items,
     getId,
-    saveOrder,
     renderItem,
     className,
     itemClassName,
     itemStyle,
+    ...reordering
 }: PropTypes<Item>) {
     const [order, setOrder] = useState(items)
     const [prevItems, setPrevItems] = useState(items)
@@ -99,7 +104,11 @@ export default function ReorderableList<Item>({
         const ids = order.map(getId)
         if (ids.every((id, index) => id === getId(items[index]))) return
 
-        const result = await saveOrder(ids)
+        if ('onReorder' in reordering) {
+            reordering.onReorder(ids)
+            return
+        }
+        const result = await reordering.saveOrder(ids)
         if (!result.success) {
             setOrder(items)
             setError(result.error?.map(issue => issue.message).join(' ') || 'Kunne ikke lagre rekkefølgen.')

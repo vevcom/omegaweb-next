@@ -1,5 +1,5 @@
 import '@pn-server-only'
-import { creationId } from './mailboxes'
+import { creationId } from './client'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'
 import type { MailServerAccount, MailServerAccountAlias, MailServerClient } from './client'

@@ -132,6 +132,9 @@ Rules are written once in a service's `auth.ts` as `Require` chains. The same ru
   - `ownershipCheck`: does the sub-resource actually belong to the owning resource? For example, is the paragraph the career page's special paragraph? Returning false rejects the call. This is resource-to-resource integrity, not user permission.
   - `beforeRun`: optional extra checks that run after both and may throw.
 - **`.internalCall({ params, data, ... })`** runs a sub-operation from server code with no authorizer and no ownership check. Use it only for calls from other operations or server code that has already authorized the user.
+- A service's own writes that only its server code calls are sub-operations too, grouped under `internal` in its operations object, next to the authorized operations at the top level. For example `eventQuotaOperations.internal.create` and `eventNotificationOperations.internal.createChannels`. A plain function that writes to the database is not used for this.
+- A change that spans several services is one authorized operation that opens the transaction and calls each service's own operations in it, as `eventOperations.saveSetup` does for an event with its variants, quotas, administrators and ledger account. It does not write the other services' rows itself.
+- A sub-operation parses the data it is given, also on an internal call. So one that takes what an authorized operation has already parsed has a data schema that changes nothing when run twice: no conversion such as kroner to øre, and no form value such as `'NULL'` or `''` standing for null. See `parsedFieldSchemas` in `events/variants/schemas.ts`.
 - A service that owns a CMS image, paragraph or link creates it through that sub-service's `create.internalCall`, inside its own transaction when it creates the owning row, for example `companyOperations.create`, and never by nesting the CMS row in the owner's Prisma write.
 - **`bypassAuth: true`** skips the authorizer of a top-level operation when calling it from trusted server code, such as NextAuth callbacks or seeders. Clients cannot set it; `makeAction` never passes it.
 - An operation called inside another operation inherits its context through async local storage: the prisma client or transaction, the session, and `bypassAuth`. Pass `prisma: tx` explicitly to run one inside a transaction.
@@ -469,6 +472,8 @@ Forms typically use Server Actions with FormData:
 2. Create a ServiceOperation with the schema
 3. Wrap it with `makeAction()`
 4. Call from a client component with FormData
+
+A long form is split with `Tabs` and `FormTab`: the one `Form` holds every value across its tabs and saves them together, and a tab with a refused input is brought forward. See `EventAdmin`. Panels stay mounted, so nothing is lost moving between tabs. A `Form` cannot hold another `Form`, so a tab that saves on its own is a `TabPanel` next to it.
 
 ## Testing
 

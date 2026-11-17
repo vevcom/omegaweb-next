@@ -73,29 +73,20 @@ type ReadVisibility<ImplementationParamsSchema extends z.ZodType<unknown>> = (ar
 }) => Promise<Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>>
 
 /**
- * The operations of one visibility an owning service holds, such as who administrates an event or
- * who may register through a quota. `emptyMeans` says what an update to no requirements at all is:
- * 'EVERYONE' lets it through, 'REFUSED' rejects it, for a visibility where that would hand the
- * resource to everyone. `afterUpdate` runs once a change is saved, for what follows from it.
+ * Reading one visibility an owning service holds, such as who may register through a quota. For
+ * an owner that changes the visibility itself, along with what it guards, and so has no use for
+ * an update of its own.
  */
-export function implementVisibilityOperations<
+export function implementVisibilityRead<
     const ImplementationParamsSchema extends z.ZodType<unknown>
 >({
     implementationParamsSchema,
-    authorizers,
+    authorizer,
     readVisibility,
-    emptyMeans,
-    afterUpdate,
 }: {
     implementationParamsSchema: ImplementationParamsSchema,
-    authorizers: SingleAuthorizers<ImplementationParamsSchema>,
+    authorizer: SingleAuthorizers<ImplementationParamsSchema>['readMatrix'],
     readVisibility: ReadVisibility<ImplementationParamsSchema>,
-    emptyMeans: 'EVERYONE' | 'REFUSED',
-    afterUpdate?: (args: {
-        /** The full client, since the update opens its own transaction and so runs outside any. */
-        prisma: PrismaPossibleTransaction<true>,
-        implementationParams: z.infer<ImplementationParamsSchema>,
-    }) => Awaitable<void>,
 }) {
     const readMatrixInternal = async ({ prisma, params }: {
         prisma: PrismaPossibleTransaction<false>,
@@ -110,19 +101,48 @@ export function implementVisibilityOperations<
         readMatrixInternal,
         readMatrix: defineOperation({
             paramsSchema: implementationParamsSchema,
-            authorizer: async ({ params, prisma }) => authorizers.readMatrix({
+            authorizer: async ({ params, prisma }) => authorizer({
                 prisma,
                 params,
                 matrix: await readMatrixInternal({ params, prisma }),
             }),
             operation: ({ params, prisma }) => readMatrixInternal({ params, prisma }),
         }),
+    } as const
+}
+
+/**
+ * The operations of one visibility an owning service holds, such as who owns a mailing list.
+ * `emptyMeans` says what an update to no requirements at all is: 'EVERYONE' lets it through,
+ * 'REFUSED' rejects it, for a visibility where that would hand the resource to everyone.
+ */
+export function implementVisibilityOperations<
+    const ImplementationParamsSchema extends z.ZodType<unknown>
+>({
+    implementationParamsSchema,
+    authorizers,
+    readVisibility,
+    emptyMeans,
+}: {
+    implementationParamsSchema: ImplementationParamsSchema,
+    authorizers: SingleAuthorizers<ImplementationParamsSchema>,
+    readVisibility: ReadVisibility<ImplementationParamsSchema>,
+    emptyMeans: 'EVERYONE' | 'REFUSED',
+}) {
+    const read = implementVisibilityRead({
+        implementationParamsSchema,
+        authorizer: authorizers.readMatrix,
+        readVisibility,
+    })
+
+    return {
+        ...read,
         update: visibilityOperations.update.implement<ImplementationParamsSchema>({
             implementationParamsSchema,
             authorizer: async ({ implementationParams, prisma }) => authorizers.update({
                 prisma,
                 implementationParams,
-                matrix: await readMatrixInternal({ params: implementationParams, prisma }),
+                matrix: await read.readMatrixInternal({ params: implementationParams, prisma }),
             }),
             ownershipCheck: async ({ params, prisma, implementationParams }) => (await readVisibility({
                 include: visibilityIncluder,
@@ -134,7 +154,6 @@ export function implementVisibilityOperations<
                     throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
                 }
             },
-            afterRun: ({ prisma, implementationParams }) => afterUpdate?.({ prisma, implementationParams }),
         }),
     } as const
 }

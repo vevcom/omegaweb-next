@@ -4,7 +4,9 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().trim().min(1, 'Kvoten må ha et navn').max(50, 'Navnet kan ha maks 50 tegn'),
-    places: z.coerce.number().int().min(0, 'Antall plasser kan ikke være negativt'),
+    places: z.coerce.number({ invalid_type_error: 'Antall plasser må være et tall' })
+        .int('Antall plasser må være et helt tall')
+        .min(0, 'Antall plasser kan ikke være negativt'),
     // No requirements means everyone may register through the quota.
     visibilityRequirements: Zpn.json({
         label: 'Hvem kan melde seg på',
@@ -26,6 +28,16 @@ const quotaFields = {
     places: true,
 } as const
 
+const quotaFieldsWithVisibility = {
+    ...quotaFields,
+    visibilityRequirements: true,
+} as const
+
+// A quota as a save of the whole variant gives it. One without an id is new.
+const quotaSetup = dataFieldSchemas.pick(quotaFieldsWithVisibility).extend({
+    id: z.number().int().optional(),
+})
+
 const quotaId = paramsFieldSchemas.pick({
     id: true,
 })
@@ -36,13 +48,13 @@ const variantId = paramsFieldSchemas.pick({
 
 export const eventQuotaSchemas = {
     data: {
-        create: dataFieldSchemas.pick({
-            ...quotaFields,
-            visibilityRequirements: true,
-        }),
-        update: dataFieldSchemas.pick(quotaFields).partial(),
+        create: dataFieldSchemas.pick(quotaFieldsWithVisibility),
+        update: dataFieldSchemas.pick(quotaFieldsWithVisibility).partial(),
         reorder: dataFieldSchemas.pick({
             quotaIds: true,
+        }),
+        saveSetup: z.object({
+            quotas: z.array(quotaSetup),
         }),
     },
     params: {
@@ -51,6 +63,7 @@ export const eventQuotaSchemas = {
         update: quotaId,
         destroy: quotaId,
         reorder: variantId,
+        saveSetup: variantId,
         visibility: quotaId,
     },
 }

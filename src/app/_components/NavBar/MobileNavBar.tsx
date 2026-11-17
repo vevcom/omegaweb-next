@@ -3,7 +3,6 @@ import UserNavigation from './UserNavigation'
 import MobileNavBarItems from './MobileNavBarItems'
 import MobileMagicHat from './MobileMagicHat'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {
@@ -18,11 +17,9 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
             relative hidden
             max-mobile:grid
             grid-cols-5 grid-rows-[auto] w-full h-full p-4 overflow-hidden bg-base-100 text-base-content
-            [&>*:not(:last-child)]:grid [&>*:not(:last-child)]:place-items-center
-            [&>*:not(:last-child)>button]:[background:none] [&>*:not(:last-child)>button]:text-inherit
-            [&>*:not(:last-child)>button]:border-none [&>*:not(:last-child)>button]:p-0
-            [&>*:not(:last-child)>button]:[font:inherit] [&>*:not(:last-child)>button]:cursor-pointer
-            [&>*:not(:last-child)>button]:[outline:inherit]
+            [&>*]:grid [&>*]:place-items-center
+            [&>*>button]:[background:none] [&>*>button]:text-inherit [&>*>button]:border-none [&>*>button]:p-0
+            [&>*>button]:[font:inherit] [&>*>button]:cursor-pointer [&>*>button]:[outline:inherit]
         ">
             <MobileNavBarItems navItems={navItems} />
             <MobileMagicHat>
@@ -39,12 +36,6 @@ export default function MobileNavBar({ isLoggedIn, navItems }: PropTypes) {
                 items={navItems}
                 openBtnVariant={'mobile'}
             />
-            <div className="
-                absolute right-0 bottom-[calc(100%+3*var(--gap))] size-[48px] bg-black rounded-ss-[50%] translate-y-1/2
-                [&_svg]:w-[30px]! [&_svg]:h-[30px]!
-            ">
-                <EditModeSwitch />
-            </div>
         </nav>
     )
 }

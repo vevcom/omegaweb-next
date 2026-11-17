@@ -1,3 +1,4 @@
+import { createAdministrators } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
@@ -279,27 +280,25 @@ describe('search respects a provider\'s own visibility filter', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [] }],
+                visibilityAdminRequirements: await createAdministrators('search-admins'),
             },
             bypassAuth: true,
         })
-        const variant = await eventVariantOperations.create({
+        const variant = await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: 'Påmelding',
                 registrationStart: new Date(Date.now() - HOUR),
                 registrationEnd: new Date(Date.now() + 24 * HOUR),
             },
-            bypassAuth: true,
         })
-        await eventQuotaOperations.create({
+        await eventQuotaOperations.internal.create.internalCall({
             params: { variantId: variant.id },
             data: {
                 name: 'Medlemmer',
                 places: 10,
                 visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
             },
-            bypassAuth: true,
         })
         await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
 

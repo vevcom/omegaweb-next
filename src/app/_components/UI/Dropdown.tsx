@@ -13,7 +13,8 @@ export type DropdownOption<ValueType> = {
 }
 
 export type PropTypes<ValueType> = {
-    name: string,
+    /** Left out for a dropdown that is part of a larger field, which posts the value itself. */
+    name?: string,
     label: string,
     defaultValue?: ValueType,
     value?: ValueType,
@@ -271,12 +272,12 @@ export default function Dropdown<ValueType extends string | number>({
                 type="button"
                 id={domId}
                 className={`
-                    relative w-full flex items-center border-2 rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2
-                    pl-4 transition-[border-color,background-color] duration-300 cursor-pointer
+                    relative w-full flex items-center border rounded-inner outline-0 text-m text-left pt-6 pr-10 pb-2.5
+                    pl-4 transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                     disabled:cursor-not-allowed disabled:opacity-60
-                    focus-visible:border-primary
+                    focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/25
                     ${dropdownColorClassNames[color]}
-                    ${open ? 'border-primary' : 'border-transparent'}
+                    ${open ? 'border-primary ring-3 ring-primary/25' : 'border-base-300'}
                     ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
                 `}
                 disabled={disabled}
@@ -314,7 +315,7 @@ export default function Dropdown<ValueType extends string | number>({
                     />
                 )
             }
-            <input type="hidden" name={name} value={value ?? ''} readOnly />
+            {name && <input type="hidden" name={name} value={value ?? ''} readOnly />}
         </div>
     )
 }

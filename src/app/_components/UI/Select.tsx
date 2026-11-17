@@ -4,7 +4,8 @@ import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { useId, type SelectHTMLAttributes } from 'react'
 
 export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
-    name: string,
+    /** Left out for a select that is part of a larger field, which posts the value itself. */
+    name?: string,
     label?: string,
     color?: 'base' | 'primary' | 'secondary' | 'error',
     background?: 'base100' | 'base200',
@@ -83,9 +84,10 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     id={selectId}
                     name={name}
                     className={`
-                        peer appearance-none relative w-full flex items-center border-2 border-transparent rounded-inner
-                        outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2 pl-4
-                        transition-[border-color,background-color] duration-300 cursor-pointer
+                        peer appearance-none relative w-full flex items-center border border-base-300
+                        focus:ring-3 focus:ring-primary/25
+                        rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] text-left pt-6 pr-10 pb-2.5 pl-4
+                        transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                         disabled:cursor-not-allowed disabled:opacity-60
                         [&_option]:bg-base-200 [&_option]:text-base-content
                         ${colorClassNames[color].field}

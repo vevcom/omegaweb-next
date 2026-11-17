@@ -1,3 +1,4 @@
+import { createAdministrators } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -69,13 +70,13 @@ beforeAll(async () => {
             name: 'Exposure test',
             location: 'Here',
             eventStart: new Date(),
-            eventEnd: new Date(),
+            eventEnd: new Date(Date.now() + 60 * 60 * 1000),
             canBeViewedBy: 'ALL',
             takesRegistration: true,
             places: 10,
             waitingList: false,
             tagIds: [],
-            visibilityAdminRequirements: [{ conditions: [] }],
+            visibilityAdminRequirements: await createAdministrators('exposure-admins'),
         },
         bypassAuth: true,
     })

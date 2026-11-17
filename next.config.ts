@@ -6,10 +6,10 @@ import type { NextConfig } from 'next'
 /**
  * The most a request may carry. The body is read before any login check, so this bounds what an
  * anonymous request can make the server hold. The largest requests are an image batch
- * (maxImageBatchSizeMb in the image subservice, 60mb) and a new ombul (a 10mb pdf and a cover image of
+ * (maxImageBatchSizeMb in the image subservice, 60mb) and a new ombul (a pdf of up to 50mb and a cover image of
  * up to 50mb), plus the form around them.
  */
-const maxRequestBodySize = '70mb'
+const maxRequestBodySize = '110mb'
 
 const nextConfig: NextConfig = {
     output: 'standalone',

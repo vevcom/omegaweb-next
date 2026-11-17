@@ -1,8 +1,8 @@
 import { recordSentMail } from 'tests/utils'
+import { setQuotaPlaces } from 'tests/eventSetup'
 import { prisma } from '@/prisma/client'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
-import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { eventRegistrationQueueOrder } from '@/services/events/registration/constants'
 import { userOperations } from '@/services/users/operations'
@@ -78,14 +78,10 @@ describe('waiting list promotion on more places', () => {
         return { event, quota }
     }
 
-    const setPlaces = (quotaId: number, places: number) => eventQuotaOperations.update({
-        params: { id: quotaId }, data: { places }, bypassAuth: true,
-    })
-
     test('tells the ones promoted, and only them', async () => {
         const { quota } = await createEventWithWaitingList()
 
-        await setPlaces(quota.id, 3)
+        await setQuotaPlaces(quota.id, 3)
 
         expect(notifySpy).toHaveBeenCalledTimes(1)
         expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({
@@ -99,7 +95,7 @@ describe('waiting list promotion on more places', () => {
         const { quota } = await createEventWithWaitingList()
         sentMail.mockRejectedValueOnce(new Error('Mail server down'))
 
-        await setPlaces(quota.id, 3)
+        await setQuotaPlaces(quota.id, 3)
 
         await expect(prisma.eventQuota.findUniqueOrThrow({ where: { id: quota.id } }))
             .resolves.toMatchObject({ places: 3 })
@@ -115,7 +111,7 @@ describe('waiting list promotion on more places', () => {
             data: { name: 'Test waiting list renamed' },
             bypassAuth: true,
         })
-        await setPlaces(quota.id, 0)
+        await setQuotaPlaces(quota.id, 0)
 
         expect(notifySpy).not.toHaveBeenCalled()
         expect(sentMail).not.toHaveBeenCalled()
