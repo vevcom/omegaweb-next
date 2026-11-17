@@ -1,5 +1,5 @@
 import { ChatServerError } from '@/lib/chatSync/client'
-import type { ChatPowerLevels, ChatRoom, Homeserver, NewRoom } from '@/lib/chatSync/client'
+import type { ChatPowerLevels, ChatRoom, Homeserver, NewRoom, StandaloneChatRoom } from '@/lib/chatSync/client'
 
 type Room = {
     name: string | undefined,
@@ -133,6 +133,20 @@ export class FakeHomeserver implements Homeserver {
             invitedUserIds: [...room.invited],
             listedRoomIds: [...room.listedRoomIds],
         })
+    }
+
+    /** A room users have made themselves, which the bot is not in. */
+    createStandaloneRoom({ members, invited = [], name }: { members: string[], invited?: string[], name?: string }): string {
+        const roomId = `!standalone${++this.created}:${SERVER_NAME}`
+        const levels = { users: {} }
+        this.rooms.set(roomId, { name, members, invited, levels, listedRoomIds: [], spaceRoomId: null, isPrivate: true })
+        return roomId
+    }
+
+    readStandaloneRoom(roomId: string): Promise<StandaloneChatRoom | null> {
+        const room = this.rooms.get(roomId)
+        if (!room) return Promise.resolve(null)
+        return Promise.resolve({ name: room.name, joinedUserIds: [...room.members], invitedUserIds: [...room.invited] })
     }
 
     writeState(roomId: string, type: string, content: Record<string, unknown>): Promise<void> {

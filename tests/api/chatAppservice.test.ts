@@ -27,6 +27,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
     await loaded.prisma.chatSpace.deleteMany()
+    await loaded.prisma.chatRoomMessage.deleteMany()
 })
 
 function message(eventId: string, content: Record<string, unknown>, { roomId = ROOM, sender = KARI } = {}) {
@@ -83,11 +84,32 @@ describe('what the homeserver sends the app', () => {
         expect(kept[0].notifiedAt).toBeNull()
     })
 
-    test('lets go of everything else: other rooms, edits, removed messages and what is no message', async () => {
+    test('keeps a message outside every space by the room it was written in', async () => {
+        await createRoomOfASpace()
+
+        await send([message('$direct', text, { roomId: '!direkte:chat.test' })])
+
+        const kept = await loaded.prisma.chatRoomMessage.findMany()
+        expect(kept).toMatchObject([
+            { roomId: null, standaloneMatrixRoomId: '!direkte:chat.test', matrixEventId: '$direct', senderMatrixId: KARI },
+        ])
+        expect(JSON.stringify(kept)).not.toContain('lagres aldri')
+    })
+
+    test('lets go of a message in the room a space itself is, and in a room that is being destroyed', async () => {
+        const room = await createRoomOfASpace()
+        await loaded.prisma.chatSpace.update({ where: { id: room.spaceId }, data: { matrixRoomId: '!omraade:chat.test' } })
+        await loaded.prisma.chatSpaceRoom.update({ where: { id: room.id }, data: { destroyedAt: new Date() } })
+
+        await send([message('$space', text, { roomId: '!omraade:chat.test' }), message('$destroyed', text)])
+
+        expect(await loaded.prisma.chatRoomMessage.count()).toBe(0)
+    })
+
+    test('lets go of everything else: edits, removed messages and what is no message', async () => {
         await createRoomOfASpace()
 
         const response = await send([
-            message('$direct', text, { roomId: '!direkte:chat.test' }),
             message('$edit', { ...text, 'm.relates_to': { rel_type: 'm.replace', event_id: '$plain' } }),
             message('$removed', {}),
             { type: 'm.room.member', event_id: '$join', room_id: ROOM, sender: OLA, content: { membership: 'join' } },

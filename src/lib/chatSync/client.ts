@@ -32,6 +32,12 @@ export type ChatRoom = {
     listedRoomIds: string[],
 }
 
+/** A room outside every space, which the bot is not in. */
+export type StandaloneChatRoom = Pick<ChatRoom, 'name' | 'joinedUserIds'> & {
+    /** Whoever is invited and has not answered, as the one a direct message is first written to. */
+    invitedUserIds: string[],
+}
+
 /** From this version of a room on, its creator outranks every level, so nobody takes the bot's power away. */
 const ROOM_VERSION_WITH_CREATOR_POWER = '12'
 
@@ -65,6 +71,7 @@ export type Homeserver = Pick<ChatClient,
     | 'botUserId' | 'userIdOf' | 'registerBot'
     | 'hasAccount' | 'writeDisplayName' | 'deactivate'
     | 'createSpace' | 'createRoom' | 'closeRoom' | 'readRoom' | 'writeState' | 'listRoom' | 'unlistRoom'
+    | 'readStandaloneRoom'
     | 'addMember' | 'removeMember' | 'leave'
 >
 
@@ -210,6 +217,22 @@ export class ChatClient {
             listedRoomIds: state
                 .filter(event => event.type === 'm.space.child' && Array.isArray(event.content.via))
                 .map(event => event.state_key),
+        }
+    }
+
+    /** Read as an admin of the homeserver, since the bot is in no such room. Null for a room it does not have. */
+    async readStandaloneRoom(roomId: string): Promise<StandaloneChatRoom | null> {
+        const answer = await this.synapseAdmin('GET', `/v1/rooms/${encodeURIComponent(roomId)}/state`)
+            .catch(ignoring(404)) as { state: StateEvent[] } | undefined
+        if (!answer) return null
+        const userIdsWithMembership = (membership: string) => answer.state
+            .filter(event => event.type === 'm.room.member' && event.content.membership === membership)
+            .map(event => event.state_key)
+
+        return {
+            name: eventOf(answer.state, 'm.room.name')?.content.name as string | undefined,
+            joinedUserIds: userIdsWithMembership('join'),
+            invitedUserIds: userIdsWithMembership('invite'),
         }
     }
 

@@ -16,6 +16,7 @@ afterEach(async () => {
     Reflect.deleteProperty(chatSpaceAdmins, 'MANUAL')
     await prisma.notification.deleteMany()
     await prisma.chatSpace.deleteMany()
+    await prisma.chatRoomMessage.deleteMany()
     await prisma.chatUser.deleteMany()
     await prisma.user.deleteMany({ where: { email: { endsWith: '@chat-notify.test' } } })
 })
@@ -207,5 +208,96 @@ describe('a message in a room of a space', () => {
 
         const kept = await prisma.chatRoomMessage.findMany({ select: { id: true } })
         expect(kept).toEqual([{ id: recent.id }])
+    })
+})
+
+describe('a message outside every space', () => {
+    function messageInStandalone(standaloneMatrixRoomId: string, sender: { matrixId: string }) {
+        return prisma.chatRoomMessage.create({
+            data: {
+                standaloneMatrixRoomId,
+                matrixEventId: `$message${++sent}`,
+                senderMatrixId: sender.matrixId,
+                sentAt: new Date(),
+            },
+        })
+    }
+
+    async function directAndGroupChannelId() {
+        const channel = await prisma.notificationChannel.findUniqueOrThrow({ where: { special: 'CHAT_DIRECT_AND_GROUP' } })
+        return channel.id
+    }
+
+    test('to one user is notified of to them, as written to them', async () => {
+        const [kari, ola] = await Promise.all(['kari', 'ola'].map(createChatUser))
+        const direct = homeserver.createStandaloneRoom({ members: [kari.matrixId, ola.matrixId] })
+        await messageInStandalone(direct, kari)
+
+        await expect(syncAndReadNotifications()).resolves.toEqual([{
+            title: 'kari Nordmann skrev til deg',
+            message: 'Meldingen ligger i direktemeldingene dine på chatten.',
+            url: '/users/me/chat',
+            channelId: await directAndGroupChannelId(),
+            to: [ola.id],
+        }])
+    })
+
+    test('reaches one who is written to for the first time, and so is only invited', async () => {
+        const [kari, ola] = await Promise.all(['kari', 'ola'].map(createChatUser))
+        const direct = homeserver.createStandaloneRoom({ members: [kari.matrixId], invited: [ola.matrixId] })
+        await messageInStandalone(direct, kari)
+
+        await expect(syncAndReadNotifications()).resolves.toEqual([
+            expect.objectContaining({ title: 'kari Nordmann skrev til deg', to: [ola.id] }),
+        ])
+    })
+
+    test('in a group room is notified of to the others in it, by the name of the room', async () => {
+        const [kari, ola, per, guro] = await Promise.all(['kari', 'ola', 'per', 'guro'].map(createChatUser))
+        const named = homeserver.createStandaloneRoom({
+            members: [kari, ola, per].map(user => user.matrixId),
+            name: 'Hytteturen',
+        })
+        const unnamed = homeserver.createStandaloneRoom({ members: [kari, ola, guro].map(user => user.matrixId) })
+        await messageInStandalone(named, kari)
+        await messageInStandalone(unnamed, kari)
+
+        await expect(syncAndReadNotifications()).resolves.toEqual([
+            expect.objectContaining({
+                title: 'kari Nordmann skrev i Hytteturen',
+                message: 'Meldingen ligger i en gruppe du er med i på chatten.',
+                channelId: await directAndGroupChannelId(),
+                to: [ola.id, per.id].sort(),
+            }),
+            expect.objectContaining({ title: 'kari Nordmann skrev i en gruppe', to: [ola.id, guro.id].sort() }),
+        ])
+    })
+
+    test('is one notification with what else the same user wrote in the room since the last run', async () => {
+        const [kari, ola] = await Promise.all(['kari', 'ola'].map(createChatUser))
+        const direct = homeserver.createStandaloneRoom({ members: [kari.matrixId, ola.matrixId] })
+        await messageInStandalone(direct, kari)
+        await messageInStandalone(direct, kari)
+        await messageInStandalone(direct, ola)
+
+        const notifications = await syncAndReadNotifications()
+        expect(notifications.map(notification => [notification.title, notification.to])).toEqual([
+            ['kari Nordmann skrev til deg', [ola.id]],
+            ['ola Nordmann skrev til deg', [kari.id]],
+        ])
+        expect(await prisma.chatRoomMessage.count({ where: { notifiedAt: null } })).toBe(0)
+
+        await messageInStandalone(direct, kari)
+        expect(await syncAndReadNotifications()).toHaveLength(3)
+    })
+
+    test('is notified of to nobody when the homeserver has no such room, or nobody else is in it', async () => {
+        const kari = await createChatUser('kari')
+        const alone = homeserver.createStandaloneRoom({ members: [kari.matrixId] })
+        await messageInStandalone(alone, kari)
+        await messageInStandalone('!ukjent:chat.test', kari)
+
+        expect(await syncAndReadNotifications()).toHaveLength(0)
+        expect(await prisma.chatRoomMessage.count({ where: { notifiedAt: null } })).toBe(0)
     })
 })
