@@ -9,6 +9,7 @@ import { newJobAdNotificationChannel } from '@/services/careers/jobAds/newJobAdN
 import { newOmegaquoteNotificationChannel } from '@/services/omegaquotes/newOmegaquoteNotificationChannel'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
 import { chatNotificationChannel } from '@/services/chat/chatNotificationChannel'
+import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
 import type { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import type { SpecialNotificationChannelImplementation } from '@/services/notifications/channels/implementSpecial'
 
@@ -32,5 +33,6 @@ export const specialNotificationChannelOperations = {
         NEW_OMEGAQUOTE: newOmegaquoteNotificationChannel,
         CONTACTOR: contactorNotificationChannel,
         CHAT: chatNotificationChannel,
+        CHAT_DIRECT_AND_GROUP: chatDirectAndGroupNotificationChannel,
     } satisfies Record<SpecialNotificationChannel, SpecialNotificationChannelImplementation>,
 } as const

@@ -1,4 +1,5 @@
 'use client'
+import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import CollectionAdminUpload from './CollectionAdminUpload'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -8,7 +9,6 @@ import {
     UploadHeaderItemPopUp,
     VisibilityHeaderItemPopUp,
 } from '@/components/HeaderItems/HeaderItemPopUp'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import Button from '@/components/UI/Button'
@@ -18,8 +18,6 @@ import {
     updateDynamicImageCollectionAction,
     destroyDynamicImageCollectionAction,
     uploadImageToDynamicCollectionAction,
-    updateDynamicImageCollectionRegularLevelVisibilityAction,
-    updateDynamicImageCollectionAdminLevelVisibilityAction,
 } from '@/services/images/dynamic/actions'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { appHref } from '@/lib/sites/href'
@@ -166,37 +164,15 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
             {
                 doubleLevelVisibility && canOpenVisibilityPopUp && (
                     <VisibilityHeaderItemPopUp popUpKey="Visibility">
-                        <div>
-                            {
-                                canUpdateRegularVisibility && (
-                                    <div>
-                                        <h3>Vanlig visning</h3>
-                                        <VisibilityAdmin
-                                            visibility={doubleLevelVisibility.regularLevel}
-                                            visibilityId={collection.visibilityRegularId}
-                                            updateVisibilityAction={configureAction(
-                                                updateDynamicImageCollectionRegularLevelVisibilityAction,
-                                                { implementationParams: { collectionId } }
-                                            )}
-                                        />
-                                    </div>
-                                )
-                            }
-                            {
-                                canUpdateAdminVisibility && (
-                                    <div>
-                                        <h3>Adminvisning</h3>
-                                        <VisibilityAdmin
-                                            visibility={doubleLevelVisibility.adminLevel}
-                                            visibilityId={collection.visibilityAdminId}
-                                            updateVisibilityAction={configureAction(
-                                                updateDynamicImageCollectionAdminLevelVisibilityAction,
-                                                { implementationParams: { collectionId } }
-                                            )}
-                                        />
-                                    </div>
-                                )
-                            }
+                        <div className="flex flex-col gap-4">
+                            <imageCollectionVisibility.Forms
+                                doubleLevelVisibility={doubleLevelVisibility}
+                                visibilityIds={{
+                                    regular: collection.visibilityRegularId,
+                                    admin: collection.visibilityAdminId,
+                                }}
+                                params={{ collectionId }}
+                            />
                         </div>
                     </VisibilityHeaderItemPopUp>
                 )

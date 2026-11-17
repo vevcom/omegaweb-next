@@ -15,15 +15,16 @@ type ChannelInfo = {
 
 /**
  * The special channels are brought in line with their config, the root first since the others sit
- * under it. The manual channels below are upserted on their unique name, and an existing one is
+ * under it, and then one at a time, since a channel that sits under another makes it when it is
+ * missing. The manual channels below are upserted on their unique name, and an existing one is
  * left untouched: its methods, alias and description are edited through the admin pages.
  */
 export const seedNotificationChannels = defineSeedOperation(async (prisma: PrismaClient) => {
     const { ROOT, ...otherSpecials } = specialNotificationChannelOperations.channels
     await ROOT.internal.generateFromConfig.internalCall({ prisma })
-    await Promise.all(Object.values(otherSpecials).map(channel =>
-        channel.internal.generateFromConfig.internalCall({ prisma })
-    ))
+    for (const channel of Object.values(otherSpecials)) {
+        await channel.internal.generateFromConfig.internalCall({ prisma })
+    }
 
     const channels: ChannelInfo[] = [
         {

@@ -182,6 +182,19 @@ describe('saving an event with its registration', () => {
         expect(notifySpy).toHaveBeenCalledTimes(1)
     })
 
+    test('keeps the info of a variant, and drops it when left empty', async () => {
+        const id = await createEvent('Pulje med info')
+        const variant = { name: 'Pulje 1', ...period, takesPayment: false, quotas: [{ name: 'Alle', places: 5, ...open }] }
+
+        await save(id, { variants: [{ ...variant, description: 'Møt opp kl. 17:00' }] })
+        const { variants } = await eventOperations.read({ params: { id }, bypassAuth: true })
+        expect(toVariantDrafts(variants)[0].description).toBe('Møt opp kl. 17:00')
+
+        await save(id, { variants: [{ ...variant, id: variants[0].id, description: '  ' }] })
+        const after = await eventOperations.read({ params: { id }, bypassAuth: true })
+        expect(after.variants[0].description).toBeNull()
+    })
+
     test('keeps moving unpaid registrations back through the form', async () => {
         const id = await createEvent('Flytter ubetalte')
         await save(id, {

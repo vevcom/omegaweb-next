@@ -49,6 +49,7 @@ export const eventQuotaOrder = [
 export const eventVariantSummarySelection = {
     id: true,
     name: true,
+    description: true,
     order: true,
     registrationStart: true,
     registrationEnd: true,

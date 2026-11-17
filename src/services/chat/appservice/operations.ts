@@ -10,9 +10,10 @@ const isEditOfEarlierMessage = (message: RoomMessageEvent) => message.content['m
 export const chatAppserviceOperations = {
     /**
      * What the homeserver sends the app as its application service: every event in every room, a
-     * few at a time. The messages in the rooms of the spaces are kept for the chat worker to notify
-     * of, without what they say. One that is removed before it is notified of is forgotten.
-     * Everything else is let go, direct messages among it.
+     * few at a time. The messages are kept for the chat worker to notify of, without what they say:
+     * those in the rooms of the spaces by their room, and those outside every space, in direct
+     * messages and group rooms, by the Matrix room they were written in. One that is removed before
+     * it is notified of is forgotten. Everything else is let go.
      */
     receiveTransaction: defineOperation({
         paramsSchema: chatAppserviceSchemas.params.receiveTransaction,
@@ -33,25 +34,34 @@ export const chatAppserviceOperations = {
                 return removal.success ? removal.data.redacts ?? removal.data.content?.redacts ?? [] : []
             })
 
-            const rooms = await prisma.chatSpaceRoom.findMany({
-                where: {
-                    matrixRoomId: { in: messages.map(message => message.room_id) },
-                    destroyedAt: null,
-                    space: { destroyedAt: null },
-                },
-                select: { id: true, matrixRoomId: true },
-            })
-            const roomIdOf = new Map(rooms.map(room => [room.matrixRoomId, room.id]))
+            const matrixRoomIds = messages.map(message => message.room_id)
+            const [rooms, spaces] = await Promise.all([
+                prisma.chatSpaceRoom.findMany({
+                    where: { matrixRoomId: { in: matrixRoomIds } },
+                    select: { id: true, matrixRoomId: true, destroyedAt: true, space: { select: { destroyedAt: true } } },
+                }),
+                prisma.chatSpace.findMany({
+                    where: { matrixRoomId: { in: matrixRoomIds } },
+                    select: { matrixRoomId: true },
+                }),
+            ])
+            const roomIdOf = new Map(rooms
+                .filter(room => room.destroyedAt === null && room.space.destroyedAt === null)
+                .map(room => [room.matrixRoomId, room.id]))
+            // A room being destroyed is still a space's, and so is the room a space itself is.
+            const ofSpaces = new Set([...rooms, ...spaces].map(room => room.matrixRoomId))
 
             // The homeserver sends a transaction again until it is taken, so a message may come twice.
             await prisma.chatRoomMessage.createMany({
                 skipDuplicates: true,
                 data: messages.flatMap(message => {
                     const roomId = roomIdOf.get(message.room_id)
-                    if (roomId === undefined) return []
+                    const isOutsideSpaces = !ofSpaces.has(message.room_id)
+                    if (roomId === undefined && !isOutsideSpaces) return []
                     const mentions = message.content['m.mentions']
                     return [{
                         roomId,
+                        standaloneMatrixRoomId: isOutsideSpaces ? message.room_id : null,
                         matrixEventId: message.event_id,
                         senderMatrixId: message.sender,
                         mentionedMatrixIds: mentions?.user_ids ?? [],

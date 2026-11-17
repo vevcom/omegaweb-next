@@ -1,5 +1,6 @@
 'use client'
 import AdminSection from './AdminSection'
+import { eventQuotaVisibility } from './eventVisibility'
 import EventQuotaBar from './EventQuotaBar'
 import { useEventVariantsField } from './EventVariantsField'
 import { hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
@@ -9,10 +10,6 @@ import NumberInput from '@/components/UI/NumberInput'
 import OptionCards from '@/components/UI/OptionCards'
 import ReorderableList from '@/components/UI/ReorderableList'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
-import { describeAudience } from '@/auth/visibility/describeVisibility'
-import { useGroups } from '@/contexts/ClientData'
-import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
@@ -20,6 +17,19 @@ import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
 import type { ReactNode } from 'react'
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
+
+function VariantDescription({ variant, onChange }: {
+    variant: VariantDraft,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <TextInput
+        label="Kort info over påmeldingen, for eksempel når de skal møte"
+        maxLength={120}
+        value={variant.description ?? ''}
+        onChange={event => onChange({ description: event.target.value })}
+        className="max-w-none! mt-0!"
+    />
+}
 
 function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     quota: QuotaDraft,
@@ -31,8 +41,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     onRemove: () => void,
 }) {
     const [editingWho, setEditingWho] = useState(false)
-    const groupsResult = useGroups()
-    const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
     const over = quota.numOfRegistrations - quota.places
 
     return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-100">
@@ -61,7 +69,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
             <span className="text-base-content/80">
                 {quota.numOfRegistrations} påmeldt.{' '}
-                {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
+                <eventQuotaVisibility.Description visibility={{ requirements: quota.visibilityRequirements }} />
             </span>
             <div className="flex items-center gap-3">
                 <Button
@@ -88,7 +96,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         {over > 0 && <p className="m-0 text-s text-warning">
             Når du lagrer, flyttes {over} til neste kvote de kan melde seg på, eller til ventelisten.
         </p>}
-        {editingWho && <VisibilityMatrixEditor
+        {editingWho && <eventQuotaVisibility.Field
             requirements={quota.visibilityRequirements}
             onChange={visibilityRequirements => onChange({ visibilityRequirements })}
         />}
@@ -247,6 +255,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
 
         {variants.length === 1 && <AdminSection>
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
+            <VariantDescription variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
                 variant={variants[0]}
                 waitingList={waitingList}
@@ -276,6 +285,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                     </Button>
                 </div>
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
+                <VariantDescription variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow
                     variant={variant}
                     waitingList={waitingList}

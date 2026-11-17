@@ -18,6 +18,7 @@ const saved = (id: number, quotaIds: number[]): EventVariantExpanded => ({
     id,
     order: 0,
     name: `Variant ${id}`,
+    description: null,
     registrationStart: opens,
     registrationEnd: closes,
     takesPayment: true,
@@ -59,8 +60,8 @@ describe('the drafts of the setup form', () => {
         const [posted] = variantsToPost(toVariantDrafts([saved(7, [3])]))
 
         expect(Object.keys(posted)).toEqual([
-            'id', 'name', 'registrationStart', 'registrationEnd', 'takesPayment', 'price', 'paymentStart', 'paymentEnd',
-            'requeueUnpaidRegistrations', 'quotas',
+            'id', 'name', 'description', 'registrationStart', 'registrationEnd', 'takesPayment', 'price', 'paymentStart',
+            'paymentEnd', 'requeueUnpaidRegistrations', 'quotas',
         ])
         expect(Object.keys(posted.quotas[0])).toEqual(['id', 'name', 'places', 'visibilityRequirements'])
         expect(posted.price).toBe(150)
