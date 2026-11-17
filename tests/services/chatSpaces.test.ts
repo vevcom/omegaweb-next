@@ -229,6 +229,7 @@ describe('the chat spaces of a service', () => {
     test('are made when the chat channel their channels sit under is not there yet', async () => {
         const channelsOfSpaces = { purpose: { in: ['CHAT_SPACE_MENTIONS' as const, 'CHAT_SPACE_ALL' as const] } }
         await prisma.notificationChannel.deleteMany({ where: channelsOfSpaces })
+        await prisma.notificationChannel.deleteMany({ where: { special: 'CHAT_DIRECT_AND_GROUP' } })
         await prisma.notificationChannel.deleteMany({ where: { special: 'CHAT' } })
 
         const space = await createMine()
