@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { committeeAuth } from './auth'
 import { committeeExpandedIncluder, committeeLogoIncluder } from './constants'
 import { committeeSchemas } from './schemas'

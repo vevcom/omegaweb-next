@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { specialNotificationChannelAuth } from './auth'
 import { notificationChannelOperations } from '@/services/notifications/channels/subservice/operations'
 import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatNotificationChannel } from './chatNotificationChannel'
 import { implementSpecialNotificationChannel } from '@/services/notifications/channels/implementSpecial'
 

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { createReadStream } from 'fs'
 import { mkdir, opendir, readFile, rename, stat, unlink, writeFile } from 'fs/promises'
 import { randomUUID } from 'crypto'

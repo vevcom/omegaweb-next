@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventRegistrationQueueOrder, REGISTRATION_READER_TYPE } from './constants'
 import { takeAdvisoryLockOnId } from '@/lib/advisoryLocks'
 import type { Prisma } from '@/prisma-generated-pn-types'

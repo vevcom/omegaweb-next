@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatUserAuth } from './auth'
 import { chatUserSchemas } from './schemas'
 import { CHAT_LOCALPART_ATTEMPTS, chatLocalpartAt, isReservedChatLocalpart } from './localpart'

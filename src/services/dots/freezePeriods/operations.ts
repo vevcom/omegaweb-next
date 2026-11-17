@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { dotFreezePeriodAuth } from './auth'
 import { dotFreezePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

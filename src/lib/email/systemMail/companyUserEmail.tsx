@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { emailValidationExpiration } from './constants'
 import {
     CompanyUserEmailChangedTemplate,

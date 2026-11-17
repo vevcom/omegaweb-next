@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { withPageSession } from '@/app/ServerPage'
 import { Smorekopp } from '@/services/error'
 import { unstable_rethrow as unstableRethrow } from 'next/navigation'

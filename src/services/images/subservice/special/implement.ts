@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { expandImageCollection } from '@/services/images/subservice/collections'

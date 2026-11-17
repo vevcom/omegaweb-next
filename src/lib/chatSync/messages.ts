@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
 import { prisma } from '@/prisma-pn-client-instance'

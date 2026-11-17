@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceNotificationAuth } from './auth'
 import { chatSpaceNotificationSchemas } from './schemas'
 import {

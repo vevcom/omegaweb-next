@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import VevenAdapter from './VevenAdapter'
 import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'

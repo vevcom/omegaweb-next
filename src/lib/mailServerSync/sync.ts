@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailServerClientFromEnv } from './client'
 import { mailServerWebmail, mailboxesAreAvailable } from './constants'
 import { syncDomains } from './domains'

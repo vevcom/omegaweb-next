@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 // The .env.default placeholder for unfilled-in secrets, treated the same as unset.
 const UNSET_PLACEHOLDER = '<INSERT>'

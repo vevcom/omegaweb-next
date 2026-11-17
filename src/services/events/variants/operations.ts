@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventVariantAuth } from './auth'
 import { eventVariantSchemas } from './schemas'
 import { readEventAccess } from '@/services/events/access'

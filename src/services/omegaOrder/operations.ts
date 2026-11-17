@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegaOrderAuth } from './auth'
 import { groupTypesMigratedStraightAway } from './constants'
 import { groupTypesConfig } from '@/services/groups/constants'

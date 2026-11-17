@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailServerAdmin } from './constants'
 
 /** The objects of the management API the sync works with, named as its methods name them. */

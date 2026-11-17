@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careersFrontpageAuth } from './auth'
 import { careersFrontpageCmsImages, careersFrontpageCmsLinks, careersFrontpageCmsParagraphs } from './constants'
 import { implementSpecialCmsParagraphs } from '@/cms/paragraphs/implement'

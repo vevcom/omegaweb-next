@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatAppserviceAuth } from './auth'
 import { chatAppserviceSchemas, roomMessageEventSchema, roomRedactionEventSchema } from './schemas'
 import { chatHomeserverToken } from '@/lib/chatSync/constants'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { productAuth } from './auth'
 import { productSchemas } from './schemas'
 import { productImageIncluder } from './constants'

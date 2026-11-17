@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { flairImageCollection } from '@/services/flairs/flairImageCollection'
 import { ombulCoverCollection } from '@/services/ombul/ombulCoverCollection'
 import { committeeLogoCollection } from '@/services/groups/committees/committeeLogoCollection'

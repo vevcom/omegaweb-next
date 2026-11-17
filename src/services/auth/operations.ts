@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { authAuth } from './auth'
 import { authSchemas, linkFeideAccountClaimsSchema } from './schemas'
 import { moveFeideAccountToUser } from './feideAccounts/move'

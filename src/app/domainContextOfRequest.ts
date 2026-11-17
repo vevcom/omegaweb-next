@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { CURRENT_PATH_HEADER, SITE_DOMAIN_HEADER } from '@/proxy'
 import { DomainContext } from '@/lib/sites/context'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'

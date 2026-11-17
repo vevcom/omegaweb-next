@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { allowedExtensions, avifConvertionOptions, imageSizes, maxImageInputPixels } from './constants'
 import { implementStore } from '@/services/store/implement'
 import { ServiceError } from '@/services/error'

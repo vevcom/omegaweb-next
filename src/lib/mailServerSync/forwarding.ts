@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { MailServerRefusal } from './client'
 import { createHash } from 'crypto'
 import type { MailServerClient } from './client'

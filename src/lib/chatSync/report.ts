@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 /** One thing the sync does to the homeserver, with the words that name it when it is refused. */
 export type Change = {

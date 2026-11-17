@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { processNextImage } from '@/services/images/subservice/processingQueue'
 import {
     dispatchNextEmailNotification,

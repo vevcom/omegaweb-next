@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { companyUserSelection } from '@/services/careers/companies/users/constants'
 import { implementAccountFlows } from '@/services/accountFlows/implement'
 import { userSchemas } from '@/services/users/schemas'

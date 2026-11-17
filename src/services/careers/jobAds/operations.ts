@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'

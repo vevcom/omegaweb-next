@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'

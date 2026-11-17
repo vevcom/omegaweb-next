@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { implementSpecialNotificationChannel } from './implementSpecial'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 

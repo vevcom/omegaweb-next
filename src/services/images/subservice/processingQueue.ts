@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { imageOperations } from './operations'
 import { imageProcessing } from './constants'
 import { prisma } from '@/prisma-pn-client-instance'

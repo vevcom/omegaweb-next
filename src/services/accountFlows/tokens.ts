@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { generateJWT } from '@/jwt/jwt'
 import type { OmegaJWTAudience } from '@/lib/jwt/types'
 

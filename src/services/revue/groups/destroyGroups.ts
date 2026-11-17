@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueGroupArticleSection } from './articleSection'
 import type { Prisma } from '@/prisma-generated-pn-types'
 

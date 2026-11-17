@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateNewParent } from './helpers'

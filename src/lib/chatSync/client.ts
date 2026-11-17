@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART, CHAT_MAS_CLIENT_ID, ROOM_MODERATOR_LEVEL } from './constants'
 
 export type ChatFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'status' | 'json'>>

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cabinPricePeriodAuth } from './auth'
 import { cabinPricePeriodSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

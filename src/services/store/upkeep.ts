@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { destroyStoreContent, locationsFrom, storeBackends } from './locations'
 import { storeDirectories } from './paths'
 import { storeFileOwners, storeUpkeep, type StoreFileOwner } from './constants'

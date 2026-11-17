@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailAuth } from './auth'
 import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'

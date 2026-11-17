@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { implementAccountFlows } from '@/services/accountFlows/implement'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { userOperations } from '@/services/users/operations'

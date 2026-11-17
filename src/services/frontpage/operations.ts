@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { frontpageAuth } from './auth'
 import { implementSpecialCmsParagraphs } from '@/cms/paragraphs/implement'
 import { implementSpecialCmsImages } from '@/cms/images/implement'

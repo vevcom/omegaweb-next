@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { articleRelationsIncluder, maxSections } from './constants'
 import { articleSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { committeeAuth } from './auth'
 import { committeeSchemas } from './schemas'
 import { implementChatSpaces } from '@/services/chat/spaces/implement'

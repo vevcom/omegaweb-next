@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { z } from 'zod'
 
 /**

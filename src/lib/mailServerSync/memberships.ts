@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailboxAddressOf } from './mailboxes'
 import { signInNameOf } from './userMailboxes'
 import { receiversOfAliases } from '@/services/mail/received'

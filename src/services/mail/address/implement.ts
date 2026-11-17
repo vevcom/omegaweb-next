@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailAddressOperations } from './operations'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { assertGroupValidity } from './assertGroupValidity'
 import { isGroupPensioned } from './groupChecks'
 import { groupSchemas } from './schemas'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { standardImageConfig } from './constants'
 import { standardImageCollectionSchemas } from './schemas'
 import { standardImageCollectionAuth } from './auth'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceSchemas } from './schemas'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { reserveId } from '@/lib/reserveId'

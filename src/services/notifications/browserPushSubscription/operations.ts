@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { browserPushSubscriptionAuth } from './auth'
 import { browserPushSubscriptionSchemas } from './schemas'
 import { maxBrowserPushSubscriptionsPerUser } from './constants'

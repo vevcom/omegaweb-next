@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careersTeamPersonAuth } from './auth'
 import { careersTeamPersonSchemas } from './schemas'
 import { careersTeamPersonIncluder } from './constants'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { classAuth } from './classes/auth'
 import { classOperations } from './classes/operations'
 import { committeeAuth } from './committees/auth'

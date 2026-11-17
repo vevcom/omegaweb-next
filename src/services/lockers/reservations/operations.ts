@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { lockerReservationAuth } from './auth'
 import { lockerReservationSchemas } from './schemas'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'

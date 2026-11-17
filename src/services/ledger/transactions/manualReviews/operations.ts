@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualReviewAuth } from './auth'
 import { manualReviewSchemas } from './schemas'
 import { manualReviewProblemDescriptions } from './constants'

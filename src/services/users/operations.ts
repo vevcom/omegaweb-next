@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {

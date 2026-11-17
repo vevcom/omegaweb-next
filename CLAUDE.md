@@ -311,7 +311,7 @@ This applies to every comment you write in code, not to this file's own prose.
 
 ### Server-Only Code
 
-Files that must run only on the server import `'@pn-server-only'` at the top. This prevents accidental client-side execution of sensitive code.
+Files that must run only on the server import `'@ow-server-only'` at the top. This prevents accidental client-side execution of sensitive code.
 
 ### Awaitable callbacks
 
@@ -371,7 +371,7 @@ reach for a stronger one "just in case" once a simpler one already works.
 
 ### Calling Services from the Frontend
 
-**IMPORTANT**: client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`. Operations are server-only: they build on `serviceOperation.ts`, which imports `'@pn-server-only'`.
+**IMPORTANT**: client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`. Operations are server-only: they build on `serviceOperation.ts`, which imports `'@ow-server-only'`.
 
 Server components do the opposite: pages, layouts and other server components import from `operations.ts` and call operations directly, not through actions. A read action exists only when a client component needs it, so don't add one for a page.
 

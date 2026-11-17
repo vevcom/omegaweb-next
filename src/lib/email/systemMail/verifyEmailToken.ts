@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { generateVerifyEmailJWT as generateVerifyEmailJWTOfAccount } from '@/services/accountFlows/tokens'
 
 /** The token the verify email link of a user carries. See the generator shared by every kind of account. */

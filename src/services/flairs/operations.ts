@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { flairAuth } from './auth'
 import { flairSchemas } from './schemas'
 import { flairImageCollection } from './flairImageCollection'

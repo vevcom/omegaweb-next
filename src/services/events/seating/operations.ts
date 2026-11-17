@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventSeatingAuth } from './auth'
 import { eventSeatingSchemas } from './schemas'
 import { placesOf } from './plan'

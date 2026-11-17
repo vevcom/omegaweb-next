@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { promoAuth } from './auth'
 import { promoSchemas } from './schemas'
 import { promoImageCollection } from './promoImageCollection'

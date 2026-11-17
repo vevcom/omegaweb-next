@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'

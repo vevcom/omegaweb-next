@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careerTeamImageCollection } from './careerTeamImageCollection'
 import type { Prisma } from '@/prisma-generated-pn-types'
 

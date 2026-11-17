@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { workers } from './definitions'
 import { prisma } from '@/prisma-pn-client-instance'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'

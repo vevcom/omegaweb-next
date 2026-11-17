@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { standardImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { allowedExtensions } from '@/services/images/subservice/constants'
