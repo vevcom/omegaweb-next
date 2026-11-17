@@ -15,6 +15,13 @@ export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
         || adminVisibility.requirements.some(requirement => requirement.conditions.length === 0)
 }
 
+/** Whether the event is a draft its creator holds, which is one no one administrates. */
+export function creatorHoldsDraft(
+    { published, creatorId, adminVisibility }: Pick<EventAccess, 'published' | 'creatorId' | 'adminVisibility'>,
+) {
+    return !published && creatorId !== null && hasNoAdministrators(adminVisibility)
+}
+
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
  * EVENT_ADMIN bypasses it for every event. The creator holds a draft while no one administrates it,
@@ -22,9 +29,7 @@ export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
  * `{ adminVisibility, published, creatorId }` supplied via `.data()`.
  */
 const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null, adminVisibility: VisibilityMatrix }>(
-    ({ session, published, creatorId, adminVisibility }) => (
-        !published && creatorId !== null && session.user?.id === creatorId && hasNoAdministrators(adminVisibility)
-    )
+    ({ session, ...draft }) => creatorHoldsDraft(draft) && session.user?.id === draft.creatorId
 )
 
 export const eventAdminLevel = Require.anyOf(
@@ -64,7 +69,7 @@ export const canSeeEvent = Require.anyOf(
 
 /**
  * The same rule as `canSeeEvent`, as the visibilities that show the event, any one of which is
- * enough. Those with EVENT_ADMIN and the creator of a draft no one administrates see it besides.
+ * enough. Those with EVENT_ADMIN see it besides, and so does the creator while `creatorHoldsDraft`.
  */
 export function visibilitiesShowingEvent(
     { published, canBeViewedBy, adminVisibility, quotaVisibilities }: EventAccess,

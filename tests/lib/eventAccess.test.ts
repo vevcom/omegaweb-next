@@ -1,4 +1,4 @@
-import { eventAuth, visibilitiesShowingEvent } from '@/services/events/auth'
+import { creatorHoldsDraft, eventAuth, visibilitiesShowingEvent } from '@/services/events/auth'
 import { canRegisterSelf } from '@/services/events/registration/auth'
 import { Session } from '@/auth/session/Session'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
@@ -52,6 +52,21 @@ describe('visibilitiesShowingEvent', () => {
         sessions.forEach(session => {
             expect(eventAuth.read.data(access).auth(session).authorized).toBe(passesOne(session))
         })
+    })
+})
+
+describe('creatorHoldsDraft', () => {
+    const noAdministrators: VisibilityMatrix = { requirements: [{ conditions: [] }] }
+
+    test('a draft no one administrates is its creator\'s, who then sees it', () => {
+        const draft = event({ published: false, adminVisibility: noAdministrators, creatorId: 3 })
+        expect(creatorHoldsDraft(draft)).toBe(true)
+        expect(eventAuth.read.data(draft).auth(memberOf()).authorized).toBe(true)
+    })
+
+    test('a draft with administrators, or a published event, is not', () => {
+        expect(creatorHoldsDraft(event({ published: false }))).toBe(false)
+        expect(creatorHoldsDraft(event({ adminVisibility: noAdministrators }))).toBe(false)
     })
 })
 

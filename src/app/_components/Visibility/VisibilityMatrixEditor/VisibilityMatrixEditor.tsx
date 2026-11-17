@@ -44,6 +44,11 @@ const conditionKey = (condition: VisibilityCondition) => (
     condition.type === 'ORDER' ? `${condition.groupId}-${condition.order}` : `${condition.groupId}`
 )
 
+/** A chip changed into what another already says leaves one of them. */
+const withoutRepeats = (conditions: VisibilityCondition[]) => Array.from(
+    new Map(conditions.map(condition => [conditionKey(condition), condition])).values()
+)
+
 const groupOptions = (groups: ExpandedGroup[]) => Object.entries(groupTypeNames).flatMap(([type, section]) => (
     groups
         .filter(group => group.groupType === type)
@@ -188,9 +193,9 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                             key={conditionKey(condition)}
                             condition={condition}
                             groups={groups}
-                            onChange={changed => setConditions(listIndex, list.conditions.map((other, index) => (
-                                index === conditionIndex ? changed : other
-                            )))}
+                            onChange={changed => setConditions(listIndex, withoutRepeats(
+                                list.conditions.map((other, index) => (index === conditionIndex ? changed : other))
+                            ))}
                             onRemove={() => setConditions(
                                 listIndex,
                                 list.conditions.filter((_, index) => index !== conditionIndex)

@@ -5,7 +5,7 @@ import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Session } from '@/auth/session/Session'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useFlatGroups from '@/hooks/useFlatGroups'
-import { eventAuth, visibilitiesShowingEvent } from '@/services/events/auth'
+import { creatorHoldsDraft, eventAuth, visibilitiesShowingEvent } from '@/services/events/auth'
 import { canRegisterSelf } from '@/services/events/registration/auth'
 import type { AuthResultAny } from '@/auth/authorizer/AuthResult'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
@@ -33,6 +33,7 @@ export function EventSeenBy({ access }: { access: EventAccess }) {
             ? <p className="m-0">Alle, også de som ikke er logget inn.</p>
             : <ul className="m-0 pl-5">
                 {described.map(who => <li key={who}>{who}</li>)}
+                {creatorHoldsDraft(access) && <li>Den som opprettet utkastet, til noen administrerer det</li>}
                 <li>De med rettigheten EVENT_ADMIN</li>
             </ul>}
         {!access.published && <p className={noteClassName}>
