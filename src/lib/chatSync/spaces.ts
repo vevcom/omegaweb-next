@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { planSpaceChanges, removeEveryoneBut } from './spaceChanges'
 import { chatSpaceAdmins, chatSpaceStandingMembers } from '@/services/chat/spaces/admins'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'

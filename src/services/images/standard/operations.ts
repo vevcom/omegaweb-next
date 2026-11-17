@@ -1,8 +1,8 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { standardImageConfig } from './constants'
 import { standardImageCollectionSchemas } from './schemas'
 import { standardImageCollectionAuth } from './auth'
-import { standardImagesImagePanelOperations } from './standardImageCollection'
+import { standardImageCollection } from './standardImageCollection'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
@@ -36,7 +36,7 @@ const generateStandardImageFromConfig = defineSubOperation({
                 alt: config.alt
             }),
             params: {
-                collectionId: (await standardImagesImagePanelOperations.readCollection({})).id,
+                collectionId: (await standardImageCollection.internal.read.internalCall({})).id,
             },
             operationImplementationFields: {
                 uploadAsStandardImage: params.standardImage,
@@ -101,7 +101,7 @@ const readStandardImage = defineOperation({
         })
 
         const standardCollection =
-            await standardImagesImagePanelOperations.readCollection({})
+            await standardImageCollection.internal.read.internalCall({})
         const standardImageIsPartOfStandardCollection = standardCollection.id === image?.collectionId
 
         if (image && standardImageIsPartOfStandardCollection) return image
@@ -144,7 +144,7 @@ const readStandardImage = defineOperation({
 const readAllStandardImages = defineOperation({
     authorizer: () => standardImageCollectionAuth.readAllStandardImages,
     operation: async ({ prisma }): Promise<Record<StandardImage, ExpandedImage>> => {
-        const standardCollection = await standardImagesImagePanelOperations.readCollection({})
+        const standardCollection = await standardImageCollection.internal.read.internalCall({})
         const imagesInCollection = await prisma.image.findMany({
             where: {
                 standardImage: { not: null },

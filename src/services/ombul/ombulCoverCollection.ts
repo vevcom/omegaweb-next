@@ -1,13 +1,9 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ombulCoversImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { rasterExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    internalOperations: ombulCoverImageOperations,
-    specialCollectionPanelOperations: ombulCoversImagePanelOperations,
-    generateCollectionFromConfig: generateOmbulCoversCollectionFromConfig
-} = implementSpecialCollection({
+export const ombulCoverCollection = implementSpecialCollection({
     special: 'OMBULCOVERS',
     allowedExtensions: rasterExtensions,
     imagePanelAuth: ombulCoversImagePanelAuth,

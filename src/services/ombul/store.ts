@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { implementStore } from '@/services/store/implement'
 
 /** The pdfs of the ombul issues. An ombul refers to its own as its file. */

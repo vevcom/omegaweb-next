@@ -23,6 +23,6 @@ export const revueGroupSchemas = {
         read: paramsFieldSchemas.pick({ year: true, name: true }),
         update: groupId,
         destroy: groupId,
-        updateArticleSection: groupId,
+        articleSection: groupId,
     },
 }

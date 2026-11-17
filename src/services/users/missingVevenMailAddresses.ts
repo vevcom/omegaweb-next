@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userPartitions } from './constants'
 import { vevenMailAddressOperations } from './vevenMailAddress'
 import { prisma } from '@/prisma-pn-client-instance'

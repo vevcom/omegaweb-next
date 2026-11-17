@@ -1,10 +1,9 @@
 'use client'
+import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import CollectionAdmin from './CollectionAdmin'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import ImagePanel from '@/components/Image/ImagePanel/ImagePanel'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
-import DoubleLevelVisibilityDescription
-    from '@/components/Visibility/DoubleLevelVisibilityDescription/DoubleLevelVisibilityDescription'
 import { readImagesPageInDynamicCollectionAction } from '@/services/images/dynamic/actions'
 import { useCallback, useState } from 'react'
 import type { ImagePanelCursor } from '@/components/Image/ImagePanel/ImagePanel'
@@ -57,7 +56,7 @@ export default function DynamicCollectionPanel({ collection, doubleLevelVisibili
             <div className="flex flex-col gap-1 mb-4">
                 {collection.description && <p className="text-m text-base-content/80">{collection.description}</p>}
                 {doubleLevelVisibility && (
-                    <DoubleLevelVisibilityDescription doubleLevelVisibility={doubleLevelVisibility} />
+                    <imageCollectionVisibility.Description doubleLevelVisibility={doubleLevelVisibility} />
                 )}
             </div>
             <main>

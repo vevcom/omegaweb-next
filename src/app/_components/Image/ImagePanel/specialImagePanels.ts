@@ -18,10 +18,8 @@ import {
     readImagesPageInCompanyLogosCollectionAction,
 } from '@/services/images/specialPanels/actions'
 import type { ActionFromServiceOperation } from '@/services/actionTypes'
-import type { implementSpecialCollection } from '@/services/images/subservice/special/implement'
+import type { SpecialCollectionImplementation } from '@/services/images/subservice/special/implement'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
-
-type SpecialCollectionPanelOperations = ReturnType<typeof implementSpecialCollection>['specialCollectionPanelOperations']
 
 /**
  * Everything a frontend panel needs for a special collection, keyed by the `SpecialCollection` it
@@ -71,7 +69,7 @@ export const specialImagePanels = {
     },
 } as const satisfies Record<SpecialCollection, {
     auth: typeof specialImagePanelAuth[SpecialCollection],
-    readCollectionAction: ActionFromServiceOperation<SpecialCollectionPanelOperations['readCollection']>,
+    readCollectionAction: ActionFromServiceOperation<SpecialCollectionImplementation['readCollection']>,
     readPageOfImagesInCollectionAction:
-        ActionFromServiceOperation<SpecialCollectionPanelOperations['readPageOfImagesInCollection']>,
+        ActionFromServiceOperation<SpecialCollectionImplementation['readPageOfImagesInCollection']>,
 }>

@@ -15,13 +15,11 @@ import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagra
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {
-    readCareersFrontpageSpecialCmsImageAction,
-    readCareersFrontpageSpecialCmsLinkAction,
-    readCareersFrontpageSpecialCmsParagraphAction,
     updateCareersFrontpageSpecialCmsImageAction,
     updateCareersFrontpageSpecialCmsLinkAction,
     updateCareersFrontpageSpecialCmsParagraphContentAction,
 } from '@/services/careers/frontpage/actions'
+import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
@@ -67,9 +65,9 @@ const programmeLinkClassName = `
 const { page, generateMetadata } = serverPage({
     operation: () => withFallback(careerFrontpageHighlightOperations.readCurrent({}), []),
     capabilities: () => ({
-        canEditSpecialCmsParagraph: careersFrontpageAuth.updateSpecialCmsParagraphContent,
-        canEditSpecialCmsImage: careersFrontpageAuth.updateSpecialCmsImage,
-        canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
+        canEditSpecialCmsParagraph: careersFrontpageAuth.cmsParagraphs.updateContent,
+        canEditSpecialCmsImage: careersFrontpageAuth.cmsImages.update,
+        canEditSpecialCmsLink: careersFrontpageAuth.cmsLinks.update,
     }),
     // Absolute: the layout's "| Contactor NTNU" template only applies to the segments under it,
     // and the frontpage is the site's own name.
@@ -77,12 +75,12 @@ const { page, generateMetadata } = serverPage({
     render: ({ data: highlights, capabilities }) => {
         const paragraphActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsParagraph },
-            readSpecialCmsParagraphAction: readCareersFrontpageSpecialCmsParagraphAction,
+            readSpecialCmsParagraph: careersFrontpageOperations.cmsParagraphs.read,
             updateCmsParagraphAction: updateCareersFrontpageSpecialCmsParagraphContentAction,
         }
         const linkActions = {
             capabilities: { canEdit: capabilities.canEditSpecialCmsLink },
-            readSpecialCmsLinkAction: readCareersFrontpageSpecialCmsLinkAction,
+            readSpecialCmsLink: careersFrontpageOperations.cmsLinks.read,
             updateCmsLinkAction: updateCareersFrontpageSpecialCmsLinkAction,
         }
         return (
@@ -227,7 +225,7 @@ const { page, generateMetadata } = serverPage({
                                 special="CAREER_ABOUT"
                                 width={900}
                                 capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
-                                readSpecialCmsImageAction={readCareersFrontpageSpecialCmsImageAction}
+                                readSpecialCmsImage={careersFrontpageOperations.cmsImages.read}
                                 updateCmsImageAction={updateCareersFrontpageSpecialCmsImageAction}
                             />
                         </div>

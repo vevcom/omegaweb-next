@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { OIDC_TOKEN_LIFETIME_S, oidcIssuer, oidcProtocol } from './constants'
 import { readPemEnvBase64 } from '@/lib/jwt/readPemEnvBase64'
 import { ServiceError } from '@/services/error'

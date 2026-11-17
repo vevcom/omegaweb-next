@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import rehypeFormat from 'rehype-format'
 import rehypeSanitize from 'rehype-sanitize'
 import rehypeStringify from 'rehype-stringify'

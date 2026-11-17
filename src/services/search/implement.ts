@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { searchSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import type { SearchResult, SearchReturn } from './types'

@@ -1,10 +1,12 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatUserAuth } from './auth'
 import { chatUserSchemas } from './schemas'
 import { CHAT_LOCALPART_ATTEMPTS, chatLocalpartAt, isReservedChatLocalpart } from './localpart'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { chatClientOrigin } from '@/services/chat/constants'
+import { chatServer } from '@/lib/chatSync/constants'
 
 const subscribableChannel = {
     select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
@@ -83,6 +85,28 @@ export const chatUserOperations = {
             return {
                 hasChatAccount: chatUser !== null,
                 spaces: chatUser?.spaceMemberships.map(membership => membership.space) ?? [],
+            }
+        },
+    }),
+
+    /**
+     * Where the chat client opens a direct message with a user. No url for a user without an
+     * account on the chat, and no chat to write on where the client or the server name is unset.
+     */
+    readDirectMessage: defineOperation({
+        paramsSchema: chatUserSchemas.params.readDirectMessage,
+        authorizer: () => chatUserAuth.readDirectMessage,
+        operation: async ({ prisma, params }) => {
+            const { serverName } = chatServer
+            if (!chatClientOrigin || !serverName) return { chatIsSetUp: false, url: null }
+
+            const chatUser = await prisma.chatUser.findUnique({
+                where: { userId: params.userId, deactivatedAt: null },
+                select: { localpart: true },
+            })
+            return {
+                chatIsSetUp: true,
+                url: chatUser && `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`,
             }
         },
     }),

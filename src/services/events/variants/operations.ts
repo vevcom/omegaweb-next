@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventVariantAuth } from './auth'
 import { eventVariantSchemas } from './schemas'
 import { readEventAccess } from '@/services/events/access'
@@ -63,6 +63,7 @@ const create = defineSubOperation({
                 eventId: params.eventId,
                 order: (last?.order ?? -1) + 1,
                 name: data.name,
+                description: data.description,
                 registrationStart: data.registrationStart,
                 registrationEnd: data.registrationEnd,
                 takesPayment: data.takesPayment,

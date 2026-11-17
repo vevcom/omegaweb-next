@@ -4,31 +4,57 @@ import { manualChatSpaceOperations } from '@/services/manualChat/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { chatClientOrigin } from '@/services/chat/constants'
+import { chatNotificationChannel } from '@/services/chat/chatNotificationChannel'
+import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
 import { serverPage } from '@/app/ServerPage'
 import { appHref, externalHref } from '@/lib/sites/href'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PageOperationArgs } from '@/app/ServerPage'
+import type { SubscribableChannel } from '@/components/Notifications/UpdateNotificationSubscription'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         const { profile } = await getProfileForUserPage(params, 'chat', session)
         const ofUser = { params: { userId: profile.user.id } }
-        const [{ hasChatAccount, spaces }, administeredSpaces] = await Promise.all([
+        const [{ hasChatAccount, spaces }, administeredSpaces, chatChannel, directAndGroupChannel] = await Promise.all([
             chatUserOperations.readSpaces(ofUser),
             manualChatSpaceOperations.readAdministered(ofUser),
+            chatNotificationChannel.read({}),
+            chatDirectAndGroupNotificationChannel.read({}),
         ])
-        const channelIds = spaces.flatMap(space => [space.mentionsNotificationChannel.id, space.allNotificationChannel.id])
-        const subscriptions = channelIds.length === 0 ? [] : await notificationSubscriptionOperations.read({
-            params: { userId: profile.user.id, channelIds },
+        const subscriptions = await notificationSubscriptionOperations.read({
+            params: {
+                userId: profile.user.id,
+                channelIds: [
+                    chatChannel.id,
+                    directAndGroupChannel.id,
+                    ...spaces.flatMap(space => [space.mentionsNotificationChannel.id, space.allNotificationChannel.id]),
+                ],
+            },
         })
-        const { id: userId, username } = profile.user
-        return { userId, username, hasChatAccount, spaces, subscriptions, administeredSpaces, chatClientOrigin }
+        return {
+            userId: profile.user.id,
+            hasChatAccount,
+            spaces,
+            subscriptions,
+            administeredSpaces,
+            chatChannel,
+            directAndGroupChannel,
+            chatClientOrigin,
+        }
     },
     render: ({ data }) => {
-        const { userId, username, hasChatAccount, spaces, subscriptions, administeredSpaces, chatClientOrigin: chat } = data
-        const subscriptionTo = (channel: typeof spaces[number]['allNotificationChannel'], shownAs: string) => {
+        const { userId, hasChatAccount, spaces, subscriptions, administeredSpaces, chatClientOrigin: chat } = data
+        const subscriptionTo = (
+            channel: SubscribableChannel,
+            { shownAs = channel.name, hasChildren = false, depth = 0 }: {
+                shownAs?: string,
+                hasChildren?: boolean,
+                depth?: number,
+            } = {},
+        ) => {
             const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
             return (
                 <UpdateNotificationSubscription
@@ -36,7 +62,8 @@ const { page, generateMetadata } = serverPage({
                     channel={{ ...channel, name: shownAs }}
                     methods={subscription?.methods ?? allNotificationMethodsOff}
                     inherited={!subscription?.explicit}
-                    hasChildren={false}
+                    hasChildren={hasChildren}
+                    depth={depth}
                 />
             )
         }
@@ -53,6 +80,16 @@ const { page, generateMetadata } = serverPage({
                     {chat && <SiteLink href={externalHref(chat)} target="_blank">Åpne chatten</SiteLink>}
                 </div>
 
+                <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col">
+                    <h2 className="m-0">Varsler</h2>
+                    <p className="m-0 mt-3 text-base-content/80">
+                        Kanalen Chat gjelder alt på chatten, til du har valgt noe annet for en kanal under den.
+                        Vil du ikke ha varsler fra chatten, slår du av alt der og lagrer med underkanaler.
+                    </p>
+                    {subscriptionTo(data.chatChannel, { hasChildren: true })}
+                    {subscriptionTo(data.directAndGroupChannel, { depth: 1 })}
+                </div>
+
                 <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
                     <h2 className="m-0">Chatområder</h2>
                     {spaces.length === 0
@@ -61,9 +98,7 @@ const { page, generateMetadata } = serverPage({
                             <p className="m-0 text-base-content/80">
                                 For hvert chatområde velger du hvordan du varsles om meldinger som nevner deg, og
                                 om alle andre meldinger. Før du har valgt, følger de innstillingene dine for
-                                kanalen Chat. Vil du ikke ha varsler fra chatten, slår du av den med underkanaler
-                                under{' '}
-                                <SiteLink href={appHref(`/users/${username}/notifications`)}>Varslinger</SiteLink>.
+                                kanalen Chat over.
                             </p>
                             <ul className="m-0 p-0 list-none flex flex-col gap-4">
                                 {spaces.map(space => (
@@ -79,8 +114,8 @@ const { page, generateMetadata } = serverPage({
                                                 </SiteLink>
                                             )}
                                         </div>
-                                        {subscriptionTo(space.mentionsNotificationChannel, 'Omtaler')}
-                                        {subscriptionTo(space.allNotificationChannel, 'Alle andre meldinger')}
+                                        {subscriptionTo(space.mentionsNotificationChannel, { shownAs: 'Omtaler' })}
+                                        {subscriptionTo(space.allNotificationChannel, { shownAs: 'Alle andre meldinger' })}
                                     </li>
                                 ))}
                             </ul>

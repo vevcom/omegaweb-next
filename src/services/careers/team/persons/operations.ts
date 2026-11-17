@@ -1,8 +1,8 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careersTeamPersonAuth } from './auth'
 import { careersTeamPersonSchemas } from './schemas'
 import { careersTeamPersonIncluder } from './constants'
-import { careerTeamImageOperations } from './careerTeamImageCollection'
+import { careerTeamImageCollection } from './careerTeamImageCollection'
 import { destroyPersons } from './destroyPersons'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -42,7 +42,7 @@ export const careersTeamPersonOperations = {
                     where: { id: params.personId },
                     select: { name: true, imageId: true },
                 })
-                const uploadedImage = await careerTeamImageOperations.uploadImage.internalCall({
+                const uploadedImage = await careerTeamImageCollection.internal.uploadImage.internalCall({
                     prisma: tx,
                     data: {
                         imageFile: data.imageFile,
@@ -55,7 +55,7 @@ export const careersTeamPersonOperations = {
                     data: { imageId: uploadedImage.id },
                 })
                 if (person.imageId !== null) {
-                    await careerTeamImageOperations.destroyImage.internalCall({
+                    await careerTeamImageCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: person.imageId },
                     })

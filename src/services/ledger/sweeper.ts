@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { stalePendingTransactionMs } from '@/services/ledger/transactions/constants'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { manualReviewOperations } from '@/services/ledger/transactions/manualReviews/operations'

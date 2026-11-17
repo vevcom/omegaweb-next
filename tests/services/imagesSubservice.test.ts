@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
 import { cacheImageStore, originalImageStore } from '@/services/images/subservice/imageFiles'

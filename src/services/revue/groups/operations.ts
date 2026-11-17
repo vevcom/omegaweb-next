@@ -1,11 +1,9 @@
-import '@pn-server-only'
+import '@ow-server-only'
+import { revueGroupArticleSection } from './articleSection'
 import { revueGroupAuth } from './auth'
 import { revueGroupExpandedIncluder } from './constants'
 import { destroyRevueGroups } from './destroyGroups'
 import { revueGroupSchemas } from './schemas'
-import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
-import { articleSectionsRelationsIncluder } from '@/cms/articleSections/constants'
-import { articleSectionOperations } from '@/cms/articleSections/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import type { ExpandedRevueGroupMember, RevueGroupMemberWithUser } from './types'
 
@@ -16,7 +14,7 @@ export const revueGroupOperations = {
         authorizer: () => revueGroupAuth.create,
         transaction: 'OPENS',
         operation: ({ prisma, params, data }) => prisma.$transaction(async tx => {
-            const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma: tx })
+            const articleSection = await revueGroupArticleSection.internal.create.internalCall({ data: {}, prisma: tx })
             return tx.revueGroup.create({
                 data: { ...data, revueId: params.revueId, articleSectionId: articleSection.id },
             })
@@ -57,17 +55,7 @@ export const revueGroupOperations = {
         operation: ({ prisma, params }) => prisma.$transaction(tx => destroyRevueGroups(tx, { id: params.groupId })),
     }),
 
-    updateArticleSection: implementUpdateArticleSectionOperations({
-        implementationParamsSchema: revueGroupSchemas.params.updateArticleSection,
-        authorizer: () => revueGroupAuth.updateArticleSection,
-        ownedArticleSections: async ({ prisma, implementationParams }) => [
-            (await prisma.revueGroup.findUniqueOrThrow({
-                where: { id: implementationParams.groupId },
-                select: { articleSection: { include: articleSectionsRelationsIncluder } },
-            })).articleSection,
-        ],
-        destroyOnEmpty: false,
-    }),
+    articleSection: revueGroupArticleSection,
 } as const
 
 function embedMemberName(member: RevueGroupMemberWithUser): ExpandedRevueGroupMember {

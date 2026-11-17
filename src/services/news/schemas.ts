@@ -59,7 +59,7 @@ export const newsSchemas = {
         readOldPage: readPageInputSchemaObject(newsId, z.undefined()),
         update: newsId,
         setPublished: newsId,
-        updateArticle: paramsFieldSchemas.pick({
+        article: paramsFieldSchemas.pick({
             newsId: true,
         }),
     },

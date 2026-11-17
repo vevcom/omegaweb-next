@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailAddressExternalAuth } from './auth'
 import { mailAddressExternalSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

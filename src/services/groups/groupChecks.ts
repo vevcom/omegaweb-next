@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ServiceError } from '@/services/error'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'

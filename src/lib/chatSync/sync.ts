@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ChatClient } from './client'
 import { chatServer } from './constants'
 import { SyncReport } from './report'

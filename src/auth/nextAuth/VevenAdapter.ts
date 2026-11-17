@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { readJWTPayload } from '@/jwt/jwtReadUnsecure'
 import { feideAccountOperations } from '@/services/auth/feideAccounts/operations'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'

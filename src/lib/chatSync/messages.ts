@@ -1,5 +1,6 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
+import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ChatPowerLevels, Homeserver } from './client'
 import type { SyncReport } from './report'
@@ -29,7 +30,9 @@ const withRoomAndSpace = {
     },
 } satisfies Prisma.ChatRoomMessageInclude
 
-type MessageToNotifyOf = Prisma.ChatRoomMessageGetPayload<{ include: typeof withRoomAndSpace }>
+type KeptMessage = Prisma.ChatRoomMessageGetPayload<{ include: typeof withRoomAndSpace }>
+type MessageInSpace = KeptMessage & { room: NonNullable<KeptMessage['room']> }
+type StandaloneMessage = KeptMessage & { standaloneMatrixRoomId: string }
 
 type RoomAsItIs = {
     /** Without the bot. */
@@ -40,10 +43,13 @@ const roomNobodyIsIn: RoomAsItIs = { inRoom: [], levels: {} }
 
 /**
  * Makes a notification of every message the homeserver has told of, see
- * src/services/chat/appservice: one that mentions someone in the space's channel for mentions, to
- * those mentioned, and any other in its channel for every message, to everyone in the room. The
- * one who wrote is never notified, and neither is anyone who is not in the room. A mention of the
- * whole room counts only from one the room lets mention it, as Matrix has it.
+ * src/services/chat/appservice. In a room of a space, one that mentions someone goes in the
+ * space's channel for mentions, to those mentioned, and any other in its channel for every
+ * message, to everyone in the room. A mention of the whole room counts only from one the room lets
+ * mention it, as Matrix has it. Outside the spaces, what one user wrote in one room since the last
+ * run is one notification, in the channel for direct messages and group rooms, to the others in
+ * the room and those invited to it. The one who wrote is never notified, and neither is anyone
+ * who is not in the room.
  */
 export async function notifyOfMessages(homeserver: Homeserver, report: SyncReport): Promise<void> {
     const tooLongAgo = new Date(Date.now() - NOTIFIED_OF_WITHIN_MS)
@@ -67,12 +73,22 @@ export async function notifyOfMessages(homeserver: Homeserver, report: SyncRepor
     }
 
     for (const message of messages) {
+        const { room } = message
+        if (room === null) continue
         await report.carryOut({
             what: `notify of the message ${message.matrixEventId}`,
             run: async () => {
-                const { matrixRoomId } = message.room
-                await notifyOf(homeserver, message, matrixRoomId === null ? roomNobodyIsIn : await readRoom(matrixRoomId))
+                const roomAsItIs = room.matrixRoomId === null ? roomNobodyIsIn : await readRoom(room.matrixRoomId)
+                await notifyOf(homeserver, { ...message, room }, roomAsItIs)
             },
+        })
+    }
+
+    for (const fromOneInOneRoom of bySenderAndRoom(messages)) {
+        const [{ standaloneMatrixRoomId, senderMatrixId }] = fromOneInOneRoom
+        await report.carryOut({
+            what: `notify of what ${senderMatrixId} wrote in ${standaloneMatrixRoomId}`,
+            run: () => notifyOfStandalone(homeserver, fromOneInOneRoom),
         })
     }
 
@@ -95,7 +111,7 @@ function mayMentionRoom(levels: ChatPowerLevels, matrixId: string): boolean {
     return (levels.users?.[matrixId] ?? usersDefault ?? 0) >= levelToMentionRoom
 }
 
-async function notifyOf(homeserver: Homeserver, message: MessageToNotifyOf, { inRoom, levels }: RoomAsItIs): Promise<void> {
+async function notifyOf(homeserver: Homeserver, message: MessageInSpace, { inRoom, levels }: RoomAsItIs): Promise<void> {
     const { room } = message
     const othersInRoom = inRoom.filter(matrixId => matrixId !== message.senderMatrixId)
     const mentionsRoom = message.mentionsRoom && mayMentionRoom(levels, message.senderMatrixId)
@@ -135,6 +151,59 @@ async function notifyOf(homeserver: Homeserver, message: MessageToNotifyOf, { in
             })
         }
         await tx.chatRoomMessage.update({ where: { id: message.id }, data: { notifiedAt: new Date() } })
+    })
+}
+
+/** The messages written outside every space, those of one user in one room together. */
+function bySenderAndRoom(messages: KeptMessage[]): [StandaloneMessage, ...StandaloneMessage[]][] {
+    const together = new Map<string, [StandaloneMessage, ...StandaloneMessage[]]>()
+    for (const message of messages) {
+        const { standaloneMatrixRoomId } = message
+        if (standaloneMatrixRoomId === null) continue
+        const key = `${standaloneMatrixRoomId} ${message.senderMatrixId}`
+        const standalone = { ...message, standaloneMatrixRoomId }
+        const earlier = together.get(key)
+        if (earlier) earlier.push(standalone)
+        else together.set(key, [standalone])
+    }
+    return Array.from(together.values())
+}
+
+async function notifyOfStandalone(
+    homeserver: Homeserver,
+    messages: [StandaloneMessage, ...StandaloneMessage[]],
+): Promise<void> {
+    const [{ standaloneMatrixRoomId, senderMatrixId }] = messages
+    const room = await homeserver.readStandaloneRoom(standaloneMatrixRoomId)
+    // One who is written to for the first time is invited to the room, and not in it yet.
+    const others = [...room?.joinedUserIds ?? [], ...room?.invitedUserIds ?? []]
+        .filter(matrixId => matrixId !== senderMatrixId)
+    const isDirectMessage = room?.name === undefined && others.length === 1
+
+    const [recipientUserIds, sender] = await Promise.all([
+        readUserIds(homeserver, others),
+        readNameOf(homeserver, senderMatrixId),
+    ])
+    const notification = isDirectMessage ? {
+        title: `${sender} skrev til deg`,
+        message: 'Meldingen ligger i direktemeldingene dine på chatten.',
+    } : {
+        title: `${sender} skrev i ${room?.name ?? 'en gruppe'}`,
+        message: 'Meldingen ligger i en gruppe du er med i på chatten.',
+    }
+
+    await prisma.$transaction(async tx => {
+        // No users would mean everyone subscribed, so nothing is made for nobody.
+        if (recipientUserIds.length > 0) {
+            await chatDirectAndGroupNotificationChannel.internal.createNotification.internalCall({
+                prisma: tx,
+                data: { ...notification, url: CHAT_PAGE_OF_THE_USER, audience: { userIds: recipientUserIds } },
+            })
+        }
+        await tx.chatRoomMessage.updateMany({
+            where: { id: { in: messages.map(message => message.id) } },
+            data: { notifiedAt: new Date() },
+        })
     })
 }
 

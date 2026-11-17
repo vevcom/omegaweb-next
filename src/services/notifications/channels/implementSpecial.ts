@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationChannelOperations } from './subservice/operations'
 import { notificationChannelSchemas } from './subservice/schemas'
 import { availableNotificationMethodIncluder } from './subservice/constants'
@@ -21,7 +21,11 @@ export type SpecialNotificationChannelConfig = {
 
 /** What is needed of a special channel to put another under it: to read it, creating it when it is missing. */
 export type ParentChannel = {
-    readChannelInternal: (args: { prisma: PrismaPossibleTransaction<false> }) => Promise<ExpandedNotificationChannel>,
+    internal: {
+        read: {
+            internalCall: (args: { prisma: PrismaPossibleTransaction<false> }) => Promise<ExpandedNotificationChannel>,
+        },
+    },
 }
 
 /**
@@ -46,9 +50,9 @@ export function implementSpecialNotificationChannel({
     parent: ParentChannel,
 })) {
     const readParentId = async (prisma: PrismaPossibleTransaction<false>): Promise<number> =>
-        (await parent!.readChannelInternal({ prisma })).id
+        (await parent!.internal.read.internalCall({ prisma })).id
 
-    const generateChannelFromConfig = defineSubOperation({
+    const generateFromConfig = defineSubOperation({
         operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
             const mailAlias = { connect: { address: aliasAddress(config.alias) } }
             const existing = await prisma.notificationChannel.findUnique({
@@ -90,26 +94,21 @@ export function implementSpecialNotificationChannel({
     })
 
     /** The channel, created from the config when it does not exist yet. */
-    const readChannelInternal = async (
-        { prisma }: { prisma: PrismaPossibleTransaction<false> }
-    ): Promise<ExpandedNotificationChannel> => {
-        const channel = await prisma.notificationChannel.findUnique({
-            where: { special },
-            include: availableNotificationMethodIncluder,
-        })
-        return channel ?? await generateChannelFromConfig.internalCall({ prisma })
-    }
-
-    const readChannel = defineOperation({
-        authorizer: () => specialNotificationChannelAuth.readChannel,
-        operation: async ({ prisma }) => readChannelInternal({ prisma }),
+    const read = defineSubOperation({
+        operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
+            const channel = await prisma.notificationChannel.findUnique({
+                where: { special },
+                include: availableNotificationMethodIncluder,
+            })
+            return channel ?? await generateFromConfig.internalCall({ prisma })
+        },
     })
 
     const createNotification = defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.createNotification,
         operation: () => async ({ prisma, data }) => notificationChannelOperations.createNotification.internalCall({
             params: {
-                channelId: (await readChannelInternal({ prisma })).id,
+                channelId: (await read.internalCall({ prisma })).id,
             },
             data,
         })
@@ -117,12 +116,17 @@ export function implementSpecialNotificationChannel({
 
     return {
         special,
-        internalOperations: {
+
+        internal: {
+            read,
+            generateFromConfig,
             createNotification,
         },
-        readChannel,
-        readChannelInternal,
-        generateChannelFromConfig,
+
+        read: defineOperation({
+            authorizer: () => specialNotificationChannelAuth.read,
+            operation: ({ prisma }) => read.internalCall({ prisma }),
+        }),
     } as const
 }
 

@@ -56,7 +56,7 @@ export default serverLayout({
         }
     },
     capabilities: () => ({
-        canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
+        canEditSpecialCmsLink: careersFrontpageAuth.cmsLinks.update,
     }),
     render: ({ data, capabilities, children }) => (
         <div

@@ -114,6 +114,8 @@ model EventVariant {
   eventId Int
   order   Int
   name    String
+  // One line shown above the registration, such as when this variant should show up.
+  description String?
 
   registrationStart DateTime
   registrationEnd   DateTime

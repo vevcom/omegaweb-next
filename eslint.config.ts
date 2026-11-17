@@ -709,7 +709,7 @@ const eslintConfig = defineConfig([
                     'src/services/**/!(ConfigVars|Validation).ts': 'CAMEL_CASE',
                     'src/hooks/**/*.ts': 'CAMEL_CASE',
                     'src/contexts/**/*.tsx': 'PASCAL_CASE',
-                    'src/lib/**/!(ConfigVars|pn-server-only).{ts,tsx}': 'CAMEL_CASE',
+                    'src/lib/**/!(ConfigVars|ow-server-only).{ts,tsx}': 'CAMEL_CASE',
                     'tests/**/*.test.ts': 'CAMEL_CASE',
                     'src/prisma/schema/**/*.prisma': 'CAMEL_CASE',
                 },

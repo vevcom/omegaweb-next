@@ -27,8 +27,8 @@
       "@/lib/*": [
         "src/lib/*"
       ],
-      "@pn-server-only": [
-        "src/lib/pn-server-only"
+      "@ow-server-only": [
+        "src/lib/ow-server-only"
       ],
       "@/pageKits/*": [
         "src/app/_pageKits/*"

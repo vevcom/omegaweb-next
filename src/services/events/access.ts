@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { ServiceError } from '@/services/error'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'

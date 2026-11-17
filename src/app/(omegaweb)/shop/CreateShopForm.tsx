@@ -1,8 +1,8 @@
 'use client'
+import { shopVisibility } from './shopVisibility'
 import { createShopAction } from '@/services/shop/shop/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { appHref } from '@/lib/sites/href'
 
 export default function CreateShopForm() {
@@ -19,10 +19,10 @@ export default function CreateShopForm() {
           * admin level would be administrable by anyone until it was narrowed.
           */}
         <div className="flex flex-col gap-[0.5rem]">
-            <h3>Hvem kan administrere butikken?</h3>
-            <VisibilityMatrixEditor name="visibilityAdminRequirements" />
-            <h3>Hvem kan handle i butikken? (tomt betyr alle)</h3>
-            <VisibilityMatrixEditor name="visibilityRegularRequirements" />
+            <h3>{shopVisibility.admin.heading}</h3>
+            <shopVisibility.admin.Field name="visibilityAdminRequirements" />
+            <h3>{shopVisibility.regular.heading}</h3>
+            <shopVisibility.regular.Field name="visibilityRegularRequirements" />
         </div>
     </Form>
 }

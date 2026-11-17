@@ -56,6 +56,25 @@ describe('revues', () => {
         expect(revue.article.name).toBe('Nytt navn')
     })
 
+    test('renaming the article of a revue renames the revue', async () => {
+        const { id: revueId, articleId } = await createRevue(2026, 'Revyen')
+        await revueOperations.article.update({
+            implementationParams: { revueId },
+            params: { articleId },
+            data: { name: 'Fra artikkelen' },
+            session: revueAdmin,
+        })
+
+        const revue = await revueOperations.read({ params: { year: 2026 }, session: Session.empty() })
+        expect(revue.name).toBe('Fra artikkelen')
+    })
+
+    test('changing the year of a revue leaves its name', async () => {
+        const { id: revueId } = await createRevue(2026, 'Revyen')
+        const updated = await revueOperations.update({ params: { revueId }, data: { year: 2027 }, session: revueAdmin })
+        expect(updated).toMatchObject({ year: 2027, name: 'Revyen' })
+    })
+
     test('destroying a revue takes its article, groups, sections and members with it', async () => {
         const revue = await createRevue(2026, 'Revyen')
         const group = await createGroup(revue.id, 'Band')

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { permissionsMaxAge } from './constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import { userOperations } from '@/services/users/operations'

@@ -1,8 +1,7 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { committeeAuth } from './auth'
 import { committeeSchemas } from './schemas'
 import { implementChatSpaces } from '@/services/chat/spaces/implement'
-import { chatSpaceOperations } from '@/services/chat/spaces/subservice/operations'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -79,9 +78,9 @@ const read = defineOperation({
         if (spaceId === null) return null
 
         const [space, rooms, members, memberships] = await Promise.all([
-            chatSpaceOperations.read.internalCall({ prisma, params: { spaceId } }),
-            chatSpaceOperations.readRooms.internalCall({ prisma, params: { spaceId } }),
-            chatSpaceOperations.readMembers.internalCall({ prisma, params: { spaceId } }),
+            implemented.internal.read.internalCall({ prisma, params: { spaceId } }),
+            implemented.internal.readRooms.internalCall({ prisma, params: { spaceId } }),
+            implemented.internal.readMembers.internalCall({ prisma, params: { spaceId } }),
             prisma.membership.findMany({
                 where: { groupId: params.groupId, user: { archived: false } },
                 select: {
@@ -139,11 +138,11 @@ const read = defineOperation({
 export const chatSpaceOfCommittee = {
     rename: async (prisma: PrismaPossibleTransaction<false>, groupId: number, name: string) => {
         const spaceId = await readLiveChatSpaceId(prisma, groupId)
-        if (spaceId !== null) await chatSpaceOperations.update.internalCall({ prisma, params: { spaceId }, data: { name } })
+        if (spaceId !== null) await implemented.internal.update.internalCall({ prisma, params: { spaceId }, data: { name } })
     },
     destroy: async (prisma: PrismaPossibleTransaction<false>, groupId: number) => {
         const spaceId = await readLiveChatSpaceId(prisma, groupId)
-        if (spaceId !== null) await chatSpaceOperations.destroy.internalCall({ prisma, params: { spaceId } })
+        if (spaceId !== null) await implemented.internal.destroy.internalCall({ prisma, params: { spaceId } })
     },
 }
 

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { CabinBookingConfirmationTemplate } from '@/lib/email/templates/cabinBookingConfirmation'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import type { Booking } from '@/prisma-generated-pn-types'

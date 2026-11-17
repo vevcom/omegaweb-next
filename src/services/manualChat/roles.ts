@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import type { ReadUserIdsOfChatSpace } from '@/services/chat/spaces/admins'
 
 export const readManualChatSpaceAdminUserIds: ReadUserIdsOfChatSpace = async ({ prisma, spaceId }) => {

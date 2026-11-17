@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { EmailChangedTemplate } from '@/lib/email/templates/emailChanged'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'

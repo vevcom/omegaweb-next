@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { readSessionToken } from '@/auth/sso/session'
 import { domainContextOf } from '@/app/domainContextOfRequest'
 import { companyUserIdOfCredentials } from '@/services/careers/companies/users/auth/credentials'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceOperations } from './subservice/operations'
 import { chatSpaceSchemas } from './subservice/schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
@@ -119,6 +119,11 @@ export function implementChatSpaces<
                     operationImplementationFields: { purpose },
                 }),
             }),
+            read: chatSpaceOperations.read,
+            readRooms: chatSpaceOperations.readRooms,
+            readMembers: chatSpaceOperations.readMembers,
+            update: chatSpaceOperations.update,
+            destroy: chatSpaceOperations.destroy,
         },
     } as const
 }

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ledgerMovementAuth } from './auth'
 import { ledgerMovementSchemas } from './schemas'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'

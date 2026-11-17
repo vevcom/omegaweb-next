@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventQuotaAuth } from './auth'
 import { eventQuotaSchemas } from './schemas'
 import { readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'
@@ -6,7 +6,6 @@ import { eventQuotaOrder, eventQuotaSummarySelection } from '@/services/events/c
 import { changedFields } from '@/lib/changedFields'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventQuotaExpanded } from './types'
 
@@ -41,7 +40,7 @@ const create = defineSubOperation({
             orderBy: { order: 'desc' },
             select: { order: true },
         })
-        const quotaVisibility = await visibilityOperations.createWithRequirements.internalCall({
+        const quotaVisibility = await visibility.internal.create.internalCall({
             prisma,
             data: { requirements: data.visibilityRequirements },
         })
@@ -66,7 +65,7 @@ const update = defineSubOperation({
     operation: () => async ({ prisma, params, data: { visibilityRequirements, ...fields } }) => {
         const quota = await prisma.eventQuota.update({ where: { id: params.id }, data: fields })
         if (visibilityRequirements) {
-            await visibilityOperations.update.internalCall({
+            await visibility.internal.update.internalCall({
                 prisma,
                 params: { visibilityId: quota.visibilityId },
                 data: { requirements: visibilityRequirements },
@@ -93,7 +92,7 @@ const destroy = defineSubOperation({
         }
 
         await prisma.eventQuota.delete({ where: { id: params.id } })
-        await visibilityOperations.destroy.internalCall({
+        await visibility.internal.destroy.internalCall({
             prisma,
             params: { visibilityId: quota.visibilityId },
         })

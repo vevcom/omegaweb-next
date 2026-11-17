@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualReviewOperations } from './manualReviews/operations'
 import { expandedLedgerTransactionIncluder } from './constants'
 import { cabinBookingPaymentCompletionHook } from '@/services/cabin/booking/paymentCompletion'

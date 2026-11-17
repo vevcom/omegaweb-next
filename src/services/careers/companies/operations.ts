@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { companyAuth } from './auth'
 import {
     companySponsorOrdering,
@@ -6,7 +6,7 @@ import {
     sponsorSelection,
 } from './constants'
 import { companySchemas } from './schemas'
-import { companyLogoImageOperations } from './companyLogoCollection'
+import { companyLogoCollection } from './companyLogoCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
@@ -127,7 +127,7 @@ export const companyOperations = {
                     where: { id },
                     select: { name: true, logoImageId: true },
                 })
-                const uploadedImage = await companyLogoImageOperations.uploadImage.internalCall({
+                const uploadedImage = await companyLogoCollection.internal.uploadImage.internalCall({
                     prisma: tx,
                     data: {
                         imageFile: data.imageFile,
@@ -141,7 +141,7 @@ export const companyOperations = {
                 })
                 // The previous logo is an upload owned by this company alone, so nothing else shows it.
                 if (company.logoImageId !== null) {
-                    await companyLogoImageOperations.destroyImage.internalCall({
+                    await companyLogoCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: company.logoImageId },
                     })
@@ -160,7 +160,7 @@ export const companyOperations = {
                     select: { logoImageId: true },
                 })
                 if (company.logoImageId !== null) {
-                    await companyLogoImageOperations.destroyImage.internalCall({
+                    await companyLogoCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: company.logoImageId },
                     })

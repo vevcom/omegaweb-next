@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsParagraphSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -13,8 +13,8 @@ const create = defineSubOperation({
     ) => async ({ data, prisma }) => await prisma.cmsParagraph.create({ data: { ...data, special } })
 })
 
-const generateSpecialCmsParagraphFromConfig = defineSubOperation({
-    paramsSchema: () => cmsParagraphSchemas.params.generateSpecialCmsParagraphFromConfig,
+const createSpecial = defineSubOperation({
+    paramsSchema: () => cmsParagraphSchemas.params.createSpecial,
     operation: () => async ({ params }) => create.internalCall({
         data: {},
         operationImplementationFields: { special: params.special }
@@ -23,7 +23,7 @@ const generateSpecialCmsParagraphFromConfig = defineSubOperation({
 
 export const cmsParagraphOperations = {
     create,
-    generateSpecialCmsParagraphFromConfig,
+    createSpecial,
 
     destroy: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.destroy,
@@ -42,7 +42,7 @@ export const cmsParagraphOperations = {
             const paragraph = await prisma.cmsParagraph.findUnique({ where: { special: params.special } })
             if (paragraph) return paragraph
             logger.error(`Could not find special cms paragraph with special ${params.special} - creating it!`)
-            return await generateSpecialCmsParagraphFromConfig.internalCall({ params: { special: params.special } })
+            return await createSpecial.internalCall({ params: { special: params.special } })
         }
     }),
 

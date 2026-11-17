@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess } from './access'
@@ -26,7 +26,6 @@ import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { availableNotificationMethodIncluder } from '@/services/notifications/channels/subservice/constants'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
@@ -327,7 +326,7 @@ export const eventOperations = {
                 prisma,
                 operationImplementationFields: { special: null }
             })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityAdmin = await adminVisibility.internal.create.internalCall({
                 data: { requirements: adminRequirements },
                 prisma,
             })
@@ -521,7 +520,7 @@ export const eventOperations = {
                     })
                 }
                 if (adminRequirements) {
-                    await visibilityOperations.update.internalCall({
+                    await adminVisibility.internal.update.internalCall({
                         prisma: tx,
                         params: { visibilityId: event.visibilityAdminId },
                         data: { requirements: adminRequirements },
@@ -652,13 +651,16 @@ export const eventOperations = {
                 }
             })
             await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma, params: event })
-            const visibilityIds = [
-                event.visibilityAdminId,
-                ...event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibilityId)),
-            ]
-            await Promise.all(visibilityIds.map(
-                visibilityId => visibilityOperations.destroy.internalCall({ prisma, params: { visibilityId } })
-            ))
+            await adminVisibility.internal.destroy.internalCall({
+                prisma,
+                params: { visibilityId: event.visibilityAdminId },
+            })
+            await Promise.all(event.variants.flatMap(variant => variant.quotas.map(
+                quota => eventQuotaOperations.visibility.internal.destroy.internalCall({
+                    prisma,
+                    params: { visibilityId: quota.visibilityId },
+                })
+            )))
         }
     }),
 
@@ -802,7 +804,7 @@ async function adoptHostAsAdministrators(
 ) {
     const access = await readEventAccess(prisma, eventId)
     if (!hasNoAdministrators(access.adminVisibility)) return
-    await visibilityOperations.update.internalCall({
+    await adminVisibility.internal.update.internalCall({
         prisma,
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },

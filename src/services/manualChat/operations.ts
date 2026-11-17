@@ -1,9 +1,8 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualChatSpaceAuth } from './auth'
 import { manualChatSpaceSchemas } from './schemas'
 import { readManualChatSpaceAdminUserIds } from './roles'
 import { implementChatSpaces } from '@/services/chat/spaces/implement'
-import { chatSpaceOperations } from '@/services/chat/spaces/subservice/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -66,8 +65,8 @@ const read = defineOperation({
     operation: async ({ prisma, params }) => {
         const space = await assertIsLiveManualSpace(prisma, params.spaceId)
         const [rooms, members, admins] = await Promise.all([
-            chatSpaceOperations.readRooms.internalCall({ prisma, params }),
-            chatSpaceOperations.readMembers.internalCall({ prisma, params }),
+            implemented.internal.readRooms.internalCall({ prisma, params }),
+            implemented.internal.readMembers.internalCall({ prisma, params }),
             prisma.manualChatSpaceAdmin.findMany({
                 where: { spaceId: params.spaceId },
                 select: { user: { select: userOverview } },

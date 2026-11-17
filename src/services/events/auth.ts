@@ -4,6 +4,7 @@ import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
+import type { EventAccess } from './types'
 
 /**
  * Whether no one administrates an event but those with EVENT_ADMIN: it has no requirements, or one
@@ -14,6 +15,13 @@ export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
         || adminVisibility.requirements.some(requirement => requirement.conditions.length === 0)
 }
 
+/** Whether the event is a draft its creator holds, which is one no one administrates. */
+export function creatorHoldsDraft(
+    { published, creatorId, adminVisibility }: Pick<EventAccess, 'published' | 'creatorId' | 'adminVisibility'>,
+) {
+    return !published && creatorId !== null && hasNoAdministrators(adminVisibility)
+}
+
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
  * EVENT_ADMIN bypasses it for every event. The creator holds a draft while no one administrates it,
@@ -21,9 +29,7 @@ export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
  * `{ adminVisibility, published, creatorId }` supplied via `.data()`.
  */
 const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null, adminVisibility: VisibilityMatrix }>(
-    ({ session, published, creatorId, adminVisibility }) => (
-        !published && creatorId !== null && session.user?.id === creatorId && hasNoAdministrators(adminVisibility)
-    )
+    ({ session, ...draft }) => creatorHoldsDraft(draft) && session.user?.id === draft.creatorId
 )
 
 export const eventAdminLevel = Require.anyOf(
@@ -60,6 +66,17 @@ export const canSeeEvent = Require.anyOf(
     eventAdminLevel,
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
+
+/**
+ * The same rule as `canSeeEvent`, as the visibilities that show the event, any one of which is
+ * enough. Those with EVENT_ADMIN see it besides, and so does the creator while `creatorHoldsDraft`.
+ */
+export function visibilitiesShowingEvent(
+    { published, canBeViewedBy, adminVisibility, quotaVisibilities }: EventAccess,
+): VisibilityMatrix[] {
+    if (published && canBeViewedBy === 'ALL') return [{ requirements: [] }]
+    return [adminVisibility, ...(published ? quotaVisibilities : [])]
+}
 
 /** `hasNoAdministrators` as a where clause on a visibility. */
 const noAdministrators: Prisma.VisibilityWhereInput = {

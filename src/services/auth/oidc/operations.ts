@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { oidcAuth } from './auth'
 import { loginProviderSchema, oidcSchemas } from './schemas'
 import { isPostLogoutRedirectUri, oidcClientOf } from './clients'

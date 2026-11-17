@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { apiHandler } from '@/api/apiHandler'
 import { userOperations } from '@/services/users/operations'
 import { ServiceError } from '@/services/error'

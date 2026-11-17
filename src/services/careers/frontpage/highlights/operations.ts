@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careerFrontpageHighlightAuth } from './auth'
 import {
     adminHighlightOrdering,

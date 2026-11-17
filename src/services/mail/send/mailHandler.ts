@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import logger from '@/lib/logger'
 import { TRANSPORT_OPTIONS } from '@/services/mail/send/constants'
 import nodemailer from 'nodemailer'

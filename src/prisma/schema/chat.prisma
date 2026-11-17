@@ -90,9 +90,13 @@ model ChatSpaceRoomMember {
 // A message the homeserver has told of, kept for the chat worker to notify of. What it says is
 // never stored. A row stays a while after it is notified of, so a message told of twice is one.
 model ChatRoomMessage {
-  id                 Int           @id @default(autoincrement())
-  room               ChatSpaceRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomId             Int
+  id                 Int            @id @default(autoincrement())
+  // Null for a message written outside every space.
+  room               ChatSpaceRoom? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId             Int?
+  // The Matrix room of a message written outside every space: a direct message, or a group room
+  // users have made themselves. The app keeps no row for such a room.
+  standaloneMatrixRoomId String?
   matrixEventId      String        @unique
   senderMatrixId     String
   mentionedMatrixIds String[]

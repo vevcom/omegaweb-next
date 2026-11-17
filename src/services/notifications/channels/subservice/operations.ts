@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationChannelSchemas } from './schemas'
 import { availableNotificationMethodIncluder } from './constants'
 import { methodsAreEqual, validateNewParent } from './helpers'
@@ -163,9 +163,10 @@ export const notificationChannelOperations = {
         dataSchema: () => notificationChannelSchemas.data.createNotification,
         transaction: 'RUNS_IN',
         operation: () => async ({ prisma, params, data }): Promise<NotificationResult> => {
-            // This prevents notifications from being created - and later dispatched by the
-            // notification worker - during seeding.
-            if (process.env.IGNORE_SERVER_ONLY) {
+            // What the seeder makes is no news to anyone, so nothing is created for the notification
+            // worker to dispatch, and the tests make none unless they ask to. A flag of its own, since
+            // the workers run under IGNORE_SERVER_ONLY and make notifications.
+            if (process.env.NOTIFICATIONS_OFF) {
                 return { notification: null }
             }
 

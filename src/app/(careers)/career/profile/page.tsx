@@ -34,7 +34,7 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        const channel = await contactorNotificationChannel.readChannel({})
+        const channel = await contactorNotificationChannel.read({})
         const [user, profile, registrations, dots, [subscription]] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
             userOperations.readProfile({ params: { username: session.user.username } }),

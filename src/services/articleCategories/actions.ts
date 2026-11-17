@@ -16,32 +16,32 @@ export const updateArticleCategoryAdminLevelVisibilityAction = makeAction(
 )
 
 export const updateArticleCategoryArticleAction = makeAction(
-    articleCategoryOperations.updateArticle.update
+    articleCategoryOperations.article.update
 )
 export const updateArticleCategoryArticleAddSectionAction = makeAction(
-    articleCategoryOperations.updateArticle.addSection
+    articleCategoryOperations.article.addSection
 )
 export const updateArticleCategoryArticleReorderSectionsAction = makeAction(
-    articleCategoryOperations.updateArticle.reorderSections
+    articleCategoryOperations.article.reorderSections
 )
 export const updateArticleCategoryArticleCoverImageAction = makeAction(
-    articleCategoryOperations.updateArticle.coverImage
+    articleCategoryOperations.article.coverImage
 )
 export const updateArticleCategoryArticleSectionAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.update
+    articleCategoryOperations.article.articleSections.update
 )
 export const updateArticleCategoryArticleSectionsAddPartAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.addPart
+    articleCategoryOperations.article.articleSections.addPart
 )
 export const updateArticleCategoryArticleSectionsRemovePartAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.removePart
+    articleCategoryOperations.article.articleSections.removePart
 )
 export const updateArticleCategoryArticleCmsImageAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.cmsImage
+    articleCategoryOperations.article.articleSections.cmsImage
 )
 export const updateArticleCategoryArticleCmsParagraphAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.cmsParagraph
+    articleCategoryOperations.article.articleSections.cmsParagraph
 )
 export const updateArticleCategoryArticleCmsLinkAction = makeAction(
-    articleCategoryOperations.updateArticle.articleSections.cmsLink
+    articleCategoryOperations.article.articleSections.cmsLink
 )

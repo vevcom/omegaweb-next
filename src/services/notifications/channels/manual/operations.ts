@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualNotificationChannelAuth } from './auth'
 import { visibilityOwnedByNothing } from '@/services/visibility/constants'
 import { implementNotificationChannelsForPurpose } from '@/services/notifications/channels/implementForPurpose'

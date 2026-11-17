@@ -1,7 +1,6 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { dynamicImageAuth } from './auth'
 import { dynamicImageSchemas } from './schemas'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import { imageOperations } from '@/services/images/subservice/operations'
@@ -51,7 +50,7 @@ const visibility = implementDoubleLevelVisibilityOperations({
 const readCollection = defineOperation({
     paramsSchema: dynamicImageSchemas.params.readCollection,
     authorizer: async ({ params, prisma }) => dynamicImageAuth.readCollection.data({
-        visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+        visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
     }),
     operation: async ({ prisma, params }) => {
         const collection = await prisma.imageCollection.findFirstOrThrow({
@@ -97,8 +96,8 @@ export const dynamicImageOperations = {
         authorizer: () => dynamicImageAuth.createCollection,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
-            const visibilityRegular = await visibilityOperations.create.internalCall({ prisma })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityRegular = await visibility.internal.create.internalCall({ prisma, data: { requirements: [] } })
+            const visibilityAdmin = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
@@ -124,21 +123,21 @@ export const dynamicImageOperations = {
 
     destroyCollection: imageOperations.destroyCollection.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.destroyCollection.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         ownershipCheck,
     }),
 
     updateCollection: imageOperations.updateCollection.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.updateCollection.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         ownershipCheck,
     }),
 
     uploadImage: imageOperations.uploadImage.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.uploadImage.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         ownershipCheck,
         operationImplementationFields: { uploadAsStandardImage: null, allowedExtensions }
@@ -146,7 +145,7 @@ export const dynamicImageOperations = {
 
     uploadManyImages: imageOperations.uploadManyImages.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.uploadManyImages.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
         }),
         ownershipCheck,
         operationImplementationFields: { allowedExtensions }
@@ -154,7 +153,7 @@ export const dynamicImageOperations = {
 
     readPageOfImagesInCollection: imageOperations.readPageOfImagesInCollection.implement({
         authorizer: async ({ params, prisma }) => dynamicImageAuth.readPageOfImagesInCollection.data({
-            visibility: await visibility.readDoubleLevelMatrixInternal({
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
                 params: { collectionId: params.collectionId },
                 prisma
             })
@@ -232,7 +231,7 @@ async function readDoubleLevelMatrixOfImage({
     prisma: PrismaPossibleTransaction<false>
 }) {
     const collection = await imageOperations.readCollectionOfImage.internalCall({ params, prisma })
-    return visibility.readDoubleLevelMatrixInternal({ params: { collectionId: collection.id }, prisma })
+    return visibility.internal.readDoubleLevelMatrix.internalCall({ params: { collectionId: collection.id }, prisma })
 }
 
 /**

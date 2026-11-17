@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { fixVariantPlaces, notifyPromoted } from './fixState'
 import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { lockEvent } from './queue'

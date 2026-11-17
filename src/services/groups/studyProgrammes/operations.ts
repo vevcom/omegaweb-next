@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { studyProgrammeAuth } from './auth'
 import { studyProgrammeSchemas } from './schemas'
 import { groupOperations } from '@/services/groups/operations'

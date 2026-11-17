@@ -15,9 +15,9 @@ import { careersTeamAuth } from '@/services/careers/team/auth'
 import { updateCareersTeamDepartmentParagraphAction } from '@/services/careers/team/actions'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import {
-    readCareersFrontpageSpecialCmsImageAction,
     updateCareersFrontpageSpecialCmsImageAction,
 } from '@/services/careers/frontpage/actions'
+import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
 import { serverPage } from '@/app/ServerPage'
 
 const departmentAnchor = (departmentId: number) => `avdeling-${departmentId}`
@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
     operation: () => careersTeamOperations.readDepartments({}),
     capabilities: () => ({
         canEditDepartmentParagraph: careersTeamAuth.updateDepartmentParagraph,
-        canEditSpecialCmsImage: careersFrontpageAuth.updateSpecialCmsImage,
+        canEditSpecialCmsImage: careersFrontpageAuth.cmsImages.update,
     }),
     metadata: () => ({
         title: 'Om oss',
@@ -50,7 +50,7 @@ const { page, generateMetadata } = serverPage({
                         width={1600}
                         hideCredit
                         capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
-                        readSpecialCmsImageAction={readCareersFrontpageSpecialCmsImageAction}
+                        readSpecialCmsImage={careersFrontpageOperations.cmsImages.read}
                         updateCmsImageAction={updateCareersFrontpageSpecialCmsImageAction}
                     />
                 </div>

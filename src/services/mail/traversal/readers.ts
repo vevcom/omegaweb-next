@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userBasicSelection, userPartitions } from '@/services/users/constants'
 import { groupsWithRelationsIncluder } from '@/services/groups/constants'
 import { assertGroupValidity } from '@/services/groups/assertGroupValidity'

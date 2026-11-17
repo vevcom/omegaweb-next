@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import { LinkFeideAccountTemplate } from '@/lib/email/templates/linkFeideAccount'
 import { generateJWT } from '@/jwt/jwt'
