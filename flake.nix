@@ -58,10 +58,13 @@
             self=$(readlink -f "$0")
             real=
             for candidate in $(type -ap claude); do
-              if [ "$(readlink -f "$candidate")" != "$self" ]; then real=$candidate; break; fi
+              real=$(readlink -f "$candidate")
+              if [ "$real" != "$self" ]; then break; fi
+              real=
             done
             if [ -z "$real" ]; then echo "claude is not installed" >&2; exit 1; fi
             repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+            mkdir -p "$HOME/.claude"
             touch "$HOME/.claude.json"
             exec ${pkgs.bubblewrap}/bin/bwrap \
               --ro-bind /nix /nix \
@@ -72,6 +75,7 @@
               --ro-bind-try /run/systemd/resolve /run/systemd/resolve \
               --proc /proc --dev /dev --tmpfs /tmp \
               --tmpfs "$HOME" \
+              --ro-bind "$real" "$real" \
               --ro-bind-try "$HOME/.nix-profile" "$HOME/.nix-profile" \
               --ro-bind-try "$HOME/.local/state/nix" "$HOME/.local/state/nix" \
               --ro-bind-try "$HOME/.gitconfig" "$HOME/.gitconfig" \
@@ -89,7 +93,7 @@
           default = shell [ ];
         }
         // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
-          isolated = shell [ isolatedClaude ];
+          isolate = shell [ isolatedClaude ];
         }
       );
     };
