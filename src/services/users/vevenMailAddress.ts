@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userAuth } from './auth'
 import { userSchemas } from './schemas'
 import { userPartitions } from './constants'

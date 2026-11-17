@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationChannelOperations } from './subservice/operations'
 import { notificationChannelSchemas } from './subservice/schemas'
 import { availableNotificationMethodIncluder } from './subservice/constants'

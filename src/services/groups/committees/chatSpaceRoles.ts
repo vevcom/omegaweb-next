@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import type { ReadUserIdsOfChatSpace } from '@/services/chat/spaces/admins'
 
 const userIdsOfActiveMemberships = (which: { admin?: true }): ReadUserIdsOfChatSpace =>

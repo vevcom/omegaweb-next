@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { streamStoreContent } from './locations'
 import { storeDirectories } from './paths'
 import { prisma } from '@/prisma-pn-client-instance'

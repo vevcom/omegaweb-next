@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { creationId } from './client'
 import { forwardingAddressOf, forwardingDomainOf } from './forwarding'
 import { mailingListAddresses } from '@/services/mail/recipients'

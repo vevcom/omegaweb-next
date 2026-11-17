@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventNotificationAuth } from './auth'
 import { eventNotificationSchemas } from './schemas'
 import { eventChannelDescriptions, eventChannelNames, eventInfoChannelMethods } from './constants'

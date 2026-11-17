@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueFrontpageAuth } from './auth'
 import { implementSpecialArticle } from '@/cms/articles/implement'
 

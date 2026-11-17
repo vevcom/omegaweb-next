@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailAliasAuth } from './auth'
 import { mailAliasSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

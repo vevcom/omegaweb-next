@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { interestGroupAuth } from './auth'
 import { interestGroupSchemas } from './schemas'
 import { groupOperations } from '@/services/groups/operations'

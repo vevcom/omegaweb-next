@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsLinkSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'

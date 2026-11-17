@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueGroupAuth } from './auth'
 import { revueGroupSchemas } from './schemas'
 import { implementArticleSectionOperations } from '@/cms/articleSections/implement'

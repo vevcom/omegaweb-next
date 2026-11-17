@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueAuth } from './auth'
 import { revueCardIncluder, revueExpandedIncluder } from './constants'
 import { revueSchemas } from './schemas'

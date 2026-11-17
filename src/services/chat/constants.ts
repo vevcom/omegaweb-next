@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART } from '@/lib/chatSync/constants'
 
 /**

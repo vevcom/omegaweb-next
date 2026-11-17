@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { applicationAuth } from './auth'
 import { applicationSchemas } from './schemas'
 import { renumberApplicationPriorities } from './renumberPriorities'

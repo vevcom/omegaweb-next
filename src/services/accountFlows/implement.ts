@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { accountSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'

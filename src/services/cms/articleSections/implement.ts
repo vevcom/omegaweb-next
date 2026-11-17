@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { articleSectionOperations } from './operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsImageOperations } from '@/cms/images/operations'

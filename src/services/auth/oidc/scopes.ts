@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userOperations } from '@/services/users/operations'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import type { UserFiltered } from '@/services/users/types'

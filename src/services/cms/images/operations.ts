@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsImageAuth } from './auth'
 import { cmsImageSchemas } from './schemas'
 import { cmsImageIncluder } from './constants'

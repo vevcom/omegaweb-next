@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { newStudentAuth } from './auth'
 import { implementSpecialArticle } from '@/cms/articles/implement'
 

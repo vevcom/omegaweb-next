@@ -69,14 +69,17 @@ function messageIn(
     })
 }
 
-/** Notifications are not created under IGNORE_SERVER_ONLY, so it is lifted for the run. */
+/**
+ * The tests make no notifications, see tests/setup.ts, so that is lifted for the run. IGNORE_SERVER_ONLY
+ * stays set, as it is for the worker that runs the sync.
+ */
 async function syncAndReadNotifications() {
-    const ignoreServerOnly = process.env.IGNORE_SERVER_ONLY
-    Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
+    const notificationsOff = process.env.NOTIFICATIONS_OFF
+    Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
     try {
         await syncChat(homeserver)
     } finally {
-        if (ignoreServerOnly !== undefined) process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
+        if (notificationsOff !== undefined) process.env.NOTIFICATIONS_OFF = notificationsOff
     }
     const notifications = await prisma.notification.findMany({
         select: { title: true, message: true, url: true, channelId: true, usersTargeted: { select: { id: true } } },

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueGroupMemberAuth } from './auth'
 import { revueGroupMemberSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

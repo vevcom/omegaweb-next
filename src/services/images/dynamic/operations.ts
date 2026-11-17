@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { dynamicImageAuth } from './auth'
 import { dynamicImageSchemas } from './schemas'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'

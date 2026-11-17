@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventRegistrationQueueOrder } from './constants'
 import { registrationsOfVariant } from './queue'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'

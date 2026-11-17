@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ServiceError } from '@/services/error'
 import { userPartitions } from '@/services/users/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'

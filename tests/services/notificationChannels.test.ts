@@ -84,7 +84,7 @@ describe('the special and the manual notification channels', () => {
 
         await expect(manualNotificationChannelOperations.createNotification({
             params: { channelId: channel.id },
-            data: { title: 'Sent in a manual channel', message: 'Nothing is created under IGNORE_SERVER_ONLY.' },
+            data: { title: 'Sent in a manual channel', message: 'Nothing is created under NOTIFICATIONS_OFF.' },
             bypassAuth: true,
         })).resolves.toEqual({ notification: null })
     })
@@ -102,9 +102,9 @@ describe('the special and the manual notification channels', () => {
 
         await expect(send([{ conditions: [] }])).rejects.toThrow(new Smorekopp('BAD DATA'))
 
-        // Notifications are not created under IGNORE_SERVER_ONLY, so it is lifted to see this one made.
-        const ignoreServerOnly = process.env.IGNORE_SERVER_ONLY
-        Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
+        // The tests make no notifications, see tests/setup.ts, so that is lifted to see this one made.
+        const notificationsOff = process.env.NOTIFICATIONS_OFF
+        Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
         try {
             const { notification: toSome } = await send([{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }])
             const { notification: toAll } = await send([])
@@ -129,8 +129,8 @@ describe('the special and the manual notification channels', () => {
             expect(await prisma.visibility.findUnique({ where: { id: visibility.id } })).toBeNull()
             expect(await prisma.notification.count({ where: { id: { in: [toSome?.id ?? -1, toAll?.id ?? -1] } } })).toBe(0)
         } finally {
-            if (ignoreServerOnly === undefined) Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
-            else process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
+            if (notificationsOff === undefined) Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
+            else process.env.NOTIFICATIONS_OFF = notificationsOff
         }
     })
 

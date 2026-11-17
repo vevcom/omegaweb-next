@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsImageOperations } from './operations'
 import { cmsImageSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { streamStoreFile } from '@/services/store/serve'
 import { extname } from 'path'
 

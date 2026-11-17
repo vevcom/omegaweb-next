@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { chatSpaceOperations } from './subservice/operations'
 import { chatSpaceSchemas } from './subservice/schemas'
 import { defineSubOperation } from '@/services/serviceOperation'

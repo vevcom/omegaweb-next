@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventQuotaAuth } from './auth'
 import { eventQuotaSchemas } from './schemas'
 import { readEventAccess, readEventIdOfQuota, readEventIdOfVariant } from '@/services/events/access'

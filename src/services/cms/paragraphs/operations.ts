@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsParagraphSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'

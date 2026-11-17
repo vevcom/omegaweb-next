@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { getHttpErrorCode, ParseError, ServiceError, Smorekopp } from '@/services/error'
 import { ServerSession } from '@/auth/session/ServerSession'
 import logger from '@/lib/logger'

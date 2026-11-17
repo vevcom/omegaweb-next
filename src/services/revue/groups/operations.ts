@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { revueGroupArticleSection } from './articleSection'
 import { revueGroupAuth } from './auth'
 import { revueGroupExpandedIncluder } from './constants'

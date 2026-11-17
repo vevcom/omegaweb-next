@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { storeBackends } from './locations'
 import { storeDirectories } from './paths'
 import { untrackedFiles } from './constants'

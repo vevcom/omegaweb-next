@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualChatSpaceAuth } from './auth'
 import { manualChatSpaceSchemas } from './schemas'
 import { readManualChatSpaceAdminUserIds } from './roles'

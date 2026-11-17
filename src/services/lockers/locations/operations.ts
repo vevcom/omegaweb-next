@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { lockerLocationAuth } from './auth'
 import { lockerLocationIncluder } from './constants'
 import { lockerLocationSchemas } from './schemas'

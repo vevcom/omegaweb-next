@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationMethodOperations } from './operations'
 import { emailDispatch, pushDispatch, pushIsConfigured, weeklyDigest } from './constants'
 import logger from '@/lib/logger'

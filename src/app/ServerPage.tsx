@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import ServiceErrorView from '@/components/ServiceErrorView/ServiceErrorView'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'

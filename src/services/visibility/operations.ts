@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { visibilitySchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'

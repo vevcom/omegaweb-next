@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { apiKeyAuth } from './auth'
 import { apiKeySchemas } from './schemas'
 import { apiKeyHashAndEncrypt } from './hashEncryptKey'

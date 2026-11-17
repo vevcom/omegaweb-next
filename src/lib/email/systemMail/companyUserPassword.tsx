@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { companyUserPasswordExpiration } from './constants'
 import { CompanyUserPasswordTemplate } from '@/lib/email/templates/companyUserPassword'
 import { sendMailOperations } from '@/services/mail/send/operations'

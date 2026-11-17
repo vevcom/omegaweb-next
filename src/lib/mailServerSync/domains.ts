@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { creationId } from './client'
 import { forwardingDomainOf } from './forwarding'
 import logger from '@/lib/logger'

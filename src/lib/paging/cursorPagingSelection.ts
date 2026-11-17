@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import type { Page } from '@/lib/paging/types'
 
 /**

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { shopSchemas } from './schemas'
 import { shopAuth } from './auth'
 import { defineOperation } from '@/services/serviceOperation'

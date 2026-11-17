@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ombulAuth } from './auth'
 import { ombulSchemas } from './schemas'
 import { ombulStore } from './store'

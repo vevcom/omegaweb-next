@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { committeeParticipationAuth } from './auth'
 import { committeeParticipationSchemas } from './schemas'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'

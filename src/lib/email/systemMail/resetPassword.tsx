@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { resetPasswordExpiration } from './constants'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'

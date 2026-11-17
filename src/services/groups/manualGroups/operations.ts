@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualGroupAuth } from './auth'
 import { manualGroupSchemas } from './schemas'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'

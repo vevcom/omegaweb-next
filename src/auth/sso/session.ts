@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'

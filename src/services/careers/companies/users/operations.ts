@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { companyUserAuth } from './auth'
 import { companyUserOrdering, companyUserSelection, companyUserWithCompanySelection } from './constants'
 import { companyUserSchemas } from './schemas'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { isBuildPhase } from './isBuildPhase'
 import Stripe from 'stripe'
 

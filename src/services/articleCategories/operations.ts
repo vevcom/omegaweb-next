@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { articleCategoryAuth } from './auth'
 import { articleCategorySchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'

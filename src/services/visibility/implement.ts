@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { visibilityOperations } from './operations'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { creationId } from './client'
 import { prisma } from '@/prisma-pn-client-instance'
 import logger from '@/lib/logger'

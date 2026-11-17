@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { groupOperations } from './operations'
 import { assertGroupNotPensioned, isGroupOfType } from './groupChecks'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
