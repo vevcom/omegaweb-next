@@ -11,12 +11,15 @@ import { CareersSearchButton } from '@/app/(careers)/GlobalSearch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { NavLink } from '@/lib/navDef/navDef'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     links: NavLink[],
     /** What belongs to the logged in user, kept apart from the pages of the site. */
     accountLinks: NavLink[],
     loggedIn: boolean,
+    /** The page of the company a company user acts for, null for everyone else. */
+    companyLink: { name: string, href: AppHref } | null,
     /** Whether the visitor has a place on Omega's own site: a member of Omega, not den gemene hob. */
     showOmegaLink: boolean,
 }
@@ -58,11 +61,15 @@ const contactClassName = `
  * narrow screens it all goes in a menu. The edit mode switch is there for those who may edit the CMS
  * content of the pages, and renders nothing for everyone else.
  */
-export default function CareersNavBar({ links, accountLinks, loggedIn, showOmegaLink }: PropTypes) {
-    const profile = accountLinks.find(link => link.key === 'profile')
+export default function CareersNavBar({ links, accountLinks, loggedIn, companyLink, showOmegaLink }: PropTypes) {
+    // What the narrow navigation shows beside the menu: the visitor's own page on the site.
+    const ownPage = accountLinks.find(link => link.key === 'profile') ?? companyLink
 
     const accountItems = (itemClassName: string) => (
         <>
+            {companyLink && (
+                <SiteLink href={companyLink.href} className={itemClassName}>{companyLink.name}</SiteLink>
+            )}
             {accountLinks.map(link => (
                 <SiteLink key={link.key} href={link.href} className={itemClassName}>{link.name}</SiteLink>
             ))}
@@ -128,12 +135,12 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
                     flex items-center gap-2
                     min-[1180px]:hidden
                 ">
-                    {loggedIn && profile ? (
-                        <SiteLink href={profile.href} className={`
+                    {loggedIn && ownPage ? (
+                        <SiteLink href={ownPage.href} className={`
                             ${loginButtonClassName}
                             max-[480px]:hidden
                         `}>
-                            {profile.name}
+                            {ownPage.name}
                         </SiteLink>
                     ) : (
                         <LoginLink config={careersAuthPages} className={`

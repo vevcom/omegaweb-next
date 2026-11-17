@@ -28,4 +28,9 @@ export const committeeAuth = {
     updateParagraphContent: adminOrGroupAdmin,
     updateLogo: adminOrGroupAdmin,
     updateArticle: adminOrGroupAdmin,
+    readChatSpace: adminOrGroupAdmin,
+    createChatSpace: adminOrGroupAdmin,
+    destroyChatSpace: adminOrGroupAdmin,
+    setChatSpaceMembers: adminOrGroupAdmin,
+    setChatSpaceRooms: adminOrGroupAdmin,
 } as const

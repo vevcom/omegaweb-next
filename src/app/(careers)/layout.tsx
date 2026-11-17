@@ -4,6 +4,7 @@ import { karla, sora } from './_lib/careersFonts'
 import { careersTheme } from './_lib/careersTheme'
 import { careerAccountNavDef, careerNavDef } from './_lib/careerNavDef'
 import { innerClassName } from './_lib/careersClassNames'
+import { careerLinks } from './links'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import { CareersGlobalSearch, CareersGlobalSearchProvider } from '@/app/(careers)/GlobalSearch'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
@@ -42,7 +43,11 @@ export default serverLayout({
             )
             : null
         return {
-            loggedIn: session.user !== null,
+            loggedIn: session.user !== null || session.companyUser !== null,
+            // A company user's own place on the site is the page of their company.
+            companyLink: session.companyUser
+                ? { name: session.companyUser.company.name, href: careerLinks.company(session.companyUser.company) }
+                : null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
             navLinks: await careerNavDef.visible(session),
             accountLinks: await careerAccountNavDef.visible(session),
@@ -77,6 +82,7 @@ export default serverLayout({
                     links={data.navLinks}
                     accountLinks={data.accountLinks}
                     loggedIn={data.loggedIn}
+                    companyLink={data.companyLink}
                     showOmegaLink={data.omegaMember}
                 />
                 <main className={`
@@ -85,7 +91,11 @@ export default serverLayout({
                 `}>
                     {children}
                 </main>
-                <CareersFooter capabilities={capabilities} showOmegaLink={data.omegaMember} />
+                <CareersFooter
+                    capabilities={capabilities}
+                    showOmegaLink={data.omegaMember}
+                    showCompanyLogin={!data.loggedIn}
+                />
             </CareersGlobalSearchProvider>
         </div>
     ),

@@ -6,6 +6,8 @@ enum NotificationChannelPurpose {
   EVENT
   EVENT_INFO
   EVENT_GENERAL
+  CHAT_SPACE_MENTIONS
+  CHAT_SPACE_ALL
 }
 
 enum SpecialNotificationChannel {
@@ -16,6 +18,7 @@ enum SpecialNotificationChannel {
   NEW_JOBAD
   NEW_OMEGAQUOTE
   CONTACTOR
+  CHAT
 }
 
 model NotificationChannel {
@@ -40,6 +43,9 @@ model NotificationChannel {
   event        Event? @relation(name: "EventNotificationChannel")
   eventInfo    Event? @relation(name: "EventInfoNotificationChannel")
   eventGeneral Event? @relation(name: "EventGeneralNotificationChannel")
+
+  chatSpaceMentions ChatSpace? @relation(name: "ChatSpaceMentionsNotificationChannel")
+  chatSpaceAll      ChatSpace? @relation(name: "ChatSpaceAllNotificationChannel")
 }
 
 model NotificationMethod {

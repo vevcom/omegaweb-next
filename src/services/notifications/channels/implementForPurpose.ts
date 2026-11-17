@@ -1,9 +1,12 @@
 import '@pn-server-only'
 import { notificationChannelOperations } from './subservice/operations'
 import { notificationChannelSchemas } from './subservice/schemas'
+import { availableNotificationMethodIncluder } from './subservice/constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { ImplementationParamsObject, PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { ParentChannel } from './implementSpecial'
+import type { NotificationMethodGeneral } from '@/services/notifications/types'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { NotificationChannelPurpose } from '@/prisma-generated-pn-types'
 import type { Awaitable } from '@/lib/awaitable'
@@ -14,6 +17,15 @@ type ChannelArgs<ImplementationParamsSchema extends z.ZodTypeAny | undefined> = 
     prisma: PrismaPossibleTransaction<false>,
     channelId: number,
 } & ImplementationParamsObject<ImplementationParamsSchema, 'INFERRED'>
+
+/** What every channel of a purpose is made as, for a system that makes them all alike. */
+export type ChannelsOfPurposeConfig = {
+    /** The special channel they sit under. Left out for channels that are put under one named when they are made. */
+    parent?: ParentChannel,
+    description: string,
+    /** What their parent offers when left out. */
+    availableMethods?: NotificationMethodGeneral,
+}
 
 /**
  * The channel operations of one system that makes channels as it goes, such as the admin pages or,
@@ -26,16 +38,21 @@ type ChannelArgs<ImplementationParamsSchema extends z.ZodTypeAny | undefined> = 
  * and `createNotification` come out internal too, since not every system lets users do them: an
  * event makes its channels when it is created and sends in them from its own operations. A system
  * that does let users do them implements them, with `ownsChannel` as its ownership check.
+ *
+ * A system whose channels are all alike says so once, as `channels`, and makes one with
+ * `internal.createAsConfigured`, which takes its name alone.
  */
 export function implementNotificationChannelsForPurpose<
     ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined
 >({
     purpose,
+    channels: channelsConfig,
     implementationParamsSchema,
     authorizers,
     ownershipCheck,
 }: {
     purpose: NotificationChannelPurpose,
+    channels?: ChannelsOfPurposeConfig,
     implementationParamsSchema?: ImplementationParamsSchema,
     authorizers: {
         readMany: () => Authorizer,
@@ -86,6 +103,29 @@ export function implementNotificationChannelsForPurpose<
                     data,
                     operationImplementationFields: { purpose },
                 }),
+            }),
+
+            createAsConfigured: defineSubOperation({
+                dataSchema: () => notificationChannelSchemas.data.createAsConfigured,
+                operation: () => async ({ prisma, data }) => {
+                    if (!channelsConfig) {
+                        throw new ServiceError('SERVER ERROR', `${purpose}-kanaler har ikke noe oppsett å lages fra.`)
+                    }
+                    const parent = data.parentId === undefined
+                        ? await channelsConfig.parent?.readChannelInternal({ prisma })
+                        : await prisma.notificationChannel.findUniqueOrThrow({
+                            where: { id: data.parentId },
+                            include: availableNotificationMethodIncluder,
+                        })
+                    if (!parent) {
+                        throw new ServiceError('SERVER ERROR', `En ${purpose}-kanal må legges under en annen kanal.`)
+                    }
+                    return notificationChannelOperations.create.internalCall({
+                        params: { availableMethods: channelsConfig.availableMethods ?? parent.availableMethods },
+                        data: { name: data.name, description: channelsConfig.description, parentId: parent.id },
+                        operationImplementationFields: { purpose },
+                    })
+                },
             }),
 
             update: defineSubOperation({

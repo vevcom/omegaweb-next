@@ -1,0 +1,104 @@
+model ChatUser {
+  id Int @id @default(autoincrement())
+  // Null once the user is deleted. The row stays, so the chat sync knows the account to
+  // deactivate and nobody is given the localpart again.
+  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId Int?  @unique
+  // What stands before the colon in the user's Matrix id, @localpart:server. Matrix never lets it
+  // change, so it is decided here once and stays when the username changes.
+  localpart String   @unique
+  createdAt DateTime @default(now())
+  // The name the chat sync last gave the account. Null until the account exists on the homeserver.
+  syncedName    String?
+  deactivatedAt DateTime?
+
+  spaceMemberships ChatSpaceMember[]
+}
+
+enum ChatSpacePurpose {
+  COMMITTEE
+  MANUAL
+}
+
+
+model ChatSpace {
+  id      Int              @id @default(autoincrement())
+  purpose ChatSpacePurpose
+  name    String
+  // The id of the Matrix space. Null until the chat sync has made it.
+  matrixRoomId String?   @unique
+  createdAt    DateTime  @default(now())
+  // Set when the owner destroys the space. The chat sync empties the Matrix space and then
+  // deletes the row.
+  destroyedAt DateTime?
+
+  mentionsNotificationChannel   NotificationChannel @relation(name: "ChatSpaceMentionsNotificationChannel", fields: [mentionsNotificationChannelId], references: [id], onDelete: Restrict)
+  mentionsNotificationChannelId Int                 @unique
+  allNotificationChannel        NotificationChannel @relation(name: "ChatSpaceAllNotificationChannel", fields: [allNotificationChannelId], references: [id], onDelete: Restrict)
+  allNotificationChannelId      Int                 @unique
+
+  members      ChatSpaceMember[]
+  rooms        ChatSpaceRoom[]
+  committee    Committee?
+  manualAdmins ManualChatSpaceAdmin[]
+}
+
+model ChatSpaceMember {
+  id         Int       @id @default(autoincrement())
+  space      ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId    Int
+  chatUser   ChatUser  @relation(fields: [chatUserId], references: [id], onDelete: Cascade)
+  chatUserId Int
+  createdAt  DateTime  @default(now())
+
+  privateRoomMemberships ChatSpaceRoomMember[]
+
+  @@unique([spaceId, chatUserId])
+  @@index([chatUserId])
+}
+
+model ChatSpaceRoom {
+  id           Int       @id @default(autoincrement())
+  space        ChatSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  spaceId      Int
+  name         String
+  // Null until the chat sync has made the room.
+  matrixRoomId String?   @unique
+  createdAt    DateTime  @default(now())
+  // The chat sync empties the room and then deletes the row.
+  destroyedAt  DateTime?
+  isPrivate    Boolean   @default(false)
+
+  pickedMembers ChatSpaceRoomMember[]
+  messages      ChatRoomMessage[]
+
+  @@index([spaceId])
+}
+
+model ChatSpaceRoomMember {
+  id            Int             @id @default(autoincrement())
+  room          ChatSpaceRoom   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId        Int
+  spaceMember   ChatSpaceMember @relation(fields: [spaceMemberId], references: [id], onDelete: Cascade)
+  spaceMemberId Int
+  createdAt     DateTime        @default(now())
+
+  @@unique([roomId, spaceMemberId])
+  @@index([spaceMemberId])
+}
+
+// A message the homeserver has told of, kept for the chat worker to notify of. What it says is
+// never stored. A row stays a while after it is notified of, so a message told of twice is one.
+model ChatRoomMessage {
+  id                 Int           @id @default(autoincrement())
+  room               ChatSpaceRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId             Int
+  matrixEventId      String        @unique
+  senderMatrixId     String
+  mentionedMatrixIds String[]
+  mentionsRoom       Boolean       @default(false)
+  sentAt             DateTime
+  notifiedAt         DateTime?
+
+  @@index([notifiedAt])
+}

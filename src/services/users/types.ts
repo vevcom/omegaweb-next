@@ -6,6 +6,8 @@ import type {
 } from './constants'
 import type { userSchemas } from './schemas'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
+import type { ActionReturn } from '@/services/actionTypes'
+import type { z } from 'zod'
 import type { ClassLevel, OmegaMembershipLevel } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { ExpandedImage } from '@/services/images/subservice/types'
@@ -46,7 +48,16 @@ export type UserDetails = InferPagingDetails<typeof userSchemas.params.readPage>
      * Which page operation the list reads, chosen on the client. Defaults to the active omega students.
      */
     partition?: UserPartition,
+    /**
+     * Reads the pages from somewhere other than the user service's own lists, such as from those a
+     * chat space may take as members. With it, `partition` says nothing.
+     */
+    readPage?: UserPageReader,
 }
+
+export type UserPageReader = (
+    page: { params: z.input<typeof userSchemas.params.readPage> },
+) => Promise<ActionReturn<UserPagingReturn[]>>
 
 export type RegisterNewEmailType = {
     verified: boolean,

@@ -115,7 +115,7 @@ const { page, generateMetadata } = serverPage({
                 <ContactInfoForm username={user.username} mobile={user.mobile} allergies={user.allergies} />
             </Section>
 
-            <Section title="E-post fra Contactor">
+            <Section title="Varslinger fra Contactor">
                 <UpdateNotificationSubscription
                     userId={user.id}
                     channel={channel}

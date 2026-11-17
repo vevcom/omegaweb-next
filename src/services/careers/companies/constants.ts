@@ -3,11 +3,7 @@ import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
 export const logoIncluder = {
-    logo: {
-        include: {
-            image: { include: expandedImageIncluder }
-        }
-    }
+    logoImage: { include: expandedImageIncluder },
 } as const satisfies Prisma.CompanyInclude
 
 export const companySponsorTierDetails = {
@@ -43,9 +39,5 @@ export const sponsorSelection = {
     name: true,
     website: true,
     sponsorTier: true,
-    logo: {
-        include: {
-            image: { include: expandedImageIncluder }
-        }
-    },
+    logoImage: { include: expandedImageIncluder },
 } as const satisfies Prisma.CompanySelect

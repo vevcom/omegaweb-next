@@ -9,14 +9,24 @@ import { implementNotificationChannelsForPurpose } from '@/services/notification
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import type { ChannelsOfPurposeConfig } from '@/services/notifications/channels/implementForPurpose'
 import type { Event, NotificationChannelPurpose } from '@/prisma-generated-pn-types'
 import type { NotificationResult } from '@/services/notifications/types'
 
 /** The channel operations per purpose of the channels an event owns. An event owns only its own. */
 const channels = {
-    own: implementForEvents('EVENT', 'notificationChannelId'),
-    info: implementForEvents('EVENT_INFO', 'infoNotificationChannelId'),
-    general: implementForEvents('EVENT_GENERAL', 'generalNotificationChannelId'),
+    own: implementForEvents('EVENT', 'notificationChannelId', {
+        parent: eventNotificationChannel,
+        description: eventChannelDescriptions.own,
+    }),
+    // The two sit under the event's own channel, which is named when they are made.
+    info: implementForEvents('EVENT_INFO', 'infoNotificationChannelId', {
+        description: eventChannelDescriptions.info,
+        availableMethods: eventInfoChannelMethods,
+    }),
+    general: implementForEvents('EVENT_GENERAL', 'generalNotificationChannelId', {
+        description: eventChannelDescriptions.general,
+    }),
 } as const
 
 /**
@@ -80,22 +90,16 @@ export const eventNotificationOperations = {
             paramsSchema: () => eventNotificationSchemas.params.createChannels,
             dataSchema: () => eventNotificationSchemas.data.createChannels,
             transaction: 'RUNS_IN',
-            operation: () => async ({ prisma, params, data }): Promise<EventChannelIds> => {
-                const parent = await eventNotificationChannel.readChannelInternal({ prisma })
+            operation: () => async ({ params, data }): Promise<EventChannelIds> => {
                 const names = eventChannelNames(data.name, params.eventId)
 
-                const own = await channels.own.internal.create.internalCall({
-                    params: { availableMethods: parent.availableMethods },
-                    data: { name: names.own, description: eventChannelDescriptions.own, parentId: parent.id },
-                })
+                const own = await channels.own.internal.createAsConfigured.internalCall({ data: { name: names.own } })
                 const [info, general] = await Promise.all([
-                    channels.info.internal.create.internalCall({
-                        params: { availableMethods: eventInfoChannelMethods },
-                        data: { name: names.info, description: eventChannelDescriptions.info, parentId: own.id },
+                    channels.info.internal.createAsConfigured.internalCall({
+                        data: { name: names.info, parentId: own.id },
                     }),
-                    channels.general.internal.create.internalCall({
-                        params: { availableMethods: parent.availableMethods },
-                        data: { name: names.general, description: eventChannelDescriptions.general, parentId: own.id },
+                    channels.general.internal.createAsConfigured.internalCall({
+                        data: { name: names.general, parentId: own.id },
                     }),
                 ])
 
@@ -161,9 +165,14 @@ export const eventNotificationOperations = {
 type EventChannelIds = Pick<Event, 'notificationChannelId' | 'infoNotificationChannelId' | 'generalNotificationChannelId'>
 
 /** The channels of one purpose, owned by the event given as implementation params through the key named. */
-function implementForEvents(purpose: NotificationChannelPurpose, channelKey: keyof EventChannelIds) {
+function implementForEvents(
+    purpose: NotificationChannelPurpose,
+    channelKey: keyof EventChannelIds,
+    channelsConfig: ChannelsOfPurposeConfig,
+) {
     return implementNotificationChannelsForPurpose({
         purpose,
+        channels: channelsConfig,
         implementationParamsSchema: eventNotificationSchemas.params.createNotification,
         authorizers: {
             readMany: () => eventNotificationAuth.readManyChannels,

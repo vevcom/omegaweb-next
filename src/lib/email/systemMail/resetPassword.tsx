@@ -2,7 +2,7 @@ import '@pn-server-only'
 import { resetPasswordExpiration } from './constants'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import { ResetPasswordTemplate } from '@/lib/email/templates/resetPassword'
-import { generateJWT } from '@/jwt/jwt'
+import { generateResetPasswordJWT } from '@/services/accountFlows/tokens'
 import { userOperations } from '@/services/users/operations'
 import { DomainContext } from '@/lib/sites/context'
 import { authLinks } from '@/pageKits/auth/links'
@@ -18,11 +18,7 @@ export async function sendResetPasswordMail(email: string, site: Site) {
     const user = await userOperations.readOrNull({ params: { email: emailParsed }, bypassAuth: true })
     if (!user) return email
 
-    // The email lets the reset also verify the address, since only its owner can follow the link.
-    const jwt = generateJWT('resetpassword', {
-        sub: user.id,
-        email: user.email,
-    }, resetPasswordExpiration)
+    const jwt = generateResetPasswordJWT('resetpassword', user.id, user.email, resetPasswordExpiration)
 
     const link = DomainContext.authDomainUrl(authLinks(authPagesOf(site)).resetPasswordForm(jwt))
 

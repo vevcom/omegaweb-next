@@ -22,8 +22,9 @@ export const [UserPagingContext, UserPagingProvider] = generatePaging<
     UserDetails
 >({
     fetcher: async ({ paging }) => {
-        const { partition, ...details } = paging.details
-        return await readPageActions[partition ?? 'activeOmegaStudents']({ params: { paging: { ...paging, details } } })
+        const { partition, readPage, ...details } = paging.details
+        const read = readPage ?? readPageActions[partition ?? 'activeOmegaStudents']
+        return await read({ params: { paging: { ...paging, details } } })
     },
     getCursor: ({ lastElement }) => ({ id: lastElement.id }),
 })

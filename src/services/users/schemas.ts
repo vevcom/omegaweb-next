@@ -166,6 +166,7 @@ export const userSchemas = {
         readUserWithBalance: userLookup,
 
         readPage,
+        readPageOf: readPage,
         readUnarchivedPage: readPage,
         readArchivedPage: readPage,
 
