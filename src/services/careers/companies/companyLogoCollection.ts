@@ -3,11 +3,7 @@ import { companyLogosImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    internalOperations: companyLogoImageOperations,
-    specialCollectionPanelOperations: companyLogosImagePanelOperations,
-    generateCollectionFromConfig: generateCompanyLogosCollectionFromConfig
-} = implementSpecialCollection({
+export const companyLogoCollection = implementSpecialCollection({
     special: 'COMPANYLOGOS',
     // A logo comes as a vector as often as a raster image.
     allowedExtensions,

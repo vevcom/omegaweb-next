@@ -18,10 +18,40 @@ type OwnedArticleSection = Prisma.ArticleSectionGetPayload<{
         cmsLink: true,
     }
 }>
+type OwnerArgs<ImplementationParamsSchema extends z.ZodTypeAny> = {
+    prisma: PrismaPossibleTransaction<false>,
+    implementationParams: z.infer<ImplementationParamsSchema>,
+}
+
+type UpdateConfig<ImplementationParamsSchema extends z.ZodTypeAny> = {
+    implementationParamsSchema: ImplementationParamsSchema,
+    authorizer: (args: OwnerArgs<ImplementationParamsSchema>) => Awaitable<Authorizer>,
+    ownedArticleSections: (args: OwnerArgs<ImplementationParamsSchema>) => Awaitable<OwnedArticleSection[]>,
+    /**
+     * Runs after authorization and before any of these operations. It lets the owner refuse the
+     * whole set at once - a pensioned group, say, whose content may no longer be edited.
+     */
+    beforeRun?: (args: OwnerArgs<ImplementationParamsSchema>) => Awaitable<void>,
+}
+
 /**
- * This utility implements all the needed update operations for an article section and
- * the assosiated cms: CmsLink, CmsParagraph, CmsImage
+ * The operations of the article sections a service owns outside any article. The owner creates a
+ * section in the transaction that writes its own row and destroys it after that row, both through
+ * `internal`. Such a section stays when its last part is removed.
  */
+export function implementArticleSectionOperations<
+    const ImplementationParamsSchema extends z.ZodTypeAny
+>(config: UpdateConfig<ImplementationParamsSchema>) {
+    return {
+        internal: {
+            create: articleSectionOperations.create,
+            destroy: articleSectionOperations.destroy,
+        },
+        ...implementUpdateArticleSectionOperations({ ...config, destroyOnEmpty: false }),
+    } as const
+}
+
+/** Everything a user changes in an article section: its text, and the cms parts it holds. */
 export function implementUpdateArticleSectionOperations<
     const ImplementationParamsSchema extends z.ZodTypeAny
 >({
@@ -30,31 +60,8 @@ export function implementUpdateArticleSectionOperations<
     ownedArticleSections,
     beforeRun,
     destroyOnEmpty
-}: {
-    implementationParamsSchema: ImplementationParamsSchema,
-    authorizer: (
-        args: {
-            prisma: PrismaPossibleTransaction<false>,
-            implementationParams: z.infer<ImplementationParamsSchema>
-        }
-    ) => Awaitable<Authorizer>,
-    ownedArticleSections: (
-        args: {
-            prisma: PrismaPossibleTransaction<false>,
-            implementationParams: z.infer<ImplementationParamsSchema>
-        }
-    ) => Awaitable<OwnedArticleSection[]>
-    destroyOnEmpty: boolean
-    /**
-     * Runs after authorization and before any of these operations. It lets the owner refuse the
-     * whole set at once - a pensioned group, say, whose content may no longer be edited.
-     */
-    beforeRun?: (
-        args: {
-            prisma: PrismaPossibleTransaction<false>,
-            implementationParams: z.infer<ImplementationParamsSchema>
-        }
-    ) => Awaitable<void>,
+}: UpdateConfig<ImplementationParamsSchema> & {
+    destroyOnEmpty: boolean,
 }) {
     const ownershipCheckArticleSection = async (
         args: Omit<ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, undefined, ImplementationParamsSchema>, 'data'>
@@ -67,12 +74,7 @@ export function implementUpdateArticleSectionOperations<
         return false //This should never happen
     }
 
-    const getOwnedIds = async (
-        args: {
-            prisma: PrismaPossibleTransaction<false>,
-            implementationParams: z.infer<ImplementationParamsSchema>
-        }
-    ) => {
+    const getOwnedIds = async (args: OwnerArgs<ImplementationParamsSchema>) => {
         const ownedArticleSectionsComputed = await ownedArticleSections(args)
         return {
             paragraphIds: ownedArticleSectionsComputed.map(

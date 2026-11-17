@@ -11,10 +11,9 @@ import {
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
 import { GroupType } from '@/prisma-generated-pn-types'
-import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
-import { implementUpdateArticleSectionOperations } from '@/cms/articleSections/implement'
+import { implementSpecialCmsParagraphs } from '@/cms/paragraphs/implement'
+import { implementArticleSectionOperations } from '@/cms/articleSections/implement'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
-import { articleSectionOperations } from '@/cms/articleSections/operations'
 import { implementSearchOperation } from '@/services/search/implement'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -47,6 +46,30 @@ const migration = implementManualMigrationPerGroup({
 })
 
 /** The group behind an interest group, for the authorizers and the pensioned check. */
+const articleSection = implementArticleSectionOperations({
+    implementationParamsSchema: interestGroupSchemas.params.articleSection,
+    authorizer: async ({ implementationParams, prisma }) => interestGroupAuth.updateArticleSection.data({
+        groupId: await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
+    }),
+    beforeRun: async ({ prisma, implementationParams }) => assertGroupNotPensioned(
+        prisma,
+        await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
+    ),
+    ownedArticleSections: ({ prisma, implementationParams }) =>
+        prisma.interestGroup.findUniqueOrThrow({
+            where: { id: implementationParams.interestGroupId },
+            include: {
+                articleSection: {
+                    include: {
+                        cmsImage: true,
+                        cmsParagraph: true,
+                        cmsLink: true
+                    }
+                }
+            }
+        }).then(interestGroup => [interestGroup.articleSection]),
+})
+
 export const interestGroupOperations = {
     readExpanded: commonGroupOperations.readExpanded,
     readMembers: commonGroupOperations.readMembers,
@@ -64,12 +87,12 @@ export const interestGroupOperations = {
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
-            const articleSection = await articleSectionOperations.create.internalCall({ data: {}, prisma })
+            const createdSection = await articleSection.internal.create.internalCall({ data: {}, prisma })
             return await prisma.interestGroup.create({
                 data: {
                     ...data,
                     articleSection: {
-                        connect: { id: articleSection.id },
+                        connect: { id: createdSection.id },
                     },
                     group: {
                         create: {
@@ -162,7 +185,7 @@ export const interestGroupOperations = {
                 where: { id }
             })
             // The section's image, paragraph and link go with it.
-            await articleSectionOperations.destroy.internalCall({
+            await articleSection.internal.destroy.internalCall({
                 prisma,
                 params: { articleSectionId: interestGroup.articleSectionId },
             })
@@ -173,45 +196,12 @@ export const interestGroupOperations = {
         }
     }),
 
-    readSpecialCmsParagraphGeneralInfo: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => interestGroupAuth.readSpecialCmsParagraphGeneralInfo,
-        ownershipCheck: ({ params }) => params.special === 'INTEREST_GROUP_GENERAL_INFO'
+    generalInfo: implementSpecialCmsParagraphs({
+        specials: ['INTEREST_GROUP_GENERAL_INFO'],
+        authorizers: interestGroupAuth.generalInfo,
     }),
 
-    updateSpecialCmsParagraphContentGeneralInfo: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => interestGroupAuth.updateSpecialCmsParagraphContentGeneralInfo,
-        ownershipCheck: async ({ params }) =>
-            await cmsParagraphOperations.isSpecial.internalCall({
-                params: {
-                    paragraphId: params.paragraphId,
-                    special: ['INTEREST_GROUP_GENERAL_INFO']
-                }
-            })
-    }),
-    updateArticleSection: implementUpdateArticleSectionOperations({
-        implementationParamsSchema: interestGroupSchemas.params.updateArticleSection,
-        authorizer: async ({ implementationParams, prisma }) => interestGroupAuth.updateArticleSection.data({
-            groupId: await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
-        }),
-        beforeRun: async ({ prisma, implementationParams }) => assertGroupNotPensioned(
-            prisma,
-            await readGroupIdOfInterestGroup(prisma, implementationParams.interestGroupId),
-        ),
-        ownedArticleSections: ({ prisma, implementationParams }) =>
-            prisma.interestGroup.findUniqueOrThrow({
-                where: { id: implementationParams.interestGroupId },
-                include: {
-                    articleSection: {
-                        include: {
-                            cmsImage: true,
-                            cmsParagraph: true,
-                            cmsLink: true
-                        }
-                    }
-                }
-            }).then(articleGroup => [articleGroup.articleSection]),
-        destroyOnEmpty: false,
-    }),
+    articleSection,
 } as const
 
 async function readGroupIdOfInterestGroup(prisma: PrismaPossibleTransaction<false>, id: number) {

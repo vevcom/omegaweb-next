@@ -20,9 +20,9 @@ type ChannelInfo = {
  */
 export const seedNotificationChannels = defineSeedOperation(async (prisma: PrismaClient) => {
     const { ROOT, ...otherSpecials } = specialNotificationChannelOperations.channels
-    await ROOT.generateChannelFromConfig.internalCall({ prisma })
+    await ROOT.internal.generateFromConfig.internalCall({ prisma })
     await Promise.all(Object.values(otherSpecials).map(channel =>
-        channel.generateChannelFromConfig.internalCall({ prisma })
+        channel.internal.generateFromConfig.internalCall({ prisma })
     ))
 
     const channels: ChannelInfo[] = [

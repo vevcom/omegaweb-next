@@ -36,7 +36,7 @@ export function implementSpecialCollection({
      * collections are created lazily, by whatever reads them first, sometimes inside another
      * service's transaction and sometimes not.
      */
-    const generateCollectionFromConfig = defineSubOperation({
+    const generateFromConfig = defineSubOperation({
         transaction: 'RUNS_IN',
         operation: () => async ({ prisma }) => {
             const existing = await prisma.imageCollection.findUnique({
@@ -86,10 +86,9 @@ export function implementSpecialCollection({
     })
 
     /**
-     * The unauthorized read of the collection. Service-internal callers must use this rather than
-     * `readCollection`: the panel authorizer guards the externally exposed operation only, and
-     * running it on a nested call would demand panel-admin permission of every caller — blocking,
-     * for instance, a member uploading their own profile picture.
+     * The unauthorized read of the collection, exposed as `internal.read`. Server code uses it and
+     * not `readCollection`, whose panel authorizer would demand panel access of every caller, for
+     * instance of a member uploading their own profile picture.
      */
     const readCollectionInternal = async (
         { prisma }: { prisma: PrismaPossibleTransaction<false> }
@@ -111,7 +110,7 @@ export function implementSpecialCollection({
             It must therefore be created from the config.
         `)
 
-        return generateCollectionFromConfig.internalCall({ prisma })
+        return generateFromConfig.internalCall({ prisma })
     }
 
     const readCollection = defineOperation({
@@ -176,14 +175,20 @@ export function implementSpecialCollection({
     })
 
     return {
-        internalOperations: {
+        special,
+
+        internal: {
+            read: defineSubOperation({
+                operation: () => ({ prisma }) => readCollectionInternal({ prisma }),
+            }),
+            generateFromConfig,
             uploadImage,
             destroyImage,
         },
-        specialCollectionPanelOperations: {
-            readCollection,
-            readPageOfImagesInCollection,
-        },
-        generateCollectionFromConfig,
+
+        readCollection,
+        readPageOfImagesInCollection,
     } as const
 }
+
+export type SpecialCollectionImplementation = ReturnType<typeof implementSpecialCollection>

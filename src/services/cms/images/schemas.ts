@@ -31,7 +31,7 @@ export const cmsImageSchemas = {
         }).partial(),
     },
     params: {
-        generateSpecialCmsImageFromConfig: special,
+        createSpecial: special,
         readSpecial: special,
         update: cmsImageId,
         destroy: cmsImageId,

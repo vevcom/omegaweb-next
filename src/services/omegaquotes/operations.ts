@@ -24,7 +24,7 @@ export const omegaquoteOperations = {
                 }
             })
 
-            await newOmegaquoteNotificationChannel.internalOperations.createNotification.internalCall({
+            await newOmegaquoteNotificationChannel.internal.createNotification.internalCall({
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,

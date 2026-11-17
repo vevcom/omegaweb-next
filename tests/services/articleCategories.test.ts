@@ -277,7 +277,7 @@ describe('changing a category and its articles', () => {
             session,
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Kapret' },
@@ -309,7 +309,7 @@ describe('changing a category and its articles', () => {
         const article = await addArticle(category.id)
 
         // groupTwo may read the articles, but may not change them.
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },
@@ -321,7 +321,7 @@ describe('changing a category and its articles', () => {
             session: sessionInGroups(groupTwo),
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
-        await articleCategoryOperations.updateArticle.update({
+        await articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },
@@ -344,7 +344,7 @@ describe('changing a category and its articles', () => {
         const other = await createCategory({ adminLevel: activeIn(groupTwo) })
         const article = await addArticle(other.id)
 
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: administrated.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },

@@ -3,7 +3,6 @@ import { mailAliasAuth } from './auth'
 import { mailAliasSchemas } from './schemas'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementVisibilityOperations } from '@/services/visibility/implement'
 import { mailTraversalOperations } from '@/services/mail/traversal/operations'
 import { implementMailAddressOperations } from '@/services/mail/address/implement'
@@ -36,13 +35,13 @@ export const aliasMailAddressOperations = implementMailAddressOperations({
     implementationParamsSchema: mailAliasSchemas.params.mailAddress,
     authorizers: {
         read: async ({ implementationParams, prisma }) => mailAliasAuth.readMailAddress.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params: implementationParams }),
         }),
         update: async ({ implementationParams, prisma }) => mailAliasAuth.updateMailAddress.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params: implementationParams }),
         }),
         updateForwarding: async ({ implementationParams, prisma }) => mailAliasAuth.updateMailAddressForwarding.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params: implementationParams }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params: implementationParams }),
         }),
     },
     readMailAddress: async ({ prisma, implementationParams }) => (await prisma.mailAlias.findUniqueOrThrow({
@@ -63,7 +62,7 @@ export const aliasOperations = {
                 prisma,
                 data: { localPart, domain },
             })
-            const ownerVisibility = await visibilityOperations.createWithRequirements.internalCall({
+            const ownerVisibility = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: ownerRequirements },
             })
@@ -79,7 +78,7 @@ export const aliasOperations = {
 
     readTraversal: mailTraversalOperations.read.implement({
         authorizer: async ({ params, prisma }) => mailAliasAuth.readTraversal.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params }),
             markOwnedByUserId: params.markOwnedByUserId,
         }),
         ownershipCheck: () => true,
@@ -112,7 +111,7 @@ export const aliasOperations = {
         paramsSchema: mailAliasSchemas.params.updateDescription,
         dataSchema: mailAliasSchemas.data.updateDescription,
         authorizer: async ({ params, prisma }) => mailAliasAuth.updateDescription.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params }),
         }),
         operation: async ({ prisma, params, data }): Promise<MailAlias> =>
             prisma.mailAlias.update({
@@ -124,7 +123,7 @@ export const aliasOperations = {
     destroy: defineOperation({
         paramsSchema: mailAliasSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => mailAliasAuth.destroy.data({
-            visibility: await visibility.readMatrixInternal({ prisma, params }),
+            visibility: await visibility.internal.readMatrix.internalCall({ prisma, params }),
         }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }): Promise<MailAlias> => {
@@ -143,7 +142,7 @@ export const aliasOperations = {
             const destroyed = await prisma.mailAlias.delete({
                 where: { id: params.id },
             })
-            await visibilityOperations.destroy.internalCall({
+            await visibility.internal.destroy.internalCall({
                 prisma,
                 params: { visibilityId: destroyed.ownerVisibilityId },
             })

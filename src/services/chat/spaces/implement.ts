@@ -119,6 +119,11 @@ export function implementChatSpaces<
                     operationImplementationFields: { purpose },
                 }),
             }),
+            read: chatSpaceOperations.read,
+            readRooms: chatSpaceOperations.readRooms,
+            readMembers: chatSpaceOperations.readMembers,
+            update: chatSpaceOperations.update,
+            destroy: chatSpaceOperations.destroy,
         },
     } as const
 }

@@ -3,10 +3,7 @@ import { standardImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    specialCollectionPanelOperations: standardImagesImagePanelOperations,
-    generateCollectionFromConfig: generateStandardImagesCollectionFromConfig
-} = implementSpecialCollection({
+export const standardImageCollection = implementSpecialCollection({
     special: 'STANDARDIMAGES',
     imagePanelAuth: standardImagesImagePanelAuth,
     allowedExtensions,

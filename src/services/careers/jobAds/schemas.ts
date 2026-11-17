@@ -58,7 +58,7 @@ export const jobAdSchemas = {
             }),
         ),
         update: id,
-        updateArticle: paramsFieldSchemas.pick({
+        article: paramsFieldSchemas.pick({
             jobAdId: true,
         }),
         destroy: id,

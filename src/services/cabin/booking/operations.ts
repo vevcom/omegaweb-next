@@ -15,7 +15,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import { takeAdvisoryLock } from '@/lib/advisoryLocks'
 import { Smorekopp, ServiceError } from '@/services/error'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
-import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
+import { implementSpecialCmsParagraphs } from '@/cms/paragraphs/implement'
 import { paymentOperations } from '@/services/ledger/payments/operations'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { stalePendingTransactionMs, validTransactionFilter } from '@/services/ledger/transactions/constants'
@@ -386,20 +386,9 @@ export const cabinBookingOperations = {
         },
     }),
 
-    readSpecialCmsParagraphCabinContract: cmsParagraphOperations.readSpecial.implement({
-        authorizer: () => cabinBookingAuth.readSpecialCmsParagraphCabinContract,
-        ownershipCheck: ({ params }) => params.special === 'CABIN_CONTRACT'
-    }),
-
-    updateSpecialCmsParagraphContentCabinContract: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
-        ownershipCheck: async ({ params }) =>
-            await cmsParagraphOperations.isSpecial.internalCall({
-                params: {
-                    paragraphId: params.paragraphId,
-                    special: ['CABIN_CONTRACT']
-                },
-            })
+    contract: implementSpecialCmsParagraphs({
+        specials: ['CABIN_CONTRACT'],
+        authorizers: cabinBookingAuth.contract,
     }),
 
     /**

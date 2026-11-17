@@ -3,11 +3,7 @@ import { promoImagesImagePanelAuth } from './auth'
 import { implementSpecialCollection } from '@/services/images/subservice/special/implement'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 
-export const {
-    internalOperations: promoImageOperations,
-    specialCollectionPanelOperations: promoImagesImagePanelOperations,
-    generateCollectionFromConfig: generatePromoImagesCollectionFromConfig
-} = implementSpecialCollection({
+export const promoImageCollection = implementSpecialCollection({
     special: 'PROMOIMAGES',
     allowedExtensions,
     imagePanelAuth: promoImagesImagePanelAuth,

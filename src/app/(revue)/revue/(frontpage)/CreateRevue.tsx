@@ -1,11 +1,8 @@
 'use client'
 import { revueLinks } from '@/app/(revue)/links'
-import Form from '@/components/Form/Form'
+import CreateRevueForm from '@/app/(revue)/_components/CreateRevueForm'
 import PopUp from '@/components/PopUp/PopUp'
-import NumberInput from '@/components/UI/NumberInput'
-import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
-import { createRevueAction } from '@/services/revue/actions'
 import { revueAuth } from '@/services/revue/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
@@ -29,16 +26,7 @@ export default function CreateRevue() {
                 Legg til revy
             </>}
         >
-            <Form
-                title="Ny revy"
-                action={createRevueAction}
-                submitText="Legg til"
-                closePopUpOnSuccess={popUpKey}
-                navigateOnSuccess={revue => (revue ? revueLinks.revue(revue) : null)}
-            >
-                <NumberInput name="year" label="År" defaultValue={new Date().getUTCFullYear()} />
-                <TextInput name="name" label="Navn" />
-            </Form>
+            <CreateRevueForm closePopUpOnSuccess={popUpKey} hrefOfCreated={revueLinks.revue} />
         </PopUp>
     )
 }

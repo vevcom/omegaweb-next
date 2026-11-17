@@ -1,6 +1,8 @@
 import { Require } from '@/auth/authorizer/Require'
 
 export const revueFrontpageAuth = {
-    readMainRevueInfo: Require.nothing(),
-    updateMainRevueInfo: Require.permission('REVUE_ADMIN'),
+    mainRevueInfo: {
+        read: Require.nothing(),
+        update: Require.permission('REVUE_ADMIN'),
+    },
 } as const

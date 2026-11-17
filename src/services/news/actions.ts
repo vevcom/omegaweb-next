@@ -12,32 +12,32 @@ export const updateNewsRegularLevelVisibilityAction = makeAction(newsOperations.
 export const updateNewsAdminLevelVisibilityAction = makeAction(newsOperations.visibility.updateAdminLevel)
 
 export const updateNewsArticleAction = makeAction(
-    newsOperations.updateArticle.update
+    newsOperations.article.update
 )
 export const updateNewsArticleAddSectionAction = makeAction(
-    newsOperations.updateArticle.addSection
+    newsOperations.article.addSection
 )
 export const updateNewsArticleReorderSectionsAction = makeAction(
-    newsOperations.updateArticle.reorderSections
+    newsOperations.article.reorderSections
 )
 export const updateNewsArticleCoverImageAction = makeAction(
-    newsOperations.updateArticle.coverImage
+    newsOperations.article.coverImage
 )
 export const updateNewsArticleSectionAction = makeAction(
-    newsOperations.updateArticle.articleSections.update
+    newsOperations.article.articleSections.update
 )
 export const updateNewsArticleSectionsAddPartAction = makeAction(
-    newsOperations.updateArticle.articleSections.addPart
+    newsOperations.article.articleSections.addPart
 )
 export const updateNewsArticleSectionsRemovePartAction = makeAction(
-    newsOperations.updateArticle.articleSections.removePart
+    newsOperations.article.articleSections.removePart
 )
 export const updateNewsArticleCmsImageAction = makeAction(
-    newsOperations.updateArticle.articleSections.cmsImage
+    newsOperations.article.articleSections.cmsImage
 )
 export const updateNewsArticleCmsParagraphAction = makeAction(
-    newsOperations.updateArticle.articleSections.cmsParagraph
+    newsOperations.article.articleSections.cmsParagraph
 )
 export const updateNewsArticleCmsLinkAction = makeAction(
-    newsOperations.updateArticle.articleSections.cmsLink
+    newsOperations.article.articleSections.cmsLink
 )

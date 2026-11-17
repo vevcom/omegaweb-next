@@ -50,7 +50,7 @@ export const committeeSchemas = {
         updateLogo: committeeShortName,
         destroy: committeeId,
         update: committeeId,
-        updateArticle: committeeShortName,
+        article: committeeShortName,
         readChatSpace: committeeGroupId,
         createChatSpace: committeeGroupId,
         chatSpace: committeeGroupId,

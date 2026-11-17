@@ -2,22 +2,6 @@
 import { frontpageOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
-export const readSpecialCmsParagraphFrontpageSectionAction = makeAction(
-    frontpageOperations.readSpecialCmsParagraphSection
-)
-
-export const updateSpecialCmsParagraphFrontpageSectionAction = makeAction(
-    frontpageOperations.updateSpecialCmsParagraphContentSection
-)
-
-export const readSpecialCmsImageFrontpageAction = makeAction(
-    frontpageOperations.readSpecialCmsImage
-)
-
-export const updateSpecialCmsImageFrontpageAction = makeAction(
-    frontpageOperations.updateSpecialCmsImage
-)
-
-export const updateSpecialCmsLinkFrontpageAction = makeAction(
-    frontpageOperations.updateSpecialCmsLink
-)
+export const updateSpecialCmsParagraphFrontpageSectionAction = makeAction(frontpageOperations.cmsParagraphs.updateContent)
+export const updateSpecialCmsImageFrontpageAction = makeAction(frontpageOperations.cmsImages.update)
+export const updateSpecialCmsLinkFrontpageAction = makeAction(frontpageOperations.cmsLinks.update)

@@ -1,7 +1,7 @@
 import '@pn-server-only'
 import { promoAuth } from './auth'
 import { promoSchemas } from './schemas'
-import { promoImageOperations } from './promoImageCollection'
+import { promoImageCollection } from './promoImageCollection'
 import { promoWithImageIncluder } from './constants'
 import { defineOperation } from '@/services/serviceOperation'
 
@@ -11,7 +11,7 @@ export const promoOperations = {
         dataSchema: promoSchemas.data.create,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
-            const image = await promoImageOperations.uploadImage.internalCall({ prisma, data })
+            const image = await promoImageCollection.internal.uploadImage.internalCall({ prisma, data })
             return await prisma.promo.create({
                 data: {
                     title: data.title,
@@ -58,7 +58,7 @@ export const promoOperations = {
                     where: { id: params.promoId }
                 })
                 const uploadedImage =
-                    await promoImageOperations.uploadImage.internalCall({ prisma: tx, data })
+                    await promoImageCollection.internal.uploadImage.internalCall({ prisma: tx, data })
                 await tx.promo.update({
                     where: { id: existingPromo.id },
                     data: {
@@ -69,7 +69,7 @@ export const promoOperations = {
                         }
                     }
                 })
-                await promoImageOperations.destroyImage.internalCall({
+                await promoImageCollection.internal.destroyImage.internalCall({
                     prisma: tx,
                     params: { imageId: existingPromo.imageId }
                 })
@@ -124,7 +124,7 @@ export const promoOperations = {
                         id: promoId,
                     }
                 })
-                await promoImageOperations.destroyImage.internalCall({
+                await promoImageCollection.internal.destroyImage.internalCall({
                     prisma: tx,
                     params: {
                         imageId: promo.imageId,

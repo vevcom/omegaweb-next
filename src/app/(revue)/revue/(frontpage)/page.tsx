@@ -27,7 +27,7 @@ const { page, generateMetadata } = serverPage({
         revues: await revueOperations.readMany({}),
     }),
     capabilities: () => ({
-        canEdit: revueFrontpageAuth.updateMainRevueInfo,
+        canEdit: revueFrontpageAuth.mainRevueInfo.update,
     }),
     // Absolute: the frontpage is the site, so the layout's template would read "Omegarevyen | Omegarevyen".
     metadata: () => ({ title: { absolute: 'Omegarevyen' } }),

@@ -112,7 +112,7 @@ export function implementNotificationChannelsForPurpose<
                         throw new ServiceError('SERVER ERROR', `${purpose}-kanaler har ikke noe oppsett å lages fra.`)
                     }
                     const parent = data.parentId === undefined
-                        ? await channelsConfig.parent?.readChannelInternal({ prisma })
+                        ? await channelsConfig.parent?.internal.read.internalCall({ prisma })
                         : await prisma.notificationChannel.findUniqueOrThrow({
                             where: { id: data.parentId },
                             include: availableNotificationMethodIncluder,

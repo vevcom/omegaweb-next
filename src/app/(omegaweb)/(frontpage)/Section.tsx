@@ -2,8 +2,6 @@ import SpecialCmsParagraph from '@/components/Cms/CmsParagraph/SpecialCmsParagra
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import CmsLink from '@/components/Cms/CmsLink/CmsLink'
 import {
-    readSpecialCmsImageFrontpageAction,
-    readSpecialCmsParagraphFrontpageSectionAction,
     updateSpecialCmsImageFrontpageAction,
     updateSpecialCmsLinkFrontpageAction,
     updateSpecialCmsParagraphFrontpageSectionAction
@@ -40,7 +38,7 @@ async function Section({
     children
 }: PropTypes) {
     const cmsLink = await withPageSession(() => withFallback(
-        frontpageOperations.readSpecialCmsLink({ params: { special: specialCmsLink } }),
+        frontpageOperations.cmsLinks.read({ params: { special: specialCmsLink } }),
         null,
     ))
 
@@ -61,7 +59,7 @@ async function Section({
                 capabilities={{ canEdit: capabilities.canEditSpecialCmsImage }}
                 special={specialCmsImage}
                 width={imgWidth}
-                readSpecialCmsImageAction={readSpecialCmsImageFrontpageAction}
+                readSpecialCmsImage={frontpageOperations.cmsImages.read}
                 updateCmsImageAction={updateSpecialCmsImageFrontpageAction}
             />
         </div>
@@ -86,7 +84,7 @@ async function Section({
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraph }}
                     className={position === 'right' ? '[&_:is(h1,h2,h3,h4,h5,h6,p,i)]:text-base-content' : ''}
                     special={specialCmsParagraph}
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphFrontpageSectionAction}
+                    readSpecialCmsParagraph={frontpageOperations.cmsParagraphs.read}
                     updateCmsParagraphAction={updateSpecialCmsParagraphFrontpageSectionAction}
                 />
                 {cmsLink && (
