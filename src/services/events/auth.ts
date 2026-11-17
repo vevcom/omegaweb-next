@@ -4,6 +4,7 @@ import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
+import type { EventAccess } from './types'
 
 /**
  * Whether no one administrates an event but those with EVENT_ADMIN: it has no requirements, or one
@@ -60,6 +61,17 @@ export const canSeeEvent = Require.anyOf(
     eventAdminLevel,
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
+
+/**
+ * The same rule as `canSeeEvent`, as the visibilities that show the event, any one of which is
+ * enough. Those with EVENT_ADMIN and the creator of a draft no one administrates see it besides.
+ */
+export function visibilitiesShowingEvent(
+    { published, canBeViewedBy, adminVisibility, quotaVisibilities }: EventAccess,
+): VisibilityMatrix[] {
+    if (published && canBeViewedBy === 'ALL') return [{ requirements: [] }]
+    return [adminVisibility, ...(published ? quotaVisibilities : [])]
+}
 
 /** `hasNoAdministrators` as a where clause on a visibility. */
 const noAdministrators: Prisma.VisibilityWhereInput = {

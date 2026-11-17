@@ -46,7 +46,7 @@ export default function NotificationForm({
                     Varselet går til de som abonnerer på kanalen. Legg til krav for å nå bare noen av dem, for
                     eksempel medlemmene av en komité. Hvem som er med i gruppene, avgjøres når varselet sendes.
                 </p>
-                <VisibilityMatrixEditor name="audienceRequirements" emptyMeans="Alle som abonnerer på kanalen." />
+                <VisibilityMatrixEditor name="audienceRequirements" verb="får varselet" everyone="Alle abonnenter" />
             </div>}
         />
     </>

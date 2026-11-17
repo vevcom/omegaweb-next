@@ -19,9 +19,9 @@ export default function AddCategory() {
             <Textarea className="min-h-[100px]" label="Beskrivelse" name="description" />
             <div className="flex flex-col gap-[0.5rem]">
                 <h3>Hvem kan redigere artiklene?</h3>
-                <VisibilityMatrixEditor name="visibilityAdminRequirements" />
-                <h3>Hvem kan lese artiklene? (tomt betyr alle)</h3>
-                <VisibilityMatrixEditor name="visibilityRegularRequirements" />
+                <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan redigere artiklene" />
+                <h3>Hvem kan lese artiklene?</h3>
+                <VisibilityMatrixEditor name="visibilityRegularRequirements" verb="kan lese artiklene" everyone="Alle" />
             </div>
         </Form>
     )

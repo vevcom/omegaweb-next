@@ -35,7 +35,7 @@ import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
 import { hasNoTime } from '@/services/events/publishProblems'
-import { eventRegistrationAuth } from '@/services/events/registration/auth'
+import { canRegisterSelf, eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
@@ -204,10 +204,7 @@ export function eventPage(config: EventPagesConfig) {
                 ...data.access,
                 userId: session.user.id,
             }) : Require.user(),
-            canRegister: session.user ? eventRegistrationAuth.create.data({
-                ...data.access,
-                userId: session.user.id,
-            }) : Require.user(),
+            canRegister: canRegisterSelf.data(data.access),
             canPay: session.user
                 ? eventRegistrationAuth.createPayment.data({ userId: session.user.id })
                 : Require.user(),

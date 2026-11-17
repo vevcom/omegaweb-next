@@ -82,6 +82,7 @@ export default function EditMailingList({
             <h3 className="m-0">Eiere</h3>
             <VisibilityAdmin
                 visibility={owners}
+                verb="ser og kobler dette"
                 visibilityId={focusedMailingList.ownerVisibilityId}
                 updateVisibilityAction={configureAction(
                     updateMailingListVisibilityAction,

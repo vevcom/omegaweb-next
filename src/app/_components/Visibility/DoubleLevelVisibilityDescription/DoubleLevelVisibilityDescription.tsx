@@ -1,5 +1,5 @@
 'use client'
-import { describeMatrix } from '@/auth/visibility/describeVisibility'
+import { describeVisibility } from '@/auth/visibility/describeVisibility'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import type { DoubleLevelVisibilityMatrix } from '@/services/visibility/types'
@@ -18,8 +18,8 @@ export default function DoubleLevelVisibilityDescription({ doubleLevelVisibility
 
     return (
         <p className="flex flex-col gap-[0.2em] mt-[0.5em] text-s opacity-85">
-            <span>Kan se: {describeMatrix(doubleLevelVisibility.regularLevel, groups)}</span>
-            <span>Kan administrere: {describeMatrix(doubleLevelVisibility.adminLevel, groups)}</span>
+            <span>Kan se: {describeVisibility(doubleLevelVisibility.regularLevel, groups)}</span>
+            <span>Kan administrere: {describeVisibility(doubleLevelVisibility.adminLevel, groups)}</span>
         </p>
     )
 }

@@ -31,6 +31,8 @@ export default function ShopVisibilityAdmin({ shop }: { shop: ExtendedShop }) {
                         updateShopRegularLevelVisibilityAction,
                         { implementationParams: { shopId: shop.id } }
                     )}
+                    verb="kan handle i butikken"
+                    everyone="Alle"
                 />
             </div>
         )}
@@ -44,6 +46,7 @@ export default function ShopVisibilityAdmin({ shop }: { shop: ExtendedShop }) {
                         updateShopAdminLevelVisibilityAction,
                         { implementationParams: { shopId: shop.id } }
                     )}
+                    verb="kan administrere butikken"
                 />
             </div>
         )}

@@ -1,5 +1,6 @@
 'use client'
 import AdminSection from './AdminSection'
+import { whoAnOpenQuotaTakes } from './EventAccessOverview'
 import EventQuotaBar from './EventQuotaBar'
 import { useEventVariantsField } from './EventVariantsField'
 import { hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
@@ -10,7 +11,7 @@ import OptionCards from '@/components/UI/OptionCards'
 import ReorderableList from '@/components/UI/ReorderableList'
 import TextInput from '@/components/UI/TextInput'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
-import { describeAudience } from '@/auth/visibility/describeVisibility'
+import { describeVisibility } from '@/auth/visibility/describeVisibility'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -61,7 +62,11 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
             <span className="text-base-content/80">
                 {quota.numOfRegistrations} påmeldt.{' '}
-                {describeAudience({ requirements: quota.visibilityRequirements }, groups)}
+                {describeVisibility(
+                    { requirements: quota.visibilityRequirements },
+                    groups,
+                    { everyone: whoAnOpenQuotaTakes },
+                )}
             </span>
             <div className="flex items-center gap-3">
                 <Button
@@ -91,6 +96,8 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         {editingWho && <VisibilityMatrixEditor
             requirements={quota.visibilityRequirements}
             onChange={visibilityRequirements => onChange({ visibilityRequirements })}
+            verb="kan melde seg på"
+            everyone={whoAnOpenQuotaTakes}
         />}
     </section>
 }

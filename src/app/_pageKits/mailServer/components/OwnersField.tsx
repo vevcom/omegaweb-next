@@ -8,6 +8,10 @@ export default function OwnersField() {
         <p className="m-0 text-base-content/80 text-[0.9rem]">
             Eierne ser og kobler det de eier. Uten eiere er det bare e-posttjeneradministratorene som gjør det.
         </p>
-        <VisibilityMatrixEditor name="ownerRequirements" emptyMeans="Ingen eiere: bare e-posttjeneradministratorene." />
+        <VisibilityMatrixEditor
+            name="ownerRequirements"
+            verb="ser og kobler dette"
+            everyone="Bare e-posttjeneradministratorene"
+        />
     </div>
 }

@@ -120,6 +120,8 @@ export default function EditCategory({ category }: PropTypes) {
                                             updateArticleCategoryRegularLevelVisibilityAction,
                                             { implementationParams: { id: category.id } }
                                         )}
+                                        verb="kan lese artiklene"
+                                        everyone="Alle"
                                     />
                                 </div>
                             )
@@ -135,6 +137,7 @@ export default function EditCategory({ category }: PropTypes) {
                                             updateArticleCategoryAdminLevelVisibilityAction,
                                             { implementationParams: { id: category.id } }
                                         )}
+                                        verb="kan redigere artiklene"
                                     />
                                 </div>
                             )

@@ -32,7 +32,7 @@ export default function MakeNewCollection() {
                       * empty one would be administrable by anyone until it was narrowed. */}
                     <div className="flex flex-col gap-[0.5em] min-w-[350px] mt-[1em]">
                         <h3>Hvem kan administrere albumet?</h3>
-                        <VisibilityMatrixEditor name="visibilityAdminRequirements" />
+                        <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere albumet" />
                     </div>
                 </Form>
             </div>
