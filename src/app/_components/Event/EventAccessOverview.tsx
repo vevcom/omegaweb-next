@@ -1,27 +1,19 @@
 'use client'
-import { describeVisibility } from '@/auth/visibility/describeVisibility'
+import { eventQuotaVisibility } from './eventVisibility'
+import { describeVisibility } from '@/components/Visibility/describeVisibility'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { Session } from '@/auth/session/Session'
-import { useGroups } from '@/contexts/ClientData'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import useFlatGroups from '@/hooks/useFlatGroups'
 import { eventAuth, visibilitiesShowingEvent } from '@/services/events/auth'
 import { canRegisterSelf } from '@/services/events/registration/auth'
-import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import type { AuthResultAny } from '@/auth/authorizer/AuthResult'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type { VariantDraft } from '@/services/events/setupDraft'
 import type { EventAccess } from '@/services/events/types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
-/** A quota without requirements still takes a user to register. */
-export const whoAnOpenQuotaTakes = 'Alle som er logget inn'
-
 const noteClassName = 'm-0 text-s text-base-content/80'
-
-function useFlatGroups() {
-    const groupsResult = useGroups()
-    return groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
-}
 
 const passesEveryone = (visibility: VisibilityMatrix) => visibility.requirements.length === 0
 const passesNoOne = (visibility: VisibilityMatrix) => (
@@ -51,7 +43,6 @@ export function EventSeenBy({ access }: { access: EventAccess }) {
 
 /** Who may register, quota by quota, as the Påmelding tab has it. */
 export function EventQuotaVisibilities({ variants }: { variants: VariantDraft[] }) {
-    const groups = useFlatGroups()
     const quotas = variants.flatMap(variant => variant.quotas.map(quota => ({ variant, quota })))
 
     if (quotas.length === 0) return <p className="m-0 text-base-content/80">Arrangementet har ikke påmelding.</p>
@@ -61,11 +52,7 @@ export function EventQuotaVisibilities({ variants }: { variants: VariantDraft[] 
                 {quotas.length > 1 && <span className="text-base-content/80">
                     {variants.length > 1 ? `${variant.name}, ${quota.name}` : quota.name}:{' '}
                 </span>}
-                {describeVisibility(
-                    { requirements: quota.visibilityRequirements },
-                    groups,
-                    { everyone: whoAnOpenQuotaTakes },
-                )}
+                <eventQuotaVisibility.Description visibility={{ requirements: quota.visibilityRequirements }} />
             </li>)}
         </ul>
         <p className={noteClassName}>Dette endres under Påmelding.</p>

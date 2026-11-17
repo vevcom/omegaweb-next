@@ -1,6 +1,6 @@
 'use client'
 import AdminSection from './AdminSection'
-import { whoAnOpenQuotaTakes } from './EventAccessOverview'
+import { eventQuotaVisibility } from './eventVisibility'
 import EventQuotaBar from './EventQuotaBar'
 import { useEventVariantsField } from './EventVariantsField'
 import { hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
@@ -10,10 +10,6 @@ import NumberInput from '@/components/UI/NumberInput'
 import OptionCards from '@/components/UI/OptionCards'
 import ReorderableList from '@/components/UI/ReorderableList'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
-import { describeVisibility } from '@/auth/visibility/describeVisibility'
-import { useGroups } from '@/contexts/ClientData'
-import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
@@ -32,8 +28,6 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     onRemove: () => void,
 }) {
     const [editingWho, setEditingWho] = useState(false)
-    const groupsResult = useGroups()
-    const groups = groupsResult.status === 'success' ? flattenExpandedGroups(groupsResult.groups) : null
     const over = quota.numOfRegistrations - quota.places
 
     return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-100">
@@ -62,11 +56,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
             <span className="text-base-content/80">
                 {quota.numOfRegistrations} påmeldt.{' '}
-                {describeVisibility(
-                    { requirements: quota.visibilityRequirements },
-                    groups,
-                    { everyone: whoAnOpenQuotaTakes },
-                )}
+                <eventQuotaVisibility.Description visibility={{ requirements: quota.visibilityRequirements }} />
             </span>
             <div className="flex items-center gap-3">
                 <Button
@@ -93,11 +83,9 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
         {over > 0 && <p className="m-0 text-s text-warning">
             Når du lagrer, flyttes {over} til neste kvote de kan melde seg på, eller til ventelisten.
         </p>}
-        {editingWho && <VisibilityMatrixEditor
+        {editingWho && <eventQuotaVisibility.Field
             requirements={quota.visibilityRequirements}
             onChange={visibilityRequirements => onChange({ visibilityRequirements })}
-            verb="kan melde seg på"
-            everyone={whoAnOpenQuotaTakes}
         />}
     </section>
 }

@@ -1,6 +1,6 @@
 'use client'
+import { mailingListOwners } from './mailOwnersVisibility'
 import AddUserToMailingList from './AddUserToMailingList'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import TextInput from '@/components/UI/TextInput'
@@ -13,7 +13,6 @@ import {
 } from '@/services/mail/actions'
 import {
     updateMailingListAction,
-    updateMailingListVisibilityAction,
     destroyMailingListAction,
 } from '@/services/mail/list/actions'
 import { mailingListAuth } from '@/services/mail/list/auth'
@@ -80,14 +79,10 @@ export default function EditMailingList({
 
         {canUpdateOwners && <div className="flex flex-col gap-2">
             <h3 className="m-0">Eiere</h3>
-            <VisibilityAdmin
+            <mailingListOwners.Form
                 visibility={owners}
-                verb="ser og kobler dette"
                 visibilityId={focusedMailingList.ownerVisibilityId}
-                updateVisibilityAction={configureAction(
-                    updateMailingListVisibilityAction,
-                    { implementationParams: { id: focusedMailingList.id } },
-                )}
+                params={{ id: focusedMailingList.id }}
             />
         </div>}
 

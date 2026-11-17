@@ -1,6 +1,7 @@
 'use client'
 import { EventAccessOfSessions, EventQuotaVisibilities, EventSeenBy } from './EventAccessOverview'
 import EventLocationInput from './EventLocationInput'
+import { eventAdminVisibility } from './eventVisibility'
 import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
@@ -14,7 +15,6 @@ import DateInput from '@/components/UI/DateInput'
 import { SelectNumberPossibleNULL, SelectString } from '@/components/UI/Select'
 import Slider from '@/components/UI/Slider'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
@@ -240,10 +240,9 @@ function SetupForm({
                 <p className="m-0 text-s text-base-content/80">
                     Uten grupper kan bare de med rettigheten EVENT_ADMIN administrere arrangementet.
                 </p>
-                <VisibilityMatrixEditor
+                <eventAdminVisibility.Field
                     name="adminRequirements"
                     defaultValue={access.adminVisibility.requirements}
-                    verb="kan administrere arrangementet"
                 />
             </div> : <p className="m-0 text-base-content/80">Du kan ikke se hvem som administrerer arrangementet.</p>}
             {adminVisibilityKnown && <div className="flex flex-col gap-2 pb-4">

@@ -1,15 +1,13 @@
+import { articleCategoryVisibility } from '@/app/(omegaweb)/articles/articleCategoryVisibility'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import Textarea from '@/components/UI/Textarea'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import {
     updateArticleCategoryAction,
     destroyArticleCategoryAction,
     addArticleToCategoryAction,
-    updateArticleCategoryRegularLevelVisibilityAction,
-    updateArticleCategoryAdminLevelVisibilityAction,
 } from '@/services/articleCategories/actions'
 import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { configureAction } from '@/services/configureAction'
@@ -109,39 +107,13 @@ export default function EditCategory({ category }: PropTypes) {
                                 </Form>
                             )
                         }
-                        {
-                            canUpdateRegularLevel && (
-                                <div className="flex flex-col gap-[0.5rem] mt-[1em]">
-                                    <h3>Hvem kan lese artiklene?</h3>
-                                    <VisibilityAdmin
-                                        visibility={category.visibility.regularLevel}
-                                        visibilityId={category.visibilityRegularId}
-                                        updateVisibilityAction={configureAction(
-                                            updateArticleCategoryRegularLevelVisibilityAction,
-                                            { implementationParams: { id: category.id } }
-                                        )}
-                                        verb="kan lese artiklene"
-                                        everyone="Alle"
-                                    />
-                                </div>
-                            )
-                        }
-                        {
-                            canUpdateAdminLevel && (
-                                <div className="flex flex-col gap-[0.5rem] mt-[1em]">
-                                    <h3>Hvem kan redigere artiklene?</h3>
-                                    <VisibilityAdmin
-                                        visibility={category.visibility.adminLevel}
-                                        visibilityId={category.visibilityAdminId}
-                                        updateVisibilityAction={configureAction(
-                                            updateArticleCategoryAdminLevelVisibilityAction,
-                                            { implementationParams: { id: category.id } }
-                                        )}
-                                        verb="kan redigere artiklene"
-                                    />
-                                </div>
-                            )
-                        }
+                        <div className="flex flex-col gap-4 mt-[1em]">
+                            <articleCategoryVisibility.Forms
+                                doubleLevelVisibility={category.visibility}
+                                visibilityIds={{ regular: category.visibilityRegularId, admin: category.visibilityAdminId }}
+                                params={{ id: category.id }}
+                            />
+                        </div>
                     </PopUp>
                 )
             }

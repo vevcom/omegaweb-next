@@ -1,11 +1,13 @@
 'use client'
 import { SelectNumber } from '@/components/UI/Select'
 import CreateNotificationForm from '@/components/Notifications/CreateNotificationForm'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
+import { implementVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
 import { createNotificationInManualChannelAction } from '@/services/notifications/channels/manual/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
+
+const audience = implementVisibilityComponents({ verb: 'får varselet', everyone: 'Alle abonnenter' })
 
 export default function NotificationForm({
     channels,
@@ -46,7 +48,7 @@ export default function NotificationForm({
                     Varselet går til de som abonnerer på kanalen. Legg til krav for å nå bare noen av dem, for
                     eksempel medlemmene av en komité. Hvem som er med i gruppene, avgjøres når varselet sendes.
                 </p>
-                <VisibilityMatrixEditor name="audienceRequirements" verb="får varselet" everyone="Alle abonnenter" />
+                <audience.Field name="audienceRequirements" />
             </div>}
         />
     </>

@@ -1,16 +1,14 @@
 'use client'
+import { newsVisibility } from '@/app/(omegaweb)/news/newsVisibility'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
 import Textarea from '@/components/UI/Textarea'
 import DateInput from '@/components/UI/DateInput'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
 import {
     destroyNewsAction,
     setNewsPublishedAction,
     updateNewsAction,
-    updateNewsAdminLevelVisibilityAction,
-    updateNewsRegularLevelVisibilityAction,
 } from '@/services/news/actions'
 import { newsAuth } from '@/services/news/auth'
 import { configureAction } from '@/services/configureAction'
@@ -125,39 +123,11 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                         [&_h3]:mb-[.5em]
                         [&_button[type=submit]]:w-[200px]
                     ">
-                        {
-                            canUpdateRegularVisibility && (
-                                <div>
-                                    <h3>Hvem kan lese nyheten?</h3>
-                                    <VisibilityAdmin
-                                        visibility={doubleLevelVisibility.regularLevel}
-                                        visibilityId={news.visibilityRegularId}
-                                        updateVisibilityAction={configureAction(
-                                            updateNewsRegularLevelVisibilityAction,
-                                            { implementationParams: { id: news.id } }
-                                        )}
-                                        verb="kan lese nyheten"
-                                        everyone="Alle"
-                                    />
-                                </div>
-                            )
-                        }
-                        {
-                            canUpdateAdminVisibility && (
-                                <div>
-                                    <h3>Hvem kan administrere nyheten?</h3>
-                                    <VisibilityAdmin
-                                        visibility={doubleLevelVisibility.adminLevel}
-                                        visibilityId={news.visibilityAdminId}
-                                        updateVisibilityAction={configureAction(
-                                            updateNewsAdminLevelVisibilityAction,
-                                            { implementationParams: { id: news.id } }
-                                        )}
-                                        verb="kan administrere nyheten"
-                                    />
-                                </div>
-                            )
-                        }
+                        <newsVisibility.Forms
+                            doubleLevelVisibility={doubleLevelVisibility}
+                            visibilityIds={{ regular: news.visibilityRegularId, admin: news.visibilityAdminId }}
+                            params={{ id: news.id }}
+                        />
                     </div>
                 )
             }

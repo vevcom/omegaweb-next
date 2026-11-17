@@ -1,4 +1,4 @@
-import { describeVisibility, listsContradict } from '@/auth/visibility/describeVisibility'
+import { describeVisibility, listsContradict } from '@/components/Visibility/describeVisibility'
 import { describe, expect, test } from '@jest/globals'
 import type { ExpandedGroup } from '@/services/groups/types'
 

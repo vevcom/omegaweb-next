@@ -1,5 +1,5 @@
 'use client'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
+import { mailAliasOwners } from './mailOwnersVisibility'
 import { mailServerLinks } from '@/pageKits/mailServer/links'
 
 import MailAddressForm from '@/components/Mail/MailAddressForm'
@@ -12,7 +12,6 @@ import {
     updateMailAliasAddressAction,
     updateMailAliasAddressForwardingAction,
     updateMailAliasDescriptionAction,
-    updateMailAliasVisibilityAction,
     destroyMailAliasAction,
 } from '@/services/mail/alias/actions'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
@@ -115,14 +114,10 @@ export default function EditMailAlias({
 
         {canUpdateOwners && <div className="flex flex-col gap-2">
             <h3 className="m-0">Eiere</h3>
-            <VisibilityAdmin
+            <mailAliasOwners.Form
                 visibility={owners}
-                verb="ser og kobler dette"
                 visibilityId={focusedAlias.ownerVisibilityId}
-                updateVisibilityAction={configureAction(
-                    updateMailAliasVisibilityAction,
-                    { implementationParams: { id: focusedAlias.id } },
-                )}
+                params={{ id: focusedAlias.id }}
             />
         </div>}
 

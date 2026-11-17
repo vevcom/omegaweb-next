@@ -1,8 +1,8 @@
 'use client'
+import { imageCollectionVisibility } from './imageCollectionVisibility'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { createDynamicImageCollectionAction } from '@/services/images/dynamic/actions'
 import { appHref } from '@/lib/sites/href'
 
@@ -31,8 +31,8 @@ export default function MakeNewCollection() {
                     {/* The admin level is collected here rather than after the fact: a collection created with an
                       * empty one would be administrable by anyone until it was narrowed. */}
                     <div className="flex flex-col gap-[0.5em] min-w-[350px] mt-[1em]">
-                        <h3>Hvem kan administrere albumet?</h3>
-                        <VisibilityMatrixEditor name="visibilityAdminRequirements" verb="kan administrere albumet" />
+                        <h3>{imageCollectionVisibility.admin.heading}</h3>
+                        <imageCollectionVisibility.admin.Field name="visibilityAdminRequirements" />
                     </div>
                 </Form>
             </div>
