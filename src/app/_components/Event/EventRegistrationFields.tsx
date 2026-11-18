@@ -41,7 +41,8 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
     onRemove: () => void,
 }) {
     const [editingWho, setEditingWho] = useState(false)
-    const over = quota.numOfRegistrations - quota.places
+    const places = quota.places ?? 0
+    const over = quota.numOfRegistrations - places
 
     return <section className="flex flex-col gap-2 p-3 rounded-inner bg-base-100">
         <div className="flex flex-wrap items-center gap-2">
@@ -60,12 +61,14 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
             <NumberInput
                 label="Plasser"
                 min={0}
-                value={quota.places}
-                onChange={event => onChange({ places: Number(event.target.value) })}
+                value={quota.places ?? ''}
+                onChange={event => onChange({
+                    places: event.target.value === '' ? undefined : Number(event.target.value),
+                })}
                 className="w-28! mt-0!"
             />
         </div>
-        <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
+        <EventQuotaBar taken={quota.numOfRegistrations} places={places} />
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
             <span className="text-base-content/80">
                 {quota.numOfRegistrations} påmeldt.{' '}
@@ -222,7 +225,7 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
     // A variant can be saved without quotas, though the form never leaves one so.
     const firstQuota = first.quotas.at(0) ?? newQuotaDraft('Påmelding', first.quotas)
     if (shape === 'SHARED') {
-        const places = first.quotas.reduce((sum, quota) => sum + quota.places, 0)
+        const places = first.quotas.reduce((sum, quota) => sum + (quota.places ?? 0), 0)
         return [{ ...first, quotas: [{ ...firstQuota, places }] }]
     }
     if (first.quotas.length > 1) return [first]
