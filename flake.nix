@@ -56,6 +56,8 @@
           # Runs the claude already on PATH with only the repository, its own config and the Nix
           # store visible. /run is left out since it holds the Docker socket, which is root on the host.
           isolatedClaude = pkgs.writeShellScriptBin "claude" ''
+            # Everything that runs before the sandbox comes from the store, not from node_modules/.bin
+            export PATH="${pkgs.lib.makeBinPath [ pkgs.git pkgs.coreutils ]}:$PATH"
             self=$(readlink -f "$0")
             real=
             while IFS= read -r candidate; do
@@ -65,10 +67,12 @@
             done < <(type -ap claude)
             if [ -z "$real" ]; then echo "claude is not installed" >&2; exit 1; fi
             repo=$(git rev-parse --show-toplevel) || { echo "run claude inside a git repository" >&2; exit 1; }
-            # A repository at the home directory, such as dotfiles, would bind the whole home back in
-            case "$HOME/" in "''${repo%/}/"*) echo "the repository must be a folder inside your home" >&2; exit 1;; esac
             # A linked worktree keeps its objects and refs in the main repository's .git
             gitdir=$(git rev-parse --path-format=absolute --git-common-dir) || exit 1
+            # A repository at the home directory, such as dotfiles, would bind the whole home back in
+            for dir in "$repo" "$gitdir"; do
+              case "$HOME/" in "''${dir%/}/"*) echo "the repository must be a folder inside your home" >&2; exit 1;; esac
+            done
             mkdir -p "$HOME/.claude"
             touch "$HOME/.claude.json"
             # Only these reach the sandbox, so a token exported in the shell profile does not
@@ -78,8 +82,10 @@
               [ -n "''${!name+x}" ] && env+=(--setenv "$name" "''${!name}")
             done
             # The host's bwrap is allowed user namespaces where the Nix one is not, as on Ubuntu 24.04
-            bwrap=$(command -v bwrap || echo ${pkgs.bubblewrap}/bin/bwrap)
-            exec "$bwrap" --clearenv "''${env[@]}" \
+            bwrap=/usr/bin/bwrap
+            [ -x "$bwrap" ] || bwrap=${pkgs.bubblewrap}/bin/bwrap
+            # The values go in over a pipe, since the command line is readable by every user on the host
+            exec "$bwrap" --clearenv --args 3 3< <(printf '%s\0' "''${env[@]}") \
               --ro-bind /nix /nix \
               --ro-bind /etc /etc \
               --ro-bind-try /bin /bin \
