@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import type { InputHTMLAttributes } from 'react'
 
 export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
@@ -47,14 +47,10 @@ export default function NumberInput({
     background = 'base200',
     className,
     id,
-    value,
-    onChange,
     ...props
 }: PropTypes) {
     const domId = useId()
     const inputId = id ?? domId
-    const [text, setText] = useState(typeof value === 'number' ? String(value) : '')
-    const shown = typeof value === 'number' && Number(text) === value ? text : value
 
     return (
         <div className={`
@@ -65,11 +61,6 @@ export default function NumberInput({
                 {...props}
                 id={inputId}
                 type="number"
-                value={shown}
-                onChange={event => {
-                    setText(event.target.value)
-                    onChange?.(event)
-                }}
                 className={`
                     peer w-full border border-base-300
                     focus:ring-3 focus:ring-primary/25
