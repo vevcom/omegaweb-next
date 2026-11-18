@@ -47,8 +47,9 @@
                 PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines_7}/bin/schema-engine";
               };
 
+              # The extra packages go first, so a claude in node_modules cannot shadow the sandboxed one
               shellHook = ''
-                export PATH="$PWD/node_modules/.bin:$PATH"
+                export PATH="${pkgs.lib.concatMapStrings (package: "${package}/bin:") extraPackages}$PWD/node_modules/.bin:$PATH"
               '';
             };
 
@@ -63,7 +64,9 @@
               real=
             done
             if [ -z "$real" ]; then echo "claude is not installed" >&2; exit 1; fi
-            repo=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+            repo=$(git rev-parse --show-toplevel) || { echo "run claude inside a git repository" >&2; exit 1; }
+            # A linked worktree keeps its objects and refs in the main repository's .git
+            gitdir=$(git rev-parse --path-format=absolute --git-common-dir)
             mkdir -p "$HOME/.claude"
             touch "$HOME/.claude.json"
             exec ${pkgs.bubblewrap}/bin/bwrap \
@@ -71,6 +74,8 @@
               --ro-bind /etc /etc \
               --ro-bind-try /bin /bin \
               --ro-bind-try /usr /usr \
+              --ro-bind-try /lib /lib \
+              --ro-bind-try /lib64 /lib64 \
               --ro-bind-try /run/current-system /run/current-system \
               --ro-bind-try /run/systemd/resolve /run/systemd/resolve \
               --proc /proc --dev /dev --tmpfs /tmp \
@@ -83,6 +88,7 @@
               --bind "$HOME/.claude" "$HOME/.claude" \
               --bind "$HOME/.claude.json" "$HOME/.claude.json" \
               --bind "$repo" "$repo" \
+              --bind "$gitdir" "$gitdir" \
               --setenv TMPDIR /tmp \
               --unshare-all --share-net --die-with-parent \
               --chdir "$PWD" \
