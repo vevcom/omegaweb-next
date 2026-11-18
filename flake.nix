@@ -58,18 +58,28 @@
           isolatedClaude = pkgs.writeShellScriptBin "claude" ''
             self=$(readlink -f "$0")
             real=
-            for candidate in $(type -ap claude); do
+            while IFS= read -r candidate; do
               real=$(readlink -f "$candidate")
               if [ "$real" != "$self" ]; then break; fi
               real=
-            done
+            done < <(type -ap claude)
             if [ -z "$real" ]; then echo "claude is not installed" >&2; exit 1; fi
             repo=$(git rev-parse --show-toplevel) || { echo "run claude inside a git repository" >&2; exit 1; }
+            # A repository at the home directory, such as dotfiles, would bind the whole home back in
+            case "$HOME/" in "''${repo%/}/"*) echo "the repository must be a folder inside your home" >&2; exit 1;; esac
             # A linked worktree keeps its objects and refs in the main repository's .git
-            gitdir=$(git rev-parse --path-format=absolute --git-common-dir)
+            gitdir=$(git rev-parse --path-format=absolute --git-common-dir) || exit 1
             mkdir -p "$HOME/.claude"
             touch "$HOME/.claude.json"
-            exec ${pkgs.bubblewrap}/bin/bwrap \
+            # Only these reach the sandbox, so a token exported in the shell profile does not
+            env=()
+            for name in HOME PATH TERM COLORTERM LANG USER SHELL EDITOR ANTHROPIC_API_KEY \
+                HTTP_PROXY HTTPS_PROXY NO_PROXY NEXT_TELEMETRY_DISABLED PRISMA_SCHEMA_ENGINE_BINARY; do
+              [ -n "''${!name+x}" ] && env+=(--setenv "$name" "''${!name}")
+            done
+            # The host's bwrap is allowed user namespaces where the Nix one is not, as on Ubuntu 24.04
+            bwrap=$(command -v bwrap || echo ${pkgs.bubblewrap}/bin/bwrap)
+            exec "$bwrap" --clearenv "''${env[@]}" \
               --ro-bind /nix /nix \
               --ro-bind /etc /etc \
               --ro-bind-try /bin /bin \
