@@ -341,6 +341,7 @@ export const eventOperations = {
             const createdEvent = await prisma.event.create({
                 data: {
                     id,
+                    kind: data.kind,
                     name: data.name,
                     location: data.location,
                     locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,

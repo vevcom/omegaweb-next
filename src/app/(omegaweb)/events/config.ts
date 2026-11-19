@@ -7,5 +7,6 @@ export const omegaEventPages: EventPagesConfig = {
     mountPath: '/events',
     titles: { current: 'Hvad der hender', archive: 'Hvad der har hendt' },
     lockedTag: null,
+    defaultKind: 'ORDINARY',
     authPages: omegaAuthPages,
 }
