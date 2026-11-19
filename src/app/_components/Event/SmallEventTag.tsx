@@ -1,9 +1,9 @@
 import { faTag } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { EventTag } from '@/prisma-generated-pn-types'
+import type { EventTagLook } from '@/services/events/kinds'
 
 type PropTypes = {
-    eventTag: EventTag
+    eventTag: EventTagLook
 }
 
 export default function SmallEventTag({ eventTag }: PropTypes) {

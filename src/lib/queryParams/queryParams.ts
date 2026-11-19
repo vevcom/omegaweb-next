@@ -9,6 +9,7 @@ import {
 import type { QueryParam } from './queryParam'
 export const QueryParams = {
     eventTags: new StringArrayQueryParam('event-tags'),
+    eventKinds: new StringArrayQueryParam('event-kinds'),
     onlyActive: new BooleanQueryParam('only-active'),
     onlyAdministratedCollections: new BooleanQueryParam('only-administrated-collections'),
     onlyOwned: new BooleanQueryParam('only-owned'),
