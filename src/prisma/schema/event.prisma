@@ -3,8 +3,15 @@ enum EventCanView {
   ALL
 }
 
+// What an event is, which decides more than a tag could: it is set as the event is created and never changes.
+enum EventKind {
+  ORDINARY
+  COMPANY_PRESENTATION
+}
+
 model Event {
   id             Int               @id @default(autoincrement())
+  kind           EventKind         @default(ORDINARY)
   name           String
   paragraph      CmsParagraph      @relation(fields: [cmsParagraphId], references: [id])
   cmsParagraphId Int               @unique

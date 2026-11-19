@@ -1,6 +1,6 @@
 import type { PagesMount } from '@/lib/sites/defineLinks'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
-import type { SpecialEventTags } from '@/prisma-generated-pn-types'
+import type { EventKind, SpecialEventTags } from '@/prisma-generated-pn-types'
 
 /**
  * How a site renders the event pages: the list of coming events at the mount path, its archive
@@ -15,6 +15,8 @@ export type EventPagesConfig = PagesMount & {
      * is no tag filter. null lists every event, filtered by the tags the visitor picks.
      */
     lockedTag: SpecialEventTags | null,
+    /** The kind an event created from these pages is, unless another is picked. */
+    defaultKind: EventKind,
     /** The sign in flow of the site, for the login link where an event takes registrations. */
     authPages: AuthPagesConfig,
 }

@@ -53,6 +53,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
     const events: SeedDevEventConfig[] = [
         {
             event: {
+                kind: 'COMPANY_PRESENTATION',
                 name: 'Bedpres med Kongsberg',
                 location: 'EL5',
                 eventStart: startDate,

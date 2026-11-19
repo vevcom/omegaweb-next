@@ -41,6 +41,7 @@ export default function CreateEventForm({ config, eventTags, committees, default
             ]}
             defaultValue={defaultHostCommitteeId ?? 'NULL'}
         />}
+        <input type="hidden" name="kind" value={config.defaultKind} />
         {lockedTag && <input type="hidden" name="tagIds" value={lockedTag.id} />}
     </Form>
 }

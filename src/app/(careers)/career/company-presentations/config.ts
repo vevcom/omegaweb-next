@@ -10,5 +10,6 @@ export const companyPresentationPages: EventPagesConfig = {
     mountPath: '/company-presentations',
     titles: { current: 'Bedriftspresentasjoner', archive: 'Tidligere bedriftspresentasjoner' },
     lockedTag: 'COMPANY_PRESENTATION',
+    defaultKind: 'COMPANY_PRESENTATION',
     authPages: careersAuthPages,
 }
