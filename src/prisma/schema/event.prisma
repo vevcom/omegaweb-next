@@ -96,10 +96,6 @@ model EventTagEvent {
   @@id([eventId, tagId])
 }
 
-enum SpecialEventTags {
-  COMPANY_PRESENTATION
-}
-
 model EventTag {
   id            Int               @id @default(autoincrement())
   name          String            @unique
@@ -107,7 +103,6 @@ model EventTag {
   colorR        Int
   colorG        Int
   colorB        Int
-  special       SpecialEventTags? @unique
   EventTagEvent EventTagEvent[]
 
   createdAt DateTime @default(now())

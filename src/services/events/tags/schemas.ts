@@ -1,5 +1,4 @@
 import { Zpn } from '@/lib/fields/zpn'
-import { SpecialEventTags } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -10,7 +9,6 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
-    special: z.nativeEnum(SpecialEventTags),
 })
 
 const eventTag = dataFieldSchemas.pick({
@@ -30,9 +28,6 @@ export const eventTagSchemas = {
     },
     params: {
         read: eventTagId,
-        readSpecial: paramsFieldSchemas.pick({
-            special: true,
-        }),
         update: eventTagId,
         destroy: eventTagId,
     },
