@@ -12,7 +12,7 @@ export type EventPagesConfig = PagesMount & {
     titles: { current: string, archive: string },
     /** The kinds of event the pages list and find. An event of another kind is not found under them. */
     kindsToShow: EventKind[],
-    /** The kind an event created from these pages is, unless another is picked. */
+    /** The kind picked to begin with when an event is created from these pages. */
     defaultKind: EventKind,
     /** Whether the lists are filtered by the tags the visitor picks. */
     tagFilter: boolean,
