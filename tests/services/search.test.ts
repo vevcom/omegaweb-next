@@ -162,6 +162,24 @@ describe('global search', () => {
         expect(events.map(event => event.name)).toEqual(['Søketest Julebord'])
     })
 
+    test('the current events can be narrowed to kinds', async () => {
+        const group = await prisma.group.findFirstOrThrow()
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
+            data: { kind, name, visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }] },
+            bypassAuth: true,
+        })
+        await createEvent('Typetest Bedpres', 'COMPANY_PRESENTATION')
+        await createEvent('Typetest Fest', 'ORDINARY')
+
+        const namesOf = async (kinds?: EventKind[]) => (await eventOperations.readManyCurrent({
+            params: { tags: null, kinds, name: 'typetest' },
+            bypassAuth: true,
+        })).map(event => event.name).sort()
+        expect(await namesOf(['COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres'])
+        expect(await namesOf(['ORDINARY', 'COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres', 'Typetest Fest'])
+        expect(await namesOf()).toEqual(['Typetest Bedpres', 'Typetest Fest'])
+    })
+
     test('a single category the session may not search gives no sections', async () => {
         const sections = await omegawebSearchOperations.searchAll({
             params: { query: 'søketest', category: 'companies' },
