@@ -90,7 +90,6 @@ function SetupForm({
     ledgerAccounts,
 }: PropTypes) {
     const links = eventLinks(config)
-    const lockedTag = config.lockedTag
     // Whether the rules tab has the waiting list switched on, for the registration tab to show it.
     const [waitingList, setWaitingList] = useState(event.waitingList)
     // Who sees and administrates the event as the form has it, for the access tab to show what that gives.
@@ -165,21 +164,15 @@ function SetupForm({
                     [&_li]:flex [&_li]:items-center [&_li]:z-1
                     [&_li:hover]:z-2
                 ">
-                    {eventTags.map(tag => {
-                        const locked = lockedTag !== null && tag.special === lockedTag
-                        return <li key={tag.id}>
-                            <Checkbox
-                                name="tagIds"
-                                value={tag.id}
-                                disabled={locked}
-                                defaultChecked={locked || event.tags.some(other => other.id === tag.id)}
-                            >
-                                <EventTagComponent eventTag={tag} />
-                            </Checkbox>
-                            {/* A disabled checkbox submits nothing, so a hidden field sends the locked tag. */}
-                            {locked && <input type="hidden" name="tagIds" value={tag.id} />}
-                        </li>
-                    })}
+                    {eventTags.map(tag => <li key={tag.id}>
+                        <Checkbox
+                            name="tagIds"
+                            value={tag.id}
+                            defaultChecked={event.tags.some(other => other.id === tag.id)}
+                        >
+                            <EventTagComponent eventTag={tag} />
+                        </Checkbox>
+                    </li>)}
                 </ul>
             </FormSection>
             <FormSection legend="Varsling">

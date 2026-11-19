@@ -273,8 +273,8 @@ export const eventRegistrationOperations = {
     }),
 
     /**
-     * The registrations of a user for events that have not ended, soonest first. Given a special tag,
-     * only those for events carrying it.
+     * The registrations of a user for events that have not ended, soonest first. Given kinds, only
+     * those for events of them.
      */
     readUpcomingOfUser: defineOperation({
         authorizer: ({ params }) => eventRegistrationAuth.readUpcomingOfUser.data({ userId: params.userId }),
@@ -282,9 +282,7 @@ export const eventRegistrationOperations = {
         operation: async ({ prisma, params }): Promise<UpcomingRegistrationOfUser[]> => {
             const event: Prisma.EventWhereInput = {
                 eventEnd: { gte: new Date() },
-                ...(params.specialTag && {
-                    eventTagEvents: { some: { tag: { special: params.specialTag } } },
-                }),
+                kind: { in: params.kinds },
             }
             const registrations = await prisma.eventRegistration.findMany({
                 where: {

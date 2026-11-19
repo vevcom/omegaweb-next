@@ -415,6 +415,7 @@ export const eventOperations = {
                         mode: 'insensitive'
                     },
                     eventTagEvents: eventTagSelector(params.tags),
+                    kind: { in: params.kinds },
                     ...prismaWhereFilter
                 },
                 orderBy: {
@@ -439,6 +440,7 @@ export const eventOperations = {
                         mode: 'insensitive'
                     },
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
+                    kind: { in: params.paging.details.kinds },
                     ...prismaWhereFilter
                 },
                 orderBy: [{ eventStart: 'desc' }, { id: 'desc' }],
@@ -453,7 +455,7 @@ export const eventOperations = {
      * events are searched, and only the events the session may see at all - the very same
      * visibility rule as the lists of current and archived events above.
      */
-    /** The search for a site's event pages: under a locked tag only the events carrying it, linking to those pages. */
+    /** The search for a site's event pages: the events of the kinds the pages show, linking to those pages. */
     search: implementSearchOperation({
         authorizer: () => eventAuth.search,
         find: ({
@@ -472,7 +474,7 @@ export const eventOperations = {
             },
             where: {
                 name: { contains: query, mode: 'insensitive' },
-                eventTagEvents: config.lockedTag ? { some: { tag: { special: config.lockedTag } } } : undefined,
+                kind: { in: config.kindsToShow },
                 ...prismaWhereFilter
             },
             orderBy: { eventStart: 'desc' },

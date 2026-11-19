@@ -66,7 +66,7 @@ export function eventPage(config: EventPagesConfig) {
                 }
             })
 
-            if (config.lockedTag && !event.tags.some(tag => tag.special === config.lockedTag)) notFound()
+            if (!config.kindsToShow.includes(event.kind)) notFound()
 
             const tags = await eventTagOperations.readAll({})
 
@@ -256,15 +256,15 @@ export function eventPage(config: EventPagesConfig) {
                                 list-none flex flex-wrap gap-x-[1em] gap-y-0
                                 [&_a]:no-underline
                             ">
-                                {/* Under a locked tag the list takes no other tag filter, so the tags are not links. */}
+                                {/* Where the list takes no tag filter, the tags are not links. */}
                                 {event.tags.map(tag => (
                                     <li key={tag.id}>
-                                        {config.lockedTag ? (
-                                            <EventTag eventTag={tag} />
-                                        ) : (
+                                        {config.tagFilter ? (
                                             <SiteLink href={links.list([tag.name])}>
                                                 <EventTag eventTag={tag} />
                                             </SiteLink>
+                                        ) : (
+                                            <EventTag eventTag={tag} />
                                         )}
                                     </li>
                                 ))}
