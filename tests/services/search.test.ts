@@ -18,6 +18,7 @@ import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { Session } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
+import type { EventKind } from '@/prisma-generated-pn-types'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
 const OTHER_COMPANY_NAME = 'Søketest Konsern AS'
@@ -182,10 +183,10 @@ describe('global search', () => {
 
     test('the career site finds only the company presentations, linking to its own pages', async () => {
         const group = await prisma.group.findFirstOrThrow()
-        const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
         const HOUR = 60 * 60 * 1000
-        const createEvent = (name: string, tagIds: number[]) => eventOperations.create({
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
             data: {
+                kind,
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -193,13 +194,12 @@ describe('global search', () => {
                 canBeViewedBy: 'ALL',
                 takesRegistration: false,
                 waitingList: false,
-                tagIds,
                 visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
             },
             bypassAuth: true,
         })
-        const presentation = await createEvent('Søketest Bedpres', [tag.id])
-        await createEvent('Søketest Fest', [])
+        const presentation = await createEvent('Søketest Bedpres', 'COMPANY_PRESENTATION')
+        await createEvent('Søketest Fest', 'ORDINARY')
 
         const params = { query: 'søketest', category: 'events' as const }
         const session = sessionOf(['EVENT_ADMIN'])

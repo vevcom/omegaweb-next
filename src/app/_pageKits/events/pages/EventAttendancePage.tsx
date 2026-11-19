@@ -25,8 +25,7 @@ export function eventAttendancePage(config: EventPagesConfig) {
                 params: { id: decodeVevenUriHandleError(params.nameAndId) },
             })
 
-            // The pages are fixed to the events carrying the locked tag; one without it is not found under them.
-            if (config.lockedTag && !event.tags.some(tag => tag.special === config.lockedTag)) notFound()
+            if (!config.kindsToShow.includes(event.kind)) notFound()
 
             const counts = await eventRegistrationOperations.readAttendanceCounts({
                 params: { eventId: event.id },

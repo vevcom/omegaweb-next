@@ -1,14 +1,10 @@
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-const companyPresentationTag = {
-    tag: { special: 'COMPANY_PRESENTATION' },
-} as const satisfies Prisma.EventTagEventWhereInput
-
 /** What may be highlighted at all. The front page further requires the event not to have ended. */
 export const highlightableEvent = {
     published: true,
-    eventTagEvents: { some: companyPresentationTag },
+    kind: 'COMPANY_PRESENTATION',
 } as const satisfies Prisma.EventWhereInput
 
 export const highlightableJobAd = {
@@ -26,10 +22,10 @@ export const currentlyHighlightableEvent = (now: Date) => ({
  * `currentlyHighlightableEvent` and `highlightableJobAd`. The highlight's own period is not considered.
  */
 export function isHighlightShowable({ event, jobAd }: {
-    event: { published: boolean, eventEnd: Date, eventTagEvents: unknown[] } | null,
+    event: { published: boolean, eventEnd: Date } | null,
     jobAd: { active: boolean } | null,
 }, now: Date): boolean {
-    if (event) return event.published && event.eventTagEvents.length > 0 && event.eventEnd >= now
+    if (event) return event.published && event.eventEnd >= now
     return jobAd?.active ?? false
 }
 
@@ -50,7 +46,6 @@ export const careerFrontpageHighlightSelection = {
             eventStart: true,
             eventEnd: true,
             published: true,
-            eventTagEvents: { where: companyPresentationTag, select: { tagId: true } },
             coverImage: imageSelection,
         },
     },

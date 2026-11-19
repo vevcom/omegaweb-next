@@ -24,16 +24,12 @@ export function eventsPage(config: EventPagesConfig) {
     const links = eventLinks(config)
     return serverPage({
         operation: async ({ searchParams, session }: PageOperationArgs) => {
-            const lockedTag = config.lockedTag
-                ? await eventTagOperations.readSpecial({ params: { special: config.lockedTag } })
-                : null
-            // The tags the visitor picked, which there are none of under a locked tag.
-            const pickedTagNames = lockedTag ? null : QueryParams.eventTags.decode(searchParams)
+            const pickedTagNames = config.tagFilter ? QueryParams.eventTags.decode(searchParams) : null
             const search = QueryParams.search.decode(searchParams) ?? ''
 
             const [currentEvents, eventTags, committees] = await Promise.all([
                 eventOperations.readManyCurrent({
-                    params: { tags: lockedTag ? [lockedTag.name] : pickedTagNames, name: search || undefined }
+                    params: { tags: pickedTagNames, kinds: config.kindsToShow, name: search || undefined }
                 }),
                 eventTagOperations.readAll({}),
                 // Only used to populate the "hosting committee" picker of the form creating events; a
@@ -90,7 +86,7 @@ export function eventsPage(config: EventPagesConfig) {
                             })}
                         </div>
                         <div className="flex items-center gap-[1em]">
-                            {!config.lockedTag && (
+                            {config.tagFilter && (
                                 <TagHeaderItem
                                     eventTags={eventTags}
                                     currentTags={pickedTags}
@@ -104,7 +100,6 @@ export function eventsPage(config: EventPagesConfig) {
                                     <div className="min-w-[50vw] grid place-content-center">
                                         <CreateEventForm
                                             config={config}
-                                            eventTags={eventTags}
                                             committees={committees}
                                             defaultHostCommitteeId={defaultHostCommitteeId}
                                         />

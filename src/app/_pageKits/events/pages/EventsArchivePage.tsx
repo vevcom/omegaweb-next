@@ -19,15 +19,11 @@ export function eventsArchivePage(config: EventPagesConfig) {
     const links = eventLinks(config)
     return serverPage({
         operation: async ({ searchParams }: PageOperationArgs) => {
-            const lockedTag = config.lockedTag
-                ? await eventTagOperations.readSpecial({ params: { special: config.lockedTag } })
-                : null
-            // The tags the visitor picked, which there are none of under a locked tag.
-            const pickedTagNames = lockedTag ? null : QueryParams.eventTags.decode(searchParams)
+            const pickedTagNames = config.tagFilter ? QueryParams.eventTags.decode(searchParams) : null
             const search = QueryParams.search.decode(searchParams) ?? ''
             const eventTags = await eventTagOperations.readAll({})
 
-            return { pickedTagNames, search, tagNames: lockedTag ? [lockedTag.name] : pickedTagNames, eventTags }
+            return { pickedTagNames, search, eventTags }
         },
         capabilities: () => ({
             canUpdateTags: eventTagAuth.update,
@@ -36,7 +32,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
         }),
         metadata: () => ({ title: config.titles.archive }),
         render: ({ data, capabilities }) => {
-            const { pickedTagNames, search, tagNames, eventTags } = data
+            const { pickedTagNames, search, eventTags } = data
             const pickedTags = eventTags.filter(tag => pickedTagNames?.includes(tag.name))
 
             return (
@@ -62,7 +58,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                             })}
                         </div>
                         <div className="flex items-center gap-[1em]">
-                            {!config.lockedTag && (
+                            {config.tagFilter && (
                                 <TagHeaderItem
                                     eventTags={eventTags}
                                     currentTags={pickedTags}
@@ -87,7 +83,7 @@ export function eventsArchivePage(config: EventPagesConfig) {
                     <EventArchivePagingProvider serverRenderedData={[]} startPage={{
                         page: 0,
                         pageSize: 12
-                    }} details={{ tags: tagNames, name: search || undefined }} key={search}>
+                    }} details={{ tags: pickedTagNames, kinds: config.kindsToShow, name: search || undefined }} key={search}>
                         <EventArchiveList config={config} />
                     </EventArchivePagingProvider>
                 </PageWrapper>
