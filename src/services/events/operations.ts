@@ -464,6 +464,7 @@ export const eventOperations = {
             take,
             select: {
                 id: true,
+                kind: true,
                 name: true,
                 eventStart: true,
                 coverImage: {

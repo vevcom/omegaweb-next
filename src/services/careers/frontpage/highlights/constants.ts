@@ -42,6 +42,7 @@ export const careerFrontpageHighlightSelection = {
     event: {
         select: {
             id: true,
+            kind: true,
             name: true,
             eventStart: true,
             eventEnd: true,

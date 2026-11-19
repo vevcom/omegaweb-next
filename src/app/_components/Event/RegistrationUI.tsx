@@ -55,7 +55,7 @@ export default function RegistrationUI({
 }: {
     /** The event pages the registration sits in, whose site's login a visitor is sent to. */
     config: EventPagesConfig,
-    event: Pick<EventExpanded, 'id' | 'name' | 'waitingList' | 'bindingRegistration'>,
+    event: Pick<EventExpanded, 'id' | 'kind' | 'name' | 'waitingList' | 'bindingRegistration'>,
     variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
     registration: OwnRegistration | null,
     dotPunishment: DotPunishment | null,
