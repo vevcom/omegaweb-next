@@ -169,7 +169,7 @@ export async function notifyPromoted(
     if (promoted.length === 0) return
     const event = await prisma.event.findUniqueOrThrow({
         where: { id: eventId },
-        select: { id: true, name: true, infoNotificationChannelId: true },
+        select: { id: true, kind: true, name: true, infoNotificationChannelId: true },
     })
     await notifyPromotedFromWaitingList(event, promoted)
 }

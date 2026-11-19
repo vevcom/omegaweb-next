@@ -49,7 +49,7 @@ export const eventNotificationOperations = {
         operation: async ({ prisma, params }): Promise<NotificationResult> => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.eventId },
-                select: { id: true, name: true, infoNotificationChannelId: true },
+                select: { id: true, kind: true, name: true, infoNotificationChannelId: true },
             })
             const unpaid = await prisma.eventRegistration.findMany({
                 where: {
