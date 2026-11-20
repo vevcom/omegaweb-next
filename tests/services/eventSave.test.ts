@@ -8,8 +8,13 @@ import { eventRegistrationOperations } from '@/services/events/registration/oper
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { userOperations } from '@/services/users/operations'
+import { companyOperations } from '@/services/careers/companies/operations'
+import { EventKind } from '@/prisma-generated-pn-types'
 import { beforeAll, describe, expect, jest, test } from '@jest/globals'
+import { File } from 'node:buffer'
 import type { Data } from '@/services/serviceOperation'
+import type { Permission } from '@/prisma-generated-pn-types'
+import type { UserFiltered } from '@/services/users/types'
 
 const HOUR = 60 * 60 * 1000
 const period = {
@@ -18,6 +23,7 @@ const period = {
     takesPayment: false,
 }
 const open = { visibilityRequirements: [] as { conditions: [] }[] }
+const svgLogo = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>')
 
 let groupId: number
 let userIds: number[]
@@ -523,5 +529,210 @@ describe('the kind of an event', () => {
         const event = await prisma.event.findUniqueOrThrow({ where: { id } })
         expect(event.name).toBe('Blir det det var, med nytt navn')
         expect(event.kind).toBe('ORDINARY')
+    })
+})
+
+describe('the company of an event', () => {
+    const companyNameOf = async (id: number) => (
+        await eventOperations.read({ params: { id }, bypassAuth: true })
+    ).company?.name ?? null
+    const createCompany = (name: string) => prisma.company.create({ data: { name, description: '' } })
+
+    test.each(Object.values(EventKind))('of the kind %s is kept through a save, and lost when cleared', async kind => {
+        const company = await createCompany(`Selskap for ${kind}`)
+        const { id } = await eventOperations.create({
+            data: {
+                kind,
+                name: `Med selskap, ${kind}`,
+                companyId: company.id,
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
+            },
+            bypassAuth: true,
+        })
+        expect(await companyNameOf(id)).toBe(company.name)
+
+        await save(id, { name: `Med selskap, ${kind}, omdøpt` })
+        expect(await companyNameOf(id)).toBe(company.name)
+
+        const cleared = new FormData()
+        cleared.append('companyId', 'NULL')
+        await eventOperations.saveSetup({ params: { id }, data: cleared, bypassAuth: true })
+        expect(await companyNameOf(id)).toBeNull()
+    })
+
+    test('is set and changed by a save', async () => {
+        const [first, second] = await Promise.all([createCompany('Første selskap'), createCompany('Andre selskap')])
+        const id = await createEvent('Selskapet byttes')
+
+        await save(id, { companyId: first.id })
+        expect(await companyNameOf(id)).toBe(first.name)
+        await save(id, { companyId: second.id })
+        expect(await companyNameOf(id)).toBe(second.name)
+    })
+
+    test('is gone from its events when the company is deleted, and the events stay', async () => {
+        const company = await createCompany('Selskap som legges ned')
+        const id = await createEvent('Overlever selskapet')
+        await save(id, { companyId: company.id })
+
+        await companyOperations.destroy({ params: { id: company.id }, bypassAuth: true })
+
+        expect(await companyNameOf(id)).toBeNull()
+    })
+
+    test('that does not exist is refused, and the event keeps none', async () => {
+        const gone = await createCompany('Selskap som aldri var')
+        await prisma.company.delete({ where: { id: gone.id } })
+        const id = await createEvent('Selskapet finnes ikke')
+
+        await expect(save(id, { companyId: gone.id })).rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
+        expect(await companyNameOf(id)).toBeNull()
+    })
+
+    test('is on the lists of coming and past events', async () => {
+        const company = await createCompany('Selskap på listene')
+        const createAt = (name: string, eventStart: Date) => eventOperations.create({
+            data: {
+                name,
+                eventStart,
+                eventEnd: new Date(eventStart.getTime() + 2 * HOUR),
+                companyId: company.id,
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
+            },
+            bypassAuth: true,
+        })
+        const coming = await createAt('På listen, kommende', new Date(Date.now() + 48 * HOUR))
+        const past = await createAt('På listen, forbi', new Date(Date.now() - 48 * HOUR))
+        const shown = { id: company.id, name: company.name, logoImage: null }
+
+        const current = await eventOperations.readManyCurrent({
+            params: { tags: null, name: 'På listen' },
+            bypassAuth: true,
+        })
+        const archived = await eventOperations.readManyArchivedPage({
+            params: {
+                paging: { page: { page: 0, pageSize: 50, cursor: null }, details: { name: 'På listen', tags: null } },
+            },
+            bypassAuth: true,
+        })
+        expect(current.find(event => event.id === coming.id)?.company).toEqual(shown)
+        expect(archived.find(event => event.id === past.id)?.company).toEqual(shown)
+    })
+
+    test('is shown to a visitor by its name and logo, and nothing else of it', async () => {
+        const company = await prisma.company.create({
+            data: {
+                name: 'Selskap for alle',
+                description: 'Bare for COMPANY_USE',
+                website: 'https://selskap.no',
+                sponsorTier: 'MAIN',
+            },
+        })
+        const logo = await companyOperations.updateLogo({
+            params: { id: company.id },
+            data: { imageFile: new File([svgLogo], 'logo.svg', { type: 'image/svg+xml' }) },
+            bypassAuth: true,
+        })
+        const id = await createEvent('Åpent med selskap')
+        await save(id, { companyId: company.id })
+        await eventOperations.setPublished({ params: { id }, data: { published: true }, bypassAuth: true })
+
+        const event = await eventOperations.read({ params: { id }, session: testSession({}) })
+
+        expect(event.company).toEqual({
+            id: company.id,
+            name: company.name,
+            logoImage: expect.objectContaining({ id: logo.id }),
+        })
+    })
+
+    describe('is put on an event only with COMPANY_USE, while keeping or clearing it takes no more', () => {
+        let user: UserFiltered
+        beforeAll(async () => {
+            user = await userOperations.create({
+                data: {
+                    email: 'event-save-company@omega.ntnu.no',
+                    firstname: 'Test',
+                    lastname: 'Testesen',
+                    username: 'event-save-company',
+                    emailVerified: new Date().toISOString(),
+                },
+                bypassAuth: true,
+            })
+        })
+        const sessionWith = (permissions: Permission[]) => testSession({
+            user,
+            permissions,
+            memberships: [{ groupId, order: currentOrder, active: true, admin: false }],
+        })
+        const createStoredAndOther = async (eventName: string) => {
+            const [stored, other] = await Promise.all([
+                createCompany(`${eventName}, den som står`),
+                createCompany(`${eventName}, den som kommer`),
+            ])
+            const id = await createEvent(eventName)
+            await save(id, { companyId: stored.id })
+            return { id, stored, other }
+        }
+
+        test.each([
+            ['saveSetup', eventOperations.saveSetup],
+            ['update', eventOperations.update],
+        ] as const)('through %s', async (name, operation) => {
+            const { id, stored, other } = await createStoredAndOther(`Selskap gjennom ${name}`)
+            const writeAs = (permissions: Permission[], companyId: number | 'NULL') => operation({
+                params: { id },
+                data: { companyId },
+                session: sessionWith(permissions),
+            })
+
+            await expect(writeAs([], other.id)).rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+            expect(await companyNameOf(id)).toBe(stored.name)
+
+            await writeAs([], stored.id)
+            expect(await companyNameOf(id)).toBe(stored.name)
+
+            await writeAs([], 'NULL')
+            expect(await companyNameOf(id)).toBeNull()
+
+            await writeAs(['COMPANY_USE'], other.id)
+            expect(await companyNameOf(id)).toBe(other.name)
+        })
+
+        test('through create', async () => {
+            const company = await createCompany('Selskap fra start')
+            const createAs = (
+                permissions: Permission[],
+                name: string,
+                companyId?: number | 'NULL',
+            ) => eventOperations.create({
+                data: {
+                    name,
+                    companyId,
+                    visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
+                },
+                session: sessionWith(['EVENT_CREATE', ...permissions]),
+            })
+
+            await expect(createAs([], 'Uten rett, med selskap', company.id))
+                .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+
+            const { id: withoutCompany } = await createAs([], 'Uten rett, uten selskap')
+            const { id: clearedCompany } = await createAs([], 'Uten rett, selskap NULL', 'NULL')
+            const { id: withCompany } = await createAs(['COMPANY_USE'], 'Med rett, med selskap', company.id)
+            expect(await companyNameOf(withoutCompany)).toBeNull()
+            expect(await companyNameOf(clearedCompany)).toBeNull()
+            expect(await companyNameOf(withCompany)).toBe(company.name)
+        })
+
+        test('keeps the stored company as the form posts it, as a string', async () => {
+            const { id, stored } = await createStoredAndOther('Selskap fra skjemaet')
+            const formData = new FormData()
+            formData.append('companyId', String(stored.id))
+
+            await eventOperations.saveSetup({ params: { id }, data: formData, session: sessionWith([]) })
+
+            expect(await companyNameOf(id)).toBe(stored.name)
+        })
     })
 })

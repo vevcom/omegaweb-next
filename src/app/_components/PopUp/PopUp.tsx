@@ -41,12 +41,23 @@ export function PopUpDialog({ children, triggerRef, close, ariaLabelledBy }: Dia
 
     return (
         <div className={popUpClassNames.popUp}>
+            {/*
+              * Escape closes every pop-up through the window. Stopping it here, where it passes on its way
+              * there, closes only the innermost pop-up the focus is in. The dialog takes focus itself, so
+              * a click on its text keeps the focus inside.
+              */}
             <div
                 className={popUpClassNames.main}
                 ref={mainRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={ariaLabelledBy}
+                tabIndex={-1}
+                onKeyUp={event => {
+                    if (event.key !== 'Escape') return
+                    event.stopPropagation()
+                    close()
+                }}
             >
                 <div className={popUpClassNames.overflow}>
                     <button

@@ -1,6 +1,7 @@
 import { Require } from '@/auth/authorizer/Require'
 import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
+import { companyAuth } from '@/services/careers/companies/auth'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
@@ -78,6 +79,18 @@ export function visibilitiesShowingEvent(
     return [adminVisibility, ...(published ? quotaVisibilities : [])]
 }
 
+/**
+ * Passes when a write puts no company on the event but the one it has, as keeping or clearing it
+ * does. Needs `{ setsCompany }` supplied via `.data()`. Like `isPublished`, it fails without a
+ * message of its own.
+ */
+const keepsCompany = Require.custom<{ setsCompany: boolean }>(
+    ({ setsCompany }) => (setsCompany ? { success: false } : { success: true })
+)
+
+/** Putting a company on an event takes the right to see the companies, on top of the write's own rule. */
+const mayPutCompany = Require.anyOf(keepsCompany, companyAuth.readPage)
+
 /** `hasNoAdministrators` as a where clause on a visibility. */
 const noAdministrators: Prisma.VisibilityWhereInput = {
     OR: [{ requirements: { none: {} } }, { requirements: { some: { conditions: { none: {} } } } }],
@@ -100,9 +113,9 @@ export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput 
 const visibleEvents = Require.permission('EVENT_ADMIN').or().filter(({ session }) => eventsSeenBy(session))
 
 export const eventAuth = {
-    // A new event has no visibility yet to check. EVENT_CREATE is the only gate here. The creator
-    // sets the event's admin visibility, which then governs every operation below.
-    create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
+    // A new event has no visibility yet to check. EVENT_CREATE is the only gate here, besides the one
+    // for a company. The creator sets the event's admin visibility, which then governs every operation below.
+    create: Require.allOf(Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'), mayPutCompany),
 
     readAdminVisibility: canSeeEvent,
 
@@ -112,8 +125,8 @@ export const eventAuth = {
     readManyArchivedPage: visibleEvents,
     search: visibleEvents,
 
-    update: eventAdminLevel,
-    saveSetup: eventAdminLevel,
+    update: Require.allOf(eventAdminLevel, mayPutCompany),
+    saveSetup: Require.allOf(eventAdminLevel, mayPutCompany),
     connectToLedgerAccount: Require.allOf(eventAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: eventAdminLevel,
     updateCmsCoverImage: eventAdminLevel,

@@ -2,6 +2,7 @@ import { DEV_COMMITTEE_SHORT_NAME } from './seedDevGroups'
 import { eventOperations } from '@/services/events/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
+import { seedCompaniesConfig } from '@/seeder/src/standardContent/seedCompanies'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Data } from '@/services/serviceOperation'
 
@@ -48,11 +49,18 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         }
     })
 
+    const [kongsberg] = seedCompaniesConfig
+    const company = await prisma.company.findUniqueOrThrow({
+        where: { name: kongsberg.name },
+        select: { id: true },
+    })
+
     const events: SeedDevEventConfig[] = [
         {
             event: {
                 kind: 'COMPANY_PRESENTATION',
                 name: 'Bedpres med Kongsberg',
+                companyId: company.id,
                 location: 'EL5',
                 eventStart: startDate,
                 eventEnd: endDate,
@@ -73,6 +81,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
             event: {
                 kind: 'SPEED_INTERVIEW',
                 name: 'Speedintervju med Kongsberg',
+                companyId: company.id,
                 location: 'EL5',
                 eventStart: startDate,
                 eventEnd: endDate,

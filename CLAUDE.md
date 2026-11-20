@@ -253,6 +253,8 @@ An event has a kind, `Event.kind`, which says what it is: an ordinary event, a c
 - **The pages.** A mount of the event page kit says which kinds it shows, as `kindsToShow` in its `EventPagesConfig`. Omega's site shows every kind. The career site has one mount per kind, under `/career/company-presentations` and `/career/speed-interviews`. An event of a kind a mount does not show is not found under it.
 - **Home pages.** Each kind has the pages it belongs on, in `src/app/_pageKits/events/homePages.ts`. `eventLinks(config).event(event)` links under the config's pages when they show the event's kind and on the home pages of the kind otherwise, so a link to an event always takes its kind and none is built by hand.
 - **A new kind** is a value in the enum, an entry in `kinds.ts`, a special notification channel, and its home pages.
+- **A company** is not a matter of kind. An event of any kind may have one, `Event.companyId`, set in its setup form. Putting a company on an event takes `COMPANY_USE` besides the event's own rule, while keeping or clearing it does not. Its page and cards show the company when the event has one, and the search finds an event by its company's name.
+- **What an event shows of its company** is its name and logo, `eventCompanySelection`, and nothing else of it: those are public through an event that is, while the rest of a company takes `COMPANY_USE` or membership of it. On the event's page the name links to the company's page only for those that page lets in.
 
 ### Path Aliases
 
