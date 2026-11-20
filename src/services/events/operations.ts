@@ -14,7 +14,7 @@ import {
 import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
-import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { eventHomeLinks } from '@/pageKits/events/links'
 import { eventLinks } from '@/pageKits/events/links'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
@@ -190,7 +190,7 @@ const updateFields = defineSubOperation({
                     message: `${updatedEvent.name} er endret. `
                         + `🕓 ${displayDate(updatedEvent.eventStart)}, 📍 ${updatedEvent.location}. `
                         + 'Se arrangementets side for detaljene.',
-                    url: omegaEventLinks.event(updatedEvent),
+                    url: eventHomeLinks(updatedEvent).event(updatedEvent),
                     audience: { registeredForEventId: updatedEvent.id },
                 },
             })
@@ -331,17 +331,18 @@ export const eventOperations = {
                 prisma,
             })
             const id = await reserveId(prisma, 'Event')
+            const kind = data.kind ?? 'ORDINARY'
             const channels = await eventNotificationOperations.internal.createChannels.internalCall({
                 prisma,
                 params: { eventId: id },
-                data: { name: data.name },
+                data: { name: data.name, kind },
             })
 
             // Scalar foreign keys, since prisma will not take an explicit id along with nested connects.
             const createdEvent = await prisma.event.create({
                 data: {
                     id,
-                    kind: data.kind,
+                    kind,
                     name: data.name,
                     location: data.location,
                     locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
@@ -455,12 +456,15 @@ export const eventOperations = {
      * events are searched, and only the events the session may see at all - the very same
      * visibility rule as the lists of current and archived events above.
      */
-    /** The search for a site's event pages: the events of the kinds the pages show, linking to those pages. */
+    /**
+     * The search for the event pages of a site, of which it may have several: the events of the kinds
+     * they show, each linked to on the pages among them that show its kind.
+     */
     search: implementSearchOperation({
         authorizer: () => eventAuth.search,
         find: ({
             prisma, query, take, prismaWhereFilter, config
-        }: SearchFindArgs<Prisma.EventWhereInput, EventPagesConfig>) => prisma.event.findMany({
+        }: SearchFindArgs<Prisma.EventWhereInput, EventPagesConfig[]>) => prisma.event.findMany({
             take,
             select: {
                 id: true,
@@ -475,14 +479,14 @@ export const eventOperations = {
             },
             where: {
                 name: { contains: query, mode: 'insensitive' },
-                kind: { in: config.kindsToShow },
+                kind: { in: config.flatMap(pages => pages.kindsToShow) },
                 ...prismaWhereFilter
             },
             orderBy: { eventStart: 'desc' },
         }),
         toSearchResult: (event, config) => ({
             key: `event-${event.id}`,
-            href: eventLinks(config).event(event),
+            href: eventLinks(config.find(pages => pages.kindsToShow.includes(event.kind)) ?? config[0]).event(event),
             label: event.name,
             sublabel: displayDate(event.eventStart, false),
             image: event.coverImage.image,
@@ -592,7 +596,7 @@ export const eventOperations = {
                     data: {
                         title: `Hvad der hender: ${event.name}`,
                         message: `${event.name}, 🕓 ${displayDate(event.eventStart, false)},📍 ${event.location}`,
-                        url: omegaEventLinks.event(event),
+                        url: eventHomeLinks(event).event(event),
                         audience: { canRegisterForEventId: event.id },
                     },
                 })

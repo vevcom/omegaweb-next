@@ -245,6 +245,15 @@ A company user is a person who acts for a company on the career site. It is an a
 - **Accounts.** Choosing a password by mail and changing an email with verification are the same steps for a user and a company user. They are written once in `src/services/accountFlows/implement.ts` as `implementAccountFlows(kind)`, where a kind says where the account is stored, what its token audiences are and what its mails say. `userAccountFlows` in `src/services/auth/accountFlows.ts` is the user's and `companyUserAccountFlows` in `src/services/careers/companies/users/auth/accountFlows.ts` the company user's. Each kind has its own token audiences, so a token for one can never act on the other. A company user gets their first password from the same link that replaces a forgotten one, sent from their page under the company. On the frontend `implementAccountFlowComponents` mirrors it, bound once for each kind (see "Account flows on the frontend" above), and nothing under `(company-auth)` imports from `@/pageKits/auth`. A company user is signed in as soon as they have chosen a password, where a user is sent to the login.
 - **Elsewhere.** A company user has no use of the other sites. Their layouts show `CompanyUserBand`, which leads back to the career site.
 
+### Event kinds
+
+An event has a kind, `Event.kind`, which says what it is: an ordinary event, a company presentation or a speed interview. The kind is picked as the event is created and no operation changes it, so what follows from it never changes under an event. Nothing goes by a tag; a tag is a label.
+
+- **What follows from a kind** is said once, in `src/services/events/kinds.ts`: its name, the tag it is shown by, and the special notification channel the own channels of its events sit under. The file is read by client components, so it holds plain data. A new thing that differs between kinds is a new field there, not a check on the kind where it is used.
+- **The pages.** A mount of the event page kit says which kinds it shows, as `kindsToShow` in its `EventPagesConfig`. Omega's site shows every kind. The career site has one mount per kind, under `/career/company-presentations` and `/career/speed-interviews`. An event of a kind a mount does not show is not found under it.
+- **Home pages.** Each kind has the pages it belongs on, in `src/app/_pageKits/events/homePages.ts`. `eventLinks(config).event(event)` links under the config's pages when they show the event's kind and on the home pages of the kind otherwise, so a link to an event always takes its kind and none is built by hand.
+- **A new kind** is a value in the enum, an entry in `kinds.ts`, a special notification channel, and its home pages.
+
 ### Path Aliases
 
 The project uses extensive TypeScript path aliases. See `tsconfig.json`:
