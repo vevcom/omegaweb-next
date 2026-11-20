@@ -2,6 +2,7 @@
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
 import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
+import { chatLinks } from '@/app/(omegaweb)/chat/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { revueLinks } from '@/app/(revue)/links'
@@ -19,6 +20,7 @@ import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { userAuth } from '@/services/users/auth'
+import { chatAuth } from '@/services/chat/constants'
 import { applicationPeriodAuth } from '@/services/applications/periods/auth'
 import { bulshitAuth } from '@/services/bulshit/auth'
 import { lockerAuth } from '@/services/lockers/auth'
@@ -32,6 +34,7 @@ import {
     faGamepad,
     faBook,
     faComment,
+    faComments,
     faCamera,
     faNewspaper,
     faCalendar,
@@ -108,6 +111,15 @@ export const navDef = defineNavDef([
         href: appHref('/users'),
         icon: faPeopleLine,
         authorizers: () => [userAuth.readPage],
+    },
+    {
+        key: 'chat',
+        name: 'Chat',
+        href: chatLinks.messages(),
+        icon: faComments,
+        // The chat pages are a user's own and are read with their id, which the navigation has none
+        // of where it is defined. Every user has them, so the item is for whoever is one.
+        authorizers: () => (chatAuth ? [Require.user()] : []),
     },
     {
         key: 'committees',
