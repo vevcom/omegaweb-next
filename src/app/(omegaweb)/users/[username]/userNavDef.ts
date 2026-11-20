@@ -49,6 +49,8 @@ export type UserNavSubject = {
  * one thing there says nothing about the rest.
  */
 export function userNavDef({ username, userId }: UserNavSubject) {
+    const segment = encodeURIComponent(username)
+
     /**
      * What being a member is about: who you are, your ID, your money, your standing and your groups.
      * Shown in the island at the bottom of every user page.
@@ -64,14 +66,14 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         {
             key: 'omegaid',
             name: 'Omega-ID',
-            href: appHref(`/users/${username}/omegaid`),
+            href: appHref(`/users/${segment}/omegaid`),
             icon: faQrcode,
             authorizers: () => [omegaIdAuth.generate.data({ userId })],
         },
         {
             key: 'registrations',
             name: 'Påmeldinger',
-            href: appHref(`/users/${username}/registrations`),
+            href: appHref(`/users/${segment}/registrations`),
             icon: faCalendarCheck,
             authorizers: () => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
         },
@@ -80,7 +82,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             // Your address and the aliases you receive mail on: yours alone, as the mail is. A user
             // admin gets in to change the address, and sees no aliases.
             name: 'E-post',
-            href: appHref(`/users/${username}/mail`),
+            href: appHref(`/users/${segment}/mail`),
             icon: faEnvelope,
             authorizers: () => [mailAliasAuth.readReceived.data({ userId }), userAuth.updateVevenMailAddress],
         },
@@ -88,7 +90,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             key: 'account',
             // The page only ever shows the session user's own account.
             name: 'Konto',
-            href: appHref(`/users/${username}/account`),
+            href: appHref(`/users/${segment}/account`),
             icon: faMoneyBill,
             authorizers: () => [Require.userId().data({ userId })],
         },
@@ -97,7 +99,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             // Reading the trials is the floor: the level itself is on the profile anyway, so it is the
             // trials - and being able to act on them - that make this page worth opening.
             name: 'Medlemsstatus',
-            href: appHref(`/users/${username}/membership-status`),
+            href: appHref(`/users/${segment}/membership-status`),
             icon: faIdCard,
             authorizers: () => [
                 admissionAuth.readTrial.data({ userId }),
@@ -110,7 +112,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             key: 'groups',
             // Every group type guards its own memberships, and any one of them is something to show.
             name: 'Grupper',
-            href: appHref(`/users/${username}/groups`),
+            href: appHref(`/users/${segment}/groups`),
             icon: faUsers,
             authorizers: () => [
                 omegaMembershipGroupAuth.readMembershipsOfUser.data({ userId }),
@@ -125,7 +127,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         {
             key: 'dots',
             name: 'Prikker',
-            href: appHref(`/users/${username}/dots`),
+            href: appHref(`/users/${segment}/dots`),
             icon: faCircleDot,
             authorizers: () => [
                 dotAuth.readForUser.data({ userId }),
@@ -143,7 +145,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         {
             key: 'settings',
             name: 'Generelt',
-            href: appHref(`/users/${username}/settings`),
+            href: appHref(`/users/${segment}/settings`),
             icon: faSliders,
             authorizers: () => [
                 userAuth.updateProfile.data({ userField: { username } }),
@@ -158,7 +160,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         {
             key: 'notifications',
             name: 'Varslinger',
-            href: appHref(`/users/${username}/notifications`),
+            href: appHref(`/users/${segment}/notifications`),
             icon: faPaperPlane,
             authorizers: () => [
                 notificationSubscriptionAuth.read.data({ userId }),
@@ -168,21 +170,21 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         {
             key: 'theme',
             name: 'Tema',
-            href: appHref(`/users/${username}/theme`),
+            href: appHref(`/users/${segment}/theme`),
             icon: faSwatchbook,
             authorizers: () => [userAuth.updateTheme.data({ userField: { username } })],
         },
         {
             key: 'permissions',
             name: 'Tilganger',
-            href: appHref(`/users/${username}/permissions`),
+            href: appHref(`/users/${segment}/permissions`),
             icon: faKey,
             authorizers: () => [permissionsAuth.readPermissionsOfUser.data({ userId })],
         },
         {
             key: 'flairs',
             name: 'Kapper',
-            href: appHref(`/users/${username}/flairs`),
+            href: appHref(`/users/${segment}/flairs`),
             icon: faHatWizard,
             authorizers: () => [flairAuth.assignToUser],
         },

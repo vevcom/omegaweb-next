@@ -5,6 +5,6 @@ export const chatUserAuth = {
     optIn: Require.userId({ errorMessage: 'Bare du selv kan opprette chatkontoen din' }),
     read: Require.userId({ errorMessage: 'Bare du selv ser chatkontoen din' }),
     readSpaces: Require.userId({ errorMessage: 'Bare du selv ser chatområdene dine' }),
-    /** Whoever sees the users may write to the ones on the chat. */
-    readDirectMessage: Require.permission('USERS_USE'),
+    /** A user who sees the users may write to the ones on the chat. */
+    readDirectMessage: Require.user().permission('USERS_USE'),
 } as const

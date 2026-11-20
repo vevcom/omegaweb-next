@@ -1,23 +1,23 @@
 import Button from '@/components/UI/Button'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { externalHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faComments } from '@fortawesome/free-solid-svg-icons'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
-    /** Where the chat opens a direct message with the user. Null for a user who is not on the chat. */
-    url: string | null,
+    /** The chat page the button opens. Null for a user who is not on the chat. */
+    href: AppHref | null,
     firstname: string,
 }
 
-/** The profile's way over to a direct message with its user on the chat, greyed out for a user who is not there. */
-export default function DirectMessageButton({ url, firstname }: PropTypes) {
+/** The profile's way over to a direct message with its user, greyed out for a user who is not on the chat. */
+export default function DirectMessageButton({ href, firstname }: PropTypes) {
     const content = <>
         <FontAwesomeIcon icon={faComments} />
         <p className="w-[8em]">Send melding</p>
     </>
 
-    if (url === null) {
+    if (href === null) {
         return (
             <div className="flex flex-col items-center">
                 <Button disabled className="flex! items-center! gap-[0.5em]! cursor-not-allowed!">{content}</Button>
@@ -26,7 +26,7 @@ export default function DirectMessageButton({ url, firstname }: PropTypes) {
         )
     }
     return (
-        <SiteLink href={externalHref(url)} target="_blank">
+        <SiteLink href={href}>
             <Button className="flex! items-center! gap-[0.5em]!">{content}</Button>
         </SiteLink>
     )

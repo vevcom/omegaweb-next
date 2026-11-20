@@ -111,23 +111,24 @@ export const chatUserOperations = {
     }),
 
     /**
-     * Where the chat client opens a direct message with a user. No url for a user without an
-     * account on the chat, and no chat to write on where the client or the server name is unset.
+     * Whether a user is on the chat to be written to, and where the chat client opens a direct
+     * message with them. No url for a user without an account there, nor where the client or the
+     * server name is unset.
      */
     readDirectMessage: defineOperation({
         paramsSchema: chatUserSchemas.params.readDirectMessage,
         authorizer: () => chatUserAuth.readDirectMessage,
         operation: async ({ prisma, params }) => {
-            const { serverName } = chatServer
-            if (!chatClientOrigin || !serverName) return { chatIsSetUp: false, url: null }
-
             const chatUser = await prisma.chatUser.findUnique({
                 where: { userId: params.userId, deactivatedAt: null },
                 select: { localpart: true },
             })
+            const { serverName } = chatServer
             return {
-                chatIsSetUp: true,
-                url: chatUser && `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`,
+                isOnChat: chatUser !== null,
+                url: chatUser && chatClientOrigin && serverName
+                    ? `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`
+                    : null,
             }
         },
     }),
