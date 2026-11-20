@@ -1,22 +1,17 @@
-import { eventKinds } from '@/services/events/kinds'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { EventPagesConfig } from './config'
 import type { EventListFilter } from './links'
 import type { EventKind } from '@/prisma-generated-pn-types'
 import type { SearchParams } from '@/app/ServerPage'
 
-/**
- * The kinds a list can be narrowed to: those the pages show that are marked by a tag. Pages showing
- * one kind have nothing to narrow.
- */
-export function filterableKinds(config: EventPagesConfig): EventKind[] {
-    if (config.kindsToShow.length < 2) return []
-    return config.kindsToShow.filter(kind => eventKinds[kind].tag !== null)
+/** Whether the pages show several kinds, so that each event says its kind and a list is narrowed to kinds. */
+export function showsSeveralKinds(config: EventPagesConfig): boolean {
+    return config.kindsToShow.length > 1
 }
 
 /**
- * What the visitor has narrowed a list to, from the url. Pages without a tag filter are narrowed by
- * nothing but the search.
+ * What the visitor has narrowed a list to, from the url: tags where the pages take a tag filter, and
+ * kinds where they show several.
  */
 export function eventListFilterOf(
     config: EventPagesConfig,
@@ -25,7 +20,7 @@ export function eventListFilterOf(
     const pickedKinds = QueryParams.eventKinds.decode(searchParams) ?? []
     return {
         tagNames: config.tagFilter ? QueryParams.eventTags.decode(searchParams) : null,
-        kinds: config.tagFilter ? filterableKinds(config).filter(kind => pickedKinds.includes(kind)) : [],
+        kinds: showsSeveralKinds(config) ? config.kindsToShow.filter(kind => pickedKinds.includes(kind)) : [],
         search: QueryParams.search.decode(searchParams) ?? '',
     }
 }

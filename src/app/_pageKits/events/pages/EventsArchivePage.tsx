@@ -3,6 +3,7 @@ import { eventListFilterOf, kindsToRead } from '@/pageKits/events/filter'
 import EventArchiveList from '@/components/Event/EventArchiveList'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import PickedEventFilters from '@/components/Event/PickedEventFilters'
+import EventKindFilter from '@/components/Event/EventKindFilter'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { eventTagOperations } from '@/services/events/tags/operations'
 import { EventArchivePagingProvider } from '@/contexts/paging/EventArchivePaging'
@@ -35,7 +36,10 @@ export function eventsArchivePage(config: EventPagesConfig) {
             return (
                 <PageWrapper search={{ value: filter.search, label: 'Søk i arkivet' }} headerItem={
                     <div className="flex justify-between items-center w-full gap-[1em]">
-                        <PickedEventFilters config={config} filter={filter} eventTags={eventTags} archive />
+                        <div className="flex flex-wrap items-center gap-[1em]">
+                            <EventKindFilter config={config} filter={filter} archive />
+                            <PickedEventFilters config={config} filter={filter} eventTags={eventTags} archive />
+                        </div>
                         <div className="flex items-center gap-[1em]">
                             {config.tagFilter && (
                                 <TagHeaderItem
