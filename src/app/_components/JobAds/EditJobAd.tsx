@@ -1,6 +1,6 @@
 'use client'
-import SelectedCompany from './SelectedCompany'
-import CompanyChooser from './CompanyChooser'
+import SelectedCompany from '@/components/Company/SelectedCompany'
+import CompanyChooser from '@/components/Company/CompanyChooser'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'

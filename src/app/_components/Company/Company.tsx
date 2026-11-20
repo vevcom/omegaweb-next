@@ -8,6 +8,8 @@ import SiteLink from '@/components/SiteLink/SiteLink'
 import { careerLinks } from '@/app/(careers)/links'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { companyAuth } from '@/services/careers/companies/auth'
+import { CompanySelectionContext } from '@/contexts/CompanySelection'
+import { useContext } from 'react'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { CompanyExpanded } from '@/services/careers/companies/types'
 
@@ -52,6 +54,8 @@ export default function Company({
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
     const canDestroy = useAuthorizer({ authorizer: companyAuth.destroy })
     const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo.data({ companyId: company.id }) })
+    // A card to pick is clicked to pick it, and the forms it is picked for keep nothing on leaving the page.
+    const selectable = useContext(CompanySelectionContext) !== null
     const showSettings = !disableEdit && (
         canUpdate.authorized || canUpdateLogo.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
     )
@@ -94,9 +98,11 @@ export default function Company({
                 ${showSettings ? 'pr-10' : ''}
             `}>
                 <h2>
-                    <SiteLink href={careerLinks.company(company)} className="relative z-1 text-inherit">
-                        {company.name}
-                    </SiteLink>
+                    {selectable ? company.name : (
+                        <SiteLink href={careerLinks.company(company)} className="relative z-1 text-inherit">
+                            {company.name}
+                        </SiteLink>
+                    )}
                 </h2>
                 <p>{company.description}</p>
                 {

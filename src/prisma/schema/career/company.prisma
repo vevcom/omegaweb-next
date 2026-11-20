@@ -18,6 +18,7 @@ model Company {
   updatedAt DateTime @updatedAt
   JobAd     JobAd[]
   users     CompanyUser[]
+  events    Event[]
 
   @@index([sponsorTier])
 }

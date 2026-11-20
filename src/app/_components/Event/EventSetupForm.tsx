@@ -6,6 +6,9 @@ import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
 import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } from './EventVariantsField'
+import SelectedCompany from '@/components/Company/SelectedCompany'
+import CompanySelectionProvider from '@/contexts/CompanySelection'
+import PopUpProvider from '@/contexts/PopUp'
 import { eventSetupFromForm, variantsFromForm } from '@/services/events/setupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
@@ -22,6 +25,8 @@ import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
+import { companyAuth } from '@/services/careers/companies/auth'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { useState } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
@@ -52,7 +57,7 @@ export type PropTypes = {
     event: Pick<EventDetailed,
         'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
-        | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount'
+        | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount' | 'company'
     >,
     access: EventAccess,
     /** Whether the admin visibility could be read, so that the form never saves a fallback over it. */
@@ -75,8 +80,15 @@ export type PropTypes = {
  * field component that holds it and posts it as JSON: the variants, the map and who administrates.
  */
 export default function EventSetupForm(props: PropTypes) {
+    // The form is in a pop-up itself, which a pop-up opened from the app's provider would replace, so
+    // the company is chosen in a provider of its own. It renders that pop-up before the form rather
+    // than in it, where its buttons and Enter would submit the form.
     return <EventVariantsField name="variants" defaultValue={props.event.variants}>
-        <SetupForm {...props} />
+        <CompanySelectionProvider company={props.event.company}>
+            <PopUpProvider>
+                <SetupForm {...props} />
+            </PopUpProvider>
+        </CompanySelectionProvider>
     </EventVariantsField>
 }
 
@@ -117,6 +129,9 @@ function SetupForm({
         return { ...result, error: nameVariantInErrors(result.error, variantsFromForm(formData)) }
     }
     const { reportDots } = useTabs()
+    // Putting a company on the event takes COMPANY_USE, as reading the companies to choose from does.
+    // Without it the company is kept or cleared.
+    const canChooseCompany = useAuthorizer({ authorizer: companyAuth.readPage }).authorized
 
     const checkSetup = (values: FormData) => {
         const setup = eventSetupFromForm(values, { ...event, adminVisibility: access.adminVisibility })
@@ -154,6 +169,9 @@ function SetupForm({
                     ]}
                     defaultValue={event.hostedByCommitteeId ?? 'NULL'}
                 />}
+            </FormSection>
+            <FormSection legend="Bedrift">
+                <SelectedCompany optional chooseInPopUp={canChooseCompany} />
             </FormSection>
             <FormSection legend="Kart">
                 <EventLocationInput name="locationMap" defaultValue={event.locationMap} />

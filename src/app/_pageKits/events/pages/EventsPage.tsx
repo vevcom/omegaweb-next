@@ -51,7 +51,7 @@ export function eventsPage(config: EventPagesConfig) {
             canUpdateTags: eventTagAuth.update,
             canCreateTags: eventTagAuth.create,
             canDestroyTags: eventTagAuth.destroy,
-            canCreate: eventAuth.create,
+            canCreate: eventAuth.create.data({ setsCompany: false }),
         }),
         metadata: () => ({ title: config.titles.current }),
         render: ({ data, capabilities }) => {
