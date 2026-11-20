@@ -69,7 +69,6 @@ model Event {
   generalNotificationChannelId Int                 @unique
 
   // Legacy from OW basic database
-  company     Boolean @default(false) // If a plus one is allowed
   lead        String?
   extraFields Json?   @db.Json
 }
@@ -229,7 +228,6 @@ model EventRegistration {
   manuallyPaid      Boolean @default(false)
 
   // Legacy from old database
-  company          Boolean @default(false) // This is if a registrations has a plus one.
   extraFieldChoices Json?   @db.Json
 
   table       EventTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
