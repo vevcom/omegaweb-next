@@ -1,18 +1,21 @@
 'use client'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import { isAppPath } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { usePathname } from 'next/navigation'
 import type { IconProp } from '@fortawesome/fontawesome-svg-core'
 import type { ReactNode } from 'react'
-import type { AppHref } from '@/lib/sites/href'
+import type { AppHref, ExternalHref } from '@/lib/sites/href'
 
 type SubPageNavBarProps = {
     children?: ReactNode,
     icon?: IconProp,
-    href: AppHref
+    href: AppHref | ExternalHref
+    /** Whether the current page is the item's. Left out, it is when the path ends as the item's href does. */
+    active?: boolean,
 }
 
-export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
+export function SubPageNavBarItem({ children, icon, href, active }:SubPageNavBarProps) {
     const pathname = usePathname()
     const page = pathname.split('/').pop()
     const thisPage = href?.split('/').pop()
@@ -23,14 +26,14 @@ export function SubPageNavBarItem({ children, icon, href }:SubPageNavBarProps) {
             last:mb-0
             [&>a]:no-underline
         ">
-            <SiteLink href={href}>
+            <SiteLink href={href} target={isAppPath(href) ? undefined : '_blank'}>
                 <div className={`
                     inline-flex items-center justify-center h-[calc(64px-2*var(--gap))] px-2 border-0
                     max-mobile:px-1
                     bg-transparent text-base-content
                     [&_*]:transition-colors [&_*]:duration-200 [&_*]:ease-[ease]
                     hover:[&_*]:text-primary
-                    ${page === thisPage ? '[&_*]:text-primary' : ''}
+                    ${active ?? page === thisPage ? '[&_*]:text-primary' : ''}
                 `}>
                     {icon && <FontAwesomeIcon icon={icon} className="w-[24px]! h-[24px]!" />}
                     <p className="
