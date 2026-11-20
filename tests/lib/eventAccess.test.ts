@@ -3,7 +3,7 @@ import { canRegisterSelf } from '@/services/events/registration/auth'
 import { Session } from '@/auth/session/Session'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { describe, expect, test } from '@jest/globals'
-import type { SessionUser } from '@/auth/session/Session'
+import type { SessionCompanyUser, SessionUser } from '@/auth/session/Session'
 import type { EventAccess } from '@/services/events/types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
@@ -18,6 +18,7 @@ const event = (changes: Partial<EventAccess>): EventAccess => ({
     adminVisibility: inGroup(ARRKOM),
     creatorId: 7,
     quotaVisibilities: [everyone],
+    companyId: null,
     ...changes,
 })
 const memberOf = (...groupIds: number[]) => Session.fromJsObject({
@@ -52,6 +53,28 @@ describe('visibilitiesShowingEvent', () => {
         sessions.forEach(session => {
             expect(eventAuth.read.data(access).auth(session).authorized).toBe(passesOne(session))
         })
+    })
+})
+
+describe('the users of the event\'s company', () => {
+    const companyUserOf = (companyId: number) => Session.fromJsObject({
+        user: null,
+        companyUser: { id: 4, admin: false, company: { id: companyId } } as SessionCompanyUser['companyUser'],
+        permissions: [],
+        memberships: [],
+    })
+
+    test('see it, also as a draft, and do nothing else with it', () => {
+        const draft = event({ published: false, canBeViewedBy: 'CAN_REGISTER', companyId: 5 })
+        expect(eventAuth.read.data(draft).auth(companyUserOf(5)).authorized).toBe(true)
+        expect(eventAuth.update.data({ ...draft, setsCompany: false }).auth(companyUserOf(5)).authorized).toBe(false)
+        expect(canRegisterSelf.data({ ...draft, published: true }).auth(companyUserOf(5)).authorized).toBe(false)
+    })
+
+    test('are not those of another company, and an event without one has none', () => {
+        const draft = event({ published: false, companyId: 5 })
+        expect(eventAuth.read.data(draft).auth(companyUserOf(6)).authorized).toBe(false)
+        expect(eventAuth.read.data({ ...draft, companyId: null }).auth(companyUserOf(5)).authorized).toBe(false)
     })
 })
 

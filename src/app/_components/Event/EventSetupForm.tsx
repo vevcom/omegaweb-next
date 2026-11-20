@@ -7,7 +7,7 @@ import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
 import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } from './EventVariantsField'
 import SelectedCompany from '@/components/Company/SelectedCompany'
-import CompanySelectionProvider from '@/contexts/CompanySelection'
+import CompanySelectionProvider, { CompanySelectionContext } from '@/contexts/CompanySelection'
 import PopUpProvider from '@/contexts/PopUp'
 import { eventSetupFromForm, variantsFromForm } from '@/services/events/setupDraft'
 import Form from '@/components/Form/Form'
@@ -27,7 +27,7 @@ import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import { companyAuth } from '@/services/careers/companies/auth'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { SetupPart } from '@/services/events/publishProblems'
@@ -110,9 +110,11 @@ function SetupForm({
         adminRequirements: access.adminVisibility.requirements,
     })
     const { variants } = useEventVariantsField()
+    const companySelection = useContext(CompanySelectionContext)
     const shownAccess = {
         ...access,
         canBeViewedBy: shown.canBeViewedBy,
+        companyId: companySelection?.selectedCompany?.id ?? null,
         // The save refuses an empty editor, so until then no one is shown as administrating.
         adminVisibility: {
             requirements: shown.adminRequirements.length > 0 ? shown.adminRequirements : [{ conditions: [] }],
