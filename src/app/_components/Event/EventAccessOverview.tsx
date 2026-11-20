@@ -34,10 +34,12 @@ export function EventSeenBy({ access }: { access: EventAccess }) {
             : <ul className="m-0 pl-5">
                 {described.map(who => <li key={who}>{who}</li>)}
                 {creatorHoldsDraft(access) && <li>Den som opprettet utkastet, til noen administrerer det</li>}
+                {access.companyId !== null && <li>Bedriftens brukere</li>}
                 <li>De med rettigheten EVENT_ADMIN</li>
             </ul>}
         {!access.published && <p className={noteClassName}>
-            Arrangementet er et utkast, så bare de som administrerer det ser det ennå.
+            Arrangementet er et utkast, så bare de som administrerer det
+            {access.companyId !== null && ' og bedriftens brukere'} ser det ennå.
         </p>}
     </div>
 }

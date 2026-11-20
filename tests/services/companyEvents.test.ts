@@ -1,8 +1,13 @@
 import { createAdministrators } from 'tests/eventSetup'
 import { testSession } from 'tests/utils'
 import { Session } from '@/auth/session/Session'
+import { companySessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
+import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
+import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { withServiceContext } from '@/services/serviceOperation'
 import { readCompanyEvents } from '@/app/(careers)/career/companies/[nameAndId]/readCompanyEvents'
 import { beforeAll, describe, expect, test } from '@jest/globals'
@@ -55,6 +60,19 @@ async function createEvent(name: string, companyId: number, {
         await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
     }
     return event
+}
+
+async function sessionOfCompanyUser(companyId: number, email: string) {
+    const companyUser = await prisma.companyUser.create({
+        data: {
+            companyId,
+            email,
+            firstname: 'Kari',
+            lastname: 'Nordmann',
+            credentials: { create: { passwordHash: 'not a hash anyone can match' } },
+        },
+    })
+    return Session.fromToken(await companySessionTokenOf(companyUser.id))
 }
 
 const comingNames = async (companyId: number, session: SessionMaybeUser) => (
@@ -129,6 +147,94 @@ describe('the earlier events', () => {
         const second = await pageAfter(first.at(-1))
         const third = await pageAfter(second.at(-1))
         expect([first, second, third]).toEqual([[newest.id, sameSecond.id], [sameFirst.id, older.id], [oldest.id]])
+    })
+})
+
+describe('a company user', () => {
+    test('sees the drafts of their own company, and a user of another company sees what the public does', async () => {
+        const company = await createCompany('Egne Utkast AS')
+        const other = await createCompany('Fremmede AS')
+        const own = await sessionOfCompanyUser(company.id, 'egen@example.com')
+        const outsider = await sessionOfCompanyUser(other.id, 'fremmed@example.com')
+        await createEvent('Publisert', company.id, { startsIn: DAY })
+        const draft = await createEvent('Utkast', company.id, { published: false, startsIn: 2 * DAY })
+        await createEvent('Tidligere utkast', company.id, { published: false, startsIn: -DAY })
+        await createEvent('Den andres utkast', other.id, { published: false })
+
+        expect(await comingNames(company.id, own)).toEqual(['Publisert', 'Utkast'])
+        expect(await earlierNames(company.id, own)).toEqual(['Tidligere utkast'])
+        expect(await comingNames(other.id, own)).toEqual([])
+        expect(await comingNames(company.id, outsider)).toEqual(await comingNames(company.id, Session.empty()))
+        expect(await earlierNames(company.id, outsider)).toEqual([])
+
+        await expect(eventOperations.read({ params: { id: draft.id }, session: own }))
+            .resolves.toMatchObject({ name: 'Utkast', published: false })
+        await expect(eventOperations.read({ params: { id: draft.id }, session: outsider }))
+            .rejects.toThrow(new Smorekopp('UNAUTHORIZED'))
+    })
+
+    test('is not named when an event is refused to someone else', async () => {
+        const company = await createCompany('Avviser AS')
+        const other = await createCompany('Avvist AS')
+        const outsider = await sessionOfCompanyUser(other.id, 'avvist@example.com')
+        const withCompany = await createEvent('Utkast med bedrift', company.id, { published: false })
+        const withoutCompany = await eventOperations.create({
+            data: { name: 'Utkast uten bedrift', visibilityAdminRequirements },
+            bypassAuth: true,
+        })
+        const refusal = {
+            errors: [{
+                message: 'Du trenger tillatelse \'EVENT_ADMIN\' for å få tilgang '
+                    + 'eller Du har ikke tilgang til denne ressursen',
+            }],
+        }
+
+        await expect(eventOperations.read({ params: { id: withCompany.id }, session: outsider }))
+            .rejects.toMatchObject(refusal)
+        await expect(eventOperations.read({ params: { id: withoutCompany.id }, session: Session.empty() }))
+            .rejects.toMatchObject(refusal)
+    })
+
+    test('sees an event of their own company that only those who can register see', async () => {
+        const company = await createCompany('Egne Medlemmer AS')
+        const own = await sessionOfCompanyUser(company.id, 'medlemmer@example.com')
+        await createEvent('Bare for medlemmer', company.id, { canBeViewedBy: 'CAN_REGISTER' })
+
+        expect(await comingNames(company.id, own)).toEqual(['Bare for medlemmer'])
+    })
+
+    test('only reads their company\'s event, and may not change, publish, delete, seat or see registrations', async () => {
+        const company = await createCompany('Bare Lesing AS')
+        const own = await sessionOfCompanyUser(company.id, 'lesing@example.com')
+        const { id } = await createEvent('Les, ikke rør', company.id, { published: false, canBeViewedBy: 'CAN_REGISTER' })
+        const registrations = {
+            page: { pageSize: 10, page: 0, cursor: null },
+            details: { eventId: id, type: REGISTRATION_READER_TYPE.REGISTRATIONS },
+        } as const
+        const refused = new Smorekopp('UNAUTHORIZED')
+
+        await expect(eventOperations.update({ params: { id }, data: { name: 'Endret' }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventOperations.saveSetup({ params: { id }, data: { name: 'Endret' }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventOperations.setPublished({ params: { id }, data: { published: true }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventOperations.destroy({ params: { id }, session: own })).rejects.toThrow(refused)
+        await expect(eventOperations.readStatistics({ params: { id }, session: own })).rejects.toThrow(refused)
+        await expect(eventRegistrationOperations.createGuest({
+            params: { eventId: id },
+            data: { name: 'Gjest', note: '' },
+            session: own,
+        })).rejects.toThrow(refused)
+        await expect(eventRegistrationOperations.readPage({ params: { paging: registrations }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventRegistrationOperations.readPageDetailed({ params: { paging: registrations }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventSeatingOperations.readOwn({ params: { id }, session: own })).rejects.toThrow(refused)
+        await expect(eventSeatingOperations.updateWishes({ params: { id }, data: { wishes: [] }, session: own }))
+            .rejects.toThrow(refused)
+        await expect(eventOperations.read({ params: { id }, bypassAuth: true }))
+            .resolves.toMatchObject({ name: 'Les, ikke rør', published: false })
     })
 })
 

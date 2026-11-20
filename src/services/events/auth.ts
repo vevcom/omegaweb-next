@@ -59,18 +59,23 @@ const isViewableByAll = Require.custom<{ published: boolean, canBeViewedBy: Even
 
 /**
  * Who may see an event: everyone when it is published and viewable by all, those who administrate
- * it, and, once published, anyone passing the visibility of one of its quotas. A draft is its
- * administrators' alone. Needs `EventAccess` (see types.ts) supplied via `.data()`.
+ * it, the users of its company, and, once published, anyone passing the visibility of one of its
+ * quotas. A draft is its administrators' and its company's alone. The rules that build on this one
+ * for more than reading also require a user, so a company user only reads. Needs `EventAccess` (see
+ * types.ts) supplied via `.data()`.
  */
 export const canSeeEvent = Require.anyOf(
     isViewableByAll,
     eventAdminLevel,
+    // No message of its own, which would be joined to every refusal, also of an event without a company.
+    Require.companyMember({ errorMessage: '' }),
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
 
 /**
  * The same rule as `canSeeEvent`, as the visibilities that show the event, any one of which is
- * enough. Those with EVENT_ADMIN see it besides, and so does the creator while `creatorHoldsDraft`.
+ * enough. Those with EVENT_ADMIN see it besides, so do the users of its company, and so does the
+ * creator while `creatorHoldsDraft`.
  */
 export function visibilitiesShowingEvent(
     { published, canBeViewedBy, adminVisibility, quotaVisibilities }: EventAccess,
@@ -103,6 +108,7 @@ export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput 
         OR: [
             { visibilityAdmin: passes },
             ...(session.user ? [{ published: false, createdById: session.user.id, visibilityAdmin: noAdministrators }] : []),
+            ...(session.companyUser ? [{ companyId: session.companyUser.company.id }] : []),
             { published: true, canBeViewedBy: 'ALL' },
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],
