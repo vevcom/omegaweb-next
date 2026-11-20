@@ -1,14 +1,17 @@
-import { eventListFilterOf, filterableKinds, kindsToRead } from '@/pageKits/events/filter'
+import { eventListFilterOf, kindsToRead, showsSeveralKinds } from '@/pageKits/events/filter'
 import { eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/config'
 import { describe, expect, test } from '@jest/globals'
 
 describe('the filter of a list of events', () => {
-    test('offers the kinds marked by a tag where the pages show several kinds', () => {
-        expect(filterableKinds(omegaEventPages)).toEqual(['COMPANY_PRESENTATION'])
-        expect(filterableKinds(companyPresentationPages)).toEqual([])
+    test('is narrowed to kinds only where the pages show several', () => {
+        expect(showsSeveralKinds(omegaEventPages)).toBe(true)
+        expect(showsSeveralKinds(companyPresentationPages)).toBe(false)
+        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'ORDINARY,SPEED_INTERVIEW' }).kinds)
+            .toEqual(['ORDINARY', 'SPEED_INTERVIEW'])
     })
 
     test('reads every kind the pages show until one is picked', () => {
@@ -22,7 +25,7 @@ describe('the filter of a list of events', () => {
     })
 
     test('ignores a kind the pages cannot be narrowed to', () => {
-        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'ORDINARY,NONSENSE' }).kinds).toEqual([])
+        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'NONSENSE' }).kinds).toEqual([])
 
         const careers = eventListFilterOf(companyPresentationPages, { 'event-kinds': 'ORDINARY', 'event-tags': 'Fest' })
         expect(careers).toEqual({ tagNames: null, kinds: [], search: '' })
@@ -53,6 +56,14 @@ describe('the link to an event', () => {
         const careers = eventLinks(companyPresentationPages)
         expect(careers.event(party)).toBe('/events/fest-8')
         expect(careers.attendance(party)).toBe('/events/fest-8/attendance')
+    })
+
+    test('keeps the kinds of the career site on the pages of each', () => {
+        const speedInterview = { id: 9, name: 'Speed', kind: 'SPEED_INTERVIEW' } as const
+        expect(eventLinks(speedInterviewPages).event(speedInterview)).toBe('/career/speed-interviews/speed-9')
+        expect(eventLinks(companyPresentationPages).event(speedInterview)).toBe('/career/speed-interviews/speed-9')
+        expect(eventLinks(speedInterviewPages).event(presentation)).toBe('/career/company-presentations/bedpres-7')
+        expect(eventLinks(omegaEventPages).event(speedInterview)).toBe('/events/speed-9')
     })
 
     test('has home pages that show the kind they are the home of', () => {

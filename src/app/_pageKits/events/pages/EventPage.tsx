@@ -1,6 +1,6 @@
 import styles from './EventPage.module.scss'
 import { eventLinks } from '@/pageKits/events/links'
-import { filterableKinds } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/filter'
 import { eventKinds } from '@/services/events/kinds'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
@@ -217,7 +217,6 @@ export function eventPage(config: EventPagesConfig) {
             const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
             const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
             const severalVariants = event.variants.length > 1
-            const kindTag = eventKinds[event.kind].tag
 
             return (
                 <div className="w-full flex flex-wrap items-stretch gap-2">
@@ -250,6 +249,14 @@ export function eventPage(config: EventPagesConfig) {
                             bg-[linear-gradient(to_bottom,transparent,rgb(0_0_0/60%))] rounded-b-round
                             [&_h1]:text-xxl [&_h1]:wrap-anywhere [&_h1]:text-white
                         `}>
+                            {showsSeveralKinds(config) && (
+                                <SiteLink
+                                    href={links.list({ kinds: [event.kind] })}
+                                    className="flex-[0_0_100%] text-sm uppercase tracking-wide text-white no-underline"
+                                >
+                                    {eventKinds[event.kind].name}
+                                </SiteLink>
+                            )}
                             <ShowAndEditName
                                 event={event}
                                 config={config}
@@ -259,15 +266,6 @@ export function eventPage(config: EventPagesConfig) {
                                 list-none flex flex-wrap gap-x-[1em] gap-y-0
                                 [&_a]:no-underline
                             ">
-                                {kindTag && <li>
-                                    {filterableKinds(config).includes(event.kind) ? (
-                                        <SiteLink href={links.list({ kinds: [event.kind] })}>
-                                            <EventTag eventTag={kindTag} />
-                                        </SiteLink>
-                                    ) : (
-                                        <EventTag eventTag={kindTag} />
-                                    )}
-                                </li>}
                                 {/* Where the list takes no tag filter, the tags are not links. */}
                                 {event.tags.map(tag => (
                                     <li key={tag.id}>

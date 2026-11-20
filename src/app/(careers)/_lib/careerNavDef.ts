@@ -1,6 +1,7 @@
 import { careerLinks } from '@/app/(careers)/links'
 import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
 import { careerAdminLinks } from '@/app/(careers)/career/admin/links'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
@@ -14,6 +15,7 @@ import {
     faBuilding,
     faCalendar,
     faPeopleGroup,
+    faStopwatch,
     faTools,
     faUser,
 } from '@fortawesome/free-solid-svg-icons'
@@ -32,6 +34,13 @@ export const careerNavDef = defineNavDef([
         name: 'Bedriftspresentasjoner',
         href: companyPresentationLinks.list(),
         icon: faCalendar,
+        authorizers: () => [eventAuth.readManyCurrent],
+    },
+    {
+        key: 'speedInterviews',
+        name: 'Speedintervjuer',
+        href: speedInterviewLinks.list(),
+        icon: faStopwatch,
         authorizers: () => [eventAuth.readManyCurrent],
     },
     {

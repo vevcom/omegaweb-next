@@ -16,7 +16,7 @@ import type { SearchProvider } from '@/services/search/types'
 /** The search of each category, the events and job ads made for Omega's own pages. */
 const providers = {
     users: userOperations.search(),
-    events: eventOperations.search(omegaEventPages),
+    events: eventOperations.search([omegaEventPages]),
     committees: committeeOperations.search(),
     interestGroups: interestGroupOperations.search(),
     news: newsOperations.search(),

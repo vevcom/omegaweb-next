@@ -194,6 +194,31 @@ describe('publishing', () => {
         await expect(setPublished(event.id)).rejects.toThrow('BAD PARAMETERS')
     })
 
+    test.each([
+        ['ORDINARY', '/events/'],
+        ['COMPANY_PRESENTATION', '/career/company-presentations/'],
+        ['SPEED_INTERVIEW', '/career/speed-interviews/'],
+    ] as const)('tells of a %s event with a link to the pages of its kind', async (kind, pages) => {
+        const event = await eventOperations.create({
+            data: { name: `Lenket ${kind}`, kind, hostedByCommitteeId: committeeId },
+            session: creator,
+        })
+        await fillIn(event.id)
+        const notificationsOff = process.env.NOTIFICATIONS_OFF
+        Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
+        try {
+            await setPublished(event.id)
+        } finally {
+            if (notificationsOff !== undefined) process.env.NOTIFICATIONS_OFF = notificationsOff
+        }
+
+        const notification = await prisma.notification.findFirstOrThrow({
+            where: { channelId: event.notificationChannelId },
+        })
+        expect(notification.url).toMatch(new RegExp(`^${pages}lenket-`))
+        await prisma.notification.delete({ where: { id: notification.id } })
+    })
+
     test('can always be taken back', async () => {
         const event = await createDraft('Avpubliseres')
         await fillIn(event.id)
