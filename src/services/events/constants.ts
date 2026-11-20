@@ -83,7 +83,19 @@ export const eventFilterSelection = {
     },
 } as const satisfies Prisma.EventSelect
 
-/** What the lists of events select: the exposed fields, the variants, the cover image and the tags. */
+/**
+ * What an event shows of its company. The company's other fields take COMPANY_USE or membership of
+ * it to read, while the event may be read by everyone.
+ */
+export const eventCompanySelection = {
+    select: {
+        id: true,
+        name: true,
+        logoImage: { include: expandedImageIncluder },
+    },
+} as const satisfies Prisma.CompanyDefaultArgs
+
+/** What the lists of events select: the exposed fields, the variants, the cover image, the company and the tags. */
 export const eventListSelection = {
     ...eventFilterSelection,
     coverImage: {
@@ -91,6 +103,7 @@ export const eventListSelection = {
             image: { include: expandedImageIncluder }
         }
     },
+    company: eventCompanySelection,
     eventTagEvents: {
         include: {
             tag: true

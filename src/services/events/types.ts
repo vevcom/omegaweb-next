@@ -1,4 +1,9 @@
-import type { eventFilterSelection, eventQuotaSummarySelection, eventVariantSummarySelection } from './constants'
+import type {
+    eventCompanySelection,
+    eventFilterSelection,
+    eventQuotaSummarySelection,
+    eventVariantSummarySelection,
+} from './constants'
 import type { eventOperations } from './operations'
 import type { eventSchemas } from './schemas'
 import type { ExpandedCmsImage } from '@/cms/images/types'
@@ -51,6 +56,7 @@ export type EventFiltered = Omit<Prisma.EventGetPayload<{
 
 export type EventExpanded = EventFiltered & {
     coverImage: Pick<ExpandedCmsImage, 'image'>
+    company: Prisma.CompanyGetPayload<typeof eventCompanySelection> | null,
     tags: EventTag[],
 }
 

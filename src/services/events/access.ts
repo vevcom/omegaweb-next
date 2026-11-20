@@ -27,6 +27,21 @@ export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, 
     }
 }
 
+/**
+ * Whether a write of `companyId` puts a company on the event other than the one it has, for the
+ * rules of eventAuth that write it. A new event, without `eventId`, has none.
+ */
+export async function setsCompany(
+    prisma: PrismaPossibleTransaction<false>,
+    companyId: number | null | undefined,
+    eventId?: number,
+): Promise<boolean> {
+    if (companyId === null || companyId === undefined) return false
+    if (eventId === undefined) return true
+    const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { companyId: true } })
+    return event.companyId !== companyId
+}
+
 /** The event a variant belongs to. */
 export async function readEventIdOfVariant(prisma: PrismaPossibleTransaction<false>, variantId: number): Promise<number> {
     const variant = await prisma.eventVariant.findUniqueOrThrow({

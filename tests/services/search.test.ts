@@ -17,7 +17,7 @@ import { companyPresentationLinks } from '@/app/(careers)/career/company-present
 import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
 import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
-import type { Session } from '@/auth/session/Session'
+import type { Session, SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { EventKind } from '@/prisma-generated-pn-types'
 
@@ -242,6 +242,32 @@ describe('global search', () => {
             .toBe(omegaEventLinks.event(presentation))
     })
 
+    test('finds an event by the name of its company, on the pages of its kind', async () => {
+        const company = await prisma.company.create({ data: { name: 'Firmasøk Teknikk AS', description: '' } })
+        const group = await prisma.group.findFirstOrThrow()
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
+            data: {
+                kind,
+                name,
+                companyId: company.id,
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            },
+            bypassAuth: true,
+        })
+        await createEvent('Kurs i skyen', 'ORDINARY')
+        await createEvent('Bedpres i skyen', 'COMPANY_PRESENTATION')
+
+        const params = { query: 'firmasøk teknikk', category: 'events' as const }
+        const session = sessionOf(['EVENT_ADMIN'])
+        const [omega, careers] = await Promise.all([
+            omegawebSearchOperations.searchAll({ params, session }),
+            careersSearchOperations.searchAll({ params, session }),
+        ])
+        expect(omega[0]?.results.map(result => result.label).sort()).toEqual(['Bedpres i skyen', 'Kurs i skyen'])
+        expect(careers[0]?.results.map(result => result.label)).toEqual(['Bedpres i skyen'])
+        expect(careers[0]?.results[0]?.sublabel).toMatch(/^Firmasøk Teknikk AS, /)
+    })
+
     test('job ad results link to the job ad pages of the site searched', async () => {
         const params = { query: JOB_AD_NAME, category: 'jobAds' as const }
         const session = sessionOf(['JOBAD_USE'])
@@ -347,5 +373,78 @@ describe('search respects a provider\'s own visibility filter', () => {
             session: sessionOf(['EVENT_ADMIN']),
         })
         expect(adminRows.map(row => row.id)).toContain(event.id)
+    })
+
+    test('an event found by its company is found only by those who may see it, and only when it matches', async () => {
+        const HOUR = 60 * 60 * 1000
+        const company = await prisma.company.create({ data: { name: 'Synlighet Selskap AS', description: '' } })
+        const visibilityAdminRequirements = await createAdministrators('company-search-admins')
+        const createEvent = (name: string, companyId?: number) => eventOperations.create({
+            data: {
+                name,
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+                eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+                canBeViewedBy: 'ALL',
+                companyId,
+                visibilityAdminRequirements,
+            },
+            bypassAuth: true,
+        })
+        const published = await createEvent('Åpent med selskap', company.id)
+        const unrelated = await createEvent('Åpent uten selskap')
+        await createEvent('Utkast med selskap', company.id)
+        await Promise.all([published, unrelated].map(event => eventOperations.setPublished({
+            params: { id: event.id },
+            data: { published: true },
+            bypassAuth: true,
+        })))
+
+        const { rows } = await eventOperations.search([omegaEventPages])({
+            params: { query: 'synlighet selskap' },
+            session: sessionOf([]),
+        })
+        expect(rows.map(row => row.name)).toEqual(['Åpent med selskap'])
+    })
+
+    test('a restricted event is found by its company by a member, not by anyone else', async () => {
+        const HOUR = 60 * 60 * 1000
+        const company = await prisma.company.create({ data: { name: 'Medlemssøk Selskap AS', description: '' } })
+        const event = await eventOperations.create({
+            data: {
+                name: 'Bare for medlemmer',
+                location: 'Lophtet',
+                eventStart: new Date(Date.now() + 7 * 24 * HOUR),
+                eventEnd: new Date(Date.now() + 7 * 24 * HOUR + 2 * HOUR),
+                canBeViewedBy: 'CAN_REGISTER',
+                companyId: company.id,
+                visibilityAdminRequirements: await createAdministrators('company-member-search-admins'),
+            },
+            bypassAuth: true,
+        })
+        const variant = await eventVariantOperations.internal.create.internalCall({
+            params: { eventId: event.id },
+            data: {
+                name: 'Påmelding',
+                registrationStart: new Date(Date.now() - HOUR),
+                registrationEnd: new Date(Date.now() + 24 * HOUR),
+            },
+        })
+        await eventQuotaOperations.internal.create.internalCall({
+            params: { variantId: variant.id },
+            data: {
+                name: 'Medlemmer',
+                places: 10,
+                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+            },
+        })
+        await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
+
+        const search = (session: SessionMaybeUser) => eventOperations.search([omegaEventPages])({
+            params: { query: 'medlemssøk selskap' },
+            session,
+        })
+        expect((await search(sessionInMemberGroup())).rows.map(row => row.id)).toEqual([event.id])
+        expect((await search(sessionOf([]))).rows).toEqual([])
     })
 })

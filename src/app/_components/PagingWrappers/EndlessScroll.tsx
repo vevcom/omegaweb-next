@@ -83,7 +83,7 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
                         <i className="text-base-content" style={{ opacity: showButton ? 0 : 1 }}>
                             Ingen flere å laste inn
                         </i>
-                        <Button style={{ opacity: showButton ? 1 : 0 }} onClick={loadMoreCallback}>
+                        <Button type="button" style={{ opacity: showButton ? 1 : 0 }} onClick={loadMoreCallback}>
                             Last inn flere
                         </Button>
                     </>

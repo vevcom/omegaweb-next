@@ -1,4 +1,5 @@
 import { seedDevEvents } from '@/prisma/seeder/src/development/seedDevEvents'
+import { seedCompanies, seedCompaniesConfig } from '@/prisma/seeder/src/standardContent/seedCompanies'
 import { DEV_COMMITTEE_SHORT_NAME, seedDevGroups } from '@/prisma/seeder/src/development/seedDevGroups'
 import { seedDevImages } from '@/prisma/seeder/src/development/seedDevImages'
 import { seedDevUsers } from '@/prisma/seeder/src/development/seedDevUsers'
@@ -10,6 +11,7 @@ describe('seedDevEvents', () => {
         await seedDevImages()
         await seedDevGroups()
         await seedDevUsers()
+        await seedCompanies()
         await seedDevEvents()
     }, 240 * 1000)
 
@@ -28,5 +30,17 @@ describe('seedDevEvents', () => {
         events.forEach(event => {
             expect(event.visibilityAdmin.requirements).toEqual([{ conditions: [{ groupId: committee.groupId }] }])
         })
+    })
+
+    test('gives the company presentation and the speed interview a company with a logo, and no other event', async () => {
+        const events = await prisma.event.findMany({
+            select: { kind: true, company: { select: { name: true, logoImageId: true } } },
+        })
+        const [kongsberg] = seedCompaniesConfig
+
+        expect(events.filter(event => event.company).map(event => event.kind).sort())
+            .toEqual(['COMPANY_PRESENTATION', 'SPEED_INTERVIEW'])
+        expect(events.find(event => event.company)?.company?.name).toBe(kongsberg.name)
+        expect(events.find(event => event.company)?.company?.logoImageId).not.toBeNull()
     })
 })

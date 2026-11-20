@@ -1,11 +1,12 @@
 import '@ow-server-only'
 import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
-import { assertSeenThroughQuotas, readEventAccess } from './access'
+import { assertSeenThroughQuotas, readEventAccess, setsCompany } from './access'
 import { publishProblems } from './publishProblems'
 import { lockEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
 import {
+    eventCompanySelection,
     eventListSelection,
     eventQuotaOrder,
     eventVariantOrder,
@@ -83,6 +84,7 @@ const read = defineOperation({
                     }
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
+                company: eventCompanySelection,
                 ledgerAccount: { select: { id: true, name: true } },
                 notificationChannel: { include: availableNotificationMethodIncluder },
                 infoNotificationChannel: { include: availableNotificationMethodIncluder },
@@ -203,7 +205,10 @@ const updateFields = defineSubOperation({
 const update = defineOperation({
     paramsSchema: eventSchemas.params.update,
     dataSchema: eventSchemas.data.update,
-    authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
+    authorizer: async ({ params, data, prisma }) => eventAuth.update.data({
+        ...await readEventAccess(prisma, params.id),
+        setsCompany: await setsCompany(prisma, data.companyId, params.id),
+    }),
     transaction: 'RUNS_IN',
     operation: ({ prisma, params, data }) => updateFields.internalCall({ prisma, params, data }),
 })
@@ -294,7 +299,9 @@ export const eventOperations = {
 
     create: defineOperation({
         dataSchema: eventSchemas.data.create,
-        authorizer: () => eventAuth.create,
+        authorizer: async ({ data, prisma }) => eventAuth.create.data({
+            setsCompany: await setsCompany(prisma, data.companyId),
+        }),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data, session }) => {
             const eventStart = data.eventStart ?? new Date(Date.now() + UNSET_EVENT_TIME_OFFSET_MS)
@@ -350,6 +357,7 @@ export const eventOperations = {
                     eventEnd,
                     canBeViewedBy: data.canBeViewedBy ?? 'ALL',
                     hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
+                    companyId: data.companyId ?? undefined,
                     waitingList: data.waitingList ?? false,
                     bindingRegistration: data.bindingRegistration,
                     allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
@@ -470,6 +478,7 @@ export const eventOperations = {
                 kind: true,
                 name: true,
                 eventStart: true,
+                company: { select: { name: true } },
                 coverImage: {
                     select: {
                         image: { include: expandedImageIncluder }
@@ -477,9 +486,17 @@ export const eventOperations = {
                 }
             },
             where: {
-                name: { contains: query, mode: 'insensitive' },
                 kind: { in: config.flatMap(pages => pages.kindsToShow) },
-                ...prismaWhereFilter
+                // The visibility filter is an OR of its own, so the two are joined rather than spread together.
+                AND: [
+                    {
+                        OR: [
+                            { name: { contains: query, mode: 'insensitive' } },
+                            { company: { name: { contains: query, mode: 'insensitive' } } },
+                        ],
+                    },
+                    prismaWhereFilter ?? {},
+                ],
             },
             orderBy: { eventStart: 'desc' },
         }),
@@ -487,7 +504,9 @@ export const eventOperations = {
             key: `event-${event.id}`,
             href: eventLinks(config.find(pages => pages.kindsToShow.includes(event.kind)) ?? config[0]).event(event),
             label: event.name,
-            sublabel: displayDate(event.eventStart, false),
+            sublabel: event.company
+                ? `${event.company.name}, ${displayDate(event.eventStart, false)}`
+                : displayDate(event.eventStart, false),
             image: event.coverImage.image,
         }),
     }),
@@ -503,7 +522,10 @@ export const eventOperations = {
     saveSetup: defineOperation({
         paramsSchema: eventSchemas.params.saveSetup,
         dataSchema: eventSchemas.data.saveSetup,
-        authorizer: async ({ params, prisma }) => eventAuth.saveSetup.data(await readEventAccess(prisma, params.id)),
+        authorizer: async ({ params, data, prisma }) => eventAuth.saveSetup.data({
+            ...await readEventAccess(prisma, params.id),
+            setsCompany: await setsCompany(prisma, data.companyId, params.id),
+        }),
         transaction: 'OPENS',
         operation: async ({
             prisma,

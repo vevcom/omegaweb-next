@@ -39,9 +39,31 @@ function PopUpDialog({ children, mainRef, triggerRef, close }: DialogPropTypes) 
 
     return (
         <div className={popUpClassNames.popUp}>
-            <div className={popUpClassNames.main} ref={mainRef} role="dialog" aria-modal="true">
+            {/*
+              * Escape closes every pop-up through the window. Stopping it here, where it passes on its way
+              * there, closes only the innermost pop-up the focus is in. The dialog takes focus itself, so
+              * a click on its text keeps the focus inside.
+              */}
+            <div
+                className={popUpClassNames.main}
+                ref={mainRef}
+                role="dialog"
+                aria-modal="true"
+                tabIndex={-1}
+                onKeyUp={event => {
+                    if (event.key !== 'Escape') return
+                    event.stopPropagation()
+                    close()
+                }}
+            >
                 <div className={popUpClassNames.overflow}>
-                    <button ref={closeButtonRef} className={popUpClassNames.closeBtn} onClick={close} aria-label="Lukk">
+                    <button
+                        ref={closeButtonRef}
+                        type="button"
+                        className={popUpClassNames.closeBtn}
+                        onClick={close}
+                        aria-label="Lukk"
+                    >
                         <FontAwesomeIcon icon={faXmark} />
                     </button>
                     <div>

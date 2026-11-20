@@ -8,6 +8,9 @@ import { searchMaxLength } from '@/services/search/constants'
 import { EventCanView, EventKind } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
+// An id, or 'NULL', which the form sends for none.
+const idOrNullFromForm = z.literal('NULL').transform(() => null).or(z.coerce.number().int())
+
 const dataFieldSchemas = z.object({
     kind: z.nativeEnum(EventKind),
     name: z.string().min(5, 'Navnet må være minst 5 tegn').max(70, 'Navnet må være maks 70 tegn'),
@@ -18,8 +21,9 @@ const dataFieldSchemas = z.object({
     eventStart: Zpn.date({ label: 'Starttid' }),
     eventEnd: Zpn.date({ label: 'Sluttid' }),
     canBeViewedBy: z.nativeEnum(EventCanView),
-    // The committee hosting the event, shown on its page. The form sends 'NULL' for none.
-    hostedByCommitteeId: z.literal('NULL').transform(() => null).or(z.coerce.number().int()).optional(),
+    // The committee hosting the event, shown on its page.
+    hostedByCommitteeId: idOrNullFromForm.optional(),
+    companyId: idOrNullFromForm.optional(),
     // The account a paid event is paid into. Linked apart from the rest of the event (see
     // connectToLedgerAccount), since linking an account takes access to that account.
     ledgerAccountId: z.coerce.number().int(),
@@ -86,6 +90,7 @@ const dataFieldSchemas = z.object({
 const parsedFieldSchemas = dataFieldSchemas.extend({
     location: z.string().nullable(),
     hostedByCommitteeId: z.number().int().nullable().optional(),
+    companyId: z.number().int().nullable().optional(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -120,6 +125,7 @@ const eventFields = {
     eventEnd: true,
     canBeViewedBy: true,
     hostedByCommitteeId: true,
+    companyId: true,
     tagIds: true,
     waitingList: true,
     bindingRegistration: true,
