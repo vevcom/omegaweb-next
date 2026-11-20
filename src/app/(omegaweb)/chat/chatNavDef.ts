@@ -31,7 +31,7 @@ export function chatNavDef({ userId }: { userId: number }) {
             name: 'Innstillinger',
             href: chatLinks.settings(),
             icon: faSliders,
-            authorizers: () => [chatUserAuth.readSpaces.data(ofUser)],
+            authorizers: () => [chatUserAuth.readPicture.data(ofUser), chatUserAuth.readSpaces.data(ofUser)],
         },
         ...(chatClientOrigin ? [{
             key: 'element',

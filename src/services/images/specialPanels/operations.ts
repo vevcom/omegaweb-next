@@ -7,6 +7,7 @@ import { standardImageCollection } from '@/services/images/standard/standardImag
 import { promoImageCollection } from '@/services/promo/promoImageCollection'
 import { careerTeamImageCollection } from '@/services/careers/team/persons/careerTeamImageCollection'
 import { companyLogoCollection } from '@/services/careers/companies/companyLogoCollection'
+import { chatProfileImageCollection } from '@/services/chat/users/chatProfileImageCollection'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 import type { SpecialCollectionImplementation } from '@/services/images/subservice/special/implement'
 
@@ -24,4 +25,5 @@ export const specialImagePanelOperations = {
     PROMOIMAGES: promoImageCollection,
     CAREERTEAMIMAGES: careerTeamImageCollection,
     COMPANYLOGOS: companyLogoCollection,
+    CHATPROFILEIMAGES: chatProfileImageCollection,
 } as const satisfies Record<SpecialCollection, SpecialCollectionImplementation>
