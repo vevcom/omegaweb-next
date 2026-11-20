@@ -1,13 +1,14 @@
 import '@ow-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import { imageOperations } from '@/services/images/subservice/operations'
-import { cacheImageStore, originalImageStore } from '@/services/images/subservice/imageFiles'
+import { cacheImageStore, originalImageStore, toJpegBuffer } from '@/services/images/subservice/imageFiles'
 import { fileSystemBackend } from '@/services/store/backends/fileSystem'
 import { storeUpkeep } from '@/services/store/constants'
 import { allowedExtensions } from '@/services/images/subservice/constants'
 import { visibilityOperations } from '@/services/visibility/operations'
 import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSource'
 import { beforeEach, describe, expect, jest, test } from '@jest/globals'
+import sharp from 'sharp'
 import { access, unlink } from 'fs/promises'
 import { join } from 'path'
 import { File } from 'node:buffer'
@@ -382,5 +383,15 @@ describe('replaceImageFile', () => {
         await runStoreWorkers([...image.allFsLocations, fsLocationOriginal])
         await expectFilesExist(image.allFsLocations, false)
         expect(await fileExists(fsLocationOriginal)).toBe(true)
+    })
+})
+
+describe('toJpegBuffer', () => {
+    test('makes what is transparent white', async () => {
+        const transparent = await sharp({ create: { width: 2, height: 2, channels: 4, background: 'transparent' } })
+            .png()
+            .toBuffer()
+        const pixels = await sharp(await toJpegBuffer(transparent)).raw().toBuffer()
+        expect(Array.from(pixels.subarray(0, 3))).toEqual([255, 255, 255])
     })
 })

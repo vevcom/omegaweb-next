@@ -18,7 +18,10 @@ const whereThePictureIsFrom = {
 export default function ChatPictureSetting({ userId, picture }: PropTypes) {
     return (
         <>
-            <p className="m-0">{whereThePictureIsFrom[picture?.source ?? 'NONE']}</p>
+            <p className="m-0">
+                {whereThePictureIsFrom[picture?.source ?? 'NONE']} Alle på chatten ser bildet, også når det er
+                profilbildet ditt. Det kan ta litt tid før chatten viser et nytt bilde.
+            </p>
             <div className="flex flex-wrap items-start gap-4">
                 {picture && <ProfilePicture profileImage={picture.image} width={160} />}
                 <ChatPictureForms userId={userId} hasOwnPicture={picture?.source === 'OWN'} />

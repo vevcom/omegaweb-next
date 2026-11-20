@@ -1,5 +1,7 @@
 # Must stay at one replica, and Recreate keeps a rollout from briefly running two:
-# the weekly digest is only guarded against repeats by its date cutoff.
+# the weekly digest is only guarded against repeats by its date cutoff, and the chat sync
+# keeps the picture it has uploaded for an account and not yet given it in memory alone,
+# so a second worker would delete that file before the first gives it to the account.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

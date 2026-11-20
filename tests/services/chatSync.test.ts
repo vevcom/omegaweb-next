@@ -1,10 +1,16 @@
 import { createChatSpace } from 'tests/chatSpaces'
+import { WIDE_PICTURE_WIDTH, pictureFile, widePictureFile } from 'tests/chatPictures'
 import { FakeHomeserver } from 'tests/fakeHomeserver'
 import { syncChat } from '@/lib/chatSync/sync'
 import { ROOM_MODERATOR_LEVEL } from '@/lib/chatSync/constants'
 import { chatSpaceAdmins, chatSpaceStandingMembers } from '@/services/chat/spaces/admins'
+import { chatUserOperations } from '@/services/chat/users/operations'
+import { userOperations } from '@/services/users/operations'
+import { imageOperations } from '@/services/images/subservice/operations'
+import { imageProcessing } from '@/services/images/subservice/constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
+import sharp from 'sharp'
 
 let homeserver: FakeHomeserver
 let adminUserIds: number[]
@@ -41,6 +47,49 @@ async function createChatUser(localpart: string, { signedIn = true } = {}) {
     if (signedIn) homeserver.signIn(localpart)
     return { user, chatUser, matrixId: homeserver.userIdOf(localpart) }
 }
+
+type Account = Awaited<ReturnType<typeof createChatUser>>
+
+const resize = (image: { id: number }) =>
+    imageOperations.processImageVariants.internalCall({ prisma, params: { imageId: image.id } })
+
+const imageWorkerGivesUpOn = (image: { id: number }) =>
+    prisma.image.update({ where: { id: image.id }, data: { processingAttempts: imageProcessing.maxAttempts } })
+
+const uploadProfileImage = ({ user }: Account, imageFile = pictureFile()) => userOperations.updateProfileImage({
+    params: { username: user.username },
+    data: { imageFile },
+    bypassAuth: true,
+})
+
+const uploadChatPicture = ({ user }: Account) => chatUserOperations.updatePicture({
+    params: { userId: user.id },
+    data: { imageFile: pictureFile() },
+    bypassAuth: true,
+})
+
+async function giveProfileImage(account: Account) {
+    const image = await uploadProfileImage(account)
+    await resize(image)
+    return image
+}
+
+async function giveChatPicture(account: Account) {
+    const image = await uploadChatPicture(account)
+    await resize(image)
+    return image
+}
+
+const removeChatPicture = ({ user }: Account) =>
+    chatUserOperations.destroyPicture({ params: { userId: user.id }, bypassAuth: true })
+
+const syncedImageIdOf = async ({ chatUser }: Account) =>
+    (await prisma.chatUser.findUniqueOrThrow({ where: { id: chatUser.id } })).syncedImageId
+
+const uploadsOf = ({ chatUser }: Account) => prisma.chatUser.findUniqueOrThrow({
+    where: { id: chatUser.id },
+    select: { syncedPictureUri: true, pictureUploads: true },
+})
 
 const createSpace = (name: string, members: { chatUser: { id: number } }[] = []) =>
     createChatSpace({ name, memberChatUserIds: members.map(member => member.chatUser.id) })
@@ -81,6 +130,241 @@ describe('the names of the accounts', () => {
     })
 })
 
+describe('the pictures of the accounts', () => {
+    test('are the users\' profile images, as jpeg, once the image worker has resized them', async () => {
+        const kari = await createChatUser('kari')
+        const image = await uploadProfileImage(kari)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.size).toBe(0)
+
+        await resize(image)
+        await syncChat(homeserver)
+        const jpeg = homeserver.uploads.get(homeserver.pictures.get(kari.matrixId)!)!
+        // Every jpeg starts so.
+        expect(jpeg.subarray(0, 3).toString('hex')).toBe('ffd8ff')
+        expect(await syncedImageIdOf(kari)).toBe(image.id)
+    })
+
+    test('are the small size of an image wide enough to have one', async () => {
+        const kari = await createChatUser('kari')
+        await resize(await uploadProfileImage(kari, await widePictureFile()))
+        await syncChat(homeserver)
+
+        const jpeg = homeserver.uploads.get(homeserver.pictures.get(kari.matrixId)!)!
+        expect((await sharp(jpeg).metadata()).width).toBe(WIDE_PICTURE_WIDTH)
+    })
+
+    test('go with the name in one call when both are new, and are not sent again while they stand', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.writes).toEqual([`name and picture ${kari.matrixId}`])
+        expect(homeserver.uploads.size).toBe(1)
+        expect(homeserver.deletions).toEqual([])
+    })
+
+    test('follow a new profile image, a chat picture, and the profile image again when that is removed', async () => {
+        const kari = await createChatUser('kari')
+        const picturesGiven: (string | undefined)[] = []
+        const syncAndNote = async () => {
+            await syncChat(homeserver)
+            picturesGiven.push(homeserver.pictures.get(kari.matrixId))
+        }
+
+        await giveProfileImage(kari)
+        await syncAndNote()
+        const profileImage = await giveProfileImage(kari)
+        await syncAndNote()
+        const chatPicture = await giveChatPicture(kari)
+        await syncAndNote()
+        expect(await syncedImageIdOf(kari)).toBe(chatPicture.id)
+        await removeChatPicture(kari)
+        await syncAndNote()
+
+        expect(await syncedImageIdOf(kari)).toBe(profileImage.id)
+        expect(new Set(picturesGiven).size).toBe(4)
+        expect(homeserver.deletions).toEqual(picturesGiven.slice(0, 3))
+        expect(Array.from(homeserver.uploads.keys())).toEqual([picturesGiven[3]])
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: picturesGiven[3], pictureUploads: [picturesGiven[3]] })
+    })
+
+    test('are taken away when the account has none any more', async () => {
+        const kari = await createChatUser('kari')
+        await giveChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(true)
+
+        await removeChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        expect(await syncedImageIdOf(kari)).toBeNull()
+        expect(homeserver.uploads.size).toBe(0)
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: null, pictureUploads: [] })
+    })
+
+    test('are taken away though the homeserver will not tell which accounts have one', async () => {
+        const kari = await createChatUser('kari')
+        await giveChatPicture(kari)
+        await syncChat(homeserver)
+
+        await removeChatPicture(kari)
+        homeserver.failsListingAccounts = true
+        await expect(syncChat(homeserver)).rejects.toThrow('read which accounts have a picture')
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+    })
+
+    test('are none of an image the image worker has given up on', async () => {
+        const kari = await createChatUser('kari')
+        const profileImage = await giveProfileImage(kari)
+        await giveChatPicture(kari)
+        await syncChat(homeserver)
+
+        await imageWorkerGivesUpOn(await uploadChatPicture(kari))
+        await syncChat(homeserver)
+        expect(await syncedImageIdOf(kari)).toBe(profileImage.id)
+
+        await imageWorkerGivesUpOn(await uploadProfileImage(kari))
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        expect(await syncedImageIdOf(kari)).toBeNull()
+    })
+
+    test('stay while the next one waits for the image worker, unless the image they are of is deleted', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const ofProfileImage = homeserver.pictures.get(kari.matrixId)
+
+        const first = await uploadChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.get(kari.matrixId)).toBe(ofProfileImage)
+        await resize(first)
+        await syncChat(homeserver)
+        expect(await syncedImageIdOf(kari)).toBe(first.id)
+
+        const second = await uploadChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        await resize(second)
+        await syncChat(homeserver)
+        expect(await syncedImageIdOf(kari)).toBe(second.id)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(true)
+    })
+
+    test('stay when the sizes of their image are lost and made again', async () => {
+        const kari = await createChatUser('kari')
+        const picture = await giveChatPicture(kari)
+        await syncChat(homeserver)
+        const given = homeserver.pictures.get(kari.matrixId)
+
+        await prisma.processedImageFiles.delete({ where: { imageId: picture.id } })
+        await syncChat(homeserver)
+        await resize(picture)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.get(kari.matrixId)).toBe(given)
+        expect(homeserver.writes).toEqual([`name and picture ${kari.matrixId}`])
+    })
+
+    test('are taken away when the image they are of is deleted and the next one cannot be uploaded', async () => {
+        const kari = await createChatUser('kari')
+        const profileImage = await giveProfileImage(kari)
+        await giveChatPicture(kari)
+        await syncChat(homeserver)
+
+        await removeChatPicture(kari)
+        const refusedRuns = 3
+        homeserver.changesRefusedOnce.push(...Array<string>(refusedRuns).fill('upload a picture'))
+        for (let run = 0; run < refusedRuns; run++) {
+            await expect(syncChat(homeserver)).rejects.toThrow(`upload the picture of ${kari.matrixId}`)
+            expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        }
+        // The picture is taken away once, and a run with nothing to give the account writes nothing.
+        expect(homeserver.writes).toEqual([`name and picture ${kari.matrixId}`, `picture ${kari.matrixId}`])
+
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(true)
+        expect(await syncedImageIdOf(kari)).toBe(profileImage.id)
+    })
+
+    test('are taken away when a user set one in the client, which only one without a picture can', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        await giveProfileImage(ola)
+        await syncChat(homeserver)
+        expect(() => homeserver.setOwnPicture(ola.matrixId)).toThrow('may not change their picture')
+
+        homeserver.setOwnPicture(kari.matrixId)
+        await syncChat(homeserver)
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        expect(homeserver.writes.filter(write => write === `picture ${kari.matrixId}`)).toHaveLength(1)
+        // The file is the user's own upload and not the sync's, so it is left on the homeserver.
+        expect(homeserver.deletions).toEqual([])
+    })
+
+    test('are given on the next run when the homeserver refused one, which keeps no other from theirs', async () => {
+        const kari = await createChatUser('kari')
+        const ola = await createChatUser('ola')
+        await syncChat(homeserver)
+        const image = await giveProfileImage(kari)
+        await giveProfileImage(ola)
+        homeserver.changesRefusedOnce.push(`picture ${kari.matrixId}`)
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+        expect(homeserver.pictures.has(ola.matrixId)).toBe(true)
+        expect(await syncedImageIdOf(kari)).toBeNull()
+
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(true)
+        expect(await syncedImageIdOf(kari)).toBe(image.id)
+    })
+
+    test('are uploaded once, however many runs the homeserver refuses to give an account its own', async () => {
+        const kari = await createChatUser('kari')
+        await syncChat(homeserver)
+        await giveProfileImage(kari)
+        const refusedRuns = 5
+        homeserver.changesRefusedOnce.push(...Array<string>(refusedRuns).fill(`picture ${kari.matrixId}`))
+
+        for (let run = 0; run < refusedRuns; run++) {
+            await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        }
+        await syncChat(homeserver)
+        expect(Array.from(homeserver.uploads.keys())).toEqual([homeserver.pictures.get(kari.matrixId)])
+
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        expect(homeserver.deletions).toHaveLength(1)
+        expect(Array.from(homeserver.uploads.keys())).toEqual([homeserver.pictures.get(kari.matrixId)])
+    })
+
+    test('keep no new name from an account when they cannot be uploaded, and are given on the next run', async () => {
+        const kari = await createChatUser('kari')
+        await syncChat(homeserver)
+        await giveProfileImage(kari)
+        await prisma.user.update({ where: { id: kari.user.id }, data: { firstname: 'Karianne' } })
+        homeserver.changesRefusedOnce.push('upload a picture')
+
+        await expect(syncChat(homeserver)).rejects.toThrow(`upload the picture of ${kari.matrixId}`)
+        expect(homeserver.names.get(kari.matrixId)).toBe('Karianne kari')
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(false)
+
+        await syncChat(homeserver)
+        expect(homeserver.pictures.has(kari.matrixId)).toBe(true)
+    })
+
+    test('are given from the rows when the homeserver will not tell which accounts have one, which is named', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        homeserver.failsListingAccounts = true
+
+        await expect(syncChat(homeserver)).rejects.toThrow('read which accounts have a picture')
+        expect(homeserver.writes).toEqual([`name and picture ${kari.matrixId}`])
+    })
+})
+
 describe('an account the homeserver will not answer for', () => {
     test('keeps neither the other names nor the spaces from being synced, and is named', async () => {
         const kari = await createChatUser('kari')
@@ -109,6 +393,167 @@ describe('the account of a deleted user', () => {
         expect(await prisma.chatUser.findUniqueOrThrow({ where: { localpart: 'kari' } }))
             .toMatchObject({ userId: null, deactivatedAt: expect.any(Date) })
         expect(await prisma.chatSpaceMember.count({ where: { spaceId: space.id } })).toBe(0)
+    })
+
+    test('loses its picture, which nobody is left to remove', async () => {
+        const kari = await createChatUser('kari')
+        const picture = await giveChatPicture(kari)
+        await syncChat(homeserver)
+
+        await userOperations.destroy({ params: { id: kari.user.id }, bypassAuth: true })
+        await syncChat(homeserver)
+
+        expect(await prisma.image.count({ where: { id: picture.id } })).toBe(0)
+        expect(await prisma.chatUser.findUniqueOrThrow({ where: { localpart: 'kari' } }))
+            .toMatchObject({ imageId: null, deactivatedAt: expect.any(Date), syncedPictureUri: null, pictureUploads: [] })
+        expect(homeserver.uploads.size).toBe(0)
+    })
+
+    test('loses the upload it was never given', async () => {
+        const kari = await createChatUser('kari')
+        await syncChat(homeserver)
+        await giveChatPicture(kari)
+        homeserver.changesRefusedOnce.push(`picture ${kari.matrixId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        expect(homeserver.uploads.size).toBe(1)
+
+        await userOperations.destroy({ params: { id: kari.user.id }, bypassAuth: true })
+        await syncChat(homeserver)
+        expect(homeserver.uploads.size).toBe(0)
+    })
+})
+
+describe('an upload the sync made for an account', () => {
+    test('that the homeserver will not delete keeps no new name or picture back, and goes on the next run', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const [old] = Array.from(homeserver.uploads.keys())
+
+        await prisma.user.update({ where: { id: kari.user.id }, data: { lastname: 'Nordmann' } })
+        await giveChatPicture(kari)
+        homeserver.changesRefusedOnce.push('delete a picture')
+        await expect(syncChat(homeserver)).rejects.toThrow(`delete ${old}, a picture ${kari.matrixId} no longer has`)
+
+        const given = homeserver.pictures.get(kari.matrixId)
+        expect(given).not.toBe(old)
+        expect(homeserver.names.get(kari.matrixId)).toBe('Kari Nordmann')
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: given, pictureUploads: [old, given] })
+
+        await syncChat(homeserver)
+        expect(Array.from(homeserver.uploads.keys())).toEqual([given])
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: given, pictureUploads: [given] })
+    })
+
+    test('that the homeserver will not delete keeps no other upload from being deleted', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const given = homeserver.pictures.get(kari.matrixId)
+        const refused = await homeserver.uploadPicture(Buffer.from('et bilde'))
+        const other = await homeserver.uploadPicture(Buffer.from('et annet bilde'))
+        await prisma.chatUser.update({
+            where: { id: kari.chatUser.id },
+            data: { pictureUploads: { push: [refused, other] } },
+        })
+
+        homeserver.changesRefusedOnce.push(`delete ${refused}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`delete ${refused}`)
+        expect(homeserver.deletions).toEqual([other])
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: given, pictureUploads: [given, refused] })
+    })
+
+    test('is deleted only once the account shows another, as after a profile write no row tells of', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const ofProfileImage = homeserver.pictures.get(kari.matrixId)
+
+        await giveChatPicture(kari)
+        homeserver.answersLostOnce.push(`picture ${kari.matrixId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        const shown = homeserver.pictures.get(kari.matrixId)
+        expect(shown).not.toBe(ofProfileImage)
+
+        await removeChatPicture(kari)
+        homeserver.changesRefusedOnce.push(`picture ${kari.matrixId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        expect(homeserver.pictures.get(kari.matrixId)).toBe(shown)
+        expect(Array.from(homeserver.uploads.keys())).toEqual([ofProfileImage, shown])
+
+        await syncChat(homeserver)
+        expect(homeserver.pictures.get(kari.matrixId)).toBe(ofProfileImage)
+        expect(Array.from(homeserver.uploads.keys())).toEqual([ofProfileImage])
+    })
+
+    test('is left on a run where the homeserver will not say which picture the account shows, which is named', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const leftBehind = await homeserver.uploadPicture(Buffer.from('et bilde'))
+        await prisma.chatUser.update({ where: { id: kari.chatUser.id }, data: { pictureUploads: { push: leftBehind } } })
+
+        homeserver.accountsFailingLookup.push(kari.matrixId)
+        await expect(syncChat(homeserver)).rejects.toThrow(`read the picture of ${kari.matrixId}`)
+        expect(homeserver.deletions).toEqual([])
+
+        homeserver.accountsFailingLookup.pop()
+        await syncChat(homeserver)
+        expect(homeserver.deletions).toEqual([leftBehind])
+    })
+
+    test('and never gave it is deleted once the account is to have another picture', async () => {
+        const kari = await createChatUser('kari')
+        await syncChat(homeserver)
+        await giveProfileImage(kari)
+        homeserver.changesRefusedOnce.push(`picture ${kari.matrixId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        const [neverGiven] = Array.from(homeserver.uploads.keys())
+        expect(homeserver.deletions).toEqual([])
+
+        await giveChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.deletions).toEqual([neverGiven])
+        expect(Array.from(homeserver.uploads.keys())).toEqual([homeserver.pictures.get(kari.matrixId)])
+    })
+
+    test('and never gave it is deleted once the account is to have none', async () => {
+        const kari = await createChatUser('kari')
+        await syncChat(homeserver)
+        await giveChatPicture(kari)
+        homeserver.changesRefusedOnce.push(`picture ${kari.matrixId}`)
+        await expect(syncChat(homeserver)).rejects.toThrow(`picture ${kari.matrixId}`)
+        expect(homeserver.uploads.size).toBe(1)
+
+        await removeChatPicture(kari)
+        await syncChat(homeserver)
+        expect(homeserver.uploads.size).toBe(0)
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: null, pictureUploads: [] })
+    })
+
+    test('is deleted on a later run when the run that made it ended before anything was done with it', async () => {
+        const kari = await createChatUser('kari')
+        await giveProfileImage(kari)
+        await syncChat(homeserver)
+        const given = homeserver.pictures.get(kari.matrixId)
+        // As a worker that stopped between an upload and the profile it was for leaves it.
+        const leftBehind = await homeserver.uploadPicture(Buffer.from('et bilde'))
+        // And as one that stopped after the homeserver had deleted a file leaves it.
+        const goneAlready = 'mxc://chat.test/slettet'
+        await prisma.chatUser.update({
+            where: { id: kari.chatUser.id },
+            data: { pictureUploads: { push: [leftBehind, goneAlready] } },
+        })
+
+        await syncChat(homeserver)
+        expect(homeserver.deletions).toEqual([leftBehind, goneAlready])
+        expect(Array.from(homeserver.uploads.keys())).toEqual([given])
+        expect(await uploadsOf(kari)).toEqual({ syncedPictureUri: given, pictureUploads: [given] })
+
+        await syncChat(homeserver)
+        expect(homeserver.deletions).toHaveLength(2)
+        // The account shows the picture its row tells of, so its profile is not written again.
+        expect(homeserver.writes).toEqual([`name and picture ${kari.matrixId}`])
     })
 })
 

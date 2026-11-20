@@ -43,5 +43,11 @@ export const CHAT_ADMIN_LOCALPART = 'omegaweb-admin'
 /** Whether the homeserver's accounts and spaces are kept in step with the database. */
 export const chatIsManaged = Object.values(chatServer).every(value => value !== undefined)
 
+/**
+ * How long the homeserver's answer to which accounts have a picture is reused. A picture a user sets
+ * in a chat client is taken away that much later.
+ */
+export const ACCOUNTS_WITH_PICTURE_REUSE_MS = 5 * 60 * 1000
+
 /** What a space's admins hold in its rooms: it removes what others wrote and pins messages. */
 export const ROOM_MODERATOR_LEVEL = 50

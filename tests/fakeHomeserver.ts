@@ -1,5 +1,5 @@
 import { ChatServerError } from '@/lib/chatSync/client'
-import type { ChatPowerLevels, ChatRoom, Homeserver, NewRoom, StandaloneChatRoom } from '@/lib/chatSync/client'
+import type { ChatPowerLevels, ChatProfile, ChatRoom, Homeserver, NewRoom, StandaloneChatRoom } from '@/lib/chatSync/client'
 
 type Room = {
     name: string | undefined,
@@ -19,12 +19,20 @@ export class FakeHomeserver implements Homeserver {
     readonly botUserId = `@omegaweb:${SERVER_NAME}`
     readonly rooms = new Map<string, Room>()
     readonly names = new Map<string, string>()
+    readonly pictures = new Map<string, string>()
+    /** The files the homeserver has been given and still has, by their uri. */
+    readonly uploads = new Map<string, Buffer>()
+    /** Every uri it has been asked to delete the file of, in order. */
+    readonly deletions: string[] = []
     readonly deactivated: string[] = []
     readonly writes: string[] = []
     readonly roomsRefusingEveryChange: string[] = []
     /** Named as in `writes`. */
     readonly changesRefusedOnce: string[] = []
+    /** Profile writes it takes and then fails to answer, named as in `writes`. */
+    readonly answersLostOnce: string[] = []
     readonly accountsFailingLookup: string[] = []
+    failsListingAccounts = false
     private accounts: string[] = []
     private created = 0
 
@@ -52,16 +60,26 @@ export class FakeHomeserver implements Homeserver {
         room.members.push(userId)
     }
 
+    /** What a user does in the client. Synapse lets one without a picture set one, and none change the one they have. */
+    setOwnPicture(userId: string): void {
+        if (this.pictures.has(userId)) {
+            throw new ChatServerError(403, 'M_FORBIDDEN', `${userId} may not change their picture`)
+        }
+        this.pictures.set(userId, `mxc://${SERVER_NAME}/own${++this.created}`)
+    }
+
     room(roomId: string): Room {
         const room = this.rooms.get(roomId)
         if (!room) throw new ChatServerError(404, 'M_NOT_FOUND', `No room ${roomId}`)
         return room
     }
 
+    private isRefusedOnce(what: string): boolean {
+        return takeOff(this.changesRefusedOnce, what)
+    }
+
     private change(roomId: string, what: string): Room {
-        const refusedOnce = this.changesRefusedOnce.indexOf(what)
-        if (refusedOnce !== -1) this.changesRefusedOnce.splice(refusedOnce, 1)
-        if (refusedOnce !== -1 || this.roomsRefusingEveryChange.includes(roomId)) {
+        if (this.isRefusedOnce(what) || this.roomsRefusingEveryChange.includes(roomId)) {
             throw new ChatServerError(500, 'M_UNKNOWN', `${what} refused`)
         }
         this.writes.push(what)
@@ -84,11 +102,46 @@ export class FakeHomeserver implements Homeserver {
         return Promise.resolve(this.accounts.includes(userId))
     }
 
-    writeDisplayName(userId: string, displayName: string): Promise<void> {
+    readPicture(userId: string): Promise<string | null> {
+        if (this.accountsFailingLookup.includes(userId)) {
+            return Promise.reject(new ChatServerError(500, 'M_UNKNOWN', 'No answer'))
+        }
+        return Promise.resolve(this.pictures.get(userId) ?? null)
+    }
+
+    readAccountsWithPicture(): Promise<Set<string>> {
+        if (this.failsListingAccounts) return Promise.reject(new ChatServerError(500, 'M_UNKNOWN', 'No answer'))
+        return Promise.resolve(new Set(this.pictures.keys()))
+    }
+
+    uploadPicture(jpeg: Buffer): Promise<string> {
+        if (this.isRefusedOnce('upload a picture')) throw new ChatServerError(500, 'M_UNKNOWN', 'upload refused')
+        const uri = `mxc://${SERVER_NAME}/upload${++this.created}`
+        this.uploads.set(uri, jpeg)
+        return Promise.resolve(uri)
+    }
+
+    deletePicture(uri: string): Promise<void> {
+        if (this.isRefusedOnce(`delete ${uri}`) || this.isRefusedOnce('delete a picture')) {
+            throw new ChatServerError(500, 'M_UNKNOWN', `delete ${uri} refused`)
+        }
+        this.deletions.push(uri)
+        this.uploads.delete(uri)
+        return Promise.resolve()
+    }
+
+    /** One write, named for what it gives: `name`, `picture` or `name and picture`. */
+    writeProfile(userId: string, { displayName, pictureUrl }: ChatProfile): Promise<void> {
         // Synapse would make the account, so the sync must ask first.
-        if (!this.accounts.includes(userId)) throw new Error(`The sync named ${userId}, who has no account`)
-        this.writes.push(`name ${userId}`)
-        this.names.set(userId, displayName)
+        if (!this.accounts.includes(userId)) throw new Error(`The sync wrote the profile of ${userId}, who has no account`)
+        const given = [displayName !== undefined && 'name', pictureUrl !== undefined && 'picture'].filter(Boolean)
+        const what = `${given.join(' and ')} ${userId}`
+        if (this.isRefusedOnce(what)) throw new ChatServerError(500, 'M_UNKNOWN', `${what} refused`)
+        this.writes.push(what)
+        if (displayName !== undefined) this.names.set(userId, displayName)
+        if (pictureUrl === null) this.pictures.delete(userId)
+        if (pictureUrl) this.pictures.set(userId, pictureUrl)
+        if (takeOff(this.answersLostOnce, what)) throw new ChatServerError(504, undefined, `no answer to ${what}`)
         return Promise.resolve()
     }
 
@@ -207,4 +260,11 @@ export class FakeHomeserver implements Homeserver {
         room.members = room.members.filter(member => member !== this.botUserId)
         return Promise.resolve()
     }
+}
+
+/** Whether `what` was listed, which it then no longer is. */
+function takeOff(listed: string[], what: string): boolean {
+    const index = listed.indexOf(what)
+    if (index !== -1) listed.splice(index, 1)
+    return index !== -1
 }

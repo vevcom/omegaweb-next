@@ -131,7 +131,10 @@ export const chatUserOperations = {
         },
     }),
 
-    /** Gives a user's account a picture of its own, in place of the one it had. */
+    /**
+     * Gives a user's account a picture of its own, in place of the one it had. The chat sync gives it
+     * to the homeserver.
+     */
     updatePicture: defineOperation({
         paramsSchema: chatUserSchemas.params.updatePicture,
         dataSchema: chatUserSchemas.data.updatePicture,

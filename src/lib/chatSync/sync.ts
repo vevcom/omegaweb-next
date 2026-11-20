@@ -2,7 +2,7 @@ import '@ow-server-only'
 import { ChatClient } from './client'
 import { chatServer } from './constants'
 import { SyncReport } from './report'
-import { deactivateAccountsOfDeletedUsers, syncNames } from './accounts'
+import { deactivateAccountsOfDeletedUsers, deletePicturesNoLongerGiven, syncProfiles } from './accounts'
 import { syncSpaces } from './spaces'
 import { notifyOfMessages } from './messages'
 import logger from '@/lib/logger'
@@ -20,7 +20,8 @@ export async function syncChat(homeserver: Homeserver = chatClientFromEnv()): Pr
 
     await homeserver.registerBot()
     await deactivateAccountsOfDeletedUsers(homeserver, report)
-    await syncNames(homeserver, report)
+    await syncProfiles(homeserver, report)
+    await deletePicturesNoLongerGiven(homeserver, report)
     await syncSpaces(homeserver, report)
     await notifyOfMessages(homeserver, report)
 
