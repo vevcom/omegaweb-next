@@ -3,8 +3,15 @@ enum EventCanView {
   ALL
 }
 
+// What an event is, which decides more than a tag could: it is set as the event is created and never changes.
+enum EventKind {
+  ORDINARY
+  COMPANY_PRESENTATION
+}
+
 model Event {
   id             Int               @id @default(autoincrement())
+  kind           EventKind         @default(ORDINARY)
   name           String
   paragraph      CmsParagraph      @relation(fields: [cmsParagraphId], references: [id])
   cmsParagraphId Int               @unique
@@ -89,10 +96,6 @@ model EventTagEvent {
   @@id([eventId, tagId])
 }
 
-enum SpecialEventTags {
-  COMPANY_PRESENTATION
-}
-
 model EventTag {
   id            Int               @id @default(autoincrement())
   name          String            @unique
@@ -100,7 +103,6 @@ model EventTag {
   colorR        Int
   colorG        Int
   colorB        Int
-  special       SpecialEventTags? @unique
   EventTagEvent EventTagEvent[]
 
   createdAt DateTime @default(now())

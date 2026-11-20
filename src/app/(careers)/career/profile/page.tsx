@@ -39,7 +39,7 @@ const { page, generateMetadata } = serverPage({
             userOperations.read({ params: { id: userId } }),
             userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
-                params: { userId, specialTag: 'COMPANY_PRESENTATION' },
+                params: { userId, kinds: ['COMPANY_PRESENTATION'] },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
             notificationSubscriptionOperations.read({ params: { userId, channelIds: [channel.id] } }),

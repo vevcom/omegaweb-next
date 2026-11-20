@@ -24,12 +24,6 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
     const endDate = new Date(startDate)
     endDate.setDate(startDate.getDate() + 1)
 
-    const bedPresTag = await prisma.eventTag.findUniqueOrThrow({
-        where: {
-            special: 'COMPANY_PRESENTATION'
-        }
-    })
-
     const { groupId: memberGroupId } = await prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: { omegaMembershipLevel: 'SYSKEN' },
         select: { groupId: true },
@@ -53,6 +47,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
     const events: SeedDevEventConfig[] = [
         {
             event: {
+                kind: 'COMPANY_PRESENTATION',
                 name: 'Bedpres med Kongsberg',
                 location: 'EL5',
                 eventStart: startDate,
@@ -64,9 +59,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 registrationEnd: tomorrow,
                 waitingList: true,
                 bindingRegistration: true,
-                tagIds: [
-                    bedPresTag.id,
-                ],
+                tagIds: [],
                 quotaVisibilityRequirements,
                 visibilityAdminRequirements,
             },

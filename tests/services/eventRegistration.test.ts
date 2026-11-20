@@ -768,15 +768,10 @@ describe('deleting an event', () => {
 })
 
 describe('the upcoming registrations of a user', () => {
-    async function tagAsCompanyPresentation(eventId: number) {
-        const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
-        await prisma.eventTagEvent.create({ data: { eventId, tagId: tag.id } })
-    }
-
     test('lists the events the user is registered for, and whether they are on the waiting list', async () => {
         const fullEventId = await createEvent({ places: 1, waitingList: true })
         const presentationId = await createEvent({ places: 5, waitingList: false })
-        await tagAsCompanyPresentation(presentationId)
+        await prisma.event.update({ where: { id: presentationId }, data: { kind: 'COMPANY_PRESENTATION' } })
         const other = await createTestUser('upcomingother')
         const user = await createTestUser('upcominguser')
 
@@ -794,7 +789,7 @@ describe('the upcoming registrations of a user', () => {
         expect(all).toHaveLength(2)
 
         const presentations = await eventRegistrationOperations.readUpcomingOfUser({
-            params: { userId: user.id, specialTag: 'COMPANY_PRESENTATION' },
+            params: { userId: user.id, kinds: ['COMPANY_PRESENTATION'] },
             session: sessionOf(user),
         })
         expect(presentations.map(registration => registration.event.id)).toEqual([presentationId])

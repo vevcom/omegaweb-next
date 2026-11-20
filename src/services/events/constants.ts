@@ -15,6 +15,7 @@ export const eventCanBeViewedByOptions = Object.values(EventCanView).map(opt => 
 
 export const eventFieldsToExpose = [
     'id',
+    'kind',
     'name',
     'location',
     'eventStart',

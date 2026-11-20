@@ -1,5 +1,6 @@
 import SmallEventTag from './SmallEventTag'
 import { eventLinks } from '@/pageKits/events/links'
+import { eventKinds } from '@/services/events/kinds'
 import Image from '@/components/Image/Image'
 import { osloDateTime } from '@/lib/dates/oslo'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -22,6 +23,7 @@ export default function EventCard({ event, config }: PropTypes) {
     const attendance = `${Math.max(0, Math.min(attendanceRatio, 1)) * 100}%`
     const from = event.registrationStart ?? event.eventStart
     const to = event.registrationEnd ?? event.eventEnd
+    const kindTag = eventKinds[event.kind].tag
 
     return <SiteLink href={eventLinks(config).event(event)} className="list-row">
         <div className="list-row-thumb">
@@ -38,6 +40,7 @@ export default function EventCard({ event, config }: PropTypes) {
         <div className="list-row-main">
             <h2>{event.name}</h2>
             <div className="flex items-center gap-2 list-none">
+                {kindTag && <SmallEventTag eventTag={kindTag} />}
                 {event.tags.map(tag => (
                     <SmallEventTag key={tag.id} eventTag={tag} />
                 ))}

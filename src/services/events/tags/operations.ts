@@ -1,10 +1,7 @@
 import '@ow-server-only'
 import { eventTagAuth } from './auth'
-import { specialEventTags } from './constants'
 import { eventTagSchemas } from './schemas'
-import logger from '@/lib/logger'
 import { defineOperation } from '@/services/serviceOperation'
-import { ServiceError } from '@/services/error'
 
 export const eventTagOperations = {
     read: defineOperation({
@@ -15,27 +12,6 @@ export const eventTagOperations = {
                 id
             }
         })
-    }),
-    readSpecial: defineOperation({
-        paramsSchema: eventTagSchemas.params.readSpecial,
-        authorizer: () => eventTagAuth.readSpecial,
-        operation: async ({ prisma, params: { special } }) => {
-            const tag = await prisma.eventTag.findUnique({
-                where: {
-                    special
-                }
-            })
-            if (!tag) {
-                logger.error(`Special event tag ${special} not found - creating it`)
-                return await prisma.eventTag.create({
-                    data: {
-                        special,
-                        ...specialEventTags[special]
-                    }
-                })
-            }
-            return tag
-        }
     }),
     readAll: defineOperation({
         authorizer: () => eventTagAuth.readAll,
@@ -79,12 +55,6 @@ export const eventTagOperations = {
         paramsSchema: eventTagSchemas.params.destroy,
         authorizer: () => eventTagAuth.destroy,
         operation: async ({ prisma, params }) => {
-            const tag = await prisma.eventTag.findUniqueOrThrow({
-                where: { id: params.id }
-            })
-            if (tag.special) {
-                throw new ServiceError('BAD PARAMETERS', 'Kan ikke slette spesialtagger')
-            }
             await prisma.eventTag.delete({
                 where: { id: params.id }
             })
