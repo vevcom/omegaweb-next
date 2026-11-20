@@ -1,7 +1,10 @@
 import { createChatSpace } from 'tests/chatSpaces'
+import { pictureFile } from 'tests/chatPictures'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import { chatLocalpartAt, chatLocalpartOf } from '@/services/chat/users/localpart'
+import { chatPictureOf } from '@/services/chat/users/picture'
 import { userOperations } from '@/services/users/operations'
+import { imageProcessing } from '@/services/images/subservice/constants'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Session } from '@/auth/session/Session'
 import { afterEach, describe, expect, test } from '@jest/globals'
@@ -121,6 +124,113 @@ describe('reading a chat user', () => {
             .resolves.toEqual(account)
         await expect(chatUserOperations.read({ params: { userId: kari.user.id }, session: other.session }))
             .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+    })
+})
+
+describe('the picture of a chat user', () => {
+    async function createChatUser(username: string) {
+        const created = await createUser(username)
+        const ofUser = { params: { userId: created.user.id } }
+        await chatUserOperations.optIn({ ...ofUser, session: created.session })
+        return { ...created, ofUser, asUser: { ...ofUser, session: created.session } }
+    }
+
+    const waiting = { processedFiles: null, processingAttempts: 0 }
+    const givenUpOn = { processedFiles: null, processingAttempts: imageProcessing.maxAttempts }
+    const ownImage = { ...waiting, name: 'own' }
+    const profile = { ...waiting, name: 'profile' }
+
+    test('is the account\'s own, without one the user\'s profile image, and none without either', () => {
+        expect(chatPictureOf({ image: ownImage, user: { image: profile } })).toEqual({ image: ownImage, source: 'OWN' })
+        expect(chatPictureOf({ image: null, user: { image: profile } })).toEqual({ image: profile, source: 'PROFILE' })
+        expect(chatPictureOf({ image: null, user: { image: null } })).toBeNull()
+        expect(chatPictureOf({ image: null, user: null })).toBeNull()
+    })
+
+    test('is not an image the image worker has given up on, unless it has its sizes all the same', () => {
+        expect(chatPictureOf({ image: { ...ownImage, ...givenUpOn }, user: { image: profile } }))
+            .toEqual({ image: profile, source: 'PROFILE' })
+        expect(chatPictureOf({ image: null, user: { image: { ...profile, ...givenUpOn } } })).toBeNull()
+        const resizedAtLast = { ...ownImage, ...givenUpOn, processedFiles: {} }
+        expect(chatPictureOf({ image: resizedAtLast, user: null })).toEqual({ image: resizedAtLast, source: 'OWN' })
+    })
+
+    test('is read as the profile image when the image worker has given up on the account\'s own', async () => {
+        const { user, asUser } = await createChatUser('chat-bilde-oppgitt')
+        const profileImage = await userOperations.updateProfileImage({
+            params: { username: user.username },
+            data: { imageFile: pictureFile() },
+            session: asUser.session,
+        })
+        const ownPicture = await chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } })
+        await prisma.image.update({
+            where: { id: ownPicture.id },
+            data: { processingAttempts: imageProcessing.maxAttempts },
+        })
+
+        await expect(chatUserOperations.readPicture(asUser))
+            .resolves.toMatchObject({ image: { id: profileImage.id }, source: 'PROFILE' })
+    })
+
+    test('goes in the chat pictures collection, and a new one replaces it', async () => {
+        const { asUser } = await createChatUser('chat-bilde')
+        await expect(chatUserOperations.readPicture(asUser)).resolves.toBeNull()
+
+        const first = await chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } })
+        const collection = await prisma.imageCollection.findUniqueOrThrow({ where: { id: first.collectionId } })
+        expect(collection.special).toBe('CHATPROFILEIMAGES')
+        await expect(chatUserOperations.readPicture(asUser))
+            .resolves.toMatchObject({ image: { id: first.id }, source: 'OWN' })
+
+        const second = await chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } })
+        await expect(chatUserOperations.readPicture(asUser))
+            .resolves.toMatchObject({ image: { id: second.id }, source: 'OWN' })
+        expect(await prisma.image.count({ where: { id: first.id } })).toBe(0)
+    })
+
+    test('is the profile image again once it is removed, and the image is gone', async () => {
+        const { user, asUser } = await createChatUser('chat-bilde-fjernes')
+        const profileImage = await userOperations.updateProfileImage({
+            params: { username: user.username },
+            data: { imageFile: pictureFile() },
+            session: asUser.session,
+        })
+        await expect(chatUserOperations.readPicture(asUser))
+            .resolves.toMatchObject({ image: { id: profileImage.id }, source: 'PROFILE' })
+
+        const own = await chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } })
+        await chatUserOperations.destroyPicture(asUser)
+        await chatUserOperations.destroyPicture(asUser)
+
+        await expect(chatUserOperations.readPicture(asUser))
+            .resolves.toMatchObject({ image: { id: profileImage.id }, source: 'PROFILE' })
+        expect(await prisma.image.count({ where: { id: own.id } })).toBe(0)
+    })
+
+    test('is seen, set and removed by the user themselves alone', async () => {
+        const { ofUser, asUser } = await createChatUser('chat-bilde-eget')
+        const other = await createUser('chat-bilde-annen')
+        const userAdmin = Session.fromJsObject({ user: other.user, permissions: ['USERS_ADMIN'], memberships: [] })
+        await chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } })
+
+        for (const session of [other.session, userAdmin]) {
+            await expect(chatUserOperations.readPicture({ ...ofUser, session }))
+                .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+            await expect(chatUserOperations.updatePicture({ ...ofUser, data: { imageFile: pictureFile() }, session }))
+                .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+            await expect(chatUserOperations.destroyPicture({ ...ofUser, session }))
+                .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+        }
+        await expect(chatUserOperations.readPicture(asUser)).resolves.toMatchObject({ source: 'OWN' })
+    })
+
+    test('is not for a user who has not signed in to the chat', async () => {
+        const { user, session } = await createUser('chat-bilde-uten')
+        const asUser = { params: { userId: user.id }, session }
+        await expect(chatUserOperations.readPicture(asUser)).rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+        await expect(chatUserOperations.updatePicture({ ...asUser, data: { imageFile: pictureFile() } }))
+            .rejects.toMatchObject({ errorCode: 'NOT FOUND' })
+        await expect(chatUserOperations.destroyPicture(asUser)).rejects.toMatchObject({ errorCode: 'NOT FOUND' })
     })
 })
 

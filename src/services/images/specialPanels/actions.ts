@@ -42,3 +42,8 @@ export const readCompanyLogosCollectionAction =
     makeAction(specialImagePanelOperations.COMPANYLOGOS.readCollection)
 export const readImagesPageInCompanyLogosCollectionAction =
     makeAction(specialImagePanelOperations.COMPANYLOGOS.readPageOfImagesInCollection)
+
+export const readChatProfileImagesCollectionAction =
+    makeAction(specialImagePanelOperations.CHATPROFILEIMAGES.readCollection)
+export const readImagesPageInChatProfileImagesCollectionAction =
+    makeAction(specialImagePanelOperations.CHATPROFILEIMAGES.readPageOfImagesInCollection)
