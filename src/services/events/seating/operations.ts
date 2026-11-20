@@ -4,7 +4,7 @@ import { eventSeatingSchemas } from './schemas'
 import { placesOf } from './plan'
 import { readEventAccess } from '@/services/events/access'
 import { lockEvent, seatedInEvent } from '@/services/events/registration/queue'
-import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { eventHomeLinks } from '@/pageKits/events/links'
 import { ServiceError } from '@/services/error'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -356,7 +356,7 @@ async function notifyGuests(
     })
     await eventNotificationOperations.internal.createInfoNotification.internalCall({
         params: { channelId: event.infoNotificationChannelId },
-        data: { title, message: message(event.name), url: omegaEventLinks.event(event), audience: { userIds } },
+        data: { title, message: message(event.name), url: eventHomeLinks(event).event(event), audience: { userIds } },
     })
 }
 

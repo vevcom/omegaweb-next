@@ -1,7 +1,9 @@
+import { EventKind } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string(),
+    kind: z.nativeEnum(EventKind),
 })
 
 const paramsFieldSchemas = z.object({
@@ -20,6 +22,7 @@ export const eventNotificationSchemas = {
     data: {
         createChannels: dataFieldSchemas.pick({
             name: true,
+            kind: true,
         }),
         renameChannels: dataFieldSchemas.pick({
             name: true,

@@ -6,13 +6,14 @@ import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { eventOperations } from '@/services/events/operations'
 import { careerJobAdPages } from '@/app/(careers)/career/job-ads/config'
 import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/config'
 import type { careersSearchCategories } from './constants'
 import type { SearchProvider } from '@/services/search/types'
 
 /** The search of each category, the events and job ads made for the career site's own pages. */
 const providers = {
     companies: companyOperations.search(),
-    events: eventOperations.search(companyPresentationPages),
+    events: eventOperations.search([companyPresentationPages, speedInterviewPages]),
     jobAds: jobAdOperations.search(careerJobAdPages),
 } satisfies Record<typeof careersSearchCategories[number], SearchProvider>
 

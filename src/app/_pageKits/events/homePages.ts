@@ -1,5 +1,6 @@
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/config'
 import type { EventPagesConfig } from './config'
 import type { EventKind } from '@/prisma-generated-pn-types'
 
@@ -10,4 +11,5 @@ import type { EventKind } from '@/prisma-generated-pn-types'
 export const eventHomePages = {
     ORDINARY: omegaEventPages,
     COMPANY_PRESENTATION: companyPresentationPages,
+    SPEED_INTERVIEW: speedInterviewPages,
 } as const satisfies Record<EventKind, EventPagesConfig>
