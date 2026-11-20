@@ -1,3 +1,4 @@
+import sharp from 'sharp'
 import { File } from 'node:buffer'
 
 // Minimal valid PNG (1x1 red pixel)
@@ -11,3 +12,13 @@ const pngBuffer = Buffer.from([
 
 /** A picture as a user uploads it, for their profile or their chat account. */
 export const pictureFile = () => new File([pngBuffer], 'bilde.png', { type: 'image/png' })
+
+export const WIDE_PICTURE_WIDTH = 400
+
+/** A picture wide enough to be given a small size, which the one above is not. */
+export async function widePictureFile() {
+    const png = await sharp({ create: { width: WIDE_PICTURE_WIDTH, height: 300, channels: 3, background: 'red' } })
+        .png()
+        .toBuffer()
+    return new File([png], 'bredt-bilde.png', { type: 'image/png' })
+}

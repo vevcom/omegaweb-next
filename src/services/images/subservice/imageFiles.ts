@@ -69,6 +69,11 @@ export async function resizeToAvifBuffer(buffer: Buffer, width: number) {
         .toBuffer({ resolveWithObject: true })
 }
 
+/** For what shows no avif. A jpeg has no transparency, so what is transparent becomes white. */
+export async function toJpegBuffer(buffer: Buffer): Promise<Buffer> {
+    return await sharp(buffer).flatten({ background: 'white' }).jpeg().toBuffer()
+}
+
 async function createResizedAvifInStore(buffer: Buffer, width: number) {
     const { data, info } = await resizeToAvifBuffer(buffer, width)
     const { name } = await cacheImageStore.createFile(data)

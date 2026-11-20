@@ -2,7 +2,8 @@
 ALTER TYPE "SpecialCollection" ADD VALUE 'CHATPROFILEIMAGES';
 
 -- AlterTable
-ALTER TABLE "ChatUser" ADD COLUMN     "imageId" INTEGER;
+ALTER TABLE "ChatUser" ADD COLUMN     "imageId" INTEGER,
+ADD COLUMN     "syncedImageId" INTEGER;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ChatUser_imageId_key" ON "ChatUser"("imageId");

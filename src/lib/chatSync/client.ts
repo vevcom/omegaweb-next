@@ -1,5 +1,11 @@
 import '@ow-server-only'
-import { CHAT_ADMIN_LOCALPART, CHAT_BOT_LOCALPART, CHAT_MAS_CLIENT_ID, ROOM_MODERATOR_LEVEL } from './constants'
+import {
+    ACCOUNTS_WITH_PICTURE_REUSE_MS,
+    CHAT_ADMIN_LOCALPART,
+    CHAT_BOT_LOCALPART,
+    CHAT_MAS_CLIENT_ID,
+    ROOM_MODERATOR_LEVEL,
+} from './constants'
 
 export type ChatFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'status' | 'json'>>
 
@@ -43,6 +49,9 @@ const ROOM_VERSION_WITH_CREATOR_POWER = '12'
 
 export type NewRoom = { name: string, spaceRoomId: string, isPrivate: boolean }
 
+/** What an account is given. What is left out stays as it is, and a picture of null takes away the one it has. */
+export type ChatProfile = { displayName?: string, pictureUrl?: string | null }
+
 const membersOfSpaceLetThemselvesIn = (spaceRoomId: string) => ({
     join_rule: 'restricted',
     allow: [{ type: 'm.room_membership', room_id: spaceRoomId }],
@@ -62,6 +71,8 @@ export class ChatServerError extends Error {
     }
 }
 
+const ACCOUNTS_PER_PAGE = 500
+
 const TOKEN_REUSE_MS = 4 * 60 * 1000
 const ADMIN_SESSION_LIFETIME_S = 60 * 60
 
@@ -69,7 +80,7 @@ type Token = { value: string, renewAt: number }
 
 export type Homeserver = Pick<ChatClient,
     | 'botUserId' | 'userIdOf' | 'registerBot'
-    | 'hasAccount' | 'writeDisplayName' | 'deactivate'
+    | 'hasAccount' | 'readAccountsWithPicture' | 'uploadPicture' | 'writeProfile' | 'deactivate'
     | 'createSpace' | 'createRoom' | 'closeRoom' | 'readRoom' | 'writeState' | 'listRoom' | 'unlistRoom'
     | 'readStandaloneRoom'
     | 'addMember' | 'removeMember' | 'leave'
@@ -80,6 +91,7 @@ export class ChatClient {
     private readonly fetch: ChatFetch
     private masToken: Token | null = null
     private synapseAdminToken: Token | null = null
+    private accountsWithPicture: { userIds: Set<string>, renewAt: number } | null = null
 
     constructor(private readonly config: ChatClientConfig) {
         this.fetch = config.fetch ?? ((url, init) => fetch(url, init))
@@ -93,11 +105,15 @@ export class ChatClient {
         return `@${localpart}:${this.config.serverName}`
     }
 
-    private async request(url: string, token: string, method: string, body?: unknown): Promise<unknown> {
+    private request(url: string, token: string, method: string, body?: unknown): Promise<unknown> {
+        return this.send(url, token, method, 'application/json', body === undefined ? undefined : JSON.stringify(body))
+    }
+
+    private async send(url: string, token: string, method: string, contentType: string, body?: BodyInit): Promise<unknown> {
         const response = await this.fetch(url, {
             method,
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': contentType },
+            ...(body === undefined ? {} : { body }),
         })
         const answer = await response.json().catch(() => ({})) as { errcode?: string, error?: string }
         if (response.status >= 400) {
@@ -278,9 +294,53 @@ export class ChatClient {
         return account !== undefined
     }
 
-    /** Only for an account that exists, since Synapse makes the account it is asked to change. */
-    async writeDisplayName(userId: string, displayName: string): Promise<void> {
-        await this.synapseAdmin('PUT', `/v2/users/${encodeURIComponent(userId)}`, { displayname: displayName })
+    /**
+     * The accounts that have a picture, whoever gave them it. For every page of them Synapse goes
+     * through all its devices and the addresses it has seen, so the answer is reused for a while, and
+     * kept up with the pictures given and taken away here meanwhile.
+     */
+    async readAccountsWithPicture(): Promise<Set<string>> {
+        const known = this.accountsWithPicture
+        if (known && known.renewAt > Date.now()) return known.userIds
+        // Set before asking, so that a listing Synapse fails to answer is not started again on every run.
+        const renewAt = Date.now() + ACCOUNTS_WITH_PICTURE_REUSE_MS
+        this.accountsWithPicture = { userIds: known?.userIds ?? new Set(), renewAt }
+        const userIds = new Set<string>()
+        let nextPage: string | undefined
+        do {
+            // Synapse lists guests unless it is told not to, and refuses to under MAS.
+            const query = new URLSearchParams({ guests: 'false', limit: String(ACCOUNTS_PER_PAGE) })
+            if (nextPage) query.set('from', nextPage)
+            const page = await this.synapseAdmin('GET', `/v2/users?${query}`) as {
+                users: { name: string, avatar_url: string | null }[],
+                next_token?: string,
+            }
+            page.users.filter(user => user.avatar_url).forEach(user => userIds.add(user.name))
+            nextPage = page.next_token
+        } while (nextPage)
+        this.accountsWithPicture = { userIds, renewAt }
+        return userIds
+    }
+
+    /** @returns the uri the homeserver keeps the file at. */
+    async uploadPicture(jpeg: Buffer): Promise<string> {
+        const url = new URL('/_matrix/media/v3/upload', this.config.homeserverUrl)
+        const uploaded = await this.send(url.toString(), this.config.asToken, 'POST', 'image/jpeg', new Uint8Array(jpeg))
+        return (uploaded as { content_uri: string }).content_uri
+    }
+
+    /**
+     * Name and picture go in one call, since changes to one profile made right after each other race
+     * in Synapse. Only for an account that exists, since Synapse makes the account it is asked to
+     * change.
+     */
+    async writeProfile(userId: string, { displayName, pictureUrl }: ChatProfile): Promise<void> {
+        await this.synapseAdmin('PUT', `/v2/users/${encodeURIComponent(userId)}`, {
+            displayname: displayName,
+            avatar_url: pictureUrl === null ? '' : pictureUrl,
+        })
+        if (pictureUrl === null) this.accountsWithPicture?.userIds.delete(userId)
+        if (pictureUrl) this.accountsWithPicture?.userIds.add(userId)
     }
 
     private async readMasUser(localpart: string): Promise<{ id: string, deactivated: boolean } | null> {
