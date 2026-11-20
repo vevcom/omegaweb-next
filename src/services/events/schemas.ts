@@ -100,6 +100,7 @@ const paramsFieldSchemas = z.object({
     tags: z.array(z.string()).nullable(),
     // Every kind when left out.
     kinds: z.array(z.nativeEnum(EventKind)).optional(),
+    companyId: z.number().int().optional(),
 })
 
 const waitingListRefiner = (data: {
@@ -201,6 +202,7 @@ export const eventSchemas = {
             tags: true,
             kinds: true,
             name: true,
+            companyId: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
             paramsFieldSchemas.pick({
@@ -210,6 +212,7 @@ export const eventSchemas = {
                 name: true,
                 tags: true,
                 kinds: true,
+                companyId: true,
             }),
         ),
         update: eventId,
