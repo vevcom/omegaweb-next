@@ -1,12 +1,15 @@
 import ContactInfoForm from './ContactInfoForm'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
 import { userOperations } from '@/services/users/operations'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
+import { companyPresentationNotificationChannel } from '@/services/careers/companyPresentationNotificationChannel'
+import { speedInterviewNotificationChannel } from '@/services/careers/speedInterviewNotificationChannel'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
@@ -34,21 +37,28 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        const channel = await contactorNotificationChannel.read({})
-        const [user, profile, registrations, dots, [subscription]] = await Promise.all([
+        // Contactor's own channel first, then those under it.
+        const channels = await Promise.all([
+            contactorNotificationChannel.read({}),
+            companyPresentationNotificationChannel.read({}),
+            speedInterviewNotificationChannel.read({}),
+        ])
+        const [user, profile, registrations, dots, subscriptions] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
             userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
-                params: { userId, kinds: ['COMPANY_PRESENTATION'] },
+                params: { userId, kinds: ['COMPANY_PRESENTATION', 'SPEED_INTERVIEW'] },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
-            notificationSubscriptionOperations.read({ params: { userId, channelIds: [channel.id] } }),
+            notificationSubscriptionOperations.read({
+                params: { userId, channelIds: channels.map(channel => channel.id) },
+            }),
         ])
 
-        return { user, profile, registrations, dots, channel, subscription }
+        return { user, profile, registrations, dots, channels, subscriptions }
     },
     metadata: () => ({ title: 'Min side' }),
-    render: ({ data: { user, profile, registrations, dots, channel, subscription } }) => (
+    render: ({ data: { user, profile, registrations, dots, channels, subscriptions } }) => (
         <div className="flex flex-col gap-8 max-w-3xl py-16">
             <div>
                 <span className={`
@@ -65,8 +75,9 @@ const { page, generateMetadata } = serverPage({
             <Section title="Mine påmeldinger">
                 {registrations.length === 0 ? (
                     <p className="text-m text-base-content/80">
-                        Du er ikke påmeldt noen kommende bedriftspresentasjoner.{' '}
-                        <SiteLink href={companyPresentationLinks.list()}>Se bedriftspresentasjonene</SiteLink>
+                        Du er ikke påmeldt noen kommende bedriftspresentasjoner eller speedintervjuer. Se{' '}
+                        <SiteLink href={companyPresentationLinks.list()}>bedriftspresentasjonene</SiteLink> og{' '}
+                        <SiteLink href={speedInterviewLinks.list()}>speedintervjuene</SiteLink>.
                     </p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
@@ -116,13 +127,20 @@ const { page, generateMetadata } = serverPage({
             </Section>
 
             <Section title="Varslinger fra Contactor">
-                <UpdateNotificationSubscription
-                    userId={user.id}
-                    channel={channel}
-                    methods={subscription?.methods ?? allNotificationMethodsOff}
-                    inherited={!subscription?.explicit}
-                    hasChildren={false}
-                />
+                <div className="flex flex-col gap-6">
+                    {channels.map((channel, index) => {
+                        const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
+                        return <UpdateNotificationSubscription
+                            key={channel.id}
+                            userId={user.id}
+                            channel={channel}
+                            methods={subscription?.methods ?? allNotificationMethodsOff}
+                            inherited={!subscription?.explicit}
+                            hasChildren={index === 0}
+                            depth={index === 0 ? 0 : 1}
+                        />
+                    })}
+                </div>
             </Section>
 
             <Section title="Prikker">
