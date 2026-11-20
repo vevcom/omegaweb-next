@@ -1,7 +1,5 @@
 import EventTag from './EventTag'
 import { eventLinks } from '@/pageKits/events/links'
-import { filterableKinds } from '@/pageKits/events/filter'
-import { eventKinds } from '@/services/events/kinds'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
@@ -18,7 +16,7 @@ import type { EventListFilter } from '@/pageKits/events/links'
 type PropTypes = {
     eventTags: EventTagT[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
-    /** What the list is narrowed to now. Picking a tag or a kind links to the list with it added or removed. */
+    /** What the list is narrowed to now. Picking a tag links to the list with it added or removed. */
     filter: EventListFilter
     config: EventPagesConfig
     /** Whether the tags filter the archive rather than the coming events. */
@@ -35,10 +33,7 @@ const toggled = <Item, >(items: Item[], item: Item) => (
     items.includes(item) ? items.filter(other => other !== item) : [...items, item]
 )
 
-/**
- * The tags to narrow a list of events by, with the kinds the pages can be narrowed to before them,
- * and the administration of the tags for those who may.
- */
+/** The tags to narrow a list of events by, and the administration of the tags for those who may. */
 export default function EventTagsAdmin({
     eventTags,
     filter,
@@ -49,7 +44,6 @@ export default function EventTagsAdmin({
     const links = eventLinks(config)
     const listHref = archive ? links.archive : links.list
     const pickedTagNames = filter.tagNames ?? []
-    const pickedKinds = filter.kinds ?? []
     return (
         <div className="max-h-[80svh]">
             <h1>Tagger</h1>
@@ -75,17 +69,6 @@ export default function EventTagsAdmin({
                 [&_li]:flex [&_li]:items-center [&_li]:z-1
                 [&_li:hover]:z-2
             ">
-                {filterableKinds(config).map(kind => {
-                    const tag = eventKinds[kind].tag
-                    return tag && <li key={kind}>
-                        <SiteLink
-                            className={pickedKinds.includes(kind) ? pickedClassName : ''}
-                            href={listHref({ ...filter, kinds: toggled(pickedKinds, kind) })}
-                        >
-                            <EventTag eventTag={tag} />
-                        </SiteLink>
-                    </li>
-                })}
                 {
                     eventTags.map((tag, index) => (
                         <li key={index} >

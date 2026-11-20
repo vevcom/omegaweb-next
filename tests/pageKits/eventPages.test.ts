@@ -1,4 +1,4 @@
-import { eventListFilterOf, filterableKinds, kindsToRead } from '@/pageKits/events/filter'
+import { eventListFilterOf, kindsToRead, showsSeveralKinds } from '@/pageKits/events/filter'
 import { eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
@@ -7,9 +7,11 @@ import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/con
 import { describe, expect, test } from '@jest/globals'
 
 describe('the filter of a list of events', () => {
-    test('offers the kinds marked by a tag where the pages show several kinds', () => {
-        expect(filterableKinds(omegaEventPages)).toEqual(['COMPANY_PRESENTATION', 'SPEED_INTERVIEW'])
-        expect(filterableKinds(companyPresentationPages)).toEqual([])
+    test('is narrowed to kinds only where the pages show several', () => {
+        expect(showsSeveralKinds(omegaEventPages)).toBe(true)
+        expect(showsSeveralKinds(companyPresentationPages)).toBe(false)
+        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'ORDINARY,SPEED_INTERVIEW' }).kinds)
+            .toEqual(['ORDINARY', 'SPEED_INTERVIEW'])
     })
 
     test('reads every kind the pages show until one is picked', () => {
@@ -23,7 +25,7 @@ describe('the filter of a list of events', () => {
     })
 
     test('ignores a kind the pages cannot be narrowed to', () => {
-        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'ORDINARY,NONSENSE' }).kinds).toEqual([])
+        expect(eventListFilterOf(omegaEventPages, { 'event-kinds': 'NONSENSE' }).kinds).toEqual([])
 
         const careers = eventListFilterOf(companyPresentationPages, { 'event-kinds': 'ORDINARY', 'event-tags': 'Fest' })
         expect(careers).toEqual({ tagNames: null, kinds: [], search: '' })
