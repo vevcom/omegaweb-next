@@ -1,5 +1,7 @@
 import { getCompany } from './getCompany'
+import CompanyEvents from './CompanyEvents'
 import CompanyJobAds from './CompanyJobAds'
+import { readCompanyEvents } from './readCompanyEvents'
 import Image from '@/components/Image/Image'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { hrefOf } from '@/lib/sites/href'
@@ -9,7 +11,7 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const LOGO_WIDTH = 320
 
-/** A company's own page: what it says about itself, and its job ads. */
+/** A company's own page: what it says about itself, its job ads and its events. */
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
         const company = await getCompany(params.nameAndId)
@@ -18,13 +20,13 @@ const { page, generateMetadata } = serverPage({
             [],
             ['UNAUTHENTICATED', 'UNAUTHORIZED']
         )
-        return { company, jobAds }
+        return { company, jobAds, eventsOfKinds: await readCompanyEvents(company.id) }
     },
     metadata: ({ company }) => ({
         title: company.name,
         description: company.description || undefined,
     }),
-    render: ({ data: { company, jobAds } }) => <>
+    render: ({ data: { company, jobAds, eventsOfKinds } }) => <>
         <section className="
             flex flex-row items-start gap-8 p-8 bg-base-200 border border-careers-line
             max-mobile:flex-col max-mobile:p-6
@@ -60,6 +62,7 @@ const { page, generateMetadata } = serverPage({
             </div>
         </section>
         <CompanyJobAds jobAds={jobAds} />
+        <CompanyEvents eventsOfKinds={eventsOfKinds} />
     </>,
 })
 

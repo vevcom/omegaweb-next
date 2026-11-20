@@ -10,13 +10,13 @@ type PropTypes = {
 
 export default function EventArchiveList({ config }: PropTypes) {
     return (
-        <main className="row-list">
+        <div className="row-list">
             <EndlessScroll
                 loadingInfoClassName="text-base-content/80"
                 pagingContext={EventArchivePagingContext}
                 renderer={event =>
                     <EventCard key={event.id} event={event} config={config} />
                 } />
-        </main>
+        </div>
     )
 }
