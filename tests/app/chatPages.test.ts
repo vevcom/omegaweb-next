@@ -82,6 +82,7 @@ const companyUser = () => loaded.Session.fromJsObject({
 describe('the chat pages', () => {
     test('are linked to under /chat', () => {
         expect(loaded.chatLinks.messages()).toBe('/chat')
+        expect(loaded.chatLinks.directMessage({ username: 'kari' })).toBe('/chat/messages/kari')
         expect(loaded.chatLinks.spaces()).toBe('/chat/spaces')
         expect(loaded.chatLinks.settings()).toBe('/chat/settings')
     })

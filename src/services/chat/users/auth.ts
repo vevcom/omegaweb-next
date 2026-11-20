@@ -7,6 +7,6 @@ export const chatUserAuth = {
     readSpaces: Require.userId({ errorMessage: 'Bare du selv ser chatområdene dine' }),
     /** The chat pages show the signed-in user their own chat, and a company user has none. */
     openPages: Require.user(),
-    /** Whoever sees the users may write to the ones on the chat. */
-    readDirectMessage: Require.permission('USERS_USE'),
+    /** A user who sees the users may write to the ones on the chat. */
+    readDirectMessage: Require.user().permission('USERS_USE'),
 } as const
