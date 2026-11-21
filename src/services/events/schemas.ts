@@ -110,6 +110,7 @@ const waitingListRefiner = (data: {
 
 const waitingListMessage = 'Kan ikke ha venteliste uten påmelding'
 
+// Judges only a binding that is given. Left out, the kind decides, also for an event that takes no registration yet.
 const bindingRegistrationRefiner = (data: {
     bindingRegistration?: boolean,
     takesRegistration?: boolean
@@ -165,6 +166,7 @@ export const eventSchemas = {
                 canBeViewedBy: true,
                 tagIds: true,
                 waitingList: true,
+                bindingRegistration: true,
                 takesRegistration: true,
                 visibilityAdminRequirements: true,
             })
