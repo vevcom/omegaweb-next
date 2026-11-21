@@ -9,9 +9,10 @@ import {
     createEventRegistrationAsAdminAction,
     destroyEventRegistrationAction,
     destroyEventRegistrationAsAdminAction,
+    moveEventRegistrationToSlotAction,
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
-import { displaySlot } from '@/services/events/slots/display'
+import { displaySlot, slotClock } from '@/services/events/slots/display'
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
 import { eventLinks } from '@/pageKits/events/links'
@@ -210,6 +211,24 @@ export default function RegistrationUI({
         }
     }
 
+    const moveToSlot = async () => {
+        if (!registrationState || !pickedSlot) return
+        setBtnPending(true)
+        const result = await moveEventRegistrationToSlotAction(
+            { params: { registrationId: registrationState.id } },
+            { data: { slotId: pickedSlot.id } },
+        )
+        if (result.success) {
+            setRegistrationState({ ...registrationState, slotId: pickedSlot.id })
+            setSlotError('')
+        } else {
+            setSlotError(result.error?.[0]?.message ?? 'Kunne ikke bytte tidsluke.')
+        }
+        setPickedSlotId(null)
+        refresh()
+        setBtnPending(false)
+    }
+
     const buttonOnClick = async () => {
         setBtnPending(true)
         if (registrationState) {
@@ -247,6 +266,8 @@ export default function RegistrationUI({
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
     const heldSlotId = registrationState?.slotId ?? null
     const heldSlot = slots?.find(slot => slot.id === heldSlotId)
+    const registrationOpen = variant.registrationStart <= new Date() && !deadlinePassed
+    const maySwitchSlot = heldSlotId !== null && registrationOpen
 
     const confirmation = () => {
         if (mayUnregister) {
@@ -264,10 +285,22 @@ export default function RegistrationUI({
             heldSlotId={heldSlotId}
             pickedSlotId={pickedSlot?.id ?? null}
             onPick={setPickedSlotId}
-            picking={mustPickSlot || (!registrationState && capabilities.canRegisterAsAdmin.authorized)}
+            picking={mustPickSlot || maySwitchSlot || (!registrationState && capabilities.canRegisterAsAdmin.authorized)}
         />}
         {heldSlot && <p className="m-0">Din tidsluke: <strong>{displaySlot(heldSlot)}</strong></p>}
         {slotError && <p className="m-0 text-error">{slotError}</p>}
+        {maySwitchSlot && pickedSlot && pickedSlot.id !== heldSlotId && (
+            <SubmitButton
+                success={false}
+                color="secondary"
+                className="w-full! m-0!"
+                onClick={moveToSlot}
+                pending={btnPending}
+                key={`switch-${btnKey}`}
+            >
+                Bytt til {slotClock(pickedSlot)}
+            </SubmitButton>
+        )}
 
         <SubmitButton
             success={false}

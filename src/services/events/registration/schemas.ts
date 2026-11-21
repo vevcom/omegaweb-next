@@ -9,6 +9,7 @@ import { z } from 'zod'
 const dataFieldSchemas = z.object({
     note: z.string().max(200, 'Merknader kan ha maks 200 tegn'),
     quotaId: z.coerce.number().int(),
+    slotId: z.coerce.number().int(),
     name: z.string().min(2),
     attended: Zpn.checkboxOrBoolean({ label: 'Møtt' }),
     manuallyPaid: Zpn.checkboxOrBoolean({ label: 'Betalt' }),
@@ -89,6 +90,9 @@ export const eventRegistrationSchemas = {
         moveToQuota: dataFieldSchemas.pick({
             quotaId: true,
         }),
+        moveToSlot: dataFieldSchemas.pick({
+            slotId: true,
+        }),
     },
     params: {
         create: userAndEvent.extend(slotIdOptional),
@@ -111,6 +115,7 @@ export const eventRegistrationSchemas = {
             direction: true,
         }),
         moveToQuota: registrationId,
+        moveToSlot: registrationId,
         setManuallyPaid: registrationId,
         registerAttendance: paramsFieldSchemas.pick({
             userId: true,

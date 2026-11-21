@@ -98,7 +98,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
             await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registrationId} FOR UPDATE`
             const stillUnpaid = await tx.eventRegistration.findFirst({
                 where: { id: registrationId, ...unpaidPastDeadline(now) },
-                select: { id: true },
+                select: { id: true, slotId: true },
             })
             if (!stillUnpaid) return null
 
@@ -114,7 +114,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
                     slotId: null,
                 },
             })
-            const promoted = await fixVariantPlaces(tx, variantId)
+            const promoted = await fixVariantPlaces(tx, variantId, { freedSlotId: stillUnpaid.slotId })
             if (promoted.length === 0 || promoted.some(registration => registration.id === registrationId)) {
                 throw new SeatedAgain()
             }

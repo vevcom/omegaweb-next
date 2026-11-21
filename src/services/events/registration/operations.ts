@@ -118,9 +118,9 @@ const createRegistration = defineSubOperation({
 })
 
 /**
- * Unregisters, and lets `fixVariantPlaces` give the freed place on. A user unregisters within the
- * registration period of the variant and never from a binding registration; an administrator
- * removes any registration at any time.
+ * Unregisters, and lets `fixVariantPlaces` give the freed place on, with the slot it held. A user
+ * unregisters within the registration period of the variant and never from a binding registration;
+ * an administrator removes any registration at any time.
  */
 const destroyRegistration = defineSubOperation({
     paramsSchema: () => eventRegistrationSchemas.params.destroy,
@@ -136,7 +136,7 @@ const destroyRegistration = defineSubOperation({
                 await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${params.registrationId} FOR UPDATE`
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { id: true, userId: true, state: true },
+                    select: { id: true, userId: true, state: true, slotId: true },
                 })
                 const [event, variant] = await Promise.all([
                     tx.event.findUniqueOrThrow({ where: { id: eventId }, select: { bindingRegistration: true } }),
@@ -200,7 +200,7 @@ const destroyRegistration = defineSubOperation({
                     params: { registrationId: params.registrationId },
                 })
                 await tx.eventRegistration.delete({ where: { id: params.registrationId } })
-                return await fixVariantPlaces(tx, variantId)
+                return await fixVariantPlaces(tx, variantId, { freedSlotId: registration.slotId })
             })
 
             await notifyPromoted(prisma, eventId, promoted)
@@ -502,7 +502,7 @@ export const eventRegistrationOperations = {
                 // and may take the registration itself back. Then the move did nothing.
                 const moved = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true },
+                    select: { quotaId: true, slot: { select: { start: true, end: true } } },
                 })
                 if (moved.quotaId !== data.quotaId) {
                     throw new Smorekopp(
@@ -510,10 +510,56 @@ export const eventRegistrationOperations = {
                         'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
                     )
                 }
-                return registration.state === 'WAITING_LIST' ? [...promotedByMove, registration] : promotedByMove
+                return registration.state === 'WAITING_LIST'
+                    ? [...promotedByMove, { ...registration, slot: moved.slot }]
+                    : promotedByMove
             })
 
             await notifyPromoted(prisma, eventId, promoted)
+        },
+    }),
+
+    /**
+     * Gives the slot a registration holds up for another free one of its variant, while
+     * registration to the variant is open. The registration keeps its place, its payment and
+     * its attendance.
+     */
+    moveToSlot: defineOperation({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.moveToSlot(
+            await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { userId: true },
+            })
+        ),
+        paramsSchema: eventRegistrationSchemas.params.moveToSlot,
+        dataSchema: eventRegistrationSchemas.data.moveToSlot,
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params, data }) => {
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
+
+            await lockEvent(prisma, eventId)
+            const registration = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { slotId: true },
+            })
+            if (registration.slotId === null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ingen tidsluke å bytte.')
+            }
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: variantId },
+                select: { registrationStart: true, registrationEnd: true },
+            })
+            const now = new Date()
+            if (now < variant.registrationStart || variant.registrationEnd < now) {
+                throw new Smorekopp('BAD PARAMETERS', 'Tidsluken kan bare byttes mens påmeldingen er åpen.')
+            }
+            if (data.slotId === registration.slotId) return
+
+            await assertSlotFree(prisma, variantId, data.slotId)
+            await prisma.eventRegistration.update({
+                where: { id: params.registrationId },
+                data: { slotId: data.slotId },
+            })
         },
     }),
 

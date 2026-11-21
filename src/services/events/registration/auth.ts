@@ -22,11 +22,11 @@ const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 
 /**
  * Acting on your own registration. A guest registration has no user behind it, so it is no one's
- * own, and only an administrator acts on it.
+ * own, and is refused with what the operation says of a guest.
  */
-const ownRegistration = ({ userId }: { userId: number | null }) => (
+const ownRegistration = (guestRefusal: string) => ({ userId }: { userId: number | null }) => (
     userId === null
-        ? Require.custom(() => false, { errorMessage: 'Bare arrangørene kan melde av en gjest.' })
+        ? Require.custom(() => false, { errorMessage: guestRefusal })
         : Require.userId().data({ userId })
 )
 
@@ -61,10 +61,11 @@ export const eventRegistrationAuth = {
      * registration. Unregistering as an administrator takes the admin level of the event, and
      * removes anyone at any time.
      */
-    destroy: ownRegistration,
+    destroy: ownRegistration('Bare arrangørene kan melde av en gjest.'),
     destroyAsAdmin: eventAdminLevel,
     move: eventAdminLevel,
     moveToQuota: eventAdminLevel,
+    moveToSlot: ownRegistration('Tidsluken til en gjest kan ikke byttes.'),
     setManuallyPaid: eventAdminLevel,
 
     // Never the registrant's own: marking yourself as shown up would dodge the dots for not showing up.

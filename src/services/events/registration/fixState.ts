@@ -11,11 +11,13 @@ import { membershipFilterSelection } from '@/services/groups/constants'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Slot } from '@/services/events/slots/types'
 
 export type PromotedRegistration = {
     id: number,
     userId: number | null,
     contact: { email: string | null } | null,
+    slot: Slot | null,
 }
 
 /** What a change to the registrations of a variant tells the pass that puts them in place. */
@@ -25,6 +27,8 @@ export type PlaceChange = {
      * a slotted variant it holds the slot it picked once seated, or none, which its maker refuses.
      */
     joining?: { id: number, slotId: number | null },
+    /** A slot the change gave up, which the first one seated gets before any other free slot. */
+    freedSlotId?: number | null,
 }
 
 /**
@@ -158,10 +162,17 @@ export async function fixVariantPlaces(
     ])
 
     const slots = variant.registrationType === 'SLOTTED'
-        ? await tx.eventSlot.findMany({ where: { variantId }, orderBy: { start: 'asc' }, select: { id: true } })
+        ? await tx.eventSlot.findMany({
+            where: { variantId },
+            orderBy: { start: 'asc' },
+            select: { id: true, start: true, end: true },
+        })
         : []
     const slotsGiven = variant.registrationType === 'SLOTTED'
-        ? slotsForSeated(slots, quotas.flatMap(quota => quota.members), change.joining)
+        ? slotsForSeated(slots, quotas.flatMap(quota => quota.members), {
+            joining: change.joining,
+            freedSlotIds: [change.freedSlotId ?? null, ...requeued.map(registration => registration.slotId)],
+        })
         : new Map<number, number>()
     await Promise.all(Array.from(slotsGiven).map(([registrationId, slotId]) => tx.eventRegistration.update({
         where: { id: registrationId },
@@ -170,17 +181,23 @@ export async function fixVariantPlaces(
 
     await leaveOtherWaitingLists(tx, { id: variantId, ...variant }, promoted.map(registration => registration.userId))
 
-    return promoted.flatMap(({ id, userId, contact }) => (id === joiningId ? [] : [{ id, userId, contact }]))
+    const slotOf = (registrationId: number) => {
+        const slot = slots.find(candidate => candidate.id === slotsGiven.get(registrationId))
+        return slot ? { start: slot.start, end: slot.end } : null
+    }
+    return promoted.flatMap(({ id, userId, contact }) => (
+        id === joiningId ? [] : [{ id, userId, contact, slot: slotOf(id) }]
+    ))
 }
 
 /**
  * The slots of those seated who hold none yet: the joining one the slot it picked, and each of the
- * others the earliest free one.
+ * others a free one, the slots freed by the change first and then the earliest.
  */
 function slotsForSeated(
     slots: { id: number }[],
     seated: { id: number, slotId: number | null }[],
-    joining: PlaceChange['joining'],
+    { joining, freedSlotIds }: { joining?: PlaceChange['joining'], freedSlotIds: (number | null)[] },
 ): Map<number, number> {
     const given = new Map<number, number>()
     const unslotted = seated.filter(registration => registration.slotId === null)
@@ -191,7 +208,10 @@ function slotsForSeated(
         ...seated.flatMap(registration => (registration.slotId === null ? [] : [registration.slotId])),
         ...Array.from(given.values()),
     ])
-    const free = slots.filter(slot => !held.has(slot.id))
+    const free = [
+        ...slots.filter(slot => freedSlotIds.includes(slot.id)),
+        ...slots.filter(slot => !freedSlotIds.includes(slot.id)),
+    ].filter(slot => !held.has(slot.id))
 
     for (const registration of unslotted) {
         if (registration.id === joining?.id) continue

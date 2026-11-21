@@ -4,6 +4,8 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
+import { displaySlot } from '@/services/events/slots/display'
 import { eventSlotOperations } from '@/services/events/slots/operations'
 import { userOperations } from '@/services/users/operations'
 import { afterAll, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
@@ -27,6 +29,7 @@ const refusedWith = (message: string) => ({ errors: [expect.objectContaining({ m
 const notifySpy = jest.spyOn(eventNotificationOperations.internal.createInfoNotification, 'internalCall')
 let userIds: number[]
 let order: number
+let sentMail: ReturnType<typeof recordSentMail>
 
 beforeAll(async () => {
     const users = await Promise.all(Array.from({ length: 6 }, (_, index) => userOperations.create({
@@ -46,7 +49,7 @@ beforeAll(async () => {
 beforeEach(() => {
     notifySpy.mockReset()
     notifySpy.mockResolvedValue({ notification: null })
-    recordSentMail()
+    sentMail = recordSentMail()
 })
 
 afterAll(() => notifySpy.mockRestore())
@@ -120,6 +123,18 @@ const removeAsAdmin = (registrationId: number) => eventRegistrationOperations.de
     params: { registrationId },
     bypassAuth: true,
 })
+
+const moveToSlot = (registrationId: number, slotId: number) => eventRegistrationOperations.moveToSlot({
+    params: { registrationId },
+    data: { slotId },
+    bypassAuth: true,
+})
+
+/** Runs after the given milliseconds, so that of two calls at once either may come first. */
+const after = async <Result>(milliseconds: number, run: () => Promise<Result>) => {
+    await new Promise(resolve => setTimeout(resolve, milliseconds))
+    return await run()
+}
 
 const registrationOf = (userId: number, variantId: number) => prisma.eventRegistration.findFirstOrThrow({
     where: { userId, OR: [{ quota: { variantId } }, { waitingListVariantId: variantId }] },
@@ -252,6 +267,99 @@ describe('registering on a slotted variant', () => {
 })
 
 describe('leaving a slotted variant', () => {
+    test('frees the slot, which the first who waits and qualifies gets and is told of', async () => {
+        const members = await groupOf('slotfirst', [userIds[0], userIds[3]])
+        const others = await groupOf('slotothers', [userIds[1]])
+        const { eventId, variant, quotas, slots } = await createSlottedEvent('Ledig tidsluke', [
+            { places: 1, visibilityRequirements: members },
+            { places: 2, visibilityRequirements: others },
+        ])
+        await registerAsAdmin(eventId, userIds[0], slots[2].id)
+        await registerAsAdmin(eventId, userIds[1], slots[0].id)
+        // Waiting in this order: one who passes no quota, then a member.
+        for (const userId of [userIds[2], userIds[3]]) {
+            await prisma.eventRegistration.create({
+                data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, userId },
+            })
+        }
+
+        await removeAsAdmin((await registrationOf(userIds[0], variant.id)).id)
+
+        expect(await registrationOf(userIds[3], variant.id)).toMatchObject({
+            state: 'IN_QUOTA',
+            quotaId: quotas[0].id,
+            slotId: slots[2].id,
+        })
+        expect(await registrationOf(userIds[2], variant.id)).toMatchObject({ state: 'WAITING_LIST', slotId: null })
+        expect(await holderOf(slots[1].id)).toBeNull()
+        expect(notifySpy).toHaveBeenCalledTimes(1)
+        expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({
+                audience: { userIds: [userIds[3]] },
+                message: expect.stringContaining(`Du har fått tidsluken ${displaySlot(slots[2])}.`),
+            }),
+        }))
+    })
+
+    test('unpaid in time sends its slot on to the first who waits, before an earlier free one', async () => {
+        const members = await groupOf('slotunpaid', [userIds[3]])
+        const { eventId, variant, slots } = await createSlottedEvent('Ubetalt', [
+            { places: 2, visibilityRequirements: open },
+            { places: 1, visibilityRequirements: members },
+        ])
+        const unpaid = await register(eventId, userIds[0], slots[2].id)
+        const paid = await register(eventId, userIds[1], slots[1].id)
+        await register(eventId, userIds[2])
+        await prisma.eventRegistration.update({
+            where: { id: unpaid.id },
+            data: { createdAt: new Date(Date.now() - 3 * HOUR) },
+        })
+        await prisma.eventRegistration.update({ where: { id: paid.id }, data: { manuallyPaid: true } })
+        await prisma.eventVariant.update({
+            where: { id: variant.id },
+            data: {
+                takesPayment: true,
+                price: 10000,
+                paymentStart: new Date(Date.now() - 48 * HOUR),
+                paymentEnd: new Date(Date.now() - HOUR),
+                requeueUnpaidRegistrations: true,
+            },
+        })
+
+        expect(await requeueNextUnpaidRegistration()).toBe(true)
+
+        expect(await registrationOf(userIds[0], variant.id)).toMatchObject({ state: 'WAITING_LIST', slotId: null })
+        expect(await registrationOf(userIds[2], variant.id)).toMatchObject({ state: 'IN_QUOTA', slotId: slots[2].id })
+        expect(await holderOf(slots[0].id)).toBeNull()
+        expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({
+                audience: { userIds: [userIds[2]] },
+                message: expect.stringContaining(`Du har fått tidsluken ${displaySlot(slots[2])}.`),
+            }),
+        }))
+    })
+
+    test('tells a guest who gets the freed slot of it by mail', async () => {
+        const { eventId, variant, slots } = await createSlottedEvent('Gjest rykker opp', [
+            { places: 1, visibilityRequirements: open },
+        ])
+        const seated = await register(eventId, userIds[0], slots[0].id)
+        await prisma.eventRegistration.create({
+            data: {
+                state: 'WAITING_LIST',
+                waitingListVariant: { connect: { id: variant.id } },
+                contact: { create: { name: 'Gjest', email: 'slot-guest@example.com' } },
+            },
+        })
+
+        await removeAsAdmin(seated.id)
+
+        expect(sentMail).toHaveBeenCalledWith(expect.objectContaining({
+            to: 'slot-guest@example.com',
+            html: expect.stringContaining(`Du har fått tidsluken ${displaySlot(slots[0])}.`),
+        }))
+    })
+
     test('follows a binding registration, which only an administrator takes back', async () => {
         const { eventId, slots } = await createSlottedEvent('Bindende', undefined, { bindingRegistration: true })
         const registration = await register(eventId, userIds[0], slots[0].id)
@@ -310,6 +418,96 @@ describe('a change of places on a slotted variant', () => {
             quotaId: quotas[0].id,
             slotId: slots[1].id,
         })
+    })
+})
+
+describe('switching slot', () => {
+    test('takes a free slot and frees the one left, and refuses a taken one', async () => {
+        const { eventId, variant, slots } = await createSlottedEvent('Bytter', [{ places: 3, visibilityRequirements: open }])
+        const registration = await register(eventId, userIds[0], slots[0].id)
+        await register(eventId, userIds[1], slots[1].id)
+
+        await moveToSlot(registration.id, slots[2].id)
+        expect(await holderOf(slots[2].id)).toBe(userIds[0])
+        expect(await holderOf(slots[0].id)).toBeNull()
+
+        await expect(moveToSlot(registration.id, slots[1].id))
+            .rejects.toMatchObject(refusedWith('Tidsluken er tatt. Velg en annen.'))
+        expect(await registrationOf(userIds[0], variant.id)).toMatchObject({ state: 'IN_QUOTA', slotId: slots[2].id })
+        expect(await register(eventId, userIds[2], slots[0].id)).toMatchObject({ slotId: slots[0].id })
+    })
+
+    test('is refused once registration has closed, and to one who waits', async () => {
+        const { eventId, variant, slots } = await createSlottedEvent('Stengt', [{ places: 1, visibilityRequirements: open }])
+        const registration = await register(eventId, userIds[0], slots[0].id)
+        const waiting = await register(eventId, userIds[1])
+
+        await expect(moveToSlot(waiting.id, slots[0].id))
+            .rejects.toMatchObject(refusedWith('Påmeldingen har ingen tidsluke å bytte.'))
+
+        await removeAsAdmin(registration.id)
+        const promoted = await registrationOf(userIds[1], variant.id)
+        expect(promoted).toMatchObject({ state: 'IN_QUOTA', slotId: slots[0].id })
+
+        await prisma.eventVariant.update({
+            where: { id: variant.id },
+            data: { registrationEnd: new Date(Date.now() - MINUTE) },
+        })
+        await expect(moveToSlot(promoted.id, slots[0].id))
+            .rejects.toMatchObject(refusedWith('Tidsluken kan bare byttes mens påmeldingen er åpen.'))
+    })
+})
+
+describe('switching slot at the same instant', () => {
+    test('of two into one free slot, lets one in and tells the other it is taken', async () => {
+        const { eventId, variant, slots } = await createSlottedEvent('Bytter samtidig', [
+            { places: 4, visibilityRequirements: open },
+        ])
+        const { id: first } = await register(eventId, userIds[0], slots[0].id)
+        const { id: second } = await register(eventId, userIds[1], slots[1].id)
+
+        for (let round = 0; round < 20; round++) {
+            const free = await prisma.eventSlot.findFirstOrThrow({
+                where: { variantId: variant.id, registration: null },
+                orderBy: { start: round % 2 === 0 ? 'asc' : 'desc' },
+            })
+            const switches = await Promise.allSettled([moveToSlot(first, free.id), moveToSlot(second, free.id)])
+
+            expect(switches.filter(attempt => attempt.status === 'fulfilled')).toHaveLength(1)
+            expect(switches.flatMap(attempt => (attempt.status === 'rejected' ? [attempt.reason as unknown] : [])))
+                .toEqual([expect.objectContaining(refusedWith('Tidsluken er tatt. Velg en annen.'))])
+            expect(await prisma.eventRegistration.count({
+                where: { slotId: { not: null }, quota: { variantId: variant.id } },
+            })).toBe(2)
+        }
+    })
+
+    test('against a pick of the same slot, lets one have it and tells the other it is taken', async () => {
+        const { eventId, variant, slots } = await createSlottedEvent('Bytter mot påmelding', [
+            { places: 3, visibilityRequirements: open },
+        ])
+        const switching = await register(eventId, userIds[0], slots[0].id)
+        const picking = userIds[1]
+
+        for (let round = 0; round < 20; round++) {
+            const free = await prisma.eventSlot.findFirstOrThrow({
+                where: { variantId: variant.id, registration: null },
+                orderBy: { start: round % 2 === 0 ? 'asc' : 'desc' },
+            })
+            const lead = (round % 5) * 3
+            const attempts = await Promise.allSettled([
+                after(round % 2 === 0 ? lead : 0, () => moveToSlot(switching.id, free.id)),
+                after(round % 2 === 0 ? 0 : lead, () => register(eventId, picking, free.id)),
+            ])
+
+            expect(attempts.filter(attempt => attempt.status === 'fulfilled')).toHaveLength(1)
+            expect(attempts.flatMap(attempt => (attempt.status === 'rejected' ? [attempt.reason as unknown] : [])))
+                .toEqual([expect.objectContaining(refusedWith('Tidsluken er tatt. Velg en annen.'))])
+            const picked = await prisma.eventRegistration.findFirst({
+                where: { userId: picking, quota: { variantId: variant.id } },
+            })
+            if (picked) await removeAsAdmin(picked.id)
+        }
     })
 })
 

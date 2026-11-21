@@ -76,7 +76,7 @@ describe.each([
     })
 
     test('of a promotion from the waiting list links to the pages of its kind', async () => {
-        await notifyPromotedFromWaitingList(event, [{ userId, contact: null }])
+        await notifyPromotedFromWaitingList(event, [{ userId, contact: null, slot: null }])
         expect(sentUrl()).toMatch(new RegExp(`^${pages}varsellenke-`))
     })
 
