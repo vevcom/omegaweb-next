@@ -69,7 +69,8 @@ export const chatUserOperations = {
 
     /**
      * The spaces a user is in, each with its two notification channels and the rooms the user is
-     * let into, and where the chat client opens them. None for one who has not signed in to the chat.
+     * let into, and for each the Matrix id it has once it is on the homeserver and where the chat
+     * client opens it. None for one who has not signed in to the chat.
      */
     readSpaces: defineOperation({
         paramsSchema: chatUserSchemas.params.readSpaces,
@@ -108,10 +109,10 @@ export const chatUserOperations = {
                     },
                 },
             })
-            return chatUser?.spaceMemberships.map(({ space: { matrixRoomId, rooms, ...space } }) => ({
+            return chatUser?.spaceMemberships.map(({ space: { rooms, ...space } }) => ({
                 ...space,
-                url: urlOfRoom(matrixRoomId),
-                rooms: rooms.map(({ matrixRoomId: roomId, ...room }) => ({ ...room, url: urlOfRoom(roomId) })),
+                url: urlOfRoom(space.matrixRoomId),
+                rooms: rooms.map(room => ({ ...room, url: urlOfRoom(room.matrixRoomId) })),
             })) ?? []
         },
     }),

@@ -249,6 +249,7 @@ describe('the spaces of a chat user', () => {
                 id: space.id,
                 name: 'Vevcom',
                 committee: null,
+                matrixRoomId: null,
                 url: null,
                 rooms: [],
                 mentionsNotificationChannel: expect.objectContaining({ id: space.mentionsNotificationChannelId }),

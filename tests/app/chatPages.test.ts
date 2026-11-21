@@ -1,4 +1,5 @@
 import { createChatSpace } from 'tests/chatSpaces'
+import { appHref } from '@/lib/sites/href'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { prisma as prismaClient } from '@/prisma-pn-client-instance'
 import type { chatUserOperations as chatUserOperationsOfService } from '@/services/chat/users/operations'
@@ -86,6 +87,7 @@ describe('the chat pages', () => {
         expect(loaded.chatLinks.spaces()).toBe('/chat/spaces')
         expect(loaded.chatLinks.settings()).toBe('/chat/settings')
         expect(loaded.chatLinks.signIn()).toBe('/chat/sign-in')
+        expect(loaded.chatLinks.signOut(appHref('/career/logout'))).toBe('/chat/sign-out?callbackUrl=%2Fcareer%2Flogout')
     })
 
     test('are a user\'s own, with the chat client as the last item of their navigation', async () => {
@@ -135,10 +137,11 @@ describe('the spaces of a chat user', () => {
 
         await expect(loaded.chatUserOperations.readSpaces({ params: { userId: user.id }, session }))
             .resolves.toMatchObject([{
+                matrixRoomId: '!vevcom:chat.test',
                 url: 'https://chat.test/#/room/!vevcom:chat.test',
                 rooms: [
-                    { name: 'Prat', url: 'https://chat.test/#/room/!prat:chat.test' },
-                    { name: 'Ny', url: null },
+                    { name: 'Prat', matrixRoomId: '!prat:chat.test', url: 'https://chat.test/#/room/!prat:chat.test' },
+                    { name: 'Ny', matrixRoomId: null, url: null },
                 ],
             }])
     })

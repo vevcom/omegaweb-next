@@ -65,8 +65,9 @@ export function proxy(request: NextRequest) {
 /**
  * What the policy lets a chat page do beyond every other page, or null for a request that is for
  * none: a page under the chat pages' path, on a domain that serves them, where the chat pages sign
- * the browser in. The policy is the document's, so it holds for as long as the document lives, also
- * after the visitor has moved on to another page in it.
+ * the browser in. The policy is the document's and holds for as long as the document lives: also
+ * after the visitor has moved on to another page in it, and not at a chat page the visitor came to
+ * from another page, which ChatSessionProvider therefore loads anew.
  */
 function chatPageOf(context: DomainContext) {
     if (!chatSignIn || !context.serves(Site.of(chatPages.site)) || !isChatPagePath(context.path)) return null

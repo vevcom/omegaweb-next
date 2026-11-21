@@ -1,4 +1,5 @@
 import { chatLinks } from '@/app/(omegaweb)/chat/links'
+import { chatSessionAuth } from '@/services/chat/session/auth'
 import { chatUserAuth } from '@/services/chat/users/auth'
 import { chatAuth, chatClientOrigin } from '@/services/chat/constants'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -17,7 +18,11 @@ export function chatNavDef({ userId }: { userId: number }) {
             name: 'Meldinger',
             href: chatLinks.messages(),
             icon: faComments,
-            authorizers: () => [chatUserAuth.read.data(ofUser)],
+            authorizers: () => [
+                chatSessionAuth.read.data(ofUser),
+                chatUserAuth.read.data(ofUser),
+                chatUserAuth.readSpaces.data(ofUser),
+            ],
         },
         {
             key: 'spaces',
