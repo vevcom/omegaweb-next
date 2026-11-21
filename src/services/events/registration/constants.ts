@@ -40,6 +40,7 @@ export const eventRegistrationSelectionDetailed = {
     note: true,
     attendedAt: true,
     manuallyPaid: true,
+    slot: { select: { start: true, end: true } },
     user: {
         select: {
             ...userCardSelection,

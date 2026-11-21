@@ -1,28 +1,10 @@
+import { checksOf } from './checks'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import { readFileSync } from 'node:fs'
 
-// The suite's database is pushed from the schema, which holds no checks, so they are taken from the migration.
 const migration = readFileSync('src/prisma/migrations/20261126170000_event_slots/migration.sql', 'utf8')
-
-/** Each check of the migration as a statement of its own, read with its parentheses balanced. */
-function checksOf(sql: string) {
-    const check = /CONSTRAINT "((\w+?)_\w+_check)" CHECK \(/g
-    const statements: string[] = []
-    for (let found = check.exec(sql); found; found = check.exec(sql)) {
-        const opens = found.index + found[0].length - 1
-        let depth = 0
-        let closes = opens
-        do {
-            if (sql[closes] === '(') depth += 1
-            if (sql[closes] === ')') depth -= 1
-            closes += 1
-        } while (depth > 0)
-        statements.push(`ALTER TABLE "${found[2]}" ADD CONSTRAINT "${found[1]}" CHECK ${sql.slice(opens, closes)}`)
-    }
-    return statements
-}
 
 let variantId: number
 

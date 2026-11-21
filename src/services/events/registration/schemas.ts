@@ -21,6 +21,7 @@ const paramsFieldSchemas = z.object({
     registrationId: z.number().min(0),
     variantId: z.number().min(0),
     quotaId: z.number().min(0),
+    slotId: z.number().min(0),
     registeredById: z.number().min(0),
     type: z.nativeEnum(REGISTRATION_READER_TYPE),
     search: z.string().trim().max(searchMaxLength),
@@ -49,9 +50,11 @@ const readPage = readPageInputSchemaObject(
     }),
 )
 
-// Left out, the variant is the event's only one, and the quota the first with a place.
+// Left out, the variant is the event's only one, the quota the first with a place, and the
+// registration waits for a slot.
 const variantIdOptional = { variantId: paramsFieldSchemas.shape.variantId.optional() }
 const quotaIdOptional = { quotaId: paramsFieldSchemas.shape.quotaId.optional() }
+const slotIdOptional = { slotId: paramsFieldSchemas.shape.slotId.optional() }
 
 const userAndEvent = paramsFieldSchemas.pick({
     userId: true,
@@ -88,9 +91,9 @@ export const eventRegistrationSchemas = {
         }),
     },
     params: {
-        create: userAndEvent,
-        createAsAdmin: userAndEvent.extend(quotaIdOptional),
-        createGuest: eventAndVariant.extend(quotaIdOptional),
+        create: userAndEvent.extend(slotIdOptional),
+        createAsAdmin: userAndEvent.extend(quotaIdOptional).extend(slotIdOptional),
+        createGuest: eventAndVariant.extend(quotaIdOptional).extend(slotIdOptional),
         readDotPunishmentOfUser: paramsFieldSchemas.pick({
             userId: true,
         }),

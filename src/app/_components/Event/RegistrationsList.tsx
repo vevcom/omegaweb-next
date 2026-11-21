@@ -26,6 +26,7 @@ import {
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { configureAction } from '@/services/configureAction'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
+import { displaySlot } from '@/services/events/slots/display'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
@@ -51,7 +52,10 @@ function DetailedTable({
     const onWaitingList = type === REGISTRATION_READER_TYPE.WAITING_LIST
     const severalVariants = event.variants.length > 1
     const severalQuotas = event.variants.some(variant => variant.quotas.length > 1)
-    const columns = 7 + (severalVariants ? 1 : 0) + (severalQuotas ? 1 : 0) + (event.takesPayment ? 1 : 0)
+    // The waiting list waits for any slot, so only those with a place have one.
+    const showsSlots = !onWaitingList && event.variants.some(variant => variant.registrationType === 'SLOTTED')
+    const columns = 7 + (severalVariants ? 1 : 0) + (severalQuotas ? 1 : 0) + (showsSlots ? 1 : 0)
+        + (event.takesPayment ? 1 : 0)
         + (attendanceTakerId !== null ? 1 : 0) + (dotGiverId !== null ? 1 : 0)
     const quotasOfVariant = (variantId: number | undefined) =>
         event.variants.find(variant => variant.id === variantId)?.quotas ?? []
@@ -79,6 +83,7 @@ function DetailedTable({
                         <th>Flytt</th>
                         {severalVariants && <th>Variant</th>}
                         {severalQuotas && <th>Kvote</th>}
+                        {showsSlots && <th>Tidsluke</th>}
                         <th>Navn</th>
                         <th>E-post</th>
                         <th>Mobil</th>
@@ -123,6 +128,7 @@ function DetailedTable({
                                 </td>
                                 {severalVariants && <td>{row.quota?.variant.name ?? row.waitingListVariant?.name}</td>}
                                 {severalQuotas && <td>{row.quota?.name}</td>}
+                                {showsSlots && <td className="tabular-nums">{row.slot && displaySlot(row.slot)}</td>}
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>

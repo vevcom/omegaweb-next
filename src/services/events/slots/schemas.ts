@@ -33,5 +33,8 @@ export const eventSlotSchemas = {
         saveSchedule: paramsFieldSchemas.pick({
             variantId: true,
         }),
+        readOfVariant: paramsFieldSchemas.pick({
+            variantId: true,
+        }),
     },
 }

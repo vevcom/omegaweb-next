@@ -7,3 +7,6 @@ export type SlotSchedule = Prisma.EventSlotScheduleGetPayload<{ select: typeof s
 export type SlotScheduleDraft = Omit<SlotSchedule, 'start'> & { start: Date | null }
 
 export type Slot = { start: Date, end: Date }
+
+/** A slot as a variant offers it, which is free while no registration holds it. */
+export type SlotOfVariant = Slot & { id: number, free: boolean }

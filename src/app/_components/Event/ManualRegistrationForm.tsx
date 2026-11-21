@@ -11,25 +11,37 @@ import {
     createGuestEventRegistrationAction,
 } from '@/services/events/registration/actions'
 import { configureAction } from '@/services/configureAction'
+import { displaySlot } from '@/services/events/slots/display'
 import { useContext, useState } from 'react'
 import type { ActionReturn } from '@/services/actionTypes'
+import type { SlotOfVariant } from '@/services/events/slots/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
 
 type Variant = { id: number, name: string, quotas: { id: number, name: string }[] }
-type Placement = { variantId: number, quotaId: number | undefined }
+type Placement = { variantId: number, quotaId: number | undefined, slotId: number | undefined }
 type PropTypes = {
     eventId: number,
     variants: Variant[],
+    /** The slots of each slotted variant, by its id. */
+    slotsOfVariants: Record<number, SlotOfVariant[]>,
     capabilities: CapabilitiesJsObject<'canRegisterAsAdmin' | 'canRegisterGuest'>,
 }
 
-/** Which variant, and which of its quotas, the administrator puts the registration in. */
-function usePlacement(variants: Variant[]) {
+/** Which variant, which of its quotas and which of its free slots the administrator puts the registration in. */
+function usePlacement(variants: Variant[], slotsOfVariants: Record<number, SlotOfVariant[]>) {
     const [variantId, setVariantId] = useState(variants[0]?.id)
     const [quotaId, setQuotaId] = useState<number | 'NULL'>('NULL')
+    const [pickedSlotId, setSlotId] = useState<number | 'NULL'>('NULL')
     const variant = variants.find(candidate => candidate.id === variantId) ?? variants[0]
-    const placement: Placement = { variantId: variant.id, quotaId: quotaId === 'NULL' ? undefined : quotaId }
+    const freeSlots = (slotsOfVariants[variant.id] ?? []).filter(slot => slot.free)
+    // A slot taken since it was picked is no longer offered.
+    const slotId = freeSlots.some(slot => slot.id === pickedSlotId) ? pickedSlotId : 'NULL'
+    const placement: Placement = {
+        variantId: variant.id,
+        quotaId: quotaId === 'NULL' ? undefined : quotaId,
+        slotId: slotId === 'NULL' ? undefined : slotId,
+    }
 
     const picker = <>
         {variants.length > 1 && <SelectNumber
@@ -40,6 +52,7 @@ function usePlacement(variants: Variant[]) {
             onChange={value => {
                 setVariantId(value)
                 setQuotaId('NULL')
+                setSlotId('NULL')
             }}
         />}
         {variant.quotas.length > 1 && <SelectNumberPossibleNULL
@@ -51,6 +64,16 @@ function usePlacement(variants: Variant[]) {
             ]}
             value={quotaId}
             onChange={setQuotaId}
+        />}
+        {slotsOfVariants[variant.id] && <SelectNumberPossibleNULL
+            label="Tidsluke"
+            name="slotId"
+            options={[
+                { value: 'NULL', label: freeSlots.length > 0 ? 'Velg en ledig tidsluke' : 'Ingen ledige, venteliste' },
+                ...freeSlots.map(slot => ({ value: slot.id, label: displaySlot(slot) })),
+            ]}
+            value={slotId}
+            onChange={setSlotId}
         />}
     </>
     return { placement, picker }
@@ -106,8 +129,8 @@ function whoToRegister(choice: 'member' | 'guest', canRegisterMembers: boolean, 
     return canRegisterMembers ? 'member' : 'guest'
 }
 
-function RegisterOthers({ eventId, variants, capabilities }: PropTypes) {
-    const { placement, picker } = usePlacement(variants)
+function RegisterOthers({ eventId, variants, slotsOfVariants, capabilities }: PropTypes) {
+    const { placement, picker } = usePlacement(variants, slotsOfVariants)
     const canRegisterMembers = capabilities.canRegisterAsAdmin.authorized
     const canRegisterGuests = capabilities.canRegisterGuest.authorized
     const [choice, setChoice] = useState<'member' | 'guest'>('member')

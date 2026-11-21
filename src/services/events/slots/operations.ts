@@ -2,11 +2,13 @@ import '@ow-server-only'
 import { eventSlotSchemas } from './schemas'
 import { slotsOfSchedule } from './schedule'
 import { slotScheduleSelection } from './constants'
+import { eventSlotAuth } from './auth'
+import { readEventAccess } from '@/services/events/access'
 import { registrationsOfVariant } from '@/services/events/registration/queue'
 import { changedFields } from '@/lib/changedFields'
 import { ServiceError } from '@/services/error'
-import { defineSubOperation } from '@/services/serviceOperation'
-import type { Slot } from './types'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
+import type { Slot, SlotOfVariant } from './types'
 
 function sameSlots(saved: Slot[], given: Slot[]) {
     return saved.length === given.length && saved.every((slot, index) => (
@@ -90,6 +92,26 @@ const saveSchedule = defineSubOperation({
 })
 
 export const eventSlotOperations = {
+    /** The slots of a variant in order, with which are free. A list variant has none. */
+    readOfVariant: defineOperation({
+        paramsSchema: eventSlotSchemas.params.readOfVariant,
+        authorizer: async ({ params, prisma }) => {
+            const { eventId } = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: { eventId: true },
+            })
+            return eventSlotAuth.readOfVariant.data(await readEventAccess(prisma, eventId))
+        },
+        operation: async ({ prisma, params }): Promise<SlotOfVariant[]> => {
+            const slots = await prisma.eventSlot.findMany({
+                where: { variantId: params.variantId },
+                orderBy: { start: 'asc' },
+                select: { id: true, start: true, end: true, registration: { select: { id: true } } },
+            })
+            return slots.map(({ registration, ...slot }) => ({ ...slot, free: registration === null }))
+        },
+    }),
+
     internal: {
         saveSchedule,
     },

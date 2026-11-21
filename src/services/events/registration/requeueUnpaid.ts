@@ -111,6 +111,7 @@ async function moveToBackOfQueue(registrationId: number, eventId: number, varian
                     waitingListVariantId: variantId,
                     queuedAt: new Date(),
                     promotedAt: null,
+                    slotId: null,
                 },
             })
             const promoted = await fixVariantPlaces(tx, variantId)

@@ -80,10 +80,9 @@ const changeAsTheForm = (eventId: number, change: (variants: VariantDraft[]) => 
     })
 )
 
-const registerAsAdmin = (eventId: number, userId: number) => eventRegistrationOperations.createAsAdmin({
-    params: { eventId, userId },
-    bypassAuth: true,
-})
+const registerAsAdmin = (eventId: number, userId: number, slotId?: number) => (
+    eventRegistrationOperations.createAsAdmin({ params: { eventId, userId, slotId }, bypassAuth: true })
+)
 
 const typeOf = async (variantId: number) => (
     await prisma.eventVariant.findUniqueOrThrow({ where: { id: variantId } })
@@ -236,10 +235,8 @@ describe('a slotted variant', () => {
 
     test('is refused a change to its slots while someone is registered, and saves nothing', async () => {
         const { eventId, variant } = await createEventWithVariant('Har en i en tidsluke', 'SLOTTED')
-        const [quota] = await prisma.eventQuota.findMany({ where: { variantId: variant.id } })
-        // As a registration will be made once a slot can be picked.
-        await prisma.eventRegistration.create({ data: { state: 'IN_QUOTA', quotaId: quota.id, userId: userIds[0] } })
         const slots = await slotsOf(variant.id)
+        await registerAsAdmin(eventId, userIds[0], slots[0].id)
 
         await expect(changeAsTheForm(eventId, variants => {
             variants[0].name = 'Skal ikke lagres'
@@ -249,6 +246,9 @@ describe('a slotted variant', () => {
         expect(await scheduleOf(variant.id)).toMatchObject(schedule)
         expect((await prisma.eventVariant.findUniqueOrThrow({ where: { id: variant.id } })).name).toBe('Påmelding')
 
+        await changeAsTheForm(eventId, variants => {
+            variants[0].name = 'Lagres med timeplanen som den er'
+        })
         await changeAsTheForm(eventId, variants => {
             variants[0].slotSchedule = { ...schedule, totalMinutes: 119 }
         })
@@ -370,33 +370,5 @@ describe('a list variant', () => {
         expect(await scheduleOf(variant.id)).toBeNull()
         expect(await slotsOf(variant.id)).toEqual([])
         expect(await placesOf(variant.id)).toEqual([5])
-    })
-})
-
-describe('registering on a slotted variant', () => {
-    const refusal = refusedWith('Påmelding til tidsluker er ikke mulig ennå.')
-
-    test('is refused, for a user, by an administrator and for a guest', async () => {
-        const { eventId, variant } = await createEventWithVariant('Ingen påmelding ennå', 'SLOTTED')
-
-        await expect(eventRegistrationOperations.create({
-            params: { eventId, userId: userIds[0] },
-            bypassAuth: true,
-        })).rejects.toMatchObject(refusal)
-        await expect(registerAsAdmin(eventId, userIds[1])).rejects.toMatchObject(refusal)
-        await expect(eventRegistrationOperations.createGuest({
-            params: { eventId },
-            data: { name: 'Gjest', note: '' },
-            bypassAuth: true,
-        })).rejects.toMatchObject(refusal)
-        expect(await prisma.eventRegistration.count({
-            where: { OR: [{ quota: { variantId: variant.id } }, { waitingListVariantId: variant.id }] },
-        })).toBe(0)
-    })
-
-    test('on a list variant goes on as before', async () => {
-        const { eventId } = await createEventWithVariant('Påmelding som før', 'LIST')
-
-        expect(await registerAsAdmin(eventId, userIds[0])).toMatchObject({ state: 'IN_QUOTA' })
     })
 })
