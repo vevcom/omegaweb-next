@@ -135,27 +135,61 @@ describe('the spaces of a chat user', () => {
         await createChatSpace({ name: 'Andres' })
 
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
-            .resolves.toEqual({
-                hasChatAccount: true,
-                spaces: [{
-                    id: space.id,
-                    name: 'Vevcom',
-                    committee: null,
-                    mentionsNotificationChannel: expect.objectContaining({ id: space.mentionsNotificationChannelId }),
-                    allNotificationChannel: expect.objectContaining({
-                        id: space.allNotificationChannelId,
-                        availableMethods: { email: false, emailWeekly: false, push: true },
-                    }),
-                }],
-            })
+            .resolves.toEqual([{
+                id: space.id,
+                name: 'Vevcom',
+                committee: null,
+                url: null,
+                rooms: [],
+                mentionsNotificationChannel: expect.objectContaining({ id: space.mentionsNotificationChannelId }),
+                allNotificationChannel: expect.objectContaining({
+                    id: space.allNotificationChannelId,
+                    availableMethods: { email: false, emailWeekly: false, push: true },
+                }),
+            }])
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: ola.session }))
             .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+    })
+
+    test('have the rooms the user is let into: the open ones, and the private ones they are picked for', async () => {
+        const kari = await createUser('chat-rom')
+        const ola = await createUser('chat-rom-annen')
+        const ofKari = { params: { userId: kari.user.id }, session: kari.session }
+        const ofOla = { params: { userId: ola.user.id }, session: ola.session }
+        const { id: chatUserId } = await chatUserOperations.optIn(ofKari)
+        const { id: otherChatUserId } = await chatUserOperations.optIn(ofOla)
+        const space = await createChatSpace({ name: 'Vevcom', memberChatUserIds: [chatUserId, otherChatUserId] })
+        const memberIdOf = async (ofChatUserId: number) => (await prisma.chatSpaceMember.findUniqueOrThrow({
+            where: { spaceId_chatUserId: { spaceId: space.id, chatUserId: ofChatUserId } },
+        })).id
+        await prisma.chatSpaceRoom.createMany({
+            data: [
+                { spaceId: space.id, name: 'Prat' },
+                { spaceId: space.id, name: 'Styret', isPrivate: true },
+                { spaceId: space.id, name: 'Andres', isPrivate: true },
+                { spaceId: space.id, name: 'Borte', destroyedAt: new Date() },
+            ],
+        })
+        const [board, others] = await Promise.all(['Styret', 'Andres'].map(name =>
+            prisma.chatSpaceRoom.findFirstOrThrow({ where: { spaceId: space.id, name } })))
+        await prisma.chatSpaceRoomMember.createMany({
+            data: [
+                { roomId: board.id, spaceMemberId: await memberIdOf(chatUserId) },
+                { roomId: others.id, spaceMemberId: await memberIdOf(otherChatUserId) },
+            ],
+        })
+
+        const [{ rooms }] = await chatUserOperations.readSpaces(ofKari)
+        expect(rooms.map(room => ({ name: room.name, isPrivate: room.isPrivate }))).toEqual([
+            { name: 'Prat', isPrivate: false },
+            { name: 'Styret', isPrivate: true },
+        ])
     })
 
     test('are none for a user who has not signed in to the chat', async () => {
         const kari = await createUser('chat-uten-konto')
 
         await expect(chatUserOperations.readSpaces({ params: { userId: kari.user.id }, session: kari.session }))
-            .resolves.toEqual({ hasChatAccount: false, spaces: [] })
+            .resolves.toEqual([])
     })
 })

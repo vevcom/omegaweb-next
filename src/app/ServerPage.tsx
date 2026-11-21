@@ -138,7 +138,7 @@ async function authPathWithCallback(page: 'login' | 'register') {
  * @example
  * const { page, generateMetadata } = serverPage({
  *     operation: ({ params }: { params: { username: string } }) =>
- *         userOperations.readProfile({ params: { username: params.username } }),
+ *         userOperations.readProfile({ params: { username: usernameOfPage(params) } }),
  *     capabilities: (profile) => ({
  *         canUpdate: userAuth.update.data({ username: profile.user.username }),
  *     }),

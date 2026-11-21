@@ -10,7 +10,9 @@ import { configureAction } from '@/services/configureAction'
 import { sexConfig } from '@/services/users/constants'
 import { flairOperations } from '@/services/flairs/operations'
 import { chatUserOperations } from '@/services/chat/users/operations'
-import { serverPage } from '@/app/ServerPage'
+import { chatAuth } from '@/services/chat/constants'
+import { chatLinks } from '@/app/(omegaweb)/chat/links'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
@@ -18,7 +20,7 @@ import DirectMessageButton from '@/app/(omegaweb)/users/[username]/DirectMessage
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { siteRedirect } from '@/app/domainContextOfRequest'
 import { appHref } from '@/lib/sites/href'
-import { omegaLinks } from '@/app/(omegaweb)/links'
+import { omegaLinks, usernameOfPage } from '@/app/(omegaweb)/links'
 import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOut } from '@fortawesome/free-solid-svg-icons'
@@ -37,23 +39,37 @@ const groupSectionClassName = `
 `
 const labelClassName = 'w-[10em] inline-block font-medium text-primary'
 
+/**
+ * Where "Send melding" on a profile leads: the user's own chat from their own profile, and the
+ * direct message with the user from another's, which is nowhere for one who is not on the chat.
+ * Null for a viewer who may not write on the chat, who gets no button.
+ */
+async function sendMessageFrom(user: { id: number, username: string }, isOwnProfile: boolean) {
+    if (isOwnProfile) return { href: chatLinks.messages() }
+    const directMessage = await withFallback(
+        chatUserOperations.readDirectMessage({ params: { userId: user.id } }),
+        null,
+        ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+    )
+    return directMessage && { href: directMessage.isOnChat ? chatLinks.directMessage(user) : null }
+}
+
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
-        if (params.username === 'me') {
+        const username = usernameOfPage(params)
+        if (username === 'me') {
             await siteRedirect(session.user ? omegaLinks.user(session.user) : omegaAuthLinks.login())
         }
 
-        const profile = await userOperations.readProfile({ params: { username: params.username } })
+        const profile = await userOperations.readProfile({ params: { username } })
         const flairs = await flairOperations.readUserFlairs({ params: { userId: profile.user.id } })
         const isOwnProfile = profile.user.id === session.user?.id
-        const directMessage = isOwnProfile
-            ? null
-            : await chatUserOperations.readDirectMessage({ params: { userId: profile.user.id } })
+        const sendMessage = chatAuth ? await sendMessageFrom(profile.user, isOwnProfile) : null
 
         return {
             profile,
             isOwnProfile,
-            directMessage,
+            sendMessage,
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
@@ -62,7 +78,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Profil' }),
     render: ({ data, capabilities }) => {
-        const { profile, flairs, isOwnProfile, directMessage } = data
+        const { profile, flairs, isOwnProfile, sendMessage } = data
 
         const { committeeMemberships, activeStudyProgrammes, activeInterestGroups } = profile.groups
 
@@ -215,9 +231,9 @@ const { page, generateMetadata } = serverPage({
                             </div>
                             <div className="flex flex-col items-center">
                                 <div className="flex flex-col items-center gap-2">
-                                    {directMessage?.chatIsSetUp && (
+                                    {sendMessage && (
                                         <DirectMessageButton
-                                            url={directMessage.url}
+                                            href={sendMessage.href}
                                             firstname={profile.user.firstname}
                                         />
                                     )}

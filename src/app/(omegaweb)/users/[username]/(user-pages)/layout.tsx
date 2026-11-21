@@ -3,6 +3,7 @@ import { userOperations } from '@/services/users/operations'
 import { serverLayout, withFallback, withPageSession } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
+import { usernameOfPage } from '@/app/(omegaweb)/links'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import { notFound } from 'next/navigation'
 import type { LayoutOperationArgs } from '@/app/ServerPage'
@@ -26,7 +27,7 @@ function userPagesTitle(
 
 export async function generateMetadata({ params }: PropTypes): Promise<Metadata> {
     return withPageSession(async (session) => {
-        const paramUsername = (await params).username
+        const paramUsername = usernameOfPage(await params)
         const username = paramUsername === 'me' ? session.user?.username : paramUsername
         if (!username) return {}
 
@@ -39,7 +40,7 @@ export async function generateMetadata({ params }: PropTypes): Promise<Metadata>
 
 export default serverLayout({
     operation: async ({ params, session }: LayoutOperationArgs<{ username: string }>) => {
-        let username = params.username
+        let username = usernameOfPage(params)
         if (username === 'me') {
             if (!session.user) return notFound()
             username = session.user.username

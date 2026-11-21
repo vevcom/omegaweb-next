@@ -2,6 +2,8 @@
 //Higher placment in array gives hight priority on where it is placed (ie menu vs. navbar)
 //does not include / or /login (or profile route) as they are always shown and ar special
 import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
+import { chatNavDef } from '@/app/(omegaweb)/chat/chatNavDef'
+import { chatLinks } from '@/app/(omegaweb)/chat/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaJobAdLinks } from '@/app/(omegaweb)/job-ads/links'
 import { revueLinks } from '@/app/(revue)/links'
@@ -32,6 +34,7 @@ import {
     faGamepad,
     faBook,
     faComment,
+    faComments,
     faCamera,
     faNewspaper,
     faCalendar,
@@ -108,6 +111,13 @@ export const navDef = defineNavDef([
         href: appHref('/users'),
         icon: faPeopleLine,
         authorizers: () => [userAuth.readPage],
+    },
+    {
+        key: 'chat',
+        name: 'Chat',
+        href: chatLinks.messages(),
+        icon: faComments,
+        authorizers: () => chatNavDef.authorizers(),
     },
     {
         key: 'committees',

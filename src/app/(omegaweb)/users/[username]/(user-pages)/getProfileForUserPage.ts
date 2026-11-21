@@ -1,5 +1,6 @@
 import { userOperations } from '@/services/users/operations'
 import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
+import { usernameOfPage } from '@/app/(omegaweb)/links'
 import { siteRedirect } from '@/app/domainContextOfRequest'
 import { notFound } from 'next/navigation'
 import type { ServerPageSession } from '@/app/ServerPage'
@@ -21,13 +22,14 @@ type Params = {
  * Being let in says nothing about which parts of the page to render. That is the page's own job:
  * it re-runs the authorizers it cares about against the returned session.
  *
- * @param params - The username of the user whose page it is. If 'me' is passed, the current user's
- * own page is redirected to.
+ * @param params - The username of the user whose page it is, percent-encoded as Next hands a page
+ * its params. If 'me' is passed, the current user's own page is redirected to.
  * @param path - The page's path, as `userNavDef` spells it.
  * @param session - The session of the request, as the serverPage operation receives it.
  * @returns The profile being seen.
 */
-export async function getProfileForUserPage({ username }: Params, path: UserNavPath, session: ServerPageSession) {
+export async function getProfileForUserPage(params: Params, path: UserNavPath, session: ServerPageSession) {
+    const username = usernameOfPage(params)
     if (username === 'me') {
         if (!session.user) return notFound()
         await siteRedirect(userNavDef({ username: session.user.username, userId: session.user.id }).all.href(path))

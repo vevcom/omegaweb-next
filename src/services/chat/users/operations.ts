@@ -12,6 +12,10 @@ const subscribableChannel = {
     select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
 } as const
 
+const urlOfRoom = (matrixRoomId: string | null) => (
+    chatClientOrigin && matrixRoomId ? `${chatClientOrigin}/#/room/${matrixRoomId}` : null
+)
+
 export const chatUserOperations = {
     /**
      * Gives a user their account on the chat, which is how they opt in to it: the provider calls
@@ -57,13 +61,17 @@ export const chatUserOperations = {
         },
     }),
 
-    /** The spaces a user is in, each with its two notification channels. None for one who has not signed in to the chat. */
+    /**
+     * The spaces a user is in, each with its two notification channels and the rooms the user is
+     * let into, and where the chat client opens them. None for one who has not signed in to the chat.
+     */
     readSpaces: defineOperation({
         paramsSchema: chatUserSchemas.params.readSpaces,
         authorizer: ({ params }) => chatUserAuth.readSpaces.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
+            const ofUser = { userId: params.userId }
             const chatUser = await prisma.chatUser.findUnique({
-                where: { userId: params.userId },
+                where: ofUser,
                 select: {
                     spaceMemberships: {
                         where: { space: { destroyedAt: null } },
@@ -72,9 +80,21 @@ export const chatUserOperations = {
                                 select: {
                                     id: true,
                                     name: true,
+                                    matrixRoomId: true,
                                     committee: { select: { shortName: true } },
                                     mentionsNotificationChannel: subscribableChannel,
                                     allNotificationChannel: subscribableChannel,
+                                    rooms: {
+                                        where: {
+                                            destroyedAt: null,
+                                            OR: [
+                                                { isPrivate: false },
+                                                { pickedMembers: { some: { spaceMember: { chatUser: ofUser } } } },
+                                            ],
+                                        },
+                                        select: { id: true, name: true, isPrivate: true, matrixRoomId: true },
+                                        orderBy: { id: 'asc' },
+                                    },
                                 },
                             },
                         },
@@ -82,31 +102,33 @@ export const chatUserOperations = {
                     },
                 },
             })
-            return {
-                hasChatAccount: chatUser !== null,
-                spaces: chatUser?.spaceMemberships.map(membership => membership.space) ?? [],
-            }
+            return chatUser?.spaceMemberships.map(({ space: { matrixRoomId, rooms, ...space } }) => ({
+                ...space,
+                url: urlOfRoom(matrixRoomId),
+                rooms: rooms.map(({ matrixRoomId: roomId, ...room }) => ({ ...room, url: urlOfRoom(roomId) })),
+            })) ?? []
         },
     }),
 
     /**
-     * Where the chat client opens a direct message with a user. No url for a user without an
-     * account on the chat, and no chat to write on where the client or the server name is unset.
+     * Whether a user is on the chat to be written to, and where the chat client opens a direct
+     * message with them. No url for a user without an account there, nor where the client or the
+     * server name is unset.
      */
     readDirectMessage: defineOperation({
         paramsSchema: chatUserSchemas.params.readDirectMessage,
         authorizer: () => chatUserAuth.readDirectMessage,
         operation: async ({ prisma, params }) => {
-            const { serverName } = chatServer
-            if (!chatClientOrigin || !serverName) return { chatIsSetUp: false, url: null }
-
             const chatUser = await prisma.chatUser.findUnique({
                 where: { userId: params.userId, deactivatedAt: null },
                 select: { localpart: true },
             })
+            const { serverName } = chatServer
             return {
-                chatIsSetUp: true,
-                url: chatUser && `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`,
+                isOnChat: chatUser !== null,
+                url: chatUser && chatClientOrigin && serverName
+                    ? `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`
+                    : null,
             }
         },
     }),

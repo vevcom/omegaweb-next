@@ -99,7 +99,7 @@ describe('a message in a room of a space', () => {
         await expect(syncAndReadNotifications()).resolves.toEqual([{
             title: 'kari Nordmann skrev i Prat',
             message: 'Meldingen ligger i rommet Prat i chatområdet Vevcom.',
-            url: '/users/me/chat',
+            url: '/chat/spaces',
             channelId: space.allNotificationChannelId,
             to: [ola.id],
         }])
@@ -239,7 +239,7 @@ describe('a message outside every space', () => {
         await expect(syncAndReadNotifications()).resolves.toEqual([{
             title: 'kari Nordmann skrev til deg',
             message: 'Meldingen ligger i direktemeldingene dine på chatten.',
-            url: '/users/me/chat',
+            url: '/chat',
             channelId: await directAndGroupChannelId(),
             to: [ola.id],
         }])

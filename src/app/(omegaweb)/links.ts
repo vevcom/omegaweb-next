@@ -20,9 +20,15 @@ export const omegaLinks: OmegaLinks = defineLinks<PagesMount, OmegaLinks>(href =
     frontpage: () => href(),
     committee: committee => href(`/committees/${committee.shortName}`),
     interestGroup: interestGroup => href(`/interest-groups/${interestGroup.id}`),
-    user: user => href(`/users/${user.username}`),
-    userNotifications: user => href(`/users/${user.username}/notifications`),
+    user: user => href(`/users/${encodeURIComponent(user.username)}`),
+    userNotifications: user => href(`/users/${encodeURIComponent(user.username)}/notifications`),
     news: news => href(`/news/${formatVevenUri(news.articleName, news.id)}`),
     ombul: ombul => href(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`),
     omegaquotes: () => href('/omegaquotes'),
 }))(omegaPages)
+
+/**
+ * The username a page under `[username]` is about. Next hands a page the segment encoded with
+ * `encodeURIComponent`, which is also how the links put a username in the path.
+ */
+export const usernameOfPage = (params: { username: string }) => decodeURIComponent(params.username)
