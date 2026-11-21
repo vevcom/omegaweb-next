@@ -10,8 +10,8 @@ function serialize(formData: FormData) {
 
 /**
  * Whether a form holds anything other than what it started with or last saved. It compares what the
- * form would submit, so it covers every input, and looks again whenever one fires `input` and when
- * the form is reset. An input whose value React sets fires `input` with `useInputEvent`.
+ * form would submit, so it covers every input, and looks again on `onInput`, which goes on the form,
+ * and when the form is reset. An input whose value React sets fires `input` with `useInputEvent`.
  */
 export function useUnsavedChanges(
     formRef: RefObject<HTMLFormElement | null>,
@@ -40,18 +40,21 @@ export function useUnsavedChanges(
         check()
         // The browser resets the inputs after the event, so the values are read once it has.
         const checkAfterReset = () => setTimeout(check)
-        form.addEventListener('input', check)
         form.addEventListener('reset', checkAfterReset)
-        return () => {
-            form.removeEventListener('input', check)
-            form.removeEventListener('reset', checkAfterReset)
-        }
+        return () => form.removeEventListener('reset', checkAfterReset)
     }, [enabled, formRef, check])
+
+    // React's own handler and not a listener on the form, which runs before React's. The state set
+    // there would be rendered in between, putting a controlled input's old value back before React
+    // sees the new one, so its onChange would never fire.
+    const onInput = useCallback(() => {
+        if (enabled) check()
+    }, [enabled, check])
 
     const markSaved = useCallback((formData: FormData) => {
         savedRef.current = serialize(formData)
         check()
     }, [check])
 
-    return { dirty, markSaved }
+    return { dirty, markSaved, onInput }
 }
