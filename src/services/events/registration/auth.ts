@@ -65,7 +65,8 @@ export const eventRegistrationAuth = {
     destroyAsAdmin: eventAdminLevel,
     move: eventAdminLevel,
     moveToQuota: eventAdminLevel,
-    moveToSlot: ownRegistration('Tidsluken til en gjest kan ikke byttes.'),
+    moveToSlot: ownRegistration('Tidsluken til en gjest byttes av arrangørene.'),
+    moveToSlotAsAdmin: eventAdminLevel,
     setManuallyPaid: eventAdminLevel,
 
     // Never the registrant's own: marking yourself as shown up would dodge the dots for not showing up.

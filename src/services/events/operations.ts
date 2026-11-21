@@ -3,8 +3,9 @@ import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
 import { assertSeenThroughQuotas, readEventAccess, setsCompany } from './access'
 import { publishProblems } from './publishProblems'
-import { lockEvent } from './registration/queue'
+import { lockEvent, registrationsOfEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
+import { isToldOf, notifySlotChanges } from './registration/notifySlotChanges'
 import {
     eventCompanySelection,
     eventListSelection,
@@ -38,7 +39,8 @@ import { validTransactionFilter } from '@/services/ledger/transactions/constants
 import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { PromotedRegistration } from './registration/fixState'
 import type { VariantStatistics } from './statistics'
-import type { EventTag, Prisma } from '@/prisma-generated-pn-types'
+import type { SlotChange } from './slots/types'
+import type { Event, EventTag, Prisma } from '@/prisma-generated-pn-types'
 import type { EventExpanded } from './types'
 import type { SearchFindArgs } from '@/services/search/implement'
 import type { EventPagesConfig } from '@/pageKits/events/config'
@@ -195,19 +197,22 @@ const updateFields = defineSubOperation({
             await eventNotificationOperations.internal.createInfoNotification.internalCall({
                 prisma,
                 params: { channelId: updatedEvent.infoNotificationChannelId },
-                data: {
-                    title: `Endring i ${updatedEvent.name}`,
-                    message: `${updatedEvent.name} er endret. `
-                        + `🕓 ${displayDate(updatedEvent.eventStart)}, 📍 ${updatedEvent.location}. `
-                        + 'Se arrangementets side for detaljene.',
-                    url: eventHomeLinks(updatedEvent).event(updatedEvent),
-                    audience: { registeredForEventId: updatedEvent.id },
-                },
+                data: { ...changeNotice(updatedEvent), audience: { registeredForEventId: updatedEvent.id } },
             })
         }
         return updatedEvent
     },
 })
+
+/** What those registered to an event are told when it is changed. */
+function changeNotice(event: Pick<Event, 'id' | 'kind' | 'name' | 'eventStart' | 'location'>) {
+    return {
+        title: `Endring i ${event.name}`,
+        message: `${event.name} er endret. 🕓 ${displayDate(event.eventStart)}, 📍 ${event.location}. `
+            + 'Se arrangementets side for detaljene.',
+        url: eventHomeLinks(event).event(event),
+    }
+}
 
 /** Changes the event's own fields. Its variants, quotas, administrators and account have operations of their own. */
 const update = defineOperation({
@@ -547,6 +552,9 @@ export const eventOperations = {
      * none of it is saved. The event's own fields, its variants and quotas, who administrates it
      * and the account it is paid into may each be left out. Each part is saved by the operation
      * that owns it. This one holds them together in one transaction.
+     *
+     * Those whose slot a new schedule changes are told of it each, once. When the change is to be
+     * told to everyone registered too, they are told of it with their slot and the rest apart.
      */
     saveSetup: defineOperation({
         paramsSchema: eventSchemas.params.saveSetup,
@@ -559,14 +567,14 @@ export const eventOperations = {
         operation: async ({
             prisma,
             params,
-            data: { variants, adminRequirements, ledgerAccountSelection, basedOnUpdatedAt, ...fields },
+            data: { variants, adminRequirements, ledgerAccountSelection, basedOnUpdatedAt, notifyAboutChange, ...fields },
         }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },
                 select: { visibilityAdminId: true, ledgerAccountId: true },
             })
 
-            const { savedEvent, promoted } = await prisma.$transaction(async tx => {
+            const { savedEvent, promoted, toldOfSlot } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.id)
                 if (basedOnUpdatedAt) await assertNotSavedSince(tx, params.id, basedOnUpdatedAt)
                 // Linking takes access to the account, which the operation checks itself. It goes
@@ -585,22 +593,38 @@ export const eventOperations = {
                         data: { requirements: adminRequirements },
                     })
                 }
-                const variantIds = variants
+                const { variantIds, slotChanges } = variants
                     ? await eventVariantOperations.internal.saveSetup.internalCall({
                         prisma: tx,
                         params: { eventId: params.id },
                         data: { variants },
                     })
-                    : []
+                    : { variantIds: [], slotChanges: [] }
+                const changesToTell = slotChanges.filter(isToldOf)
+                const usersToldOfSlot = changesToTell.flatMap(change => (change.userId === null ? [] : [change.userId]))
                 // The event's own fields go last, since they are checked against its quotas as the save leaves them.
-                const saved = await updateFields.internalCall({ prisma: tx, params, data: fields })
+                const saved = await updateFields.internalCall({
+                    prisma: tx,
+                    params,
+                    data: { ...fields, notifyAboutChange: notifyAboutChange && usersToldOfSlot.length === 0 },
+                })
+                if (notifyAboutChange && usersToldOfSlot.length > 0) {
+                    await notifyOthersOfChange(tx, saved, usersToldOfSlot)
+                }
 
                 const promotedBySave: PromotedRegistration[] = []
                 for (const variantId of variantIds) promotedBySave.push(...await fixVariantPlaces(tx, variantId))
-                return { savedEvent: saved, promoted: promotedBySave }
+                await assertPlacingKept(tx, slotChanges)
+                return { savedEvent: saved, promoted: promotedBySave, toldOfSlot: changesToTell }
             })
 
             await notifyPromoted(prisma, params.id, promoted)
+            await notifySlotChanges(
+                prisma,
+                params.id,
+                toldOfSlot,
+                notifyAboutChange ? changeNotice(savedEvent).message : null,
+            )
             return savedEvent
         }
     }),
@@ -671,9 +695,7 @@ export const eventOperations = {
                     variants: { select: { quotas: { select: { visibilityId: true } } } },
                 },
             })
-            const registrationsOfEvent: Prisma.EventRegistrationWhereInput = {
-                OR: [{ quota: { variant: { eventId: params.id } } }, { waitingListVariant: { eventId: params.id } }],
-            }
+            const registrations = registrationsOfEvent(params.id)
 
             // The event lock comes first, as everywhere registrations move, so this cannot deadlock
             // with a move. The registrations are then locked as createPayment does, so no payment
@@ -688,7 +710,7 @@ export const eventOperations = {
             `
             const liveTransaction = await prisma.ledgerTransaction.findFirst({
                 where: {
-                    eventRegistration: registrationsOfEvent,
+                    eventRegistration: registrations,
                     OR: [{ state: 'PENDING' }, validTransactionFilter],
                 },
                 select: { id: true },
@@ -703,7 +725,7 @@ export const eventOperations = {
 
             // Registrations go first: deleting the event cascades to its quotas, which refuse
             // to go while they hold any.
-            await prisma.eventRegistration.deleteMany({ where: registrationsOfEvent })
+            await prisma.eventRegistration.deleteMany({ where: registrations })
             await prisma.event.delete({
                 where: {
                     id: params.id
@@ -870,6 +892,53 @@ async function adoptHostAsAdministrators(
         params: { visibilityId },
         data: { requirements: await hostCommitteeAdminRequirements(prisma, committeeId) },
     })
+}
+
+/**
+ * Tells those registered to the event that it is changed, but for the users given, who are told
+ * with their slot. An empty list of users would mean no restriction, so no one is told then.
+ */
+async function notifyOthersOfChange(
+    prisma: Prisma.TransactionClient,
+    event: Pick<Event, 'id' | 'kind' | 'name' | 'eventStart' | 'location' | 'infoNotificationChannelId'>,
+    exceptUserIds: number[],
+) {
+    const others = await prisma.eventRegistration.findMany({
+        where: { ...registrationsOfEvent(event.id), userId: { not: null, notIn: exceptUserIds } },
+        select: { userId: true },
+        distinct: ['userId'],
+    })
+    const userIds = others.flatMap(registration => (registration.userId === null ? [] : [registration.userId]))
+    if (userIds.length === 0) return
+    await eventNotificationOperations.internal.createInfoNotification.internalCall({
+        prisma,
+        params: { channelId: event.infoNotificationChannelId },
+        data: { ...changeNotice(event), audience: { userIds, registeredForEventId: event.id } },
+    })
+}
+
+/**
+ * Refuses a placing of those who held a slot that the places of the quotas did not let stand:
+ * `fixVariantPlaces` gave one sent to the waiting list a place again, or gave someone placed
+ * another slot, or none, or seated them in another variant, which took them off this one.
+ */
+async function assertPlacingKept(prisma: Prisma.TransactionClient, changes: SlotChange[]) {
+    for (const change of changes.filter(placed => !placed.removed)) {
+        const registration = await prisma.eventRegistration.findUnique({
+            where: { id: change.registrationId },
+            select: { slot: { select: { start: true } } },
+        })
+        if (!registration) {
+            throw new ServiceError(
+                'BAD PARAMETERS',
+                'Noen som er plassert, fikk plass i en annen variant og står ikke lenger her. Plasser dem på nytt.'
+            )
+        }
+        if (registration.slot?.start.getTime() === change.after?.start.getTime()) continue
+        throw new ServiceError('BAD PARAMETERS', change.after
+            ? 'Kvotene har ikke plass til alle slik de er plassert. Endre plassene i kvotene, eller plasser dem på nytt.'
+            : 'Noen er satt på ventelisten, men har en ledig plass i en tidsluke. Plasser dem der.')
+    }
 }
 
 /**

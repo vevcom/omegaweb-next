@@ -1,5 +1,5 @@
 'use client'
-import { displaySlot, slotClock, slotDay } from '@/services/events/slots/display'
+import { displaySlot, onOneDay, slotClock, slotDay } from '@/services/events/slots/display'
 import { useId } from 'react'
 import type { SlotOfVariant } from '@/services/events/slots/types'
 
@@ -22,7 +22,7 @@ export default function EventSlotPicker({ slots, heldSlotId, pickedSlotId, onPic
 }) {
     const summaryId = useId()
     if (slots.length === 0) return null
-    const oneDay = slots.every(slot => slotDay(slot.start) === slotDay(slots[0].start))
+    const oneDay = onOneDay(slots)
     const free = slots.filter(slot => slot.free).length
 
     return <div className="flex flex-col gap-1">

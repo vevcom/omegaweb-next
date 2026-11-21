@@ -2,7 +2,9 @@ import {
     eventSetupFromForm,
     newQuotaDraft,
     newVariantDraft,
+    placementsOfDraft,
     slotsOfDraft,
+    slotsToPlaceIn,
     toVariantDrafts,
     variantsFromForm,
     variantsToPost,
@@ -14,6 +16,7 @@ import { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
 import { activeMembersOf } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
+import type { SlotOnBoard } from '@/services/events/slots/types'
 
 const opens = new Date('2026-11-20T10:00:00.000Z')
 const closes = new Date('2026-11-25T10:00:00.000Z')
@@ -68,7 +71,7 @@ describe('the drafts of the setup form', () => {
 
         expect(Object.keys(posted)).toEqual([
             'id', 'name', 'description', 'registrationType', 'registrationStart', 'registrationEnd', 'takesPayment',
-            'price', 'paymentStart', 'paymentEnd', 'requeueUnpaidRegistrations', 'slotSchedule', 'quotas',
+            'price', 'paymentStart', 'paymentEnd', 'requeueUnpaidRegistrations', 'slotSchedule', 'slotPlacing', 'quotas',
         ])
         expect(Object.keys(posted.quotas[0])).toEqual(['id', 'name', 'places', 'visibilityRequirements'])
         expect(posted.price).toBe(150)
@@ -206,5 +209,53 @@ describe('the drafts of a slotted variant', () => {
 
         expect(copy).toMatchObject({ registrationType: 'SLOTTED', slotSchedule: schedule })
         expect(copy.quotas.map(quota => quota.places)).toEqual([8])
+    })
+})
+
+describe('the placing of those who hold a slot of a slotted variant', () => {
+    const minutes = (count: number) => new Date(opens.getTime() + count * 60 * 1000)
+    // Three saved slots, as the default schedule gives them, held by 1 and 2, and the second free.
+    const savedSlots: SlotOnBoard[] = [0, 15, 30].map((start, index) => ({
+        id: index + 1,
+        start: minutes(start),
+        end: minutes(start + 10),
+        holder: index === 1 ? null : { registrationId: index + 1, name: `Påmeldt ${index + 1}`, paid: false },
+    }))
+    const draftOf = (totalMinutes: number, slotPlacing = { removeEveryone: false, chosen: {} }) => ({
+        ...toVariantDrafts([saved(7, [3])], { 7: savedSlots })[0],
+        registrationType: 'SLOTTED' as const,
+        slotSchedule: { ...defaultSlotSchedule(opens), totalMinutes },
+        slotPlacing,
+    })
+    const startsOf = (draft: ReturnType<typeof draftOf>) => placementsOfDraft(draft, slotsToPlaceIn(draft)!)
+        .map(placement => placement.slotStart && (placement.slotStart.getTime() - opens.getTime()) / 60000)
+
+    test('is posted only when the slots are not the saved ones and someone holds one of those', () => {
+        expect(slotsToPlaceIn(draftOf(40))).toBeNull()
+        expect(variantsToPost([draftOf(40)])[0].slotPlacing).toBeNull()
+        expect(slotsToPlaceIn({ ...draftOf(25), savedSlots: savedSlots.map(slot => ({ ...slot, holder: null })) }))
+            .toBeNull()
+        // Saved under a rule that gave other slots than it does now, which the save keeps.
+        const savedSchedule = { ...defaultSlotSchedule(opens), start: opens, totalMinutes: 25 }
+        expect(slotsToPlaceIn({ ...draftOf(25), savedSchedule })).toBeNull()
+        expect(variantsToPost([draftOf(25)])[0].slotPlacing).toEqual({
+            removeEveryone: false,
+            placements: [{ registrationId: 1, slotStart: minutes(0) }, { registrationId: 3, slotStart: minutes(15) }],
+        })
+    })
+
+    test('keeps each in the slot that starts when theirs did, and puts the rest in the earliest left, in order', () => {
+        expect(startsOf(draftOf(55))).toEqual([0, 30])
+        expect(startsOf(draftOf(25))).toEqual([0, 15])
+        expect(startsOf(draftOf(10))).toEqual([0, null])
+    })
+
+    test('puts each where it was chosen, while that is one of the slots or the waiting list', () => {
+        expect(startsOf(draftOf(55, { removeEveryone: false, chosen: { 3: minutes(0).getTime() } }))).toEqual([15, 0])
+        expect(startsOf(draftOf(55, { removeEveryone: false, chosen: { 1: null } }))).toEqual([null, 30])
+        expect(startsOf(draftOf(55, { removeEveryone: false, chosen: { 1: minutes(5).getTime() } }))).toEqual([0, 30])
+        // Those it knew to remove, holders and those waiting, so that no one who came since is removed.
+        expect(variantsToPost([{ ...draftOf(25, { removeEveryone: true, chosen: {} }), savedWaiting: [9] }])[0].slotPlacing)
+            .toEqual({ removeEveryone: true, registrationIds: [1, 3, 9] })
     })
 })

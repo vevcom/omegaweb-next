@@ -17,6 +17,19 @@ const dataFieldSchemas = z.object({
         const { problem } = slotsOrProblem(schedule)
         if (problem) context.addIssue({ code: z.ZodIssueCode.custom, message: problem })
     }).nullable(),
+    // Where those who hold a slot go when the schedule gives other slots: each to a new slot, named
+    // by its start, or to the waiting list, or everyone registered is removed. See `saveSchedule`.
+    placing: z.discriminatedUnion('removeEveryone', [
+        // The registrations of the variant as the form knew them, so that no one who came since is removed.
+        z.object({ removeEveryone: z.literal(true), registrationIds: z.array(z.number().int()) }),
+        z.object({
+            removeEveryone: z.literal(false),
+            placements: z.array(z.object({
+                registrationId: z.number().int(),
+                slotStart: Zpn.date({ label: 'Ny tidsluke' }).nullable(),
+            })),
+        }),
+    ]).nullable(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -27,6 +40,8 @@ export const eventSlotSchemas = {
     data: {
         saveSchedule: dataFieldSchemas.pick({
             schedule: true,
+        }).extend({
+            placing: dataFieldSchemas.shape.placing.default(null),
         }),
     },
     params: {
@@ -34,6 +49,9 @@ export const eventSlotSchemas = {
             variantId: true,
         }),
         readOfVariant: paramsFieldSchemas.pick({
+            variantId: true,
+        }),
+        readBoard: paramsFieldSchemas.pick({
             variantId: true,
         }),
     },

@@ -52,6 +52,7 @@ import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@for
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventAccess } from '@/services/events/types'
+import type { SlotOnBoard } from '@/services/events/slots/types'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const iconRowClassName = `
@@ -168,6 +169,22 @@ export function eventPage(config: EventPagesConfig) {
             const seatingBoard = administers && event.takesRegistration
                 ? await withFallback(eventSeatingOperations.readBoard({ params: { id: event.id } }), null)
                 : null
+            // For placing those who hold a slot in new ones, and moving one to a free one.
+            const boards = administers
+                ? await Promise.all(event.variants
+                    .filter(variant => variant.registrationType === 'SLOTTED')
+                    .map(async variant => [
+                        variant.id,
+                        await withFallback(
+                            eventSlotOperations.readBoard({ params: { variantId: variant.id } }),
+                            { slots: [], waiting: [] },
+                        ),
+                    ] as const))
+                : []
+            const savedSlots: Record<number, SlotOnBoard[]> = Object.fromEntries(
+                boards.map(([id, board]) => [id, board.slots])
+            )
+            const savedWaiting = Object.fromEntries(boards.map(([id, board]) => [id, board.waiting]))
             const ownSeating = event.takesRegistration && session.user
                 ? await withFallback(eventSeatingOperations.readOwn({ params: { id: event.id } }), null)
                 : null
@@ -188,6 +205,8 @@ export function eventPage(config: EventPagesConfig) {
                 subscriptions,
                 statistics,
                 seatingBoard,
+                savedSlots,
+                savedWaiting,
                 ownSeating,
             }
         },
@@ -206,6 +225,7 @@ export function eventPage(config: EventPagesConfig) {
             canReadRegistrationsDetailed: eventRegistrationAuth.readPageDetailed.data(data.access),
             canRegisterAsAdmin: eventRegistrationAuth.createAsAdmin.data(data.access),
             canUnregisterAsAdmin: eventRegistrationAuth.destroyAsAdmin.data(data.access),
+            canMoveToSlotAsAdmin: eventRegistrationAuth.moveToSlotAsAdmin.data(data.access),
             canRegisterGuest: eventRegistrationAuth.createGuest.data(data.access),
             canTakeAttendance: session.user ? eventRegistrationAuth.registerAttendance.data({
                 ...data.access,
@@ -315,6 +335,8 @@ export function eventPage(config: EventPagesConfig) {
                                         }
                                         statistics={data.statistics}
                                         seatingBoard={data.seatingBoard}
+                                        savedSlots={data.savedSlots}
+                                        savedWaiting={data.savedWaiting}
                                         slotsOfVariants={Object.fromEntries(data.variantViews.flatMap(view => (
                                             view.slots ? [[view.variant.id, view.slots]] : []
                                         )))}
@@ -475,6 +497,10 @@ export function eventPage(config: EventPagesConfig) {
                                 attendanceTakerId={attendanceTakerId}
                                 dotGiverId={dotGiverId}
                                 notAttended={data.notAttended}
+                                slotsOfVariants={data.savedSlots}
+                                capabilities={capabilitiesToJsObject({
+                                    canMoveToSlotAsAdmin: capabilities.canMoveToSlotAsAdmin,
+                                })}
                             />
                         </div>
                     )}

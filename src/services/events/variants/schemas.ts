@@ -50,11 +50,13 @@ const variantFields = {
     requeueUnpaidRegistrations: true,
 } as const
 
-// A variant with its quotas and its schedule as a save of the whole event gives it. One without an id is new.
+// A variant with its quotas and its schedule as a save of the whole event gives it, and where
+// those holding a slot go when the schedule gives other slots. One without an id is new.
 const variantSetup = {
     id: z.number().int().optional(),
     quotas: eventQuotaSchemas.data.saveSetup.shape.quotas,
     slotSchedule: eventSlotSchemas.data.saveSchedule.shape.schedule.default(null),
+    slotPlacing: eventSlotSchemas.data.saveSchedule.shape.placing,
 }
 
 const variantId = paramsFieldSchemas.pick({

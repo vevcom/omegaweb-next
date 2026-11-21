@@ -12,6 +12,7 @@ import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventVariantExpanded } from './types'
+import type { SlotChange } from '@/services/events/slots/types'
 
 type VariantPeriods = {
     registrationStart: Date,
@@ -97,7 +98,11 @@ const update = defineSubOperation({
         assertValidVariant(resulting)
         if (resulting.registrationType !== variant.registrationType
             && await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
-            throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte, så påmeldingstypen kan ikke endres.')
+            throw new ServiceError(
+                'BAD PARAMETERS',
+                'Varianten har påmeldte, så påmeldingstypen kan ikke endres. '
+                + 'Meld dem av først, eller legg til en ny variant med den andre typen.'
+            )
         }
 
         return await prisma.eventVariant.update({
@@ -160,13 +165,13 @@ const reorder = defineSubOperation({
  * Makes the variants of an event the ones given, each with the quotas and schedule given, in the
  * order given: creates those without an id, changes those with one and removes the ones left out,
  * which is refused where someone is registered. A variant given as it is already is left alone.
- * Returns the ids of the variants, in order.
+ * Returns the ids of the variants, in order, and what new slots did to those who held one.
  */
 const saveSetup = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.saveSetup,
     dataSchema: () => eventVariantSchemas.data.saveSetup,
     transaction: 'RUNS_IN',
-    operation: () => async ({ prisma, params, data }): Promise<number[]> => {
+    operation: () => async ({ prisma, params, data }): Promise<{ variantIds: number[], slotChanges: SlotChange[] }> => {
         const existing = await prisma.eventVariant.findMany({ where: { eventId: params.eventId } })
         const keptIds = data.variants.flatMap(variant => (variant.id === undefined ? [] : [variant.id]))
         if (!keptIds.every(id => existing.some(variant => variant.id === id))) {
@@ -177,7 +182,8 @@ const saveSetup = defineSubOperation({
             if (!keptIds.includes(variant.id)) await destroy.internalCall({ prisma, params: { id: variant.id } })
         }
         const variantIds: number[] = []
-        for (const { id, quotas, slotSchedule, ...fields } of data.variants) {
+        const slotChanges: SlotChange[] = []
+        for (const { id, quotas, slotSchedule, slotPlacing, ...fields } of data.variants) {
             const known = existing.find(variant => variant.id === id)
             const changes = known ? changedFields(known, fields) : {}
             if (known && Object.keys(changes).length > 0) {
@@ -185,15 +191,15 @@ const saveSetup = defineSubOperation({
             }
             const variantId = known?.id ?? (await create.internalCall({ prisma, params, data: fields })).id
             await eventQuotaOperations.internal.saveSetup.internalCall({ prisma, params: { variantId }, data: { quotas } })
-            await eventSlotOperations.internal.saveSchedule.internalCall({
+            slotChanges.push(...await eventSlotOperations.internal.saveSchedule.internalCall({
                 prisma,
                 params: { variantId },
-                data: { schedule: slotSchedule },
-            })
+                data: { schedule: slotSchedule, placing: slotPlacing },
+            }))
             variantIds.push(variantId)
         }
         await reorder.internalCall({ prisma, params, data: { variantIds } })
-        return variantIds
+        return { variantIds, slotChanges }
     },
 })
 

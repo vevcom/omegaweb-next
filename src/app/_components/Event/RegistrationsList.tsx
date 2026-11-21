@@ -2,6 +2,7 @@
 import GiveDotPopUp from './GiveDotPopUp'
 import GiveDotsToAbsentees from './GiveDotsToAbsentees'
 import MoveToQuotaForm from './MoveToQuotaForm'
+import MoveToSlotForm from './MoveToSlotForm'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
 import { EventRegistrationPagingProvider, EventRegistrationPagingContext } from '@/contexts/paging/EventRegistrationPaging'
 import UserCard from '@/components/User/UserCard'
@@ -27,12 +28,15 @@ import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constan
 import { configureAction } from '@/services/configureAction'
 import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import { displaySlot } from '@/services/events/slots/display'
+import { registrantName } from '@/services/events/registration/registrantName'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp } from '@fortawesome/free-solid-svg-icons'
 import { useContext, useState } from 'react'
 import type { EventFiltered } from '@/services/events/types'
 import type { EventRegistrationNotAttended } from '@/services/events/registration/types'
+import type { SlotOnBoard } from '@/services/events/slots/types'
+import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -42,12 +46,16 @@ function DetailedTable({
     search,
     attendanceTakerId,
     dotGiverId,
+    slotsOfVariants,
+    capabilities,
 }: {
     event: EventFiltered,
     type: REGISTRATION_READER_TYPE,
     search: string,
     attendanceTakerId: number | null,
     dotGiverId: number | null,
+    slotsOfVariants: Record<number, SlotOnBoard[]>,
+    capabilities: CapabilitiesJsObject<'canMoveToSlotAsAdmin'>,
 }) {
     const onWaitingList = type === REGISTRATION_READER_TYPE.WAITING_LIST
     const severalVariants = event.variants.length > 1
@@ -128,7 +136,14 @@ function DetailedTable({
                                 </td>
                                 {severalVariants && <td>{row.quota?.variant.name ?? row.waitingListVariant?.name}</td>}
                                 {severalQuotas && <td>{row.quota?.name}</td>}
-                                {showsSlots && <td className="tabular-nums">{row.slot && displaySlot(row.slot)}</td>}
+                                {showsSlots && <td className="tabular-nums">
+                                    {row.slot && displaySlot(row.slot)}
+                                    {row.slot && row.quota && capabilities.canMoveToSlotAsAdmin.authorized && <MoveToSlotForm
+                                        registrationId={row.id}
+                                        slots={slotsOfVariants[row.quota.variant.id] ?? []}
+                                        registrantName={registrantName(row)}
+                                    />}
+                                </td>}
                                 <td>{name}</td>
                                 <td>{row.user ? row.user.email : row.contact?.email}</td>
                                 <td>{row.user ? row.user.mobile : row.contact?.mobile}</td>
@@ -278,6 +293,8 @@ export default function RegistrationsList({
     attendanceTakerId,
     dotGiverId,
     notAttended,
+    slotsOfVariants,
+    capabilities,
 }: {
     event: EventFiltered,
     canReadDetailed: boolean,
@@ -286,6 +303,9 @@ export default function RegistrationsList({
     dotGiverId: number | null,
     /** Who did not show up, once the event is over - null while it is not, or for those who may not give dots. */
     notAttended: EventRegistrationNotAttended[] | null,
+    /** The slots of each slotted variant by its id, with who holds them, for moving someone to a free one. */
+    slotsOfVariants: Record<number, SlotOnBoard[]>,
+    capabilities: CapabilitiesJsObject<'canMoveToSlotAsAdmin'>,
 }) {
     const [detailedView, setDetailedView] = useState(false)
     const [search, setSearch] = useState('')
@@ -317,6 +337,8 @@ export default function RegistrationsList({
             search={search}
             attendanceTakerId={attendanceTakerId}
             dotGiverId={dotGiverId}
+            slotsOfVariants={slotsOfVariants}
+            capabilities={capabilities}
         /> : <DefaultList
             event={event}
             type={REGISTRATION_READER_TYPE.REGISTRATIONS}
@@ -331,6 +353,8 @@ export default function RegistrationsList({
                 search={search}
                 attendanceTakerId={attendanceTakerId}
                 dotGiverId={dotGiverId}
+                slotsOfVariants={slotsOfVariants}
+                capabilities={capabilities}
             /> : <DefaultList
                 event={event}
                 type={REGISTRATION_READER_TYPE.WAITING_LIST}
