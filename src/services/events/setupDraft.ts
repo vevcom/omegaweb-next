@@ -1,6 +1,7 @@
 import { eventCanBeViewedByOptions } from './constants'
 import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
 import type { EventSetup } from './publishProblems'
+import type { RegistrationPeriod } from './firstSetup'
 import type { eventVariantSetupFormSchema } from './variants/schemas'
 import type { EventVariantExpanded } from './variants/types'
 import type { VisibilityRequirement } from '@/services/visibility/types'
@@ -186,6 +187,11 @@ export function newVariantDraft(
         numOnWaitingList: 0,
         quotas: [newQuotaDraft('Påmelding', [], like?.quotas[0]?.visibilityRequirements)],
     }
+}
+
+/** The first variant of an event, which starts out with the period the event's kind gives, if it gives one. */
+export function firstVariantDraft(name: string, eventStart: Date, periodOfKind: RegistrationPeriod | null): VariantDraft {
+    return { ...newVariantDraft(name, eventStart, []), ...periodOfKind }
 }
 
 export const hasRegistrants = (variant: VariantDraft) => variant.numOfRegistrations + variant.numOnWaitingList > 0
