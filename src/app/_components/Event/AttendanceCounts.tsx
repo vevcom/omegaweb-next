@@ -19,6 +19,12 @@ export function AttendanceCountsProvider({
     children: ReactNode,
 }) {
     const [counts, setCounts] = useState(initialCounts)
+    // A refresh of the page brings new counts, such as after marking someone by hand.
+    const [given, setGiven] = useState(initialCounts)
+    if (given !== initialCounts) {
+        setGiven(initialCounts)
+        setCounts(initialCounts)
+    }
 
     return (
         <AttendanceCountsContext.Provider value={{ counts, setCounts }}>

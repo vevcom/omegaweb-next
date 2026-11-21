@@ -3,6 +3,7 @@ import { useAttendanceCounts } from './AttendanceCounts'
 import OmegaIdReader from '@/components/OmegaId/Reader/OmegaIdReader'
 import { registerEventAttendanceAction } from '@/services/events/registration/actions'
 import { registrantName } from '@/services/events/registration/registrantName'
+import useSiteRouter from '@/hooks/useSiteRouter'
 
 export default function AttendanceScanner({
     eventId,
@@ -14,6 +15,8 @@ export default function AttendanceScanner({
     registeredById: number,
 }) {
     const { setCounts } = useAttendanceCounts()
+    // The slots of the page are read on the server, so they show a scan once it is read again.
+    const { refresh } = useSiteRouter()
 
     return <div className="flex flex-col gap-2">
         <OmegaIdReader
@@ -32,6 +35,7 @@ export default function AttendanceScanner({
                 }
 
                 setCounts(result.data.counts)
+                if (!result.data.alreadyAttended) refresh()
 
                 const name = registrantName(result.data.registration)
 

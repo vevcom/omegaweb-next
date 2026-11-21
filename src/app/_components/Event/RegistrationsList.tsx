@@ -1,6 +1,7 @@
 'use client'
 import GiveDotPopUp from './GiveDotPopUp'
 import GiveDotsToAbsentees from './GiveDotsToAbsentees'
+import AttendanceToggle from './AttendanceToggle'
 import MoveToQuotaForm from './MoveToQuotaForm'
 import MoveToSlotForm from './MoveToSlotForm'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
@@ -21,7 +22,6 @@ import ContactCard from '@/components/User/ContactCard'
 import {
     destroyEventRegistrationAsAdminAction,
     moveEventRegistrationAction,
-    setEventAttendanceAction,
     setEventRegistrationManuallyPaidAction,
 } from '@/services/events/registration/actions'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
@@ -168,21 +168,12 @@ function DetailedTable({
                                     </Form>}
                                 </td>}
                                 {attendanceTakerId !== null && <td>
-                                    <Form
-                                        action={configureAction(
-                                            setEventAttendanceAction,
-                                            { params: { registrationId: row.id, registeredById: attendanceTakerId } }
-                                        )}
-                                        submitText={row.attendedAt ? 'Fjern møtt' : 'Møtt'}
-                                        submitColor={row.attendedAt ? 'red' : 'green'}
-                                        refreshOnSuccess
-                                    >
-                                        <input
-                                            type="hidden"
-                                            name="attended"
-                                            value={row.attendedAt ? FIELD_IS_PRESENT_VALUE : 'on'}
-                                        />
-                                    </Form>
+                                    <AttendanceToggle
+                                        registrationId={row.id}
+                                        registeredById={attendanceTakerId}
+                                        attended={row.attendedAt !== null}
+                                        registrantName={registrantName(row)}
+                                    />
                                 </td>}
                                 {dotGiverId !== null && <td>
                                     {row.user && <GiveDotPopUp

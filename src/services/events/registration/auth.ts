@@ -73,6 +73,8 @@ export const eventRegistrationAuth = {
     registerAttendance: eventAdminAsUser,
     setAttendance: eventAdminAsUser,
     readAttendanceCounts: eventAdminLevel,
+    readSlotAttendance: eventAdminLevel,
+    setAttendanceFinished: eventAdminLevel,
     readNotAttended: eventAdminLevel,
 
     createDot: eventAdminAsUser,

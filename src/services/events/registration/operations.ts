@@ -56,6 +56,7 @@ import type {
     EventRegistrationExpanded,
     EventRegistrationNotAttended,
     EventRegistrationOfUser,
+    SlotAttendance,
     UpcomingRegistrationOfUser,
 } from './types'
 
@@ -697,6 +698,62 @@ export const eventRegistrationOperations = {
             await countAttendance(prisma, params.eventId),
     }),
 
+    readSlotAttendance: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readSlotAttendance,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readSlotAttendance.data(
+            await variantAccess(prisma, params.variantId)
+        ),
+        operation: async ({ prisma, params }): Promise<SlotAttendance> => {
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: {
+                    attendanceFinishedAt: true,
+                    slots: {
+                        orderBy: { start: 'asc' },
+                        select: {
+                            id: true,
+                            start: true,
+                            end: true,
+                            registration: { select: eventRegistrationAttendanceSelection },
+                        },
+                    },
+                },
+            })
+            return { finishedAt: variant.attendanceFinishedAt, slots: variant.slots }
+        },
+    }),
+
+    /**
+     * Finishes the attendance of a slotted variant, so that those with a place who are not marked as
+     * having come did not come, or takes that back. It gives no dots. Finishing it again keeps when
+     * it was first finished.
+     */
+    setAttendanceFinished: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.setAttendanceFinished,
+        dataSchema: eventRegistrationSchemas.data.setAttendanceFinished,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setAttendanceFinished.data(
+            await variantAccess(prisma, params.variantId)
+        ),
+        operation: async ({ prisma, params, data }) => {
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: { registrationType: true },
+            })
+            if (variant.registrationType !== 'SLOTTED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare oppmøtet til en variant med tidsluker fullføres.')
+            }
+            // The type again, since a variant without registrations may be made a list meanwhile.
+            await prisma.eventVariant.updateMany({
+                where: {
+                    id: params.variantId,
+                    registrationType: 'SLOTTED',
+                    ...(data.finished ? { attendanceFinishedAt: null } : {}),
+                },
+                data: { attendanceFinishedAt: data.finished ? new Date() : null },
+            })
+        },
+    }),
+
     /** The registrations with a place whose user did not show up. Guests have no user to give a dot. */
     readNotAttended: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readNotAttended,
@@ -1194,6 +1251,11 @@ async function registrationContext(prisma: PrismaPossibleTransaction<false>, reg
 async function registrationOwnerAndAccess(prisma: PrismaPossibleTransaction<false>, registrationId: number) {
     const { userId, eventId } = await registrationContext(prisma, registrationId)
     return { userId, access: await readEventAccess(prisma, eventId) }
+}
+
+async function variantAccess(prisma: PrismaPossibleTransaction<false>, variantId: number) {
+    const { eventId } = await prisma.eventVariant.findUniqueOrThrow({ where: { id: variantId }, select: { eventId: true } })
+    return await readEventAccess(prisma, eventId)
 }
 
 async function countAttendance(

@@ -13,6 +13,7 @@ export const updateEventRegistrationNotesAction = makeAction(eventRegistrationOp
 
 export const registerEventAttendanceAction = makeAction(eventRegistrationOperations.registerAttendance)
 export const setEventAttendanceAction = makeAction(eventRegistrationOperations.setAttendance)
+export const setEventAttendanceFinishedAction = makeAction(eventRegistrationOperations.setAttendanceFinished)
 export const destroyEventRegistrationAction = makeAction(eventRegistrationOperations.destroy)
 export const destroyEventRegistrationAsAdminAction = makeAction(eventRegistrationOperations.destroyAsAdmin)
 export const moveEventRegistrationAction = makeAction(eventRegistrationOperations.move)

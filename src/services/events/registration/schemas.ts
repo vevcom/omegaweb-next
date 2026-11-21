@@ -13,6 +13,7 @@ const dataFieldSchemas = z.object({
     name: z.string().min(2),
     attended: Zpn.checkboxOrBoolean({ label: 'Møtt' }),
     manuallyPaid: Zpn.checkboxOrBoolean({ label: 'Betalt' }),
+    finished: Zpn.checkboxOrBoolean({ label: 'Fullført' }),
     toWaitingList: z.array(z.number().int()),
     placements: z.array(z.object({ registrationId: z.number().int(), slotId: z.number().int() })),
 })
@@ -93,6 +94,9 @@ export const eventRegistrationSchemas = {
         setManuallyPaid: dataFieldSchemas.pick({
             manuallyPaid: true,
         }),
+        setAttendanceFinished: dataFieldSchemas.pick({
+            finished: true,
+        }),
         moveToQuota: dataFieldSchemas.pick({
             quotaId: true,
         }),
@@ -139,6 +143,8 @@ export const eventRegistrationSchemas = {
             registeredById: true,
         }),
         readAttendanceCounts: eventId,
+        readSlotAttendance: variantId,
+        setAttendanceFinished: variantId,
         readNotAttended: eventId,
         createDot: eventId,
         createDotsForNonattendingUsers: eventId,

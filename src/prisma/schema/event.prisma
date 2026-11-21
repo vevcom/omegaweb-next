@@ -147,6 +147,9 @@ model EventVariant {
   slotSchedule EventSlotSchedule?
   slots        EventSlot[]
 
+  // From then on, a registration with a place that is not marked as having come did not come.
+  attendanceFinishedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

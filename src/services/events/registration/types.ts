@@ -9,6 +9,7 @@ import type { eventRegistrationSchemas } from './schemas'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { InferPagingCursor, InferPagingDetails } from '@/lib/paging/schema'
 import type { Prisma } from '@/prisma-generated-pn-types'
+import type { Slot } from '@/services/events/slots/types'
 
 // This type will just make sure that the image is not null
 export type EventRegistrationExpanded = Prisma.EventRegistrationGetPayload<{
@@ -62,6 +63,15 @@ export type EventAttendanceCounts = {
 export type EventAttendanceRegistration = Prisma.EventRegistrationGetPayload<{
     select: typeof eventRegistrationAttendanceSelection
 }>
+
+/**
+ * The slots of a variant in order, with whoever holds each and whether they came, and when its
+ * attendance was finished, from when one not marked as having come did not come.
+ */
+export type SlotAttendance = {
+    finishedAt: Date | null,
+    slots: (Slot & { id: number, registration: EventAttendanceRegistration | null })[],
+}
 
 export type EventAttendanceScan = {
     registration: EventAttendanceRegistration,
