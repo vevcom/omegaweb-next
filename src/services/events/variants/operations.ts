@@ -64,6 +64,7 @@ const create = defineSubOperation({
                 order: (last?.order ?? -1) + 1,
                 name: data.name,
                 description: data.description,
+                registrationType: data.registrationType,
                 registrationStart: data.registrationStart,
                 registrationEnd: data.registrationEnd,
                 takesPayment: data.takesPayment,
@@ -80,7 +81,10 @@ const create = defineSubOperation({
     },
 })
 
-/** Changes a variant. One that ends up taking no payment loses its price and payment period. */
+/**
+ * Changes a variant. One that ends up taking no payment loses its price and payment period. The
+ * registration type of a variant with registrants stays, since they hold their places by it.
+ */
 const update = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.update,
     dataSchema: () => eventVariantSchemas.data.update,
@@ -89,6 +93,10 @@ const update = defineSubOperation({
         const variant = await prisma.eventVariant.findUniqueOrThrow({ where: { id: params.id } })
         const resulting = { ...variant, ...data }
         assertValidVariant(resulting)
+        if (resulting.registrationType !== variant.registrationType
+            && await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
+            throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte, så påmeldingstypen kan ikke endres.')
+        }
 
         return await prisma.eventVariant.update({
             where: { id: params.id },

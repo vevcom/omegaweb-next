@@ -1,6 +1,7 @@
 import { eventQuotaSchemas } from '@/services/events/quotas/schemas'
 import { Zpn } from '@/lib/fields/zpn'
 import { convertAmount } from '@/lib/currency/convert'
+import { EventRegistrationType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -8,6 +9,7 @@ const dataFieldSchemas = z.object({
     registrationStart: Zpn.date({ label: 'Påmeldingsstart' }),
     description: z.string().trim().max(120, 'Maks 120 tegn').nullish()
         .transform(value => value || null),
+    registrationType: z.nativeEnum(EventRegistrationType).default('LIST'),
     registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }),
     takesPayment: Zpn.checkboxOrBoolean({ label: 'Tar betaling' }).default(false),
     price: z.coerce.number({ invalid_type_error: 'Prisen må være et tall' })
@@ -37,6 +39,7 @@ const paramsFieldSchemas = z.object({
 const variantFields = {
     name: true,
     description: true,
+    registrationType: true,
     registrationStart: true,
     registrationEnd: true,
     takesPayment: true,

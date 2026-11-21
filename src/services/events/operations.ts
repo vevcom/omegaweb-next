@@ -16,7 +16,7 @@ import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
 import { eventKinds } from './kinds'
-import { firstRegistrationPeriod } from './firstSetup'
+import { firstVariantSetup } from './firstSetup'
 import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { getLocationMapData } from '@/lib/maps/locationMap'
@@ -379,15 +379,18 @@ export const eventOperations = {
             })
 
             if (data.takesRegistration) {
-                const periodOfKind = firstRegistrationPeriod(data.kind, { eventStart, eventEnd })
+                const ofKind = firstVariantSetup(data.kind, { eventStart, eventEnd })
                 const variant = await eventVariantOperations.internal.create.internalCall({
                     prisma,
                     params: { eventId: createdEvent.id },
                     data: {
                         name: 'Påmelding',
-                        registrationStart: data.registrationStart ?? periodOfKind?.registrationStart ?? new Date(),
+                        registrationType: ofKind.registrationType,
+                        registrationStart: data.registrationStart
+                            ?? ofKind.registrationPeriod?.registrationStart
+                            ?? new Date(),
                         registrationEnd: data.registrationEnd
-                            ?? periodOfKind?.registrationEnd
+                            ?? ofKind.registrationPeriod?.registrationEnd
                             ?? new Date(Date.now() + DAY_MS),
                         takesPayment: data.takesPayment,
                         price: data.price,

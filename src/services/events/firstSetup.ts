@@ -2,9 +2,15 @@ import { eventKinds } from './kinds'
 import { hasNoTime } from './publishProblems'
 import { osloDateTime } from '@/lib/dates/oslo'
 import type { TimeBeforeEventDay } from './kinds'
-import type { EventKind } from '@/prisma-generated-pn-types'
+import type { EventKind, EventRegistrationType } from '@/prisma-generated-pn-types'
 
 export type RegistrationPeriod = { registrationStart: Date, registrationEnd: Date }
+
+/** What the kind gives the first variant of an event. */
+export type FirstVariantSetup = {
+    registrationType: EventRegistrationType,
+    registrationPeriod: RegistrationPeriod | null,
+}
 
 /**
  * The registration period the kind gives the first variant of an event, reckoned from its start.
@@ -22,4 +28,11 @@ export function firstRegistrationPeriod(
     const closes = at(period.closes)
     // An event that starts earlier in the day than the period closes takes no registration after it has started.
     return { registrationStart: at(period.opens), registrationEnd: closes < event.eventStart ? closes : event.eventStart }
+}
+
+export function firstVariantSetup(kind: EventKind, event: { eventStart: Date, eventEnd: Date }): FirstVariantSetup {
+    return {
+        registrationType: eventKinds[kind].firstSetup.registrationType,
+        registrationPeriod: firstRegistrationPeriod(kind, event),
+    }
 }

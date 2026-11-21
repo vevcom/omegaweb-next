@@ -1,10 +1,11 @@
 import { eventCanBeViewedByOptions } from './constants'
 import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
 import type { EventSetup } from './publishProblems'
-import type { RegistrationPeriod } from './firstSetup'
+import type { FirstVariantSetup } from './firstSetup'
 import type { eventVariantSetupFormSchema } from './variants/schemas'
 import type { EventVariantExpanded } from './variants/types'
 import type { VisibilityRequirement } from '@/services/visibility/types'
+import type { EventRegistrationType } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
 /** A quota as the form holds it. `variantsToPost` leaves out what is not a field of the save. */
@@ -23,6 +24,7 @@ export type VariantDraft = {
     id?: number,
     name: string,
     description?: string,
+    registrationType: EventRegistrationType,
     /** Null for a date that was emptied in the form, which the save refuses. */
     registrationStart: Date | null,
     registrationEnd: Date | null,
@@ -43,6 +45,7 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
         id: variant.id,
         name: variant.name,
         description: variant.description ?? undefined,
+        registrationType: variant.registrationType,
         registrationStart: variant.registrationStart,
         registrationEnd: variant.registrationEnd,
         takesPayment: variant.takesPayment,
@@ -77,6 +80,7 @@ export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
         id: variant.id,
         name: variant.name,
         description: variant.description,
+        registrationType: variant.registrationType,
         registrationStart: postedDate(variant.registrationStart),
         registrationEnd: postedDate(variant.registrationEnd),
         takesPayment: variant.takesPayment,
@@ -178,6 +182,7 @@ export function newVariantDraft(
     return {
         key: nextDraftKey(siblings),
         name,
+        registrationType: like?.registrationType ?? 'LIST',
         registrationStart: like?.registrationStart ?? new Date(),
         registrationEnd: like?.registrationEnd ?? eventStart,
         takesPayment: false,
@@ -188,9 +193,13 @@ export function newVariantDraft(
     }
 }
 
-/** The first variant of an event, which starts out with the period the event's kind gives, if it gives one. */
-export function firstVariantDraft(name: string, eventStart: Date, periodOfKind: RegistrationPeriod | null): VariantDraft {
-    return { ...newVariantDraft(name, eventStart, []), ...periodOfKind }
+/** The first variant of an event, which starts out as the event's kind gives. */
+export function firstVariantDraft(name: string, eventStart: Date, ofKind: FirstVariantSetup): VariantDraft {
+    return {
+        ...newVariantDraft(name, eventStart, []),
+        registrationType: ofKind.registrationType,
+        ...ofKind.registrationPeriod,
+    }
 }
 
 export const hasRegistrants = (variant: VariantDraft) => variant.numOfRegistrations + variant.numOnWaitingList > 0

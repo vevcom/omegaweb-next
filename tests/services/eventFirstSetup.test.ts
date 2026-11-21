@@ -1,6 +1,6 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
-import { firstRegistrationPeriod } from '@/services/events/firstSetup'
+import { firstRegistrationPeriod, firstVariantSetup } from '@/services/events/firstSetup'
 import { eventSetupFromForm, firstVariantDraft, variantsToPost } from '@/services/events/setupDraft'
 import { describe, expect, test } from '@jest/globals'
 import type { Data } from '@/services/serviceOperation'
@@ -137,7 +137,7 @@ describe('a draft created without a start', () => {
         values.set('eventEnd', '2027-01-20T17:00')
         const time = eventSetupFromForm(values, { ...draft, adminVisibility: { requirements: [] }, ledgerAccount: null })
 
-        const first = firstVariantDraft('Påmelding', draft.eventStart, firstRegistrationPeriod(draft.kind, time))
+        const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, time))
         await eventOperations.saveSetup({
             params: { id: draft.id },
             data: { eventStart: time.eventStart, eventEnd: time.eventEnd, variants: variantsToPost([first]) },
@@ -150,8 +150,35 @@ describe('a draft created without a start', () => {
     test('gets the period any event gets on a first variant the setup form makes while it has no time', async () => {
         const draft = await create('SPEED_INTERVIEW')
 
-        const first = firstVariantDraft('Påmelding', draft.eventStart, firstRegistrationPeriod(draft.kind, draft))
+        const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, draft))
         expect(first.registrationEnd).toEqual(draft.eventStart)
+    })
+})
+
+describe('the registration type of the first variant', () => {
+    const typeOfKind = [
+        ['ORDINARY', 'LIST'],
+        ['COMPANY_PRESENTATION', 'LIST'],
+        ['SPEED_INTERVIEW', 'SLOTTED'],
+    ] as const
+
+    test.each(typeOfKind)('of an event of the kind %s created with registration is %s', async (kind, registrationType) => {
+        const event = await create(kind, { ...winter, takesRegistration: true })
+
+        expect(await variantsOf(event.id)).toMatchObject([{ registrationType }])
+    })
+
+    test.each(typeOfKind)('of an event of the kind %s set up in the form is %s', async (kind, registrationType) => {
+        const draft = await create(kind)
+
+        const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, winter))
+        await eventOperations.saveSetup({
+            params: { id: draft.id },
+            data: { ...winter, variants: variantsToPost([first]) },
+            bypassAuth: true,
+        })
+
+        expect(await variantsOf(draft.id)).toMatchObject([{ registrationType }])
     })
 })
 

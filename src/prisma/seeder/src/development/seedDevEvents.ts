@@ -91,7 +91,8 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 quotaVisibilityRequirements,
                 visibilityAdminRequirements,
             },
-            registrationCount: 3,
+            // Its variant is slotted, and a registration there must hold a slot.
+            registrationCount: 0,
         },
         {
             event: {
