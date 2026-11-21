@@ -1,5 +1,6 @@
 import { FIELD_IS_PRESENT_VALUE } from './constants'
 import { dateMatchCron } from '@/lib/dates/cron'
+import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
 import { z } from 'zod'
 import { zfd } from 'zod-form-data'
 import type { EnumLike } from 'zod'
@@ -82,10 +83,11 @@ export namespace Zpn {
             }).pipe(schema),
         ])
 
+    /** A date, or a string that names one, such as the value `DateInput` posts. */
     export const date = ({ label }: { label: string }) =>
         z.union([
             z.string()
-                .transform((val) => new Date(val))
+                .transform(dateFromUtcInputValue)
                 .refine((datetime) => !isNaN(datetime.getTime()), {
                     message: `${label} er ugyldig`,
                 }),
