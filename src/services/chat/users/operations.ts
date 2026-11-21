@@ -10,6 +10,7 @@ import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { chatClientOrigin } from '@/services/chat/constants'
 import { chatServer } from '@/lib/chatSync/constants'
+import { matrixUserIdOf } from '@/lib/chatSync/matrixUserId'
 
 const subscribableChannel = {
     select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
@@ -204,7 +205,7 @@ export const chatUserOperations = {
             return {
                 isOnChat: chatUser !== null,
                 url: chatUser && chatClientOrigin && serverName
-                    ? `${chatClientOrigin}/#/user/@${chatUser.localpart}:${serverName}?action=chat`
+                    ? `${chatClientOrigin}/#/user/${matrixUserIdOf(chatUser.localpart, serverName)}?action=chat`
                     : null,
             }
         },

@@ -8,6 +8,8 @@ export type ChatLinks = {
     directMessage: (user: { username: string }) => AppHref,
     spaces: () => AppHref,
     settings: () => AppHref,
+    /** Where the chat's sign in sends the browser back, which is the one address it knows the chat pages by. */
+    signIn: () => AppHref,
 }
 
 export const chatLinks: ChatLinks = defineLinks<PagesMount, ChatLinks>(href => ({
@@ -15,4 +17,5 @@ export const chatLinks: ChatLinks = defineLinks<PagesMount, ChatLinks>(href => (
     directMessage: user => href(`/messages/${encodeURIComponent(user.username)}`),
     spaces: () => href('/spaces'),
     settings: () => href('/settings'),
+    signIn: () => href('/sign-in'),
 }))(chatPages)

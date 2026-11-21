@@ -85,6 +85,7 @@ describe('the chat pages', () => {
         expect(loaded.chatLinks.directMessage({ username: 'kari' })).toBe('/chat/messages/kari')
         expect(loaded.chatLinks.spaces()).toBe('/chat/spaces')
         expect(loaded.chatLinks.settings()).toBe('/chat/settings')
+        expect(loaded.chatLinks.signIn()).toBe('/chat/sign-in')
     })
 
     test('are a user\'s own, with the chat client as the last item of their navigation', async () => {

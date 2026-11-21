@@ -45,6 +45,11 @@ An overlay includes `base` and fills in what it leaves open:
   client id it signs users in through the provider with. Left unset, the provider knows no chat.
   The chat's own settings for this are documented in chat-infrastructure. `CHAT_CLIENT_URL` is the
   origin of the chat client, which the chat pages link to. Left unset, nothing links to it.
+- **Signing in on the chat pages.** `CHAT_HOMESERVER_PUBLIC_URL` is the origin of the homeserver
+  as browsers reach it. With it, `CHAT_AUTH_URL` and `CHAT_SERVER_NAME` set, the chat pages sign
+  the user's browser in to the chat, as the client `000000000000000000MEGACHAT` of MAS, whose
+  config must name it with the redirect uri `https://<main domain of Omega's site>/chat/sign-in`.
+  Left unset, the chat pages sign nobody in.
 - **Hearing from the chat.** `CHAT_HS_TOKEN` is the token the homeserver signs what it sends the
   app with, a secret the chat has too. The homeserver is told where the app is in its own config,
   as the app's address inside the cluster followed by `/api/chat/appservice`: the app answers there
