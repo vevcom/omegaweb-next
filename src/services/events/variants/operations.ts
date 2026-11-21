@@ -4,6 +4,8 @@ import { eventVariantSchemas } from './schemas'
 import { readEventAccess } from '@/services/events/access'
 import { eventQuotaOrder, eventVariantOrder, eventVariantSummarySelection } from '@/services/events/constants'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
+import { eventSlotOperations } from '@/services/events/slots/operations'
+import { slotScheduleSelection } from '@/services/events/slots/constants'
 import { registrationsOfVariant } from '@/services/events/registration/queue'
 import { changedFields } from '@/lib/changedFields'
 import { ServiceError } from '@/services/error'
@@ -64,6 +66,7 @@ const create = defineSubOperation({
                 order: (last?.order ?? -1) + 1,
                 name: data.name,
                 description: data.description,
+                registrationType: data.registrationType,
                 registrationStart: data.registrationStart,
                 registrationEnd: data.registrationEnd,
                 takesPayment: data.takesPayment,
@@ -80,7 +83,10 @@ const create = defineSubOperation({
     },
 })
 
-/** Changes a variant. One that ends up taking no payment loses its price and payment period. */
+/**
+ * Changes a variant. One that ends up taking no payment loses its price and payment period. The
+ * registration type of a variant with registrants stays, since they hold their places by it.
+ */
 const update = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.update,
     dataSchema: () => eventVariantSchemas.data.update,
@@ -89,6 +95,10 @@ const update = defineSubOperation({
         const variant = await prisma.eventVariant.findUniqueOrThrow({ where: { id: params.id } })
         const resulting = { ...variant, ...data }
         assertValidVariant(resulting)
+        if (resulting.registrationType !== variant.registrationType
+            && await prisma.eventRegistration.count({ where: registrationsOfVariant(params.id) }) > 0) {
+            throw new ServiceError('BAD PARAMETERS', 'Varianten har påmeldte, så påmeldingstypen kan ikke endres.')
+        }
 
         return await prisma.eventVariant.update({
             where: { id: params.id },
@@ -147,10 +157,10 @@ const reorder = defineSubOperation({
 })
 
 /**
- * Makes the variants of an event the ones given, each with the quotas given, in the order given:
- * creates those without an id, changes those with one and removes the ones left out, which is
- * refused where someone is registered. A variant given as it is already is left alone. Returns
- * the ids of the variants, in order.
+ * Makes the variants of an event the ones given, each with the quotas and schedule given, in the
+ * order given: creates those without an id, changes those with one and removes the ones left out,
+ * which is refused where someone is registered. A variant given as it is already is left alone.
+ * Returns the ids of the variants, in order.
  */
 const saveSetup = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.saveSetup,
@@ -167,7 +177,7 @@ const saveSetup = defineSubOperation({
             if (!keptIds.includes(variant.id)) await destroy.internalCall({ prisma, params: { id: variant.id } })
         }
         const variantIds: number[] = []
-        for (const { id, quotas, ...fields } of data.variants) {
+        for (const { id, quotas, slotSchedule, ...fields } of data.variants) {
             const known = existing.find(variant => variant.id === id)
             const changes = known ? changedFields(known, fields) : {}
             if (known && Object.keys(changes).length > 0) {
@@ -175,6 +185,11 @@ const saveSetup = defineSubOperation({
             }
             const variantId = known?.id ?? (await create.internalCall({ prisma, params, data: fields })).id
             await eventQuotaOperations.internal.saveSetup.internalCall({ prisma, params: { variantId }, data: { quotas } })
+            await eventSlotOperations.internal.saveSchedule.internalCall({
+                prisma,
+                params: { variantId },
+                data: { schedule: slotSchedule },
+            })
             variantIds.push(variantId)
         }
         await reorder.internalCall({ prisma, params, data: { variantIds } })
@@ -193,6 +208,7 @@ export const eventVariantOperations = {
                 where: { eventId: params.eventId },
                 select: {
                     ...eventVariantSummarySelection,
+                    slotSchedule: { select: slotScheduleSelection },
                     quotas: {
                         select: {
                             ...eventVariantSummarySelection.quotas.select,

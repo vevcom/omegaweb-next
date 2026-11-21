@@ -1,4 +1,4 @@
-import type { EventKind, SpecialNotificationChannel } from '@/prisma-generated-pn-types'
+import type { EventKind, EventRegistrationType, SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 
 /** A time of day some days before the day an event starts, both in Oslo. */
 export type TimeBeforeEventDay = {
@@ -14,6 +14,8 @@ type EventKindDefinition = {
     /** What an event of the kind starts with, which its administrators change freely after. */
     firstSetup: {
         bindingRegistration: boolean,
+        /** How the first variant hands out its places. */
+        registrationType: EventRegistrationType,
         /** Null when the kind gives none, so the event starts with the period any event does. */
         registrationPeriod: { opens: TimeBeforeEventDay, closes: TimeBeforeEventDay } | null,
     },
@@ -31,6 +33,7 @@ export const eventKinds = {
         notificationChannel: 'EVENT',
         firstSetup: {
             bindingRegistration: false,
+            registrationType: 'LIST',
             registrationPeriod: null,
         },
     },
@@ -39,6 +42,7 @@ export const eventKinds = {
         notificationChannel: 'COMPANY_PRESENTATION',
         firstSetup: {
             bindingRegistration: true,
+            registrationType: 'LIST',
             registrationPeriod: careerRegistrationPeriod,
         },
     },
@@ -47,6 +51,7 @@ export const eventKinds = {
         notificationChannel: 'SPEED_INTERVIEW',
         firstSetup: {
             bindingRegistration: true,
+            registrationType: 'SLOTTED',
             registrationPeriod: careerRegistrationPeriod,
         },
     },

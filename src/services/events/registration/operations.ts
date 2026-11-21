@@ -97,6 +97,7 @@ const createRegistration = defineSubOperation({
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
+                assertHandsOutByList(variant)
                 await assertMayJoin(tx, variant, params.userId)
                 const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
                 if (!asAdmin) assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
@@ -236,6 +237,7 @@ export const eventRegistrationOperations = {
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
+                assertHandsOutByList(variant)
                 const contact = await tx.contactDetails.create({ data: { name: data.name } })
                 return await placeAsAdmin(tx, variant, { contactId: contact.id, note: data.note }, params.quotaId ?? null)
             })
@@ -814,6 +816,7 @@ async function resolveVariant(prisma: PrismaPossibleTransaction<false>, eventId:
         select: {
             id: true,
             eventId: true,
+            registrationType: true,
             registrationStart: true,
             registrationEnd: true,
             takesPayment: true,
@@ -845,6 +848,13 @@ async function resolveVariant(prisma: PrismaPossibleTransaction<false>, eventId:
 }
 
 type ResolvedVariant = Awaited<ReturnType<typeof resolveVariant>>
+
+/** A registration on a slotted variant holds a slot, and nothing hands one out yet. */
+function assertHandsOutByList(variant: ResolvedVariant) {
+    if (variant.registrationType === 'SLOTTED') {
+        throw new Smorekopp('BAD PARAMETERS', 'Påmelding til tidsluker er ikke mulig ennå.')
+    }
+}
 
 /** A registrant, as a user or as a guest. */
 type Registrant = { userId: number } | { contactId: number, note: string }

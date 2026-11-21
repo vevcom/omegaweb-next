@@ -31,6 +31,7 @@ const dataFieldSchemas = z.object({
     // The first variant and quota of a new event, when it takes registration. Later ones, and
     // changes to these, go through the variant and quota services.
     takesRegistration: Zpn.checkboxOrBoolean({ label: 'Tar påmelding' }),
+    // Left out, a slotted variant has as many as it has slots, and a list none.
     places: z.coerce.number({ invalid_type_error: 'Antall plasser må være et tall' })
         .int('Antall plasser må være et helt tall')
         .min(0, 'Antall plasser kan ikke være negativt')

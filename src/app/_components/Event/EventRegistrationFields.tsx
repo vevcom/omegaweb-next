@@ -2,8 +2,17 @@
 import AdminSection from './AdminSection'
 import { eventQuotaVisibility } from './eventVisibility'
 import EventQuotaBar from './EventQuotaBar'
+import EventSlotScheduleFields, { slotsInWords } from './EventSlotScheduleFields'
 import { useEventVariantsField } from './EventVariantsField'
-import { firstVariantDraft, hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
+import {
+    firstVariantDraft,
+    hasRegistrants,
+    newQuotaDraft,
+    newVariantDraft,
+    slotsOfDraft,
+    withPlacesOfSlots,
+} from '@/services/events/setupDraft'
+import { defaultSlotSchedule } from '@/services/events/slots/schedule'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
@@ -14,7 +23,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
 import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
-import type { RegistrationPeriod } from '@/services/events/firstSetup'
+import type { FirstVariantSetup } from '@/services/events/firstSetup'
+import type { EventRegistrationType } from '@/prisma-generated-pn-types'
 import type { ReactNode } from 'react'
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
@@ -32,10 +42,14 @@ function VariantDescription({ variant, onChange }: {
     />
 }
 
-function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
+function QuotaRow({ quota, index, several, placesFollowSlots, slotCount, handle, onChange, onRemove }: {
     quota: QuotaDraft,
     index: number,
     several: boolean,
+    /** The places are the slots of the variant, and not typed. */
+    placesFollowSlots: boolean,
+    /** Null while the schedule of the variant gives no slots. */
+    slotCount: number | null,
     /** Where the quota is dragged from to change the order quotas fill in. */
     handle: ReactNode,
     onChange: (changes: Partial<QuotaDraft>) => void,
@@ -58,13 +72,17 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                     className="flex-1 min-w-40 max-w-none! mt-0!"
                 />
                 : <span className="flex-1">Antall plasser</span>}
-            <NumberInput
-                label="Plasser"
-                min={0}
-                value={quota.places}
-                onChange={event => onChange({ places: Number(event.target.value) })}
-                className="w-28! mt-0!"
-            />
+            {placesFollowSlots
+                ? <span className="tabular-nums">
+                    {slotCount === null ? 'Én per tidsluke' : `${slotCount}, én per tidsluke`}
+                </span>
+                : <NumberInput
+                    label="Plasser"
+                    min={0}
+                    value={quota.places}
+                    onChange={event => onChange({ places: Number(event.target.value) })}
+                    className="w-28! mt-0!"
+                />}
         </div>
         <EventQuotaBar taken={quota.numOfRegistrations} places={quota.places} />
         <div className="flex flex-wrap items-center justify-between gap-2 text-s">
@@ -113,6 +131,8 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
     onChange: (changes: Partial<VariantDraft>) => void,
 }) {
     const several = variant.quotas.length > 1
+    const slots = slotsOfDraft(variant)
+    const places = variant.quotas.reduce((sum, quota) => sum + quota.places, 0)
     const changeQuota = (key: number, changes: Partial<QuotaDraft>) => onChange({
         quotas: variant.quotas.map(quota => (quota.key === key ? { ...quota, ...changes } : quota)),
     })
@@ -131,12 +151,22 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
                         quota={quota}
                         index={index}
                         several={several}
+                        placesFollowSlots={variant.registrationType === 'SLOTTED' && !several}
+                        slotCount={slots?.length ?? null}
                         handle={handle}
                         onChange={changes => changeQuota(quota.key, changes)}
                         onRemove={() => onChange({ quotas: variant.quotas.filter(other => other.key !== quota.key) })}
                     />
                 </>}
             />
+            {several && slots && <p className={`
+                m-0 pt-2 text-s
+                ${places === slots.length ? 'text-base-content/80' : 'text-warning'}
+            `}>
+                {places > slots.length
+                    ? `Kvotene har ${places} plasser, men det er bare ${slotsInWords(slots.length)}.`
+                    : `${places} av ${slotsInWords(slots.length)} er delt ut på kvotene.`}
+            </p>}
             {waitingList && <>
                 <p className={flowStepClassName}>↓ Når alt er fullt</p>
                 <div className="flex items-center justify-between gap-2 p-3 rounded-inner bg-base-100">
@@ -156,6 +186,28 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
             <FontAwesomeIcon icon={faPlus} /> {addLabel}
         </Button>}
     </div>
+}
+
+const registrationTypes: { value: EventRegistrationType, title: string, hint: string }[] = [
+    { value: 'LIST', title: 'Liste', hint: 'Plassene fylles i den rekkefølgen folk melder seg på' },
+    { value: 'SLOTTED', title: 'Tidsluker', hint: 'Hver får sin egen tid, for eksempel til et intervju' },
+]
+
+function RegistrationTypeChoice({ variant, slotsStart, onChange }: {
+    variant: VariantDraft,
+    slotsStart: Date | null,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <OptionCards
+        options={registrationTypes.map(type => ({
+            ...type,
+            blocked: type.value !== variant.registrationType && hasRegistrants(variant) ? 'Varianten har påmeldte' : null,
+        }))}
+        value={variant.registrationType}
+        onChange={registrationType => onChange(registrationType === 'SLOTTED'
+            ? { registrationType, slotSchedule: variant.slotSchedule ?? defaultSlotSchedule(slotsStart) }
+            : { registrationType })}
+    />
 }
 
 function RegistrationPeriod({ variant, onChange }: {
@@ -185,6 +237,26 @@ function RegistrationPeriod({ variant, onChange }: {
             }}
         />
     </div>
+}
+
+/** What a variant is set up with, below its name. */
+function VariantFields({ variant, waitingList, slotsStart, addLabel, onChange }: {
+    variant: VariantDraft,
+    waitingList: boolean,
+    slotsStart: Date | null,
+    addLabel?: string,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <>
+        <RegistrationTypeChoice variant={variant} slotsStart={slotsStart} onChange={onChange} />
+        <RegistrationPeriod variant={variant} onChange={onChange} />
+        {variant.registrationType === 'SLOTTED' && variant.slotSchedule && <EventSlotScheduleFields
+            schedule={variant.slotSchedule}
+            onChange={slotSchedule => onChange({ slotSchedule })}
+        />}
+        <VariantDescription variant={variant} onChange={onChange} />
+        <QuotaFlow variant={variant} waitingList={waitingList} addLabel={addLabel} onChange={onChange} />
+    </>
 }
 
 type Shape = 'NONE' | 'SHARED' | 'QUOTAS' | 'VARIANTS'
@@ -218,11 +290,11 @@ function variantsInShape(
     shape: Shape,
     variants: VariantDraft[],
     eventStart: Date,
-    firstPeriod: RegistrationPeriod | null,
+    firstVariant: FirstVariantSetup,
 ): VariantDraft[] {
     if (shape === 'NONE') return []
     const first = variants.at(0)
-        ?? firstVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, firstPeriod)
+        ?? firstVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, firstVariant)
     if (shape === 'VARIANTS') {
         return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
@@ -230,7 +302,7 @@ function variantsInShape(
     const firstQuota = first.quotas.at(0) ?? newQuotaDraft('Påmelding', first.quotas)
     if (shape === 'SHARED') {
         const places = first.quotas.reduce((sum, quota) => sum + quota.places, 0)
-        return [{ ...first, quotas: [{ ...firstQuota, places }] }]
+        return [withPlacesOfSlots({ ...first, quotas: [{ ...firstQuota, places }] })]
     }
     if (first.quotas.length > 1) return [first]
     return [{
@@ -244,32 +316,37 @@ function variantsInShape(
  * form. Nothing here is saved until the form is, so the buttons at the top only change what the
  * form will send.
  */
-export default function EventRegistrationFields({ waitingList, eventStart, firstPeriod }: {
+export default function EventRegistrationFields({ waitingList, eventStart, slotsStart, firstVariant }: {
     waitingList: boolean,
     eventStart: Date,
-    /** The period the kind of the event gives the first variant, if it gives one. */
-    firstPeriod: RegistrationPeriod | null,
+    /** Where a schedule made here starts, see `slotsStartOf`. */
+    slotsStart: Date | null,
+    /** What the kind of the event gives its first variant. */
+    firstVariant: FirstVariantSetup,
 }) {
     const { variants, setVariants, changeVariant } = useEventVariantsField()
     const current = shapeOf(variants)
+    const change = (variant: VariantDraft) => (changes: Partial<VariantDraft>) => changeVariant(
+        variant.key,
+        withPlacesOfSlots({ ...variant, ...changes }),
+    )
 
     return <div className="flex flex-col gap-4 min-w-0 pb-4">
         <OptionCards
             options={shapes.map(shape => ({ ...shape, blocked: blockedReason(shape.value, variants) }))}
             value={current}
-            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart, firstPeriod))}
+            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart, firstVariant))}
         />
 
         {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
 
         {variants.length === 1 && <AdminSection>
-            <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
-            <VariantDescription variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
-            <QuotaFlow
+            <VariantFields
                 variant={variants[0]}
                 waitingList={waitingList}
+                slotsStart={slotsStart}
                 addLabel={current === 'QUOTAS' ? 'Legg til kvote' : undefined}
-                onChange={changes => changeVariant(variants[0].key, changes)}
+                onChange={change(variants[0])}
             />
         </AdminSection>}
 
@@ -293,13 +370,12 @@ export default function EventRegistrationFields({ waitingList, eventStart, first
                         Fjern varianten
                     </Button>
                 </div>
-                <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
-                <VariantDescription variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
-                <QuotaFlow
+                <VariantFields
                     variant={variant}
                     waitingList={waitingList}
+                    slotsStart={slotsStart}
                     addLabel={variant.quotas.length > 1 ? 'Legg til kvote' : 'Del varianten i kvoter'}
-                    onChange={changes => changeVariant(variant.key, changes)}
+                    onChange={change(variant)}
                 />
             </AdminSection>)}
             <Button

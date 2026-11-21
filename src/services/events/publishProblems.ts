@@ -1,5 +1,7 @@
 import { hasNoAdministrators } from './auth'
-import type { EventCanView } from '@/prisma-generated-pn-types'
+import { slotsOrProblem, wholeMinute } from './slots/schedule'
+import type { SlotScheduleDraft } from './slots/types'
+import type { EventCanView, EventRegistrationType } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
 /** What a check is about, which is where in the event it is put right. */
@@ -18,6 +20,8 @@ export type EventSetup = {
     ledgerAccount: { id: number } | null,
     variants: {
         name: string,
+        registrationType: EventRegistrationType,
+        slotSchedule: SlotScheduleDraft | null,
         /** Null for a date the form has emptied. */
         registrationStart: Date | null,
         registrationEnd: Date | null,
@@ -66,7 +70,9 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
         } else if (variant.registrationEnd > event.eventStart) {
             add('registration', 'warning', `${name}Påmeldingen slutter etter at arrangementet har startet.`)
         }
-        if (variant.quotas.every(quota => quota.places === 0)) {
+        if (variant.registrationType === 'SLOTTED') {
+            slotChecks(event, variant).forEach(([level, message]) => add('registration', level, `${name}${message}`))
+        } else if (variant.quotas.every(quota => quota.places === 0)) {
             add('registration', 'warning', `${name}Ingen plasser er satt.`)
         }
         if (!variant.takesPayment) return
@@ -79,6 +85,25 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
             add('payment', 'warning', `${name}Betalingsfristen er før påmeldingen stenger.`)
         }
     })
+    return checks
+}
+
+/** What to point out about the schedule of a slotted variant and the places it gives. */
+function slotChecks(event: EventSetup, variant: EventSetup['variants'][number]): [SetupCheck['level'], string][] {
+    if (!variant.slotSchedule) return [['missing', 'Tidslukene mangler en timeplan.']]
+    const { slots, problem } = slotsOrProblem(variant.slotSchedule)
+    if (!slots) return [['missing', problem]]
+
+    const checks: [SetupCheck['level'], string][] = []
+    const places = variant.quotas.reduce((sum, quota) => sum + quota.places, 0)
+    if (places !== slots.length) {
+        checks.push(['missing', `Kvotene har ${places} plasser til sammen, men det er ${slots.length} tidsluker.`])
+    }
+    // A schedule starts on a whole minute, so an event starting within that minute holds it.
+    const eventStart = wholeMinute(event.eventStart)
+    if (!hasNoTime(event) && (slots[0].start < eventStart || slots[slots.length - 1].end > event.eventEnd)) {
+        checks.push(['missing', 'Tidslukene ligger utenfor tiden arrangementet varer.'])
+    }
     return checks
 }
 
