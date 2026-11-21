@@ -425,6 +425,7 @@ export const eventOperations = {
                     },
                     eventTagEvents: eventTagSelector(params.tags),
                     kind: { in: params.kinds },
+                    companyId: params.companyId,
                     ...prismaWhereFilter
                 },
                 orderBy: {
@@ -450,8 +451,10 @@ export const eventOperations = {
                     },
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
                     kind: { in: params.paging.details.kinds },
+                    companyId: params.paging.details.companyId,
                     ...prismaWhereFilter
                 },
+                orderBy: [{ eventStart: 'desc' }, { id: 'desc' }],
                 select: eventListSelection,
             })
             return events.map(withTagsAndVariantSummary)

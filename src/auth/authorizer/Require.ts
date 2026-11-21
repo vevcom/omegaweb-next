@@ -255,10 +255,11 @@ export class RequireBuilder<
     }
 
     /** Requires the session to be that of a user of the company. Only an active company user has a
-     * session at all. Needs `{ companyId: number }` supplied via `.data()`. */
+     * session at all. Needs `{ companyId: number | null }` supplied via `.data()`, where null is no
+     * company, which no one is a user of. */
     companyMember(opts?: { errorMessage?: string }):
-        RequireBuilder<Data & { companyId: number }, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
-        return this.and<{ companyId: number }, never, 'HAS_COMPANY_USER'>(({ session, companyId }) => (
+        RequireBuilder<Data & { companyId: number | null }, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
+        return this.and<{ companyId: number | null }, never, 'HAS_COMPANY_USER'>(({ session, companyId }) => (
             session.companyUser?.company.id === companyId
                 ? { success: true }
                 : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.companyMember }

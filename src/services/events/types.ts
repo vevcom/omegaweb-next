@@ -18,6 +18,7 @@ export type EventAccess = {
     adminVisibility: VisibilityMatrix,
     creatorId: number | null,
     quotaVisibilities: VisibilityMatrix[],
+    companyId: number | null,
 }
 
 export type EventQuotaSummary = Omit<Prisma.EventQuotaGetPayload<{

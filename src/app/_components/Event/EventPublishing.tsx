@@ -13,6 +13,7 @@ import type { EventPagesConfig } from '@/pageKits/events/config'
 type PropTypes = {
     event: Pick<EventDetailed,
         'id' | 'published' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'variants'
+        | 'companyId'
     >,
     /** Who administrates the event, which it takes to publish it. */
     adminVisibility: VisibilityMatrix,
@@ -30,9 +31,11 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
 
         {capabilities.canSetPublished.authorized && <AdminSection>
             <p>
-                {event.published
-                    ? 'Arrangementet er publisert.'
-                    : 'Arrangementet er et utkast som bare administratorene ser.'}
+                {event.published && 'Arrangementet er publisert.'}
+                {!event.published && <>
+                    Arrangementet er et utkast som bare administratorene
+                    {event.companyId !== null && ' og bedriftens brukere'} ser.
+                </>}
             </p>
             {!event.published && problems.length > 0 && <>
                 <p className="font-medium">Dette mangler før det kan publiseres:</p>

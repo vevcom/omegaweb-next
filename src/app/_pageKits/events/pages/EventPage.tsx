@@ -88,6 +88,7 @@ export function eventPage(config: EventPagesConfig) {
                 adminVisibility: adminVisibility ?? EMPTY_VISIBILITY.adminLevel,
                 creatorId: event.createdById,
                 quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibility)),
+                companyId: event.companyId,
             }
 
             const administers = eventAuth.update.data({ ...access, setsCompany: false }).auth(session).authorized
@@ -227,8 +228,9 @@ export function eventPage(config: EventPagesConfig) {
                 <div className="w-full flex flex-wrap items-stretch gap-2">
                     {!event.published && <div className="flex-[0_0_100%]">
                         <DraftBanner>
-                            Arrangementet er ikke publisert. Bare de som administrerer det ser det. Publiser det under
-                            Administrer.
+                            Arrangementet er ikke publisert. Bare de som administrerer det
+                            {event.companyId !== null && ' og bedriftens brukere'} ser det.
+                            {capabilities.canSetPublished.authorized && ' Publiser det under Administrer.'}
                         </DraftBanner>
                     </div>}
                     <span className={`
