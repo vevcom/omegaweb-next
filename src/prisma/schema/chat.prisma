@@ -11,6 +11,13 @@ model ChatUser {
   // The name the chat sync last gave the account. Null until the account exists on the homeserver.
   syncedName    String?
   deactivatedAt DateTime?
+  // The account's own picture: an upload in the CHATPROFILEIMAGES collection, owned by this account
+  // alone. Without one the account has its user's profile image, see chatPictureOf.
+  image   Image? @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  imageId Int?   @unique
+  // The image the chat sync last gave the account as its picture, and null when it gave none. It is
+  // no relation, since it is to stay when the image is deleted: that is what tells the sync of it.
+  syncedImageId Int?
 
   spaceMemberships ChatSpaceMember[]
 }
