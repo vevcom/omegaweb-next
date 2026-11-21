@@ -21,7 +21,7 @@ import TextInput from '@/components/UI/TextInput'
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
-import { firstVariantSetup } from '@/services/events/firstSetup'
+import { firstVariantSetup, slotsStartOf } from '@/services/events/firstSetup'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
@@ -233,6 +233,7 @@ function SetupForm({
             <EventRegistrationFields
                 waitingList={waitingList}
                 eventStart={event.eventStart}
+                slotsStart={slotsStartOf(time)}
                 firstVariant={firstVariantSetup(event.kind, time)}
             />
         </FormTab>

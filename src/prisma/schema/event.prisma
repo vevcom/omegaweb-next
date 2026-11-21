@@ -143,10 +143,39 @@ model EventVariant {
   quotas                   EventQuota[]
   waitingListRegistrations EventRegistration[]
 
+  // Exactly when the variant is slotted.
+  slotSchedule EventSlotSchedule?
+  slots        EventSlot[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([eventId, order])
+}
+
+// What the slots of a slotted variant are made from. The slots follow it, see `slotsOfSchedule`.
+model EventSlotSchedule {
+  variant      EventVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId    Int          @id
+  start        DateTime
+  slotMinutes  Int
+  breakMinutes Int
+  // The slots end within this many minutes of the start.
+  totalMinutes Int
+  // Both or neither. The minutes are positive, the break's zero or more, as the migration checks.
+  longBreakEveryMinutes Int?
+  longBreakMinutes      Int?
+}
+
+// Starts before it ends, as the migration checks.
+model EventSlot {
+  id        Int          @id @default(autoincrement())
+  variant   EventVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId Int
+  start     DateTime
+  end       DateTime
+
+  @@unique([variantId, start])
 }
 
 // Quotas fill in `order`.

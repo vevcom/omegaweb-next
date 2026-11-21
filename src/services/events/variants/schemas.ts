@@ -1,4 +1,5 @@
 import { eventQuotaSchemas } from '@/services/events/quotas/schemas'
+import { eventSlotSchemas } from '@/services/events/slots/schemas'
 import { Zpn } from '@/lib/fields/zpn'
 import { convertAmount } from '@/lib/currency/convert'
 import { EventRegistrationType } from '@/prisma-generated-pn-types'
@@ -49,10 +50,11 @@ const variantFields = {
     requeueUnpaidRegistrations: true,
 } as const
 
-// A variant with its quotas as a save of the whole event gives it. One without an id is new.
+// A variant with its quotas and its schedule as a save of the whole event gives it. One without an id is new.
 const variantSetup = {
     id: z.number().int().optional(),
     quotas: eventQuotaSchemas.data.saveSetup.shape.quotas,
+    slotSchedule: eventSlotSchemas.data.saveSchedule.shape.schedule.default(null),
 }
 
 const variantId = paramsFieldSchemas.pick({

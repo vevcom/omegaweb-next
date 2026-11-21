@@ -1,7 +1,9 @@
 import { eventKinds } from './kinds'
 import { hasNoTime } from './publishProblems'
+import { defaultSlotSchedule } from './slots/schedule'
 import { osloDateTime } from '@/lib/dates/oslo'
 import type { TimeBeforeEventDay } from './kinds'
+import type { SlotScheduleDraft } from './slots/types'
 import type { EventKind, EventRegistrationType } from '@/prisma-generated-pn-types'
 
 export type RegistrationPeriod = { registrationStart: Date, registrationEnd: Date }
@@ -10,6 +12,8 @@ export type RegistrationPeriod = { registrationStart: Date, registrationEnd: Dat
 export type FirstVariantSetup = {
     registrationType: EventRegistrationType,
     registrationPeriod: RegistrationPeriod | null,
+    /** The schedule of a slotted variant, which starts as `slotsStartOf` says. */
+    slotSchedule: SlotScheduleDraft | null,
 }
 
 /**
@@ -30,9 +34,19 @@ export function firstRegistrationPeriod(
     return { registrationStart: at(period.opens), registrationEnd: closes < event.eventStart ? closes : event.eventStart }
 }
 
+/**
+ * Where a schedule made for the event starts: when the event does, and nowhere while it has no
+ * time, since its start is then a placeholder that setting the time does not move the slots from.
+ */
+export function slotsStartOf(event: { eventStart: Date, eventEnd: Date }): Date | null {
+    return hasNoTime(event) ? null : event.eventStart
+}
+
 export function firstVariantSetup(kind: EventKind, event: { eventStart: Date, eventEnd: Date }): FirstVariantSetup {
+    const { registrationType } = eventKinds[kind].firstSetup
     return {
-        registrationType: eventKinds[kind].firstSetup.registrationType,
+        registrationType,
         registrationPeriod: firstRegistrationPeriod(kind, event),
+        slotSchedule: registrationType === 'SLOTTED' ? defaultSlotSchedule(slotsStartOf(event)) : null,
     }
 }
