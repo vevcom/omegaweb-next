@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useState, useEffect, useCallback, useEffectEvent } from 'react'
+import React, { createContext, useState, useEffect, useCallback, useEffectEvent, useRef } from 'react'
 import type { ActionReturn } from '@/services/actionTypes'
 import type { ReadPageInput, Page } from '@/lib/paging/types'
 import type { Context as ReactContextType } from 'react'
@@ -102,8 +102,11 @@ export function generatePaging<Data, Cursor, PageSize extends number = number, F
         const [state, setState] = useState<PagingState<Data, Cursor, PageSize>>(generateStartState())
         const [details, setDetails] = useState<FetcherDetails>(startDetails)
         const [loading, setLoading] = useState<boolean>(false)
+        // Bumped on every reset, so a page asked for before it is not added to the list after it.
+        const resets = useRef(0)
 
         const resetState = useCallback(() => {
+            resets.current += 1
             setState(generateStartState())
         }, [generateStartState])
 
@@ -121,6 +124,7 @@ export function generatePaging<Data, Cursor, PageSize extends number = number, F
             if (state.allLoaded) return []
             if (loading) return []
             setLoading(true)
+            const resetsWhenAsked = resets.current
             const data = await fetcher({
                 paging: {
                     details,
@@ -129,7 +133,7 @@ export function generatePaging<Data, Cursor, PageSize extends number = number, F
             })
             setLoading(false)
             const nextPageNumber = state.page.page + 1
-            if (!data.success) {
+            if (!data.success || resets.current !== resetsWhenAsked) {
                 return []
             }
             const newData = data.data

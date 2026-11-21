@@ -73,3 +73,12 @@ describe('the link to an event', () => {
         })
     })
 })
+
+describe('a mount of the event pages', () => {
+    test.each([omegaEventPages, companyPresentationPages, speedInterviewPages])(
+        'at $mountPath creates an event of a kind it shows to begin with',
+        pages => {
+            expect(pages.kindsToShow).toContain(pages.defaultKind)
+        },
+    )
+})

@@ -10,12 +10,16 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { userOperations } from '@/services/users/operations'
 import { companyOperations } from '@/services/careers/companies/operations'
+import { omegaEventPages } from '@/app/(omegaweb)/events/config'
+import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/config'
 import { EventKind } from '@/prisma-generated-pn-types'
 import { beforeAll, describe, expect, jest, test } from '@jest/globals'
 import { File } from 'node:buffer'
 import type { Data } from '@/services/serviceOperation'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const HOUR = 60 * 60 * 1000
 const period = {
@@ -535,6 +539,18 @@ describe('the kind of an event', () => {
         const event = await prisma.event.findUniqueOrThrow({ where: { id } })
         expect(event.name).toBe('Blir det det var, med nytt navn')
         expect(event.kind).toBe('ORDINARY')
+    })
+
+    test('is not found under pages that do not show it', async () => {
+        const id = await createEvent('Bare på Omegas sider')
+        const readUnder = (pages: EventPagesConfig) => eventOperations.read({
+            params: { id, kinds: pages.kindsToShow },
+            bypassAuth: true,
+        })
+
+        await expect(readUnder(omegaEventPages)).resolves.toMatchObject({ id })
+        await expect(readUnder(companyPresentationPages)).rejects.toThrow(new Smorekopp('NOT FOUND'))
+        await expect(readUnder(speedInterviewPages)).rejects.toThrow(new Smorekopp('NOT FOUND'))
     })
 })
 

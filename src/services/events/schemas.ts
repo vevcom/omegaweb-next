@@ -195,7 +195,10 @@ export const eventSchemas = {
     },
     params: {
         adminVisibility: eventId,
-        read: eventId,
+        read: eventParamsFieldSchemas.pick({
+            id: true,
+            kinds: true,
+        }),
         readStatistics: eventId,
         readManyCurrent: eventParamsFieldSchemas.pick({
             tags: true,

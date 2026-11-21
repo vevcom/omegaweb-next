@@ -1,5 +1,7 @@
 import Image from '@/components/Image/Image'
 import { eventLinks } from '@/pageKits/events/links'
+import { showsSeveralKinds } from '@/pageKits/events/config'
+import { eventKinds } from '@/services/events/kinds'
 import { osloDateTime } from '@/lib/dates/oslo'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { UpcomingRegistrationOfUser } from '@/services/events/registration/types'
@@ -35,6 +37,7 @@ export default function UpcomingRegistrationRow({ registration, config }: PropTy
             <div className="list-row-main">
                 <h2>{event.name}</h2>
                 <p>
+                    {showsSeveralKinds(config) && <>{eventKinds[event.kind].name} · </>}
                     {event._count.variants > 1 && <>{variant.name} · </>}
                     {registration.onWaitingList
                         ? <span className="text-warning">På venteliste</span>
