@@ -214,6 +214,7 @@ describe('notification recipient resolution', () => {
 
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'test-event',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 24 * 60 * 60 * 1000),

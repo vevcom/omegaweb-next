@@ -141,6 +141,7 @@ describe('global search', () => {
         const HOUR = 60 * 60 * 1000
         const createEvent = (name: string) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -326,6 +327,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const HOUR = 60 * 60 * 1000
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Søketest Begrenset Arrangement',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -381,6 +383,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const visibilityAdminRequirements = await createAdministrators('company-search-admins')
         const createEvent = (name: string, companyId?: number) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -412,6 +415,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const company = await prisma.company.create({ data: { name: 'Medlemssøk Selskap AS', description: '' } })
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Bare for medlemmer',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),

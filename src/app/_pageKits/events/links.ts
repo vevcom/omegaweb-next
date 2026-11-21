@@ -41,3 +41,8 @@ export const eventLinks = defineLinks<EventPagesConfig, EventLinks>((href, confi
 
 /** The links of the home pages of the event's kind, for what is rendered on no pages, as a notification is. */
 export const eventHomeLinks = (event: EventRef) => eventLinks(eventHomePages[event.kind])
+
+/** The link to the list of coming events, or to the archive, for what narrows the list it is shown on. */
+export const eventListLink = (config: EventPagesConfig, archive: boolean) => (
+    archive ? eventLinks(config).archive : eventLinks(config).list
+)

@@ -1,4 +1,5 @@
-import { eventListFilterOf, kindsToRead, showsSeveralKinds } from '@/pageKits/events/filter'
+import { eventListFilterOf, kindsToRead } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/config'
 import { eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'

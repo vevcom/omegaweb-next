@@ -1,5 +1,6 @@
 import EventTag from './EventTag'
-import { eventLinks } from '@/pageKits/events/links'
+import { eventListLink } from '@/pageKits/events/links'
+import { toggled } from '@/pageKits/events/filter'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
@@ -29,10 +30,6 @@ const pickedClassName = `
     hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
 `
 
-const toggled = <Item, >(items: Item[], item: Item) => (
-    items.includes(item) ? items.filter(other => other !== item) : [...items, item]
-)
-
 /** The tags to narrow a list of events by, and the administration of the tags for those who may. */
 export default function EventTagsAdmin({
     eventTags,
@@ -41,8 +38,7 @@ export default function EventTagsAdmin({
     config,
     archive,
 }: PropTypes) {
-    const links = eventLinks(config)
-    const listHref = archive ? links.archive : links.list
+    const listHref = eventListLink(config, archive)
     const pickedTagNames = filter.tagNames ?? []
     return (
         <div className="max-h-[80svh]">

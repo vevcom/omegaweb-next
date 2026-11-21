@@ -1,15 +1,15 @@
 import ContactInfoForm from './ContactInfoForm'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
-import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
-import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
+import { careerEventKinds } from '@/app/(careers)/eventKinds'
+import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
+import { eventHomePages } from '@/pageKits/events/homePages'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
 import { userOperations } from '@/services/users/operations'
 import { ClassLevelConfig } from '@/services/groups/constants'
 import { dotOperations } from '@/services/dots/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
-import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
-import { companyPresentationNotificationChannel } from '@/services/careers/companyPresentationNotificationChannel'
-import { speedInterviewNotificationChannel } from '@/services/careers/speedInterviewNotificationChannel'
+import { eventKinds } from '@/services/events/kinds'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
@@ -17,6 +17,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { serverPage } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
+import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 
 function Section({ title, children }: { title: string, children: ReactNode }) {
@@ -37,17 +38,15 @@ const { page, generateMetadata } = serverPage({
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 
-        // Contactor's own channel first, then those under it.
-        const channels = await Promise.all([
-            contactorNotificationChannel.read({}),
-            companyPresentationNotificationChannel.read({}),
-            speedInterviewNotificationChannel.read({}),
-        ])
+        const channels = await Promise.all(
+            ['CONTACTOR' as const, ...careerEventKinds.map(kind => eventKinds[kind].notificationChannel)]
+                .map(special => specialNotificationChannelOperations.channels[special].read({}))
+        )
         const [user, profile, registrations, dots, subscriptions] = await Promise.all([
             userOperations.read({ params: { id: userId } }),
             userOperations.readProfile({ params: { username: session.user.username } }),
             eventRegistrationOperations.readUpcomingOfUser({
-                params: { userId, kinds: ['COMPANY_PRESENTATION', 'SPEED_INTERVIEW'] },
+                params: { userId, kinds: careerEventKinds },
             }),
             dotOperations.readForUser({ params: { userId, onlyActive: true } }),
             notificationSubscriptionOperations.read({
@@ -75,16 +74,20 @@ const { page, generateMetadata } = serverPage({
             <Section title="Mine påmeldinger">
                 {registrations.length === 0 ? (
                     <p className="text-m text-base-content/80">
-                        Du er ikke påmeldt noen kommende bedriftspresentasjoner eller speedintervjuer. Se{' '}
-                        <SiteLink href={companyPresentationLinks.list()}>bedriftspresentasjonene</SiteLink> og{' '}
-                        <SiteLink href={speedInterviewLinks.list()}>speedintervjuene</SiteLink>.
+                        Du er ikke påmeldt noen kommende arrangementer. Se{' '}
+                        {careerEventKinds.map((kind, index) => <Fragment key={kind}>
+                            {index > 0 && (index === careerEventKinds.length - 1 ? ' og ' : ', ')}
+                            <SiteLink href={eventLinks(eventHomePages[kind]).list()}>
+                                {eventHomePages[kind].titles.current.toLowerCase()}
+                            </SiteLink>
+                        </Fragment>)}.
                     </p>
                 ) : (
                     <ul className="flex flex-col list-none divide-y divide-careers-line">
                         {registrations.map(registration => (
                             <li key={registration.id} className="flex flex-wrap items-baseline gap-x-4 py-3">
                                 <SiteLink
-                                    href={companyPresentationLinks.event(registration.event)}
+                                    href={eventHomeLinks(registration.event).event(registration.event)}
                                     className="text-m font-semibold text-careers-navy"
                                 >
                                     {registration.event.name}
@@ -128,7 +131,7 @@ const { page, generateMetadata } = serverPage({
 
             <Section title="Varslinger fra Contactor">
                 <div className="flex flex-col gap-6">
-                    {channels.map((channel, index) => {
+                    {channels.map(channel => {
                         const subscription = subscriptions.find(candidate => candidate.channelId === channel.id)
                         return <UpdateNotificationSubscription
                             key={channel.id}
@@ -136,8 +139,8 @@ const { page, generateMetadata } = serverPage({
                             channel={channel}
                             methods={subscription?.methods ?? allNotificationMethodsOff}
                             inherited={!subscription?.explicit}
-                            hasChildren={index === 0}
-                            depth={index === 0 ? 0 : 1}
+                            hasChildren={channels.some(other => other.parentId === channel.id)}
+                            depth={channels.some(other => other.id === channel.parentId) ? 1 : 0}
                         />
                     })}
                 </div>

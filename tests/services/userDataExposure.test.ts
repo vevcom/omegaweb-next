@@ -67,6 +67,7 @@ beforeAll(async () => {
 
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Exposure test',
             location: 'Here',
             eventStart: new Date(),

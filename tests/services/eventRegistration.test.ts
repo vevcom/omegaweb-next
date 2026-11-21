@@ -8,6 +8,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { userOperations } from '@/services/users/operations'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
+import type { EventKind } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
 const HOUR = 60 * 60 * 1000
@@ -67,12 +68,14 @@ function sessionOf(user: UserFiltered, groupIds: number[] = [membersGroupId]) {
 const organiserSessionOf = (user: UserFiltered) => sessionOf(user, [membersGroupId, organisersGroupId])
 
 async function createEvent({
+    kind = 'ORDINARY',
     places,
     waitingList,
     bindingRegistration = false,
     registrationStart = new Date(Date.now() - HOUR),
     registrationEnd = new Date(Date.now() + 24 * HOUR),
 }: {
+    kind?: EventKind,
     places: number,
     waitingList: boolean,
     bindingRegistration?: boolean,
@@ -81,6 +84,7 @@ async function createEvent({
 }) {
     const event = await eventOperations.create({
         data: {
+            kind,
             name: 'Testarrangement',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -162,6 +166,7 @@ async function createCommittee(shortName: string) {
 async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: number, ledgerAccountId: number }) {
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Betalt testarrangement',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -476,6 +481,7 @@ describe('binding registration', () => {
     test('an event cannot have binding registration without registration', async () => {
         await expect(eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Testarrangement uten påmelding',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -770,8 +776,7 @@ describe('deleting an event', () => {
 describe('the upcoming registrations of a user', () => {
     test('lists the events the user is registered for, and whether they are on the waiting list', async () => {
         const fullEventId = await createEvent({ places: 1, waitingList: true })
-        const presentationId = await createEvent({ places: 5, waitingList: false })
-        await prisma.event.update({ where: { id: presentationId }, data: { kind: 'COMPANY_PRESENTATION' } })
+        const presentationId = await createEvent({ kind: 'COMPANY_PRESENTATION', places: 5, waitingList: false })
         const other = await createTestUser('upcomingother')
         const user = await createTestUser('upcominguser')
 

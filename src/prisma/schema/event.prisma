@@ -61,7 +61,7 @@ model Event {
   visibilityAdmin   Visibility @relation(name: "EventAdminVisibility", fields: [visibilityAdminId], references: [id], onDelete: Restrict)
   visibilityAdminId Int        @unique
 
-  // The event's own channel sits under the EVENT channel. The info channel under it is for what the
+  // The event's own channel sits under the channel of its kind. The info channel under it is for what the
   // registered need to know, which they are subscribed to as they register; the general one is for the rest.
   notificationChannel          NotificationChannel @relation(name: "EventNotificationChannel", fields: [notificationChannelId], references: [id], onDelete: Restrict)
   notificationChannelId        Int                 @unique
