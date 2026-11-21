@@ -265,7 +265,7 @@ export const permissionConfig = {
     },
     CAREER_FRONTPAGE_HIGHLIGHT_ADMIN: {
         name: 'Fremhevingsadministrator',
-        description: 'kan velge hvilke bedriftspresentasjoner og jobbannonser forsiden til karrieresiden fremhever',
+        description: 'kan velge hvilke arrangementer og jobbannonser forsiden til karrieresiden fremhever',
         category: 'jobad',
         canBeDefault: false,
     },

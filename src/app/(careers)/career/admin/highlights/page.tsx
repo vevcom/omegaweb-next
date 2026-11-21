@@ -3,6 +3,7 @@ import EditHighlight from './EditHighlight'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage/highlights/operations'
 import { isHighlightShowable } from '@/services/careers/frontpage/highlights/constants'
+import { eventKinds } from '@/services/events/kinds'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { displayDate } from '@/lib/dates/displayDate'
 import { serverPage } from '@/app/ServerPage'
@@ -41,7 +42,7 @@ const { page, generateMetadata } = serverPage({
                                     <div className="flex-1 min-w-[14rem]">
                                         <p className="m-0 font-semibold">{name}</p>
                                         <p className="m-0 text-s text-base-content/80">
-                                            {highlight.event ? 'Bedriftspresentasjon' : 'Jobbannonse'}
+                                            {highlight.event ? eventKinds[highlight.event.kind].name : 'Jobbannonse'}
                                         </p>
                                     </div>
                                     <p className="m-0 text-s text-base-content/80">

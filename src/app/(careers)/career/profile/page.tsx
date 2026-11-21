@@ -97,6 +97,7 @@ const { page, generateMetadata } = serverPage({
                                     {registration.event.name}
                                 </SiteLink>
                                 <span className="text-s text-base-content/80">
+                                    {careerEventKinds.length > 1 && `${eventKinds[registration.event.kind].name} · `}
                                     {displayDate(registration.event.eventStart)}
                                     {registration.event.location && ` · ${registration.event.location}`}
                                 </span>

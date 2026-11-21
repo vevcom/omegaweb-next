@@ -15,6 +15,7 @@ import {
 import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
+import { eventKinds } from './kinds'
 import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { getLocationMapData } from '@/lib/maps/locationMap'
@@ -62,6 +63,7 @@ const adminVisibility = implementVisibilityRead({
     ).visibilityAdmin,
 })
 
+/** The event, which is not found when kinds are given and it is of none of them, as under pages that do not show it. */
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
     authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
@@ -69,6 +71,7 @@ const read = defineOperation({
         const event = await prisma.event.findUniqueOrThrow({
             where: {
                 id: params.id,
+                kind: { in: params.kinds },
             },
             include: {
                 locationMap: true,
@@ -504,9 +507,11 @@ export const eventOperations = {
                 config.find(pages => pages.kindsToShow.includes(event.kind)) ?? eventHomePages[event.kind]
             ).event(event),
             label: event.name,
-            sublabel: event.company
-                ? `${event.company.name}, ${displayDate(event.eventStart, false)}`
-                : displayDate(event.eventStart, false),
+            sublabel: [
+                new Set(config.flatMap(pages => pages.kindsToShow)).size > 1 ? eventKinds[event.kind].name : null,
+                event.company?.name ?? null,
+                displayDate(event.eventStart, false),
+            ].filter(part => part !== null).join(', '),
             image: event.coverImage.image,
         }),
     }),
