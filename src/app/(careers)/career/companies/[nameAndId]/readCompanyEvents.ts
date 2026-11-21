@@ -1,5 +1,4 @@
-import { careerPages } from '@/app/(careers)/config'
-import { eventHomePages } from '@/pageKits/events/homePages'
+import { careerEventKinds } from '@/app/(careers)/eventKinds'
 import { eventOperations } from '@/services/events/operations'
 import { EventKind } from '@/prisma-generated-pn-types'
 import type { PageSizeEventArchive } from '@/contexts/paging/EventArchivePaging'
@@ -7,15 +6,15 @@ import type { EventArchiveDetails } from '@/services/events/types'
 
 export const earlierEventsPageSize: PageSizeEventArchive = 12
 
-const isCareerKind = (kind: EventKind) => eventHomePages[kind].site === careerPages.site
-
 /**
  * The company's events of each kind it has any of, the kinds at home on the career site first: the
  * coming ones, and the first page of the earlier ones with the details that read the next.
  */
 export async function readCompanyEvents(companyId: number) {
-    const kinds = Object.values(EventKind)
-    const ordered = [...kinds.filter(isCareerKind), ...kinds.filter(kind => !isCareerKind(kind))]
+    const ordered = [
+        ...careerEventKinds,
+        ...Object.values(EventKind).filter(kind => !careerEventKinds.includes(kind)),
+    ]
     const earlierDetailsOf = (kind: EventKind): EventArchiveDetails => ({ tags: null, kinds: [kind], companyId })
     const [coming, earlierOfKinds] = await Promise.all([
         eventOperations.readManyCurrent({ params: { tags: null, companyId } }),

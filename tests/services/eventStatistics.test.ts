@@ -15,6 +15,7 @@ async function setUp() {
     })
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Statistikk',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 48 * HOUR),

@@ -29,7 +29,7 @@ describe('DomainContext', () => {
         expect(context.servesBasePaths()).toBe(false)
         expect(context.browserPath()).toBe('/job-ads')
         expect(DomainContext.fromBrowser('contactor.no', '/').path).toBe('/career')
-        expect(DomainContext.fromBrowser('contactor.no', '/?event-tags=BedPres').path).toBe('/career?event-tags=BedPres')
+        expect(DomainContext.fromBrowser('contactor.no', '/?search=jul').path).toBe('/career?search=jul')
     })
 
     test('on an Omega domain the path is as sent, and the page\'s site comes from it', () => {
@@ -180,7 +180,7 @@ describe('DomainContext', () => {
         test('a page of the host\'s own site is site-relative', () => {
             expect(onCareers.resolveHref(appHref('/career/job-ads'))).toBe('/job-ads')
             expect(onCareers.resolveHref(appHref('/career'))).toBe('/')
-            expect(onCareers.resolveHref(appHref('/career?event-tags=BedPres'))).toBe('/?event-tags=BedPres')
+            expect(onCareers.resolveHref(appHref('/career?search=jul'))).toBe('/?search=jul')
             expect(onOmega.resolveHref(appHref('/events/x-1'))).toBe('/events/x-1')
         })
 

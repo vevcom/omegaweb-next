@@ -179,7 +179,7 @@ describe('a company user', () => {
         const outsider = await sessionOfCompanyUser(other.id, 'avvist@example.com')
         const withCompany = await createEvent('Utkast med bedrift', company.id, { published: false })
         const withoutCompany = await eventOperations.create({
-            data: { name: 'Utkast uten bedrift', visibilityAdminRequirements },
+            data: { kind: 'ORDINARY', name: 'Utkast uten bedrift', visibilityAdminRequirements },
             bypassAuth: true,
         })
         const refusal = {

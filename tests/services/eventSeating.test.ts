@@ -14,6 +14,7 @@ const soon = new Date(Date.now() + 24 * HOUR)
 async function setUp(key: string) {
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Julebord',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 48 * HOUR),

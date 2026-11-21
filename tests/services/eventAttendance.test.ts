@@ -30,6 +30,7 @@ const registrationsOf = (eventId: number) => ({
 async function createTestEvent(name: string, places = 10) {
     return eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name,
             location: 'Omegakjelleren',
             eventStart: new Date(Date.now() + HOUR),

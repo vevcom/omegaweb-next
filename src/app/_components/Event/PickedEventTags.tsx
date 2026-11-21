@@ -1,12 +1,12 @@
 import EventTag from './EventTag'
-import { eventLinks } from '@/pageKits/events/links'
+import { eventListLink } from '@/pageKits/events/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { EventTag as EventTagT } from '@/prisma-generated-pn-types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { EventListFilter } from '@/pageKits/events/links'
 
 /** The tags a list of events is narrowed to. Each links to the list without it. */
-export default function PickedEventFilters({ config, filter, eventTags, archive = false }: {
+export default function PickedEventTags({ config, filter, eventTags, archive = false }: {
     config: EventPagesConfig,
     filter: EventListFilter,
     /** The tags to find the picked ones among. */
@@ -14,8 +14,7 @@ export default function PickedEventFilters({ config, filter, eventTags, archive 
     /** Whether the list is the archive rather than the coming events. */
     archive?: boolean,
 }) {
-    const links = eventLinks(config)
-    const listHref = archive ? links.archive : links.list
+    const listHref = eventListLink(config, archive)
     const pickedTagNames = filter.tagNames ?? []
 
     return <div className="

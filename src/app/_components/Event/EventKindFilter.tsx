@@ -1,5 +1,6 @@
-import { eventLinks } from '@/pageKits/events/links'
-import { showsSeveralKinds } from '@/pageKits/events/filter'
+import { eventListLink } from '@/pageKits/events/links'
+import { toggled } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/config'
 import { eventKinds } from '@/services/events/kinds'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { EventPagesConfig } from '@/pageKits/events/config'
@@ -21,8 +22,7 @@ export default function EventKindFilter({ config, filter, archive = false }: {
     archive?: boolean,
 }) {
     if (!showsSeveralKinds(config)) return null
-    const links = eventLinks(config)
-    const listHref = archive ? links.archive : links.list
+    const listHref = eventListLink(config, archive)
     const pickedKinds = filter.kinds ?? []
 
     return <nav aria-label="Type arrangement" className="flex flex-wrap items-center gap-1">
@@ -31,10 +31,9 @@ export default function EventKindFilter({ config, filter, archive = false }: {
         </SiteLink>
         {config.kindsToShow.map(kind => {
             const picked = pickedKinds.includes(kind)
-            const kinds = picked ? pickedKinds.filter(other => other !== kind) : [...pickedKinds, kind]
             return <SiteLink
                 key={kind}
-                href={listHref({ ...filter, kinds })}
+                href={listHref({ ...filter, kinds: toggled(pickedKinds, kind) })}
                 aria-current={picked ? 'true' : undefined}
                 className={choiceClassName(picked)}
             >

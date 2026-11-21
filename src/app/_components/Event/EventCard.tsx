@@ -1,6 +1,6 @@
 import SmallEventTag from './SmallEventTag'
 import { eventLinks } from '@/pageKits/events/links'
-import { showsSeveralKinds } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/config'
 import { eventKinds } from '@/services/events/kinds'
 import Image from '@/components/Image/Image'
 import CompanyLogoAndName from '@/components/Company/CompanyLogoAndName'

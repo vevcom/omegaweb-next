@@ -3,6 +3,7 @@ import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
+import { eventSchemas } from '@/services/events/schemas'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
@@ -55,6 +56,7 @@ beforeAll(async () => {
 async function createEvent(name: string) {
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name,
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 48 * HOUR),
@@ -508,18 +510,22 @@ describe('who administrates, and the account', () => {
 describe('the kind of an event', () => {
     const kindOf = async (id: number) => (await prisma.event.findUniqueOrThrow({ where: { id } })).kind
 
-    test('is ordinary unless the event is created as another', async () => {
+    test('is the one the event is created as, which must be given', async () => {
         expect(await kindOf(await createEvent('Et vanlig arrangement'))).toBe('ORDINARY')
 
+        const visibilityAdminRequirements = [{ conditions: [activeMembersOf(groupId)] }]
         const presentation = await eventOperations.create({
-            data: {
-                name: 'En bedriftspresentasjon',
-                kind: 'COMPANY_PRESENTATION',
-                visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
-            },
+            data: { name: 'En bedriftspresentasjon', kind: 'COMPANY_PRESENTATION', visibilityAdminRequirements },
             bypassAuth: true,
         })
         expect(presentation.kind).toBe('COMPANY_PRESENTATION')
+
+        await expect(eventOperations.create({
+            data: { name: 'Uten type', visibilityAdminRequirements } as never,
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD DATA'))
+        const withoutKind = eventSchemas.data.create.safeParse({ name: 'Uten type', visibilityAdminRequirements })
+        expect(withoutKind.error?.issues.map(issue => issue.path[0])).toContain('kind')
     })
 
     test('is not changed by a save', async () => {
@@ -593,6 +599,7 @@ describe('the company of an event', () => {
         const company = await createCompany('Selskap på listene')
         const createAt = (name: string, eventStart: Date) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 eventStart,
                 eventEnd: new Date(eventStart.getTime() + 2 * HOUR),
@@ -707,6 +714,7 @@ describe('the company of an event', () => {
                 companyId?: number | 'NULL',
             ) => eventOperations.create({
                 data: {
+                    kind: 'ORDINARY',
                     name,
                     companyId,
                     visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
