@@ -95,6 +95,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         },
         {
             event: {
+                kind: 'ORDINARY',
                 name: 'Stresset eksamenslesing',
                 location: 'Lesesal',
                 eventStart: startDate,
@@ -112,6 +113,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         },
         {
             event: {
+                kind: 'ORDINARY',
                 name: 'Ohma sin bursdag',
                 location: 'Ohma',
                 eventStart: startDate,

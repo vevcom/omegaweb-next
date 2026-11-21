@@ -1,4 +1,5 @@
-import { eventListFilterOf, kindsToRead, showsSeveralKinds } from '@/pageKits/events/filter'
+import { eventListFilterOf, kindsToRead } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/config'
 import { eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
@@ -71,4 +72,13 @@ describe('the link to an event', () => {
             expect(pages.kindsToShow).toContain(kind)
         })
     })
+})
+
+describe('a mount of the event pages', () => {
+    test.each([omegaEventPages, companyPresentationPages, speedInterviewPages])(
+        'at $mountPath creates an event of a kind it shows to begin with',
+        pages => {
+            expect(pages.kindsToShow).toContain(pages.defaultKind)
+        },
+    )
 })

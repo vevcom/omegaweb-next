@@ -8,6 +8,7 @@ import { jobAdOperations } from '@/services/careers/jobAds/operations'
 import { testSession } from 'tests/utils'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { AnySession } from '@/auth/session/Session'
+import type { EventKind } from '@/prisma-generated-pn-types'
 
 const HOUR = 60 * 60 * 1000
 
@@ -23,12 +24,12 @@ const jobAdReader = testSession({ memberships: [], permissions: ['JOBAD_USE'], u
 let companyId: number
 let adminGroupId: number
 
-async function createEvent({ presentation = true, published = true, startsIn = 10, endsIn = 12 }: {
-    presentation?: boolean, published?: boolean, startsIn?: number, endsIn?: number,
+async function createEvent({ kind = 'COMPANY_PRESENTATION', published = true, startsIn = 10, endsIn = 12 }: {
+    kind?: EventKind, published?: boolean, startsIn?: number, endsIn?: number,
 } = {}) {
     const event = await eventOperations.create({
         data: {
-            kind: presentation ? 'COMPANY_PRESENTATION' : 'ORDINARY',
+            kind,
             name: 'Bedpress hos Vevcom',
             location: 'Lophtet',
             eventStart: hoursFromNow(startsIn),
@@ -121,7 +122,7 @@ describe('career frontpage highlights', () => {
         const event = await createEvent()
         const jobAd = await createJobAd()
         const period = { start: hoursFromNow(-1), end: hoursFromNow(1) }
-        const message = 'Velg enten en bedriftspresentasjon eller en jobbannonse'
+        const message = 'Velg enten et arrangement eller en jobbannonse'
         await expect(careerFrontpageHighlightOperations.create({
             data: { eventId: 'NULL', jobAdId: 'NULL', ...period },
             session: admin,
@@ -132,14 +133,18 @@ describe('career frontpage highlights', () => {
         })).rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
     })
 
-    test('only published company presentations can be highlighted', async () => {
-        const message = 'Bare publiserte bedriftspresentasjoner kan fremheves'
-        const ordinary = await createEvent({ presentation: false })
+    test('only published events of the career site\'s kinds can be highlighted', async () => {
+        const message = 'Bare publiserte bedriftspresentasjoner og speedintervjuer kan fremheves'
+        const ordinary = await createEvent({ kind: 'ORDINARY' })
         const draft = await createEvent({ published: false })
         await expect(createHighlight({ eventId: ordinary.id }))
             .rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
         await expect(createHighlight({ eventId: draft.id }))
             .rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
+
+        const speedInterview = await createEvent({ kind: 'SPEED_INTERVIEW' })
+        const highlight = await createHighlight({ eventId: speedInterview.id })
+        expect(await readCurrentIds()).toEqual([highlight.id])
     })
 
     test('only active job ads can be highlighted', async () => {
@@ -248,6 +253,11 @@ describe('career frontpage highlights', () => {
         const inactiveJobAd = await createJobAd()
         await createHighlight({ jobAdId: inactiveJobAd.id })
         await prisma.jobAd.update({ where: { id: inactiveJobAd.id }, data: { active: false } })
+        // A highlight of an ordinary event can only be made past the operations.
+        const ordinary = await createEvent({ kind: 'ORDINARY' })
+        await prisma.careerFrontpageHighlight.create({
+            data: { eventId: ordinary.id, start: hoursFromNow(-1), end: hoursFromNow(1) },
+        })
 
         const now = new Date()
         const highlights = await careerFrontpageHighlightOperations.readMany({ session: admin })
@@ -263,11 +273,13 @@ describe('career frontpage highlights', () => {
     test('offers the admin only what can be highlighted', async () => {
         const offered = await createEvent()
         const draft = await createEvent({ published: false })
-        const ordinary = await createEvent({ presentation: false })
+        const speedInterview = await createEvent({ kind: 'SPEED_INTERVIEW' })
+        const ordinary = await createEvent({ kind: 'ORDINARY' })
         const jobAd = await createJobAd()
         const { events, jobAds } = await careerFrontpageHighlightOperations.readTargets({ session: admin })
         const eventIds = events.map(event => event.id)
         expect(eventIds).toContain(offered.id)
+        expect(eventIds).toContain(speedInterview.id)
         expect(eventIds).not.toContain(draft.id)
         expect(eventIds).not.toContain(ordinary.id)
         expect(jobAds.map(ad => ad.id)).toContain(jobAd.id)

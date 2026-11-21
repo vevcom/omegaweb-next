@@ -15,6 +15,7 @@ async function setUp(key: string) {
     })
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Badstue',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 48 * HOUR),

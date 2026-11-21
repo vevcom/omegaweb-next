@@ -1,10 +1,14 @@
+import { careerEventKinds } from '@/app/(careers)/eventKinds'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
-import type { Prisma } from '@/prisma-generated-pn-types'
+import type { EventKind, Prisma } from '@/prisma-generated-pn-types'
 
-/** What may be highlighted at all. The front page further requires the event not to have ended. */
+/**
+ * What may be highlighted at all: a published event of one of the career site's kinds. The front
+ * page further requires the event not to have ended.
+ */
 export const highlightableEvent = {
     published: true,
-    kind: 'COMPANY_PRESENTATION',
+    kind: { in: careerEventKinds },
 } as const satisfies Prisma.EventWhereInput
 
 export const highlightableJobAd = {
@@ -22,10 +26,10 @@ export const currentlyHighlightableEvent = (now: Date) => ({
  * `currentlyHighlightableEvent` and `highlightableJobAd`. The highlight's own period is not considered.
  */
 export function isHighlightShowable({ event, jobAd }: {
-    event: { published: boolean, eventEnd: Date } | null,
+    event: { kind: EventKind, published: boolean, eventEnd: Date } | null,
     jobAd: { active: boolean } | null,
 }, now: Date): boolean {
-    if (event) return event.published && event.eventEnd >= now
+    if (event) return highlightableEvent.kind.in.includes(event.kind) && event.published && event.eventEnd >= now
     return jobAd?.active ?? false
 }
 
@@ -79,6 +83,7 @@ export const adminHighlightOrdering = [
 
 export const highlightableEventSelection = {
     id: true,
+    kind: true,
     name: true,
     eventStart: true,
 } as const satisfies Prisma.EventSelect

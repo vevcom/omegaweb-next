@@ -14,6 +14,7 @@ import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
 import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
 import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
@@ -141,6 +142,7 @@ describe('global search', () => {
         const HOUR = 60 * 60 * 1000
         const createEvent = (name: string) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -179,6 +181,36 @@ describe('global search', () => {
         expect(await namesOf(['COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres'])
         expect(await namesOf(['ORDINARY', 'COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres', 'Typetest Fest'])
         expect(await namesOf()).toEqual(['Typetest Bedpres', 'Typetest Fest'])
+    })
+
+    test('the archived events can be narrowed to kinds', async () => {
+        const group = await prisma.group.findFirstOrThrow()
+        const DAY = 24 * 60 * 60 * 1000
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
+            data: {
+                kind,
+                name,
+                eventStart: new Date(Date.now() - 2 * DAY),
+                eventEnd: new Date(Date.now() - DAY),
+                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            },
+            bypassAuth: true,
+        })
+        await createEvent('Arkivtypetest Speedintervju', 'SPEED_INTERVIEW')
+        await createEvent('Arkivtypetest Fest', 'ORDINARY')
+
+        const namesOf = async (kinds?: EventKind[]) => (await eventOperations.readManyArchivedPage({
+            params: {
+                paging: {
+                    page: { page: 0, pageSize: 12, cursor: null },
+                    details: { tags: null, kinds, name: 'arkivtypetest' },
+                },
+            },
+            bypassAuth: true,
+        })).map(event => event.name).sort()
+        expect(await namesOf(['SPEED_INTERVIEW'])).toEqual(['Arkivtypetest Speedintervju'])
+        expect(await namesOf(['ORDINARY', 'COMPANY_PRESENTATION'])).toEqual(['Arkivtypetest Fest'])
+        expect(await namesOf()).toEqual(['Arkivtypetest Fest', 'Arkivtypetest Speedintervju'])
     })
 
     test('a single category the session may not search gives no sections', async () => {
@@ -242,7 +274,7 @@ describe('global search', () => {
             .toBe(omegaEventLinks.event(presentation))
     })
 
-    test('finds an event by the name of its company, on the pages of its kind', async () => {
+    test('finds an event by the name of its company, and names its kind where the pages show several', async () => {
         const company = await prisma.company.create({ data: { name: 'Firmasøk Teknikk AS', description: '' } })
         const group = await prisma.group.findFirstOrThrow()
         const createEvent = (name: string, kind: EventKind) => eventOperations.create({
@@ -265,7 +297,12 @@ describe('global search', () => {
         ])
         expect(omega[0]?.results.map(result => result.label).sort()).toEqual(['Bedpres i skyen', 'Kurs i skyen'])
         expect(careers[0]?.results.map(result => result.label)).toEqual(['Bedpres i skyen'])
-        expect(careers[0]?.results[0]?.sublabel).toMatch(/^Firmasøk Teknikk AS, /)
+        expect(careers[0]?.results[0]?.sublabel).toMatch(/^Bedriftspresentasjon, Firmasøk Teknikk AS, /)
+        expect(omega[0]?.results.find(result => result.label === 'Kurs i skyen')?.sublabel)
+            .toMatch(/^Arrangement, Firmasøk Teknikk AS, /)
+
+        const { searchResults } = await eventOperations.search([companyPresentationPages])({ params, session })
+        expect(searchResults.map(result => result.sublabel)).toEqual([expect.stringMatching(/^Firmasøk Teknikk AS, /)])
     })
 
     test('job ad results link to the job ad pages of the site searched', async () => {
@@ -326,6 +363,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const HOUR = 60 * 60 * 1000
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Søketest Begrenset Arrangement',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -381,6 +419,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const visibilityAdminRequirements = await createAdministrators('company-search-admins')
         const createEvent = (name: string, companyId?: number) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -412,6 +451,7 @@ describe('search respects a provider\'s own visibility filter', () => {
         const company = await prisma.company.create({ data: { name: 'Medlemssøk Selskap AS', description: '' } })
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Bare for medlemmer',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),

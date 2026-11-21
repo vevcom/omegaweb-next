@@ -1,5 +1,8 @@
-import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
+import { careerEventKinds } from '@/app/(careers)/eventKinds'
+import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
+import { eventHomePages } from '@/pageKits/events/homePages'
+import { eventKinds } from '@/services/events/kinds'
 import { bandClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import Image from '@/components/Image/Image'
 import StandardImageServer from '@/components/Image/StandardImageServer'
@@ -27,8 +30,8 @@ function itemsOf({ id, event, jobAd }: ExpandedCareerFrontpageHighlight): Item[]
     if (event) {
         return [{
             key: `event-${id}`,
-            href: companyPresentationLinks.event(event),
-            kind: 'Bedriftspresentasjon',
+            href: eventHomeLinks(event).event(event),
+            kind: eventKinds[event.kind].name,
             title: event.name,
             detail: displayDate(event.eventStart, false),
             image: event.coverImage.image,
@@ -68,9 +71,17 @@ export default function CareerFrontpageHighlights({ highlights }: PropTypes) {
                     <span className="text-careers-accent-dark text-s font-semibold tracking-[0.15em] uppercase">
                         Aktuelt
                     </span>
-                    <SiteLink href={companyPresentationLinks.list()} className="text-careers-navy text-m font-semibold">
-                        Alle bedriftspresentasjoner →
-                    </SiteLink>
+                    <div className="flex flex-wrap gap-x-8 gap-y-2">
+                        {careerEventKinds.map(kind => (
+                            <SiteLink
+                                key={kind}
+                                href={eventLinks(eventHomePages[kind]).list()}
+                                className="text-careers-navy text-m font-semibold"
+                            >
+                                Alle {eventHomePages[kind].titles.current.toLowerCase()} →
+                            </SiteLink>
+                        ))}
+                    </div>
                 </div>
                 <ul className="flex gap-6 m-0 p-0 list-none overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]">
                     {highlights.flatMap(itemsOf).map(item => (

@@ -15,8 +15,9 @@ import {
 import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
-import { eventHomeLinks } from '@/pageKits/events/links'
-import { eventLinks } from '@/pageKits/events/links'
+import { eventKinds } from './kinds'
+import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
+import { eventHomePages } from '@/pageKits/events/homePages'
 import { getLocationMapData } from '@/lib/maps/locationMap'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -62,6 +63,7 @@ const adminVisibility = implementVisibilityRead({
     ).visibilityAdmin,
 })
 
+/** The event, which is not found when kinds are given and it is of none of them, as under pages that do not show it. */
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
     authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
@@ -69,6 +71,7 @@ const read = defineOperation({
         const event = await prisma.event.findUniqueOrThrow({
             where: {
                 id: params.id,
+                kind: { in: params.kinds },
             },
             include: {
                 locationMap: true,
@@ -338,18 +341,17 @@ export const eventOperations = {
                 prisma,
             })
             const id = await reserveId(prisma, 'Event')
-            const kind = data.kind ?? 'ORDINARY'
             const channels = await eventNotificationOperations.internal.createChannels.internalCall({
                 prisma,
                 params: { eventId: id },
-                data: { name: data.name, kind },
+                data: { name: data.name, kind: data.kind },
             })
 
             // Scalar foreign keys, since prisma will not take an explicit id along with nested connects.
             const createdEvent = await prisma.event.create({
                 data: {
                     id,
-                    kind,
+                    kind: data.kind,
                     name: data.name,
                     location: data.location,
                     locationMap: data.locationMap ? { create: getLocationMapData(data.locationMap) } : undefined,
@@ -462,13 +464,9 @@ export const eventOperations = {
     }),
 
     /**
-     * The events matching a free text query, the most recent ones first. Both past and coming
-     * events are searched, and only the events the session may see at all - the very same
-     * visibility rule as the lists of current and archived events above.
-     */
-    /**
      * The search for the event pages of a site, of which it may have several: the events of the kinds
-     * they show, each linked to on the pages among them that show its kind.
+     * they show, each linked to on the pages among them that show its kind. Past and coming events are
+     * searched, the most recent first, and only those the session may see, by the rule of the lists above.
      */
     search: implementSearchOperation({
         authorizer: () => eventAuth.search,
@@ -505,11 +503,15 @@ export const eventOperations = {
         }),
         toSearchResult: (event, config) => ({
             key: `event-${event.id}`,
-            href: eventLinks(config.find(pages => pages.kindsToShow.includes(event.kind)) ?? config[0]).event(event),
+            href: eventLinks(
+                config.find(pages => pages.kindsToShow.includes(event.kind)) ?? eventHomePages[event.kind]
+            ).event(event),
             label: event.name,
-            sublabel: event.company
-                ? `${event.company.name}, ${displayDate(event.eventStart, false)}`
-                : displayDate(event.eventStart, false),
+            sublabel: [
+                new Set(config.flatMap(pages => pages.kindsToShow)).size > 1 ? eventKinds[event.kind].name : null,
+                event.company?.name ?? null,
+                displayDate(event.eventStart, false),
+            ].filter(part => part !== null).join(', '),
             image: event.coverImage.image,
         }),
     }),

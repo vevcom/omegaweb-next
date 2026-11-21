@@ -3,7 +3,7 @@ import { eventListFilterOf, kindsToRead } from '@/pageKits/events/filter'
 import CreateEventForm from '@/components/Event/CreateEventForm'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventCard from '@/components/Event/EventCard'
-import PickedEventFilters from '@/components/Event/PickedEventFilters'
+import PickedEventTags from '@/components/Event/PickedEventTags'
 import EventKindFilter from '@/components/Event/EventKindFilter'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
@@ -70,7 +70,7 @@ export function eventsPage(config: EventPagesConfig) {
                     <div className="flex justify-between items-center w-full gap-[1em]">
                         <div className="flex flex-wrap items-center gap-[1em]">
                             <EventKindFilter config={config} filter={filter} />
-                            <PickedEventFilters config={config} filter={filter} eventTags={eventTags} />
+                            <PickedEventTags config={config} filter={filter} eventTags={eventTags} />
                         </div>
                         <div className="flex items-center gap-[1em]">
                             {config.tagFilter && (

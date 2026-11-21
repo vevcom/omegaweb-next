@@ -3,6 +3,7 @@ import Form from '@/components/Form/Form'
 import DateInput from '@/components/UI/DateInput'
 import { SelectNumberPossibleNULL } from '@/components/UI/Select'
 import { displayDate } from '@/lib/dates/displayDate'
+import { eventKinds } from '@/services/events/kinds'
 import type { ComponentProps } from 'react'
 import type {
     CareerFrontpageHighlightTargets,
@@ -30,13 +31,13 @@ export default function HighlightForm({ targets, highlight, ...formProps }: Prop
     return (
         <Form refreshOnSuccess {...formProps}>
             <SelectNumberPossibleNULL
-                label="Bedriftspresentasjon"
+                label="Arrangement"
                 name="eventId"
                 options={[
                     { value: 'NULL', label: 'Ingen' },
                     ...events.map(event => ({
                         value: event.id,
-                        label: `${event.name} (${displayDate(event.eventStart, false)})`,
+                        label: `${eventKinds[event.kind].name}: ${event.name} (${displayDate(event.eventStart, false)})`,
                     })),
                 ]}
                 defaultValue={highlight?.event?.id ?? 'NULL'}
