@@ -14,6 +14,9 @@ import {
 } from './constants'
 import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
+import { eventSlotOperations } from './slots/operations'
+import { slotsOfSchedule } from './slots/schedule'
+import { slotScheduleSelection } from './slots/constants'
 import { eventNotificationOperations } from './notifications/operations'
 import { eventKinds } from './kinds'
 import { firstVariantSetup } from './firstSetup'
@@ -96,6 +99,7 @@ const read = defineOperation({
                 variants: {
                     select: {
                         ...eventVariantSummarySelection,
+                        slotSchedule: { select: slotScheduleSelection },
                         quotas: {
                             select: {
                                 ...eventVariantSummarySelection.quotas.select,
@@ -380,6 +384,14 @@ export const eventOperations = {
 
             if (data.takesRegistration) {
                 const ofKind = firstVariantSetup(data.kind, { eventStart, eventEnd })
+                const { slotSchedule } = ofKind
+                const schedule = slotSchedule?.start ? { ...slotSchedule, start: slotSchedule.start } : null
+                if (slotSchedule && !schedule) {
+                    throw new ServiceError(
+                        'BAD PARAMETERS',
+                        'Sett når arrangementet er før det tar påmelding, så tidslukene kan legges etter det.'
+                    )
+                }
                 const variant = await eventVariantOperations.internal.create.internalCall({
                     prisma,
                     params: { eventId: createdEvent.id },
@@ -404,9 +416,14 @@ export const eventOperations = {
                     params: { variantId: variant.id },
                     data: {
                         name: 'Påmelding',
-                        places: data.places ?? 0,
+                        places: data.places ?? (schedule ? slotsOfSchedule(schedule).length : 0),
                         visibilityRequirements: data.quotaVisibilityRequirements,
                     },
+                })
+                await eventSlotOperations.internal.saveSchedule.internalCall({
+                    prisma,
+                    params: { variantId: variant.id },
+                    data: { schedule },
                 })
             }
             const event = createdEvent
@@ -821,6 +838,8 @@ async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, ev
             variants: {
                 select: {
                     name: true,
+                    registrationType: true,
+                    slotSchedule: { select: slotScheduleSelection },
                     registrationStart: true,
                     registrationEnd: true,
                     takesPayment: true,

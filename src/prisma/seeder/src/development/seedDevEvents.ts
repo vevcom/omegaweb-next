@@ -83,7 +83,6 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 eventEnd: endDate,
                 canBeViewedBy: 'ALL',
                 takesRegistration: true,
-                places: 8,
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 waitingList: true,

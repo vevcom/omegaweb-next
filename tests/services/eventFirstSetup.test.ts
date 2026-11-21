@@ -2,6 +2,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { firstRegistrationPeriod, firstVariantSetup } from '@/services/events/firstSetup'
 import { eventSetupFromForm, firstVariantDraft, variantsToPost } from '@/services/events/setupDraft'
+import { slotsOrProblem } from '@/services/events/slots/schedule'
 import { describe, expect, test } from '@jest/globals'
 import type { Data } from '@/services/serviceOperation'
 import type { EventKind } from '@/prisma-generated-pn-types'
@@ -179,6 +180,41 @@ describe('the registration type of the first variant', () => {
         })
 
         expect(await variantsOf(draft.id)).toMatchObject([{ registrationType }])
+    })
+
+    test('of a speed interview set up in the form has slots from the start set, and a place for each', async () => {
+        const draft = await create('SPEED_INTERVIEW')
+
+        const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, winter))
+        await eventOperations.saveSetup({
+            params: { id: draft.id },
+            data: { ...winter, variants: variantsToPost([first]) },
+            bypassAuth: true,
+        })
+
+        const ofDraft = { variant: { eventId: draft.id } }
+        const slots = await prisma.eventSlot.findMany({ where: ofDraft, orderBy: { start: 'asc' } })
+        expect(slots).toHaveLength(8)
+        expect(slots[0].start).toEqual(winter.eventStart)
+        expect(await prisma.eventQuota.findMany({ where: ofDraft })).toMatchObject([{ places: 8 }])
+    })
+})
+
+describe('the schedule of a slotted first variant of a draft without a time', () => {
+    test('has no start in the setup form, which asks for one, and gets the start once a time is set', async () => {
+        const draft = await create('SPEED_INTERVIEW')
+
+        const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, draft))
+        expect(first.slotSchedule?.start).toBeNull()
+        expect(first.slotSchedule && slotsOrProblem(first.slotSchedule).problem)
+            .toBe('Sett når den første tidsluken starter.')
+        expect(firstVariantSetup(draft.kind, winter).slotSchedule?.start).toEqual(winter.eventStart)
+    })
+
+    test('is not made at creation, which refuses registration until the event has a time', async () => {
+        await expect(create('SPEED_INTERVIEW', { takesRegistration: true })).rejects.toMatchObject({
+            errors: [{ message: 'Sett når arrangementet er før det tar påmelding, så tidslukene kan legges etter det.' }],
+        })
     })
 })
 

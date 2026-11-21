@@ -1,5 +1,6 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
+import { eventKinds } from '@/services/events/kinds'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { notifyPromotedFromWaitingList } from '@/services/events/registration/notifyPromotedFromWaitingList'
@@ -38,7 +39,8 @@ describe.each([
                 eventEnd: new Date(Date.now() + 26 * HOUR),
                 canBeViewedBy: 'ALL',
                 takesRegistration: true,
-                places: 5,
+                // A slotted first variant has as many places as slots, which it is given when they are left out.
+                ...(eventKinds[kind].firstSetup.registrationType === 'LIST' ? { places: 5 } : {}),
                 takesPayment: true,
                 price: 100,
                 paymentStart: new Date(),

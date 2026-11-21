@@ -1,7 +1,9 @@
 import { eventCanBeViewedByOptions } from './constants'
+import { slotsOrProblem } from './slots/schedule'
 import { dateFromUtcInputValue } from '@/lib/dates/dateInputValue'
 import type { EventSetup } from './publishProblems'
 import type { FirstVariantSetup } from './firstSetup'
+import type { Slot, SlotScheduleDraft } from './slots/types'
 import type { eventVariantSetupFormSchema } from './variants/schemas'
 import type { EventVariantExpanded } from './variants/types'
 import type { VisibilityRequirement } from '@/services/visibility/types'
@@ -34,6 +36,8 @@ export type VariantDraft = {
     paymentStart?: Date | null,
     paymentEnd?: Date | null,
     requeueUnpaidRegistrations: boolean,
+    /** Kept while the variant is a list, so it is there again if it is made slotted again. */
+    slotSchedule: SlotScheduleDraft | null,
     numOfRegistrations: number,
     numOnWaitingList: number,
     quotas: QuotaDraft[],
@@ -53,6 +57,7 @@ export function toVariantDrafts(variants: EventVariantExpanded[]): VariantDraft[
         paymentStart: variant.paymentStart ?? undefined,
         paymentEnd: variant.paymentEnd ?? undefined,
         requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
+        slotSchedule: variant.slotSchedule,
         numOfRegistrations: variant.numOfRegistrations,
         numOnWaitingList: variant.numOnWaitingList,
         quotas: variant.quotas.map(quota => ({
@@ -90,6 +95,9 @@ export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
         paymentStart: variant.paymentStart === undefined ? undefined : postedDate(variant.paymentStart),
         paymentEnd: variant.paymentEnd === undefined ? undefined : postedDate(variant.paymentEnd),
         requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
+        slotSchedule: variant.registrationType === 'SLOTTED' && variant.slotSchedule
+            ? { ...variant.slotSchedule, start: postedDate(variant.slotSchedule.start) }
+            : null,
         quotas: variant.quotas.map(quota => ({
             id: quota.id,
             name: quota.name,
@@ -99,7 +107,7 @@ export function variantsToPost(variants: VariantDraft[]): PostedVariant[] {
     }))
 }
 
-const postedDates = ['registrationStart', 'registrationEnd', 'paymentStart', 'paymentEnd']
+const postedDates = ['registrationStart', 'registrationEnd', 'paymentStart', 'paymentEnd', 'start']
 
 /** A field posted as JSON. Null when the form has no such field. */
 function jsonField(values: FormData, name: string, reviver?: (key: string, value: unknown) => unknown): unknown {
@@ -160,6 +168,19 @@ function nextDraftKey(siblings: { key: number }[]) {
     return Math.min(0, ...siblings.map(sibling => sibling.key)) - 1
 }
 
+/** The slots of a variant as the form holds it. Null for a list, and for a schedule that gives none. */
+export function slotsOfDraft(variant: VariantDraft): Slot[] | null {
+    if (variant.registrationType !== 'SLOTTED' || !variant.slotSchedule) return null
+    return slotsOrProblem(variant.slotSchedule).slots
+}
+
+/** A slotted variant with one quota has a place in it for each slot, and with several they are shared out by hand. */
+export function withPlacesOfSlots(variant: VariantDraft): VariantDraft {
+    const slots = slotsOfDraft(variant)
+    if (!slots || variant.quotas.length !== 1) return variant
+    return { ...variant, quotas: [{ ...variant.quotas[0], places: slots.length }] }
+}
+
 /** A new quota for the variant that has `siblings`. */
 export function newQuotaDraft(
     name: string,
@@ -179,7 +200,7 @@ export function newVariantDraft(
     siblings: VariantDraft[],
     like?: VariantDraft,
 ): VariantDraft {
-    return {
+    return withPlacesOfSlots({
         key: nextDraftKey(siblings),
         name,
         registrationType: like?.registrationType ?? 'LIST',
@@ -187,19 +208,21 @@ export function newVariantDraft(
         registrationEnd: like?.registrationEnd ?? eventStart,
         takesPayment: false,
         requeueUnpaidRegistrations: false,
+        slotSchedule: like?.slotSchedule ?? null,
         numOfRegistrations: 0,
         numOnWaitingList: 0,
         quotas: [newQuotaDraft('Påmelding', [], like?.quotas[0]?.visibilityRequirements)],
-    }
+    })
 }
 
 /** The first variant of an event, which starts out as the event's kind gives. */
 export function firstVariantDraft(name: string, eventStart: Date, ofKind: FirstVariantSetup): VariantDraft {
-    return {
+    return withPlacesOfSlots({
         ...newVariantDraft(name, eventStart, []),
         registrationType: ofKind.registrationType,
+        slotSchedule: ofKind.slotSchedule,
         ...ofKind.registrationPeriod,
-    }
+    })
 }
 
 export const hasRegistrants = (variant: VariantDraft) => variant.numOfRegistrations + variant.numOnWaitingList > 0

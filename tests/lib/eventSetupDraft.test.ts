@@ -2,10 +2,13 @@ import {
     eventSetupFromForm,
     newQuotaDraft,
     newVariantDraft,
+    slotsOfDraft,
     toVariantDrafts,
     variantsFromForm,
     variantsToPost,
+    withPlacesOfSlots,
 } from '@/services/events/setupDraft'
+import { defaultSlotSchedule } from '@/services/events/slots/schedule'
 import { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
 import { describe, expect, test } from '@jest/globals'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
@@ -27,6 +30,7 @@ const saved = (id: number, quotaIds: number[]): EventVariantExpanded => ({
     paymentStart: opens,
     paymentEnd: null,
     requeueUnpaidRegistrations: false,
+    slotSchedule: null,
     takesRegistration: true,
     places: 5 * quotaIds.length,
     numOfRegistrations: 1,
@@ -62,7 +66,7 @@ describe('the drafts of the setup form', () => {
 
         expect(Object.keys(posted)).toEqual([
             'id', 'name', 'description', 'registrationType', 'registrationStart', 'registrationEnd', 'takesPayment',
-            'price', 'paymentStart', 'paymentEnd', 'requeueUnpaidRegistrations', 'quotas',
+            'price', 'paymentStart', 'paymentEnd', 'requeueUnpaidRegistrations', 'slotSchedule', 'quotas',
         ])
         expect(Object.keys(posted.quotas[0])).toEqual(['id', 'name', 'places', 'visibilityRequirements'])
         expect(posted.price).toBe(150)
@@ -143,5 +147,49 @@ describe('the setup read from what the form would post', () => {
             .toMatchObject({ canBeViewedBy: 'ALL', ledgerAccount: null })
         expect(eventSetupFromForm(formOf({ ledgerAccountSelection: '12' }), { ...asSaved, ledgerAccount: { id: 5 } }))
             .toMatchObject({ ledgerAccount: { id: 5 } })
+    })
+})
+
+describe('the drafts of a slotted variant', () => {
+    const schedule = defaultSlotSchedule(opens)
+    const slottedDraft = (quotaIds: number[]) => ({
+        ...toVariantDrafts([saved(7, quotaIds)])[0],
+        registrationType: 'SLOTTED' as const,
+        slotSchedule: schedule,
+    })
+
+    test('post the schedule, which is read back with its start as a date, and the schema of the save takes', () => {
+        const variants = JSON.stringify(variantsToPost([slottedDraft([3])]))
+
+        expect(variantsFromForm(formOf({ variants }))[0].slotSchedule).toEqual(schedule)
+        expect(eventVariantSetupFormSchema.parse(JSON.parse(variants))[0].slotSchedule).toEqual(schedule)
+    })
+
+    test('post no schedule once made a list, while the draft keeps it for being made slotted again', () => {
+        const madeList = { ...slottedDraft([3]), registrationType: 'LIST' as const }
+
+        expect(variantsToPost([madeList])[0].slotSchedule).toBeNull()
+        expect(madeList.slotSchedule).toEqual(schedule)
+    })
+
+    test('post an emptied start as an empty one, which the save refuses', () => {
+        const emptied = variantsToPost([{ ...slottedDraft([3]), slotSchedule: { ...schedule, start: null } }])
+
+        expect(variantsFromForm(formOf({ variants: JSON.stringify(emptied) }))[0].slotSchedule?.start).toBeNull()
+        expect(eventVariantSetupFormSchema.safeParse(emptied).success).toBe(false)
+    })
+
+    test('have a place in their one quota for each slot, and leave places shared out over several to be typed', () => {
+        expect(slotsOfDraft(slottedDraft([3]))).toHaveLength(8)
+        expect(withPlacesOfSlots(slottedDraft([3])).quotas.map(quota => quota.places)).toEqual([8])
+        expect(withPlacesOfSlots(slottedDraft([3, 4])).quotas.map(quota => quota.places)).toEqual([5, 5])
+        expect(withPlacesOfSlots(toVariantDrafts([saved(7, [3])])[0]).quotas.map(quota => quota.places)).toEqual([5])
+    })
+
+    test('copied into a new variant keep the schedule and its places', () => {
+        const copy = newVariantDraft('Variant 2', closes, [slottedDraft([3])], slottedDraft([3]))
+
+        expect(copy).toMatchObject({ registrationType: 'SLOTTED', slotSchedule: schedule })
+        expect(copy.quotas.map(quota => quota.places)).toEqual([8])
     })
 })
