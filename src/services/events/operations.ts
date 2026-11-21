@@ -16,6 +16,7 @@ import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
 import { eventNotificationOperations } from './notifications/operations'
 import { eventKinds } from './kinds'
+import { firstRegistrationPeriod } from './firstSetup'
 import { eventHomeLinks, eventLinks } from '@/pageKits/events/links'
 import { eventHomePages } from '@/pageKits/events/homePages'
 import { getLocationMapData } from '@/lib/maps/locationMap'
@@ -361,7 +362,7 @@ export const eventOperations = {
                     hostedByCommitteeId: data.hostedByCommitteeId ?? undefined,
                     companyId: data.companyId ?? undefined,
                     waitingList: data.waitingList ?? false,
-                    bindingRegistration: data.bindingRegistration,
+                    bindingRegistration: data.bindingRegistration ?? eventKinds[data.kind].firstSetup.bindingRegistration,
                     allowRegistrationInMultipleVariants: data.allowRegistrationInMultipleVariants,
                     createdById: session?.user?.id,
                     cmsParagraphId: cmsParagraph.id,
@@ -378,13 +379,16 @@ export const eventOperations = {
             })
 
             if (data.takesRegistration) {
+                const periodOfKind = firstRegistrationPeriod(data.kind, { eventStart, eventEnd })
                 const variant = await eventVariantOperations.internal.create.internalCall({
                     prisma,
                     params: { eventId: createdEvent.id },
                     data: {
                         name: 'Påmelding',
-                        registrationStart: data.registrationStart ?? new Date(),
-                        registrationEnd: data.registrationEnd ?? new Date(Date.now() + DAY_MS),
+                        registrationStart: data.registrationStart ?? periodOfKind?.registrationStart ?? new Date(),
+                        registrationEnd: data.registrationEnd
+                            ?? periodOfKind?.registrationEnd
+                            ?? new Date(Date.now() + DAY_MS),
                         takesPayment: data.takesPayment,
                         price: data.price,
                         paymentStart: data.paymentStart,
