@@ -14,7 +14,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
 import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
-import type { RegistrationPeriod } from '@/services/events/firstSetup'
+import type { FirstVariantSetup } from '@/services/events/firstSetup'
+import type { EventRegistrationType } from '@/prisma-generated-pn-types'
 import type { ReactNode } from 'react'
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
@@ -161,6 +162,25 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
     </div>
 }
 
+const registrationTypes: { value: EventRegistrationType, title: string, hint: string }[] = [
+    { value: 'LIST', title: 'Liste', hint: 'Plassene fylles i den rekkefølgen folk melder seg på' },
+    { value: 'SLOTTED', title: 'Tidsluker', hint: 'Hver får sin egen tid, for eksempel til et intervju' },
+]
+
+function RegistrationTypeChoice({ variant, onChange }: {
+    variant: VariantDraft,
+    onChange: (changes: Partial<VariantDraft>) => void,
+}) {
+    return <OptionCards
+        options={registrationTypes.map(type => ({
+            ...type,
+            blocked: type.value !== variant.registrationType && hasRegistrants(variant) ? 'Varianten har påmeldte' : null,
+        }))}
+        value={variant.registrationType}
+        onChange={registrationType => onChange({ registrationType })}
+    />
+}
+
 function RegistrationPeriod({ variant, onChange }: {
     variant: VariantDraft,
     onChange: (changes: Partial<VariantDraft>) => void,
@@ -221,11 +241,11 @@ function variantsInShape(
     shape: Shape,
     variants: VariantDraft[],
     eventStart: Date,
-    firstPeriod: RegistrationPeriod | null,
+    firstVariant: FirstVariantSetup,
 ): VariantDraft[] {
     if (shape === 'NONE') return []
     const first = variants.at(0)
-        ?? firstVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, firstPeriod)
+        ?? firstVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, firstVariant)
     if (shape === 'VARIANTS') {
         return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
@@ -249,11 +269,11 @@ function variantsInShape(
  * form. Nothing here is saved until the form is, so the buttons at the top only change what the
  * form will send.
  */
-export default function EventRegistrationFields({ waitingList, eventStart, firstPeriod }: {
+export default function EventRegistrationFields({ waitingList, eventStart, firstVariant }: {
     waitingList: boolean,
     eventStart: Date,
-    /** The period the kind of the event gives the first variant, if it gives one. */
-    firstPeriod: RegistrationPeriod | null,
+    /** What the kind of the event gives its first variant. */
+    firstVariant: FirstVariantSetup,
 }) {
     const { variants, setVariants, changeVariant } = useEventVariantsField()
     const current = shapeOf(variants)
@@ -262,12 +282,13 @@ export default function EventRegistrationFields({ waitingList, eventStart, first
         <OptionCards
             options={shapes.map(shape => ({ ...shape, blocked: blockedReason(shape.value, variants) }))}
             value={current}
-            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart, firstPeriod))}
+            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart, firstVariant))}
         />
 
         {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
 
         {variants.length === 1 && <AdminSection>
+            <RegistrationTypeChoice variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <RegistrationPeriod variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <VariantDescription variant={variants[0]} onChange={changes => changeVariant(variants[0].key, changes)} />
             <QuotaFlow
@@ -298,6 +319,7 @@ export default function EventRegistrationFields({ waitingList, eventStart, first
                         Fjern varianten
                     </Button>
                 </div>
+                <RegistrationTypeChoice variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <RegistrationPeriod variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <VariantDescription variant={variant} onChange={changes => changeVariant(variant.key, changes)} />
                 <QuotaFlow

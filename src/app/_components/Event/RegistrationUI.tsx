@@ -56,7 +56,9 @@ export default function RegistrationUI({
     /** The event pages the registration sits in, whose site's login a visitor is sent to. */
     config: EventPagesConfig,
     event: Pick<EventExpanded, 'id' | 'kind' | 'name' | 'waitingList' | 'bindingRegistration'>,
-    variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
+    variant: Pick<EventVariantSummary,
+        'id' | 'registrationType' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'
+    >,
     registration: OwnRegistration | null,
     dotPunishment: DotPunishment | null,
     eligibility: RegistrationEligibility,
@@ -123,6 +125,9 @@ export default function RegistrationUI({
         }
     })
 
+    if (variant.registrationType === 'SLOTTED') {
+        return <p className="m-0 text-base-content/80">Påmelding til tidsluker er ikke mulig ennå.</p>
+    }
     // Only a user registers for an event. A company user is signed in already, so only a visitor is offered the login.
     if (session.data?.companyUser) {
         return <p className="m-0 text-base-content/80">Du kan ikke melde deg på som bedrift.</p>

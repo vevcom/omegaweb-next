@@ -21,7 +21,7 @@ import TextInput from '@/components/UI/TextInput'
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
-import { firstRegistrationPeriod } from '@/services/events/firstSetup'
+import { firstVariantSetup } from '@/services/events/firstSetup'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
@@ -110,7 +110,7 @@ function SetupForm({
         canBeViewedBy: event.canBeViewedBy,
         adminRequirements: access.adminVisibility.requirements,
     })
-    // The time as the form has it, so a first variant gets the period of the kind from the start just set.
+    // The time as the form has it, so a first variant gets what the kind gives it from the start just set.
     const [time, setTime] = useState({ eventStart: event.eventStart, eventEnd: event.eventEnd })
     const { variants } = useEventVariantsField()
     const companySelection = useContext(CompanySelectionContext)
@@ -233,7 +233,7 @@ function SetupForm({
             <EventRegistrationFields
                 waitingList={waitingList}
                 eventStart={event.eventStart}
-                firstPeriod={firstRegistrationPeriod(event.kind, time)}
+                firstVariant={firstVariantSetup(event.kind, time)}
             />
         </FormTab>
 

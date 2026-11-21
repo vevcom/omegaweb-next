@@ -111,6 +111,12 @@ model EventTag {
   updatedAt DateTime @updatedAt
 }
 
+// How a variant hands out its places: in the order people register, or a time slot to each.
+enum EventRegistrationType {
+  LIST
+  SLOTTED
+}
+
 // A way to take part in the event, e.g. "Golfrunde 1" and "Golfrunde 2". Registrants pick one.
 model EventVariant {
   id      Int    @id @default(autoincrement())
@@ -120,6 +126,8 @@ model EventVariant {
   name    String
   // One line shown above the registration, such as when this variant should show up.
   description String?
+
+  registrationType EventRegistrationType @default(LIST)
 
   registrationStart DateTime
   registrationEnd   DateTime
