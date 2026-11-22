@@ -72,7 +72,19 @@ export async function linkedEventSeenBy(
 ): Promise<LinkedEvent | null> {
     if (linkedId === null) return null
     if (!canSeeEvent.data(await readEventAccess(prisma, linkedId)).auth(session).authorized) return null
-    return await prisma.event.findUniqueOrThrow({ where: { id: linkedId }, select: linkedEventSelection })
+    return await readLinkedEvent(prisma, linkedId)
+}
+
+/** The event linked to another, whoever asks. See `linkedEventSeenBy` for what may be shown. */
+export async function readLinkedEvent(prisma: PrismaPossibleTransaction<false>, linkedId: number): Promise<LinkedEvent> {
+    const { variants, ...linked } = await prisma.event.findUniqueOrThrow({
+        where: { id: linkedId },
+        select: linkedEventSelection,
+    })
+    return {
+        ...linked,
+        takesRegistration: variants.some(variant => variant.quotas.some(quota => quota.places > 0)),
+    }
 }
 
 /** The event a variant belongs to. */

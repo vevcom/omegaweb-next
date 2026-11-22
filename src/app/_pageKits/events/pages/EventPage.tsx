@@ -114,6 +114,10 @@ export function eventPage(config: EventPagesConfig) {
                     params: { eventId: event.id, userId, variantId: variant.id },
                 })))
                 : event.variants.map(() => null)
+            // Told before they try, in the words the refusal would use.
+            const seatRefusal = event.variants.length > 0 && userId !== undefined
+                ? await eventRegistrationOperations.readSeatRefusal({ params: { eventId: event.id, userId } })
+                : null
             // Only a user is shown the slots, with the registration.
             const slots = await Promise.all(event.variants.map(async variant => (
                 variant.registrationType === 'SLOTTED' && session.user
@@ -128,6 +132,7 @@ export function eventPage(config: EventPagesConfig) {
                     slots: slots[index],
                     eligibleQuotaIds: session.user ? eligibleQuotas.map(quota => quota.id) : null,
                     eligibility: {
+                        seatRefusal,
                         passesAnyQuota: eligibleQuotas.length > 0,
                         placeAvailable: eligibleQuotas.some(quota => quota.numOfRegistrations < quota.places),
                     },
@@ -402,11 +407,23 @@ export function eventPage(config: EventPagesConfig) {
                                     capabilities={{ canReadCompany: capabilities.canReadCompany }}
                                 />
                             </EventSection>}
-                            {[event.companyPresentation, event.speedInterview].map(linked => linked && (
-                                <EventSection key={linked.id} title={eventKinds[linked.kind].name}>
-                                    <SiteLink href={links.event(linked)}>{linked.name}</SiteLink>
+                            {event.companyPresentation && (
+                                <EventSection title={eventKinds[event.companyPresentation.kind].name}>
+                                    <SiteLink href={links.event(event.companyPresentation)}>
+                                        {event.companyPresentation.name}
+                                    </SiteLink>
+                                    {event.requiresPresentationSeat && <p className="m-0 text-base-content/80">
+                                        Du må ha plass på presentasjonen for å melde deg på, ikke bare stå på
+                                        ventelisten. Det sjekkes når du melder deg på, og når du får plass fra
+                                        ventelisten.
+                                    </p>}
                                 </EventSection>
-                            ))}
+                            )}
+                            {event.speedInterview && (
+                                <EventSection title={eventKinds[event.speedInterview.kind].name}>
+                                    <SiteLink href={links.event(event.speedInterview)}>{event.speedInterview.name}</SiteLink>
+                                </EventSection>
+                            )}
                             {event.variants.length > 0 ? data.variantViews.map(view => (
                                 <EventSection
                                     key={view.variant.id}

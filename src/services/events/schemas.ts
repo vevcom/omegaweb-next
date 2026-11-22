@@ -26,6 +26,7 @@ const dataFieldSchemas = z.object({
     companyId: idOrNullFromForm.optional(),
     // The company presentation a speed interview belongs to. See `linksTo` in kinds.ts.
     companyPresentationId: idOrNullFromForm.optional(),
+    requiresPresentationSeat: Zpn.checkboxOrBoolean({ label: 'Krever plass på bedriftspresentasjonen' }),
     // The account a paid event is paid into. Linked apart from the rest of the event (see
     // connectToLedgerAccount), since linking an account takes access to that account.
     ledgerAccountId: z.coerce.number().int(),
@@ -183,11 +184,13 @@ export const eventSchemas = {
         updateFields: parsedFieldSchemas.pick({
             ...eventFields,
             companyPresentationId: true,
+            requiresPresentationSeat: true,
             notifyAboutChange: true,
         }).partial(),
         saveSetup: dataFieldSchemas.pick({
             ...eventFields,
             companyPresentationId: true,
+            requiresPresentationSeat: true,
             notifyAboutChange: true,
             variants: true,
             adminRequirements: true,

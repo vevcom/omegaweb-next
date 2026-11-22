@@ -136,7 +136,12 @@ describe('a draft created without a start', () => {
         const values = new FormData()
         values.set('eventStart', '2027-01-20T15:15')
         values.set('eventEnd', '2027-01-20T17:00')
-        const time = eventSetupFromForm(values, { ...draft, adminVisibility: { requirements: [] }, ledgerAccount: null })
+        const time = eventSetupFromForm(values, {
+            ...draft,
+            adminVisibility: { requirements: [] },
+            ledgerAccount: null,
+            companyPresentation: null,
+        })
 
         const first = firstVariantDraft('Påmelding', draft.eventStart, firstVariantSetup(draft.kind, time))
         await eventOperations.saveSetup({

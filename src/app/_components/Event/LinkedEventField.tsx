@@ -30,6 +30,11 @@ export function LinkedEventSelectionProvider({ linked, children }: { linked: Lin
     </LinkedEventSelectionContext.Provider>
 }
 
+/** The event picked to link to, while one is. */
+export function useLinkedEvent(): Selected {
+    return useContext(LinkedEventSelectionContext)?.selected ?? null
+}
+
 /**
  * The event picked to link to, as a field of a form that posts it as `companyPresentationId`, or
  * 'NULL' for none. It posts nothing until it is changed, so that a link the viewer may not see,

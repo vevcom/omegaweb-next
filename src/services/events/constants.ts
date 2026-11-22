@@ -119,6 +119,7 @@ export const eventListSelection = {
  */
 export const eventLinkOmitted = {
     companyPresentationId: true,
+    requiresPresentationSeat: true,
 } as const satisfies Prisma.EventOmit
 
 /** What an event shows of the event linked to it, to those who may see that one. */
@@ -126,11 +127,14 @@ export const linkedEventSelection = {
     id: true,
     kind: true,
     name: true,
+    published: true,
+    variants: { select: { quotas: { select: { places: true } } } },
 } as const satisfies Prisma.EventSelect
 
 /** An event as it is offered to link another to. */
 export const linkableEventSelection = {
-    ...linkedEventSelection,
+    id: true,
+    name: true,
     eventStart: true,
     published: true,
     company: { select: { name: true } },

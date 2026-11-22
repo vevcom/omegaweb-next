@@ -2,6 +2,7 @@ import '@ow-server-only'
 import { eventRegistrationQueueOrder } from './constants'
 import { registrationsOfVariant } from './queue'
 import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
+import { holdingSeatOn, requiredPresentationId } from './presentationSeat'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Smorekopp } from '@/services/error'
@@ -38,7 +39,9 @@ export type PlaceChange = {
  * places than paid members is refused. Then each quota, in fill order, fills its free places
  * from the quotas after it, nearest first, and then from the waiting list, taking the first in
  * queue order who passes it. Someone taken off the waiting list loses their places on the waiting
- * lists of the other variants, unless the event allows registering for several.
+ * lists of the other variants, unless the event allows registering for several. When the event
+ * requires a seat on a presentation, only one holding it is taken off the waiting list, so one
+ * who has lost it since they queued waits on.
  *
  * On a slotted variant everyone with a place holds a slot of their own, and no one waiting holds
  * one: whoever goes back to the waiting list gives their slot up, and whoever is seated without
@@ -90,6 +93,17 @@ export async function fixVariantPlaces(
         members: registrations.filter(registration => registration.quotaId === quota.id),
     }))
     const waiting = registrations.filter(registration => registration.state === 'WAITING_LIST')
+    const presentationId = await requiredPresentationId(tx, variant.eventId)
+    const seatHolders = presentationId === null ? null : await holdingSeatOn(
+        tx,
+        presentationId,
+        waiting.flatMap(registration => (registration.userId === null ? [] : [registration.userId])),
+    )
+    // One with a place keeps it, and a guest, who can hold no seat, is not held to it. A seat got
+    // back on the presentation while waiting counts from the next change here, since a change to
+    // the presentation fixes no places of its speed interview.
+    const maySeat = (registration: Registration) => seatHolders === null || registration.state === 'IN_QUOTA'
+        || registration.userId === null || seatHolders.has(registration.userId)
     const hasPaid = (registration: Registration) =>
         registration.manuallyPaid || registration.ledgerTransactions.length > 0
     const evicted = quotas.flatMap(quota => {
@@ -114,8 +128,8 @@ export async function fixVariantPlaces(
 
     // Sequential by nature: a quota is filled from what the quotas before it left.
     quotas.forEach((quota, index) => {
-        const passes = (registration: Registration) =>
-            checkVisibility(registration.user?.memberships ?? [], quota.visibility)
+        const passes = (registration: Registration) => maySeat(registration)
+            && checkVisibility(registration.user?.memberships ?? [], quota.visibility)
         while (quota.members.length < quota.places) {
             const pools = [...quotas.slice(index + 1).map(lower => lower.members), waiting]
             const pool = pools.find(candidates => candidates.some(passes))

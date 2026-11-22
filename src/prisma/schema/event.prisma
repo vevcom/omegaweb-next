@@ -33,6 +33,8 @@ model Event {
   companyPresentation   Event? @relation("SpeedInterviewOfPresentation", fields: [companyPresentationId], references: [id], onDelete: SetNull)
   companyPresentationId Int?   @unique
   speedInterview        Event? @relation("SpeedInterviewOfPresentation")
+  // Read only while the speed interview is linked: registering then takes a seat on the presentation.
+  requiresPresentationSeat Boolean @default(false)
   createdBy           User?          @relation(fields: [createdById], references: [id])
   createdById         Int?
   // The account a paid event is paid into. Payments fail with a clear error until someone

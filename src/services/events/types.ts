@@ -23,8 +23,10 @@ export type EventAccess = {
     companyId: number | null,
 }
 
-/** The event linked to another, as `linkedEventSeenBy` reads it. */
-export type LinkedEvent = Prisma.EventGetPayload<{ select: typeof linkedEventSelection }>
+/** The event linked to another, as `linkedEventSeenBy` reads it. It takes registration when a quota of it has places. */
+export type LinkedEvent = Omit<Prisma.EventGetPayload<{ select: typeof linkedEventSelection }>, 'variants'> & {
+    takesRegistration: boolean,
+}
 
 export type LinkableEvent = Prisma.EventGetPayload<{ select: typeof linkableEventSelection }>
 

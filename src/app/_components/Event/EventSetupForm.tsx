@@ -6,7 +6,7 @@ import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
 import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } from './EventVariantsField'
-import LinkedEventField, { LinkedEventSelectionProvider } from './LinkedEventField'
+import LinkedEventField, { LinkedEventSelectionProvider, useLinkedEvent } from './LinkedEventField'
 import SelectedCompany from '@/components/Company/SelectedCompany'
 import CompanySelectionProvider, { CompanySelectionContext } from '@/contexts/CompanySelection'
 import PopUpProvider from '@/contexts/PopUp'
@@ -65,6 +65,7 @@ export type PropTypes = {
         'id' | 'kind' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
         | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount' | 'company' | 'companyPresentation'
+        | 'requiresPresentationSeat'
     >,
     access: EventAccess,
     /** Whether the admin visibility could be read, so that the form never saves a fallback over it. */
@@ -213,6 +214,7 @@ function SetupForm({
             </FormSection>
             {linksTo && <FormSection legend="Hører til">
                 <LinkedEventField name={eventKinds[linksTo].name} linkable={linkable} />
+                <PresentationSeatSwitch defaultChecked={event.requiresPresentationSeat} />
             </FormSection>}
             <FormSection legend="Kart">
                 <EventLocationInput name="locationMap" defaultValue={event.locationMap} />
@@ -308,4 +310,13 @@ function SetupForm({
             </div>}
         </FormTab>
     </Form>
+}
+
+/** The requirement is read only while the event is linked, so it is offered only while a presentation is picked. */
+function PresentationSeatSwitch({ defaultChecked }: { defaultChecked: boolean }) {
+    return useLinkedEvent() && <Slider
+        label="Påmelding krever plass på presentasjonen"
+        name="requiresPresentationSeat"
+        defaultChecked={defaultChecked}
+    />
 }

@@ -2,29 +2,23 @@
 import AdminSection from './AdminSection'
 import Form from '@/components/Form/Form'
 import { destroyEventAction, setEventPublishedAction } from '@/services/events/actions'
-import { publishProblems } from '@/services/events/publishProblems'
 import { configureAction } from '@/services/configureAction'
 import { eventLinks } from '@/pageKits/events/links'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventDetailed } from '@/services/events/types'
-import type { VisibilityMatrix } from '@/services/visibility/types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
-    event: Pick<EventDetailed,
-        'id' | 'published' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'variants'
-        | 'companyId'
-    >,
-    /** Who administrates the event, which it takes to publish it. */
-    adminVisibility: VisibilityMatrix,
+    /** With the problems publishing would find, as the read gives them those who may publish. */
+    event: Pick<EventDetailed, 'id' | 'published' | 'companyId' | 'publishProblems'>,
     config: EventPagesConfig,
     capabilities: CapabilitiesJsObject<'canSetPublished' | 'canDestroy'>,
 }
 
 /** Publishing the event once it has what it needs, and deleting it. */
-export default function EventPublishing({ event, adminVisibility, config, capabilities }: PropTypes) {
+export default function EventPublishing({ event, config, capabilities }: PropTypes) {
     const setPublished = configureAction(setEventPublishedAction, { params: { id: event.id } })
-    const problems = publishProblems({ ...event, adminVisibility })
+    const problems = event.publishProblems ?? []
 
     return <div className="flex flex-col gap-4 min-w-0">
         <h2 className="m-0">Publisering</h2>

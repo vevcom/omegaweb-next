@@ -25,6 +25,8 @@ const ready = {
     ledgerAccount: { id: 1 },
     variants: [variant],
     adminVisibility: { requirements: [{ conditions: [activeMembersOf(1)] }] },
+    companyPresentation: null,
+    requiresPresentationSeat: false,
 }
 
 // How a form with a tab for the rules and one for the rest might show the parts.
@@ -60,6 +62,30 @@ describe('eventSetupChecks', () => {
         expect(statuses({ ...ready, adminVisibility: { requirements: [{ conditions: [] }] } }).access.level).toBe('missing')
         expect(statuses({ ...ready, variants: [paying], ledgerAccount: null }).payment.level).toBe('missing')
         expect(statuses({ ...ready, canBeViewedBy: 'CAN_REGISTER', variants: [] }).rules.level).toBe('missing')
+    })
+
+    test('wants the presentation a seat is required on published and taking registration', () => {
+        const presentation = { published: true, takesRegistration: true }
+        const requiring = { ...ready, requiresPresentationSeat: true }
+        expect(publishProblems({ ...requiring, companyPresentation: presentation })).toEqual([])
+        expect(publishProblems({ ...requiring, companyPresentation: { ...presentation, published: false } })).toEqual([
+            'Påmeldingen krever plass på bedriftspresentasjonen, som ikke er publisert.',
+        ])
+        const withoutRegistration = { ...presentation, takesRegistration: false }
+        expect(publishProblems({ ...requiring, companyPresentation: withoutRegistration })).toEqual([
+            'Påmeldingen krever plass på bedriftspresentasjonen, som ikke tar påmelding.',
+        ])
+        // One the checker may not see is said only not to be ready.
+        const hidden = { ...presentation, hidden: true }
+        const notReady = ['Påmeldingen krever plass på en presentasjon som ikke er klar for påmelding.']
+        expect(publishProblems({ ...requiring, companyPresentation: { ...hidden, published: false } })).toEqual(notReady)
+        expect(publishProblems({ ...requiring, companyPresentation: { ...hidden, takesRegistration: false } }))
+            .toEqual(notReady)
+        expect(publishProblems({ ...requiring, companyPresentation: hidden })).toEqual([])
+        // Not required, or no presentation to check, as without a link.
+        expect(publishProblems({ ...ready, companyPresentation: { published: false, takesRegistration: false } }))
+            .toEqual([])
+        expect(publishProblems({ ...requiring, companyPresentation: null })).toEqual([])
     })
 
     test('warns of what is allowed without stopping publishing', () => {

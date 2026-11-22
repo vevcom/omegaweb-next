@@ -113,3 +113,13 @@ export const upcomingRegistrationOfUserSelection = {
     quota: { select: { variant: upcomingVariantSelection } },
     waitingListVariant: upcomingVariantSelection,
 } as const satisfies Prisma.EventRegistrationSelect
+
+/**
+ * Why a user without a seat on the presentation a speed interview requires one on may not register,
+ * naming the presentation only to one who may see it.
+ */
+export function presentationSeatRefusal(presentation: { name: string } | null) {
+    return presentation
+        ? `Du må ha plass på ${presentation.name} for å melde deg på. En plass på ventelisten holder ikke.`
+        : 'Du kan ikke melde deg på dette arrangementet.'
+}

@@ -248,9 +248,9 @@ describe('the page of a linked event', () => {
         expect(seenByVisitor).not.toHaveProperty('companyPresentationId')
 
         expect((await read(interview, both.session)).companyPresentation)
-            .toEqual({ id: draft, kind: 'COMPANY_PRESENTATION', name: 'Presentasjon i utkast' })
+            .toMatchObject({ id: draft, kind: 'COMPANY_PRESENTATION', name: 'Presentasjon i utkast' })
         expect((await read(draft, both.session)).speedInterview)
-            .toEqual({ id: interview, kind: 'SPEED_INTERVIEW', name: 'Publisert intervju' })
+            .toMatchObject({ id: interview, kind: 'SPEED_INTERVIEW', name: 'Publisert intervju' })
 
         await prisma.event.update({ where: { id: draft }, data: { published: true, canBeViewedBy: 'ALL' } })
         expect((await read(interview, visitor)).companyPresentation?.id).toBe(draft)

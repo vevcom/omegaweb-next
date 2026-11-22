@@ -3,6 +3,7 @@ import { slotsOrProblem, wholeMinute } from './slots/schedule'
 import type { SlotScheduleDraft } from './slots/types'
 import type { EventCanView, EventRegistrationType } from '@/prisma-generated-pn-types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
+import type { LinkedEvent } from './types'
 
 /** What a check is about, which is where in the event it is put right. */
 export type SetupPart = 'time' | 'location' | 'visibility' | 'registration' | 'payment' | 'administrators'
@@ -32,6 +33,12 @@ export type EventSetup = {
         quotas: { places?: number }[],
     }[],
     adminVisibility: VisibilityMatrix,
+    /**
+     * The presentation a speed interview is linked to. Hidden when the one it is checked for may not
+     * see it, so that the checks say only that it is not ready. The page has none it may not see.
+     */
+    companyPresentation: Pick<LinkedEvent, 'published' | 'takesRegistration'> & { hidden?: boolean } | null,
+    requiresPresentationSeat: boolean,
 }
 
 /**
@@ -56,6 +63,20 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
     }
     if (hasNoAdministrators(event.adminVisibility)) {
         add('administrators', 'missing', 'Velg hvem som kan administrere arrangementet.')
+    }
+    // Without a seat on the presentation there to take, no one could register.
+    const requiredPresentation = event.requiresPresentationSeat ? event.companyPresentation : null
+    if (requiredPresentation?.hidden) {
+        if (!requiredPresentation.published || !requiredPresentation.takesRegistration) {
+            add('registration', 'missing', 'Påmeldingen krever plass på en presentasjon som ikke er klar for påmelding.')
+        }
+    } else if (requiredPresentation) {
+        if (!requiredPresentation.published) {
+            add('registration', 'missing', 'Påmeldingen krever plass på bedriftspresentasjonen, som ikke er publisert.')
+        }
+        if (!requiredPresentation.takesRegistration) {
+            add('registration', 'missing', 'Påmeldingen krever plass på bedriftspresentasjonen, som ikke tar påmelding.')
+        }
     }
     if (event.variants.some(variant => variant.takesPayment) && !event.ledgerAccount) {
         add('payment', 'missing', 'Arrangementet tar betaling, men er ikke knyttet til en konto.')

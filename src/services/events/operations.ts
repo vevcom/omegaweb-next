@@ -1,7 +1,14 @@
 import '@ow-server-only'
 import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
-import { assertSeenThroughQuotas, linkedEventSeenBy, linksPresentation, readEventAccess, setsCompany } from './access'
+import {
+    assertSeenThroughQuotas,
+    linkedEventSeenBy,
+    linksPresentation,
+    readEventAccess,
+    readLinkedEvent,
+    setsCompany,
+} from './access'
 import { publishProblems } from './publishProblems'
 import { lockEvent, registrationsOfEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
@@ -39,7 +46,6 @@ import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { PromotedRegistration } from './registration/fixState'
 import type { VariantStatistics } from './statistics'
 import type { SlotChange } from './slots/types'
@@ -47,6 +53,7 @@ import type { Event, EventKind, EventTag, Prisma } from '@/prisma-generated-pn-t
 import type { EventExpanded, LinkableEvent } from './types'
 import type { SearchFindArgs } from '@/services/search/implement'
 import type { EventPagesConfig } from '@/pageKits/events/config'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 
 const DAY_MS = 1000 * 60 * 60 * 24
 
@@ -77,7 +84,12 @@ const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
     authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
     operation: async ({ prisma, params, session }) => {
-        const { companyPresentationId, speedInterview, ...event } = await prisma.event.findUniqueOrThrow({
+        const {
+            companyPresentationId,
+            requiresPresentationSeat,
+            speedInterview,
+            ...event
+        } = await prisma.event.findUniqueOrThrow({
             where: {
                 id: params.id,
                 kind: { in: params.kinds },
@@ -120,14 +132,21 @@ const read = defineOperation({
         })
 
         const expanded = withTagsAndVariantSummary(event)
+        const companyPresentation = await linkedEventSeenBy(prisma, session, companyPresentationId)
         return {
             ...expanded,
             variants: expanded.variants.map(variant => ({
                 ...variant,
                 quotas: variant.quotas.map(({ visibility, ...quota }) => ({ ...quota, visibility: toMatrix(visibility) })),
             })),
-            companyPresentation: await linkedEventSeenBy(prisma, session, companyPresentationId),
+            companyPresentation,
+            // Said only to those who may see the presentation, the one it is in force for.
+            requiresPresentationSeat: companyPresentation !== null && requiresPresentationSeat,
             speedInterview: await linkedEventSeenBy(prisma, session, speedInterview?.id ?? null),
+            // For those who may publish it, as publishing would judge it. Null for anyone else.
+            publishProblems: eventAuth.setPublished.data(await readEventAccess(prisma, params.id)).auth(session).authorized
+                ? await publishProblemsOf(prisma, session, params.id)
+                : null,
         }
     }
 })
@@ -150,7 +169,12 @@ const updateFields = defineSubOperation({
             throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
         }
         if (typeof data.companyPresentationId === 'number' && data.companyPresentationId !== event.companyPresentationId) {
+            // Under the presentation's lock, so that `destroy` sees every link to it once it holds that.
+            await lockEvent(prisma, data.companyPresentationId)
             await assertLinkable(prisma, event.kind, data.companyPresentationId)
+        }
+        if (data.requiresPresentationSeat && !eventKinds[event.kind].linksTo) {
+            throw new ServiceError('BAD PARAMETERS', 'Bare et speedintervju kan kreve plass på en bedriftspresentasjon.')
         }
 
         let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
@@ -161,7 +185,7 @@ const updateFields = defineSubOperation({
             mapUpdate = { delete: true }
         }
 
-        const updatedEvent = await refusingSecondLink(() => prisma.event.update({
+        const updatedEvent = await prisma.event.update({
             where: { id: params.id },
             omit: eventLinkOmitted,
             data: {
@@ -171,7 +195,7 @@ const updateFields = defineSubOperation({
                 // save of its variants or administrators alone is a save of the event too.
                 updatedAt: new Date(),
             },
-        }))
+        })
         await assertSeenThroughQuotas(prisma, params.id)
         if (data.name !== undefined && data.name !== event.name) {
             await eventNotificationOperations.internal.renameChannels.internalCall({
@@ -691,10 +715,11 @@ export const eventOperations = {
         dataSchema: eventSchemas.data.setPublished,
         authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
         transaction: 'RUNS_IN',
-        operation: async ({ prisma, params, data }) => {
+        operation: async ({ prisma, params, data, session }) => {
             if (data.published) {
                 await assertSeenThroughQuotas(prisma, params.id, { published: true })
-                await assertReadyToPublish(prisma, params.id)
+                const problems = await publishProblemsOf(prisma, session, params.id)
+                if (problems.length > 0) throw new ServiceError('BAD PARAMETERS', problems.join(' '))
             }
             const { count: flipped } = await prisma.event.updateMany({
                 where: { id: params.id, published: !data.published },
@@ -721,65 +746,10 @@ export const eventOperations = {
     destroy: defineOperation({
         paramsSchema: eventSchemas.params.destroy,
         authorizer: async ({ params, prisma }) => eventAuth.destroy.data(await readEventAccess(prisma, params.id)),
-        transaction: 'RUNS_IN',
+        transaction: 'OPENS',
         operation: async ({ prisma, params }) => {
-            const event = await prisma.event.findUniqueOrThrow({
-                where: { id: params.id },
-                select: {
-                    visibilityAdminId: true,
-                    notificationChannelId: true,
-                    infoNotificationChannelId: true,
-                    generalNotificationChannelId: true,
-                    variants: { select: { quotas: { select: { visibilityId: true } } } },
-                },
-            })
-            const registrations = registrationsOfEvent(params.id)
-
-            // The event lock comes first, as everywhere registrations move, so this cannot deadlock
-            // with a move. The registrations are then locked as createPayment does, so no payment
-            // can start between this check and the delete.
-            await lockEvent(prisma, params.id)
-            await prisma.$queryRaw`
-                SELECT r."id" FROM "EventRegistration" r
-                LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
-                LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
-                WHERE v."eventId" = ${params.id}
-                FOR UPDATE OF r
-            `
-            const liveTransaction = await prisma.ledgerTransaction.findFirst({
-                where: {
-                    eventRegistration: registrations,
-                    OR: [{ state: 'PENDING' }, validTransactionFilter],
-                },
-                select: { id: true },
-            })
-            if (liveTransaction) {
-                throw new ServiceError(
-                    'BAD PARAMETERS',
-                    'Arrangementet har betalte påmeldinger eller betalinger under behandling. '
-                    + 'Meld av deltakerne først, så de får pengene tilbake.'
-                )
-            }
-
-            // Registrations go first: deleting the event cascades to its quotas, which refuse
-            // to go while they hold any.
-            await prisma.eventRegistration.deleteMany({ where: registrations })
-            await prisma.event.delete({
-                where: {
-                    id: params.id
-                }
-            })
-            await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma, params: event })
-            await adminVisibility.internal.destroy.internalCall({
-                prisma,
-                params: { visibilityId: event.visibilityAdminId },
-            })
-            await Promise.all(event.variants.flatMap(variant => variant.quotas.map(
-                quota => eventQuotaOperations.visibility.internal.destroy.internalCall({
-                    prisma,
-                    params: { visibilityId: quota.visibilityId },
-                })
-            )))
+            const speedInterview = await prisma.$transaction(tx => destroyEvent(tx, params.id))
+            if (speedInterview) await notifyPromoted(prisma, speedInterview.id, speedInterview.promoted)
         }
     }),
 
@@ -795,6 +765,80 @@ export const eventOperations = {
             })).paragraph.id === params.paragraphId
     })
 } as const
+
+/**
+ * Deletes the event with all it owns. A presentation lets go of its speed interview first, which
+ * comes back with those it seated.
+ */
+async function destroyEvent(prisma: Prisma.TransactionClient, eventId: number) {
+    const speedInterview = await letGoOfSpeedInterview(prisma, eventId)
+    const event = await prisma.event.findUniqueOrThrow({
+        where: { id: eventId },
+        select: {
+            visibilityAdminId: true,
+            notificationChannelId: true,
+            infoNotificationChannelId: true,
+            generalNotificationChannelId: true,
+            variants: { select: { quotas: { select: { visibilityId: true } } } },
+        },
+    })
+    const registrations = registrationsOfEvent(eventId)
+
+    // The event lock comes before the registrations', as everywhere registrations move, so this
+    // cannot deadlock with a move. The registrations are then locked as createPayment does, so no
+    // payment can start between this check and the delete. Linking takes this lock too, so no
+    // speed interview is linked to the event from here on, and one linked since it let go of its
+    // own is refused, since this lock may not come before a speed interview's.
+    await lockEvent(prisma, eventId)
+    if (await prisma.event.count({ where: { companyPresentationId: eventId } }) > 0) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Et speedintervju ble koblet til bedriftspresentasjonen i det samme. Prøv igjen.'
+        )
+    }
+    await prisma.$queryRaw`
+        SELECT r."id" FROM "EventRegistration" r
+        LEFT JOIN "EventQuota" q ON q."id" = r."quotaId"
+        LEFT JOIN "EventVariant" v ON v."id" = COALESCE(q."variantId", r."waitingListVariantId")
+        WHERE v."eventId" = ${eventId}
+        FOR UPDATE OF r
+    `
+    const liveTransaction = await prisma.ledgerTransaction.findFirst({
+        where: {
+            eventRegistration: registrations,
+            OR: [{ state: 'PENDING' }, validTransactionFilter],
+        },
+        select: { id: true },
+    })
+    if (liveTransaction) {
+        throw new ServiceError(
+            'BAD PARAMETERS',
+            'Arrangementet har betalte påmeldinger eller betalinger under behandling. '
+            + 'Meld av deltakerne først, så de får pengene tilbake.'
+        )
+    }
+
+    // Registrations go first: deleting the event cascades to its quotas, which refuse
+    // to go while they hold any.
+    await prisma.eventRegistration.deleteMany({ where: registrations })
+    await prisma.event.delete({
+        where: {
+            id: eventId
+        }
+    })
+    await eventNotificationOperations.internal.destroyChannels.internalCall({ prisma, params: event })
+    await adminVisibility.internal.destroy.internalCall({
+        prisma,
+        params: { visibilityId: event.visibilityAdminId },
+    })
+    await Promise.all(event.variants.flatMap(variant => variant.quotas.map(
+        quota => eventQuotaOperations.visibility.internal.destroy.internalCall({
+            prisma,
+            params: { visibilityId: quota.visibilityId },
+        })
+    )))
+    return speedInterview
+}
 
 type RawQuota = {
     places: number,
@@ -886,10 +930,17 @@ async function hostCommitteeAdminRequirements(
     return [{ conditions: [{ groupId, order: null, onlyActive: true, onlyAdmins: false }] }]
 }
 
-async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, eventId: number) {
-    const event = await prisma.event.findUniqueOrThrow({
+/**
+ * What `publishProblems` finds missing in the event as it is saved, for publishing it and for the
+ * page that offers to. A presentation the session may not see is checked too, as one hidden, so that
+ * they say nothing of it but that it is not ready.
+ */
+async function publishProblemsOf(prisma: PrismaPossibleTransaction<false>, session: SessionMaybeUser, eventId: number) {
+    const { companyPresentationId, ...event } = await prisma.event.findUniqueOrThrow({
         where: { id: eventId },
         select: {
+            companyPresentationId: true,
+            requiresPresentationSeat: true,
             location: true,
             eventStart: true,
             eventEnd: true,
@@ -912,8 +963,14 @@ async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, ev
         },
     })
     const access = await readEventAccess(prisma, eventId)
-    const problems = publishProblems({ ...event, adminVisibility: access.adminVisibility })
-    if (problems.length > 0) throw new ServiceError('BAD PARAMETERS', problems.join(' '))
+    const seen = await linkedEventSeenBy(prisma, session, companyPresentationId)
+    return publishProblems({
+        ...event,
+        adminVisibility: access.adminVisibility,
+        companyPresentation: seen ?? (companyPresentationId === null
+            ? null
+            : { ...await readLinkedEvent(prisma, companyPresentationId), hidden: true }),
+    })
 }
 
 /** A host chosen after the draft was created takes over, unless someone already administrates the event. */
@@ -1011,20 +1068,26 @@ async function assertLinkable(prisma: PrismaPossibleTransaction<false>, kind: Ev
     if (linked.speedInterview) throw new ServiceError('DUPLICATE', secondLinkRefusal)
 }
 
-/** Of two linking one presentation at once both pass `assertLinkable`, and the unique link refuses the second here. */
-async function refusingSecondLink<Result>(write: () => Promise<Result>): Promise<Result> {
-    try {
-        return await write()
-    } catch (error) {
-        if (isSecondLink(error)) throw new ServiceError('DUPLICATE', secondLinkRefusal)
-        throw error
-    }
-}
-
-function isSecondLink(error: unknown) {
-    if (!(error instanceof PrismaClientKnownRequestError) || error.code !== 'P2002') return false
-    const adapterError = error.meta?.driverAdapterError as { cause?: { constraint?: { index?: string } } } | undefined
-    return adapterError?.cause?.constraint?.index === 'Event_companyPresentationId_key'
+/**
+ * Clears the link of a speed interview to the presentation being deleted, and fixes its places,
+ * since those who waited for want of a seat on it may take one now. It takes the speed interview's
+ * lock, so it runs before the presentation's is taken.
+ */
+async function letGoOfSpeedInterview(tx: Prisma.TransactionClient, presentationId: number) {
+    const speedInterview = await tx.event.findUnique({
+        where: { companyPresentationId: presentationId },
+        select: { id: true },
+    })
+    if (!speedInterview) return null
+    await lockEvent(tx, speedInterview.id)
+    await tx.event.updateMany({
+        where: { id: speedInterview.id, companyPresentationId: presentationId },
+        data: { companyPresentationId: null },
+    })
+    const variants = await tx.eventVariant.findMany({ where: { eventId: speedInterview.id }, select: { id: true } })
+    const promoted: PromotedRegistration[] = []
+    for (const variant of variants) promoted.push(...await fixVariantPlaces(tx, variant.id))
+    return { id: speedInterview.id, promoted }
 }
 
 async function assertGroupAccount(prisma: PrismaPossibleTransaction<false>, ledgerAccountId: number) {
