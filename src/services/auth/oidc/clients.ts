@@ -3,7 +3,8 @@ import { scopesFor } from './scopes'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
 import { mailServerWebmail } from '@/lib/mailServerSync/constants'
-import { chatAuth } from '@/services/chat/constants'
+import { CHAT_AUTH_PROVIDER_ID, chatAuth } from '@/services/chat/constants'
+import { chatServer } from '@/lib/chatSync/constants'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import type { OidcClientKind, OidcScope } from './scopes'
 
@@ -24,6 +25,11 @@ export type OidcClient = {
      * every sign in, as the user, so it does nothing the second time.
      */
     beforeCode?: (userId: number) => Promise<unknown>,
+    /**
+     * Where the provider tells the client that a session it signed users in from has ended, OpenID
+     * Connect Back-Channel Logout 1.0 section 2.2. A client without one is told nothing.
+     */
+    backchannelLogoutUri?: string,
 }
 
 /**
@@ -104,7 +110,17 @@ function chatClient(): OidcClient | null {
         site: Site.root,
         rendersSite: site => site.isRoot,
         beforeCode: userId => chatUserOperations.optIn({ params: { userId } }),
+        backchannelLogoutUri: chatBackchannelLogoutUri(),
     }
+}
+
+/**
+ * The clients that are told when a session on the auth domain ends, each with its address. A site's
+ * domain is not among them: its own session is ended by the logout on it.
+ */
+export function oidcClientsToldOfSignOut(): { id: string, backchannelLogoutUri: string }[] {
+    const chat = chatClient()
+    return chat?.backchannelLogoutUri ? [{ id: chat.id, backchannelLogoutUri: chat.backchannelLogoutUri }] : []
 }
 
 /** Whether a logged out visitor may be sent to `uri`: a url of one of the clients, or of the provider itself. */
@@ -114,4 +130,13 @@ export function isPostLogoutRedirectUri(uri: string): boolean {
     return url.origin === oidcIssuer()
         || url.origin === mailServerWebmail?.origin
         || DomainContext.domainOfHost(url.host)?.origin === url.origin
+}
+
+/**
+ * Where MAS takes word that a session of the provider has ended: on MAS as the app reaches it,
+ * CHAT_MAS_URL, since no browser takes part. Undefined without it.
+ */
+function chatBackchannelLogoutUri(): string | undefined {
+    if (!chatServer.masUrl) return undefined
+    return new URL(`/upstream/backchannel-logout/${CHAT_AUTH_PROVIDER_ID}`, chatServer.masUrl).href
 }

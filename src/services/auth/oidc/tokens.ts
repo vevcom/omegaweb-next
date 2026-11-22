@@ -1,5 +1,5 @@
 import '@ow-server-only'
-import { OIDC_TOKEN_LIFETIME_S, oidcIssuer, oidcProtocol } from './constants'
+import { OIDC_LOGOUT_TOKEN_LIFETIME_S, OIDC_TOKEN_LIFETIME_S, oidcIssuer, oidcProtocol } from './constants'
 import { readPemEnvBase64 } from '@/lib/jwt/readPemEnvBase64'
 import { ServiceError } from '@/services/error'
 import { TokenExpiredError, sign, verify } from 'jsonwebtoken'
@@ -58,6 +58,29 @@ export function signIdToken({ clientId, userId, nonce, sid, claims }: IdTokenInp
         audience: clientId,
         subject: String(userId),
         expiresIn: OIDC_TOKEN_LIFETIME_S,
+    })
+}
+
+export type LogoutTokenInput = {
+    clientId: string,
+    /** The id of the session that has ended, as the client's ID token named it. */
+    sid: string,
+}
+
+/**
+ * The logout token of OpenID Connect Back-Channel Logout 1.0 section 2.4: that a session on the
+ * auth domain has ended, for the client alone. It names the session and not the user, so a client
+ * that never saw the session learns nothing of whose it was.
+ */
+export function signLogoutToken({ clientId, sid }: LogoutTokenInput): string {
+    return sign({ sid, events: { [oidcProtocol.logoutEvent]: {} } }, keyFromEnv('JWT_PRIVATE_KEY'), {
+        algorithm: ALGORITHM,
+        keyid: signingJwk().kid,
+        issuer: oidcIssuer(),
+        audience: clientId,
+        expiresIn: OIDC_LOGOUT_TOKEN_LIFETIME_S,
+        jwtid: randomBytes(16).toString('base64url'),
+        header: { alg: ALGORITHM, typ: oidcProtocol.logoutTokenType },
     })
 }
 

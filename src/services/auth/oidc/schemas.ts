@@ -87,6 +87,7 @@ export const oidcSchemas = {
         }),
         endSession: paramsFieldSchemas.pick({
             postLogoutRedirectUri: true,
+            sid: true,
         }),
     },
     data: {

@@ -1,4 +1,4 @@
-import { oauthErrorResponse, oauthErrorOf, providerRoute } from '@/app/api/oidc/provider'
+import { asNextRequest, oauthErrorResponse, oauthErrorOf, providerRoute } from '@/app/api/oidc/provider'
 import { apiHandler } from '@/api/apiHandler'
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { oidcClientOf } from '@/services/auth/oidc/clients'
@@ -13,9 +13,6 @@ import { Smorekopp } from '@/services/error'
 import { NextResponse } from 'next/server'
 import type { ApiError } from '@/api/apiHandler'
 import type { NextRequest } from 'next/server'
-
-/** The handler gets a Request by type and a NextRequest in fact, as every route does. */
-const asNextRequest = (request: Request) => request as NextRequest
 
 /**
  * The authorization endpoint, RFC 6749 section 4.1.1 with the PKCE of RFC 7636: a client sends the

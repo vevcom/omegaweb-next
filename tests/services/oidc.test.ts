@@ -263,7 +263,7 @@ describe('the OpenID Connect provider', () => {
 
     test('a logged out visitor is sent to the uri asked for when it is ours, and to the frontpage otherwise', async () => {
         const endSession = (postLogoutRedirectUri: string | null) =>
-            oidcOperations.endSession({ params: { postLogoutRedirectUri } })
+            oidcOperations.endSession({ params: { postLogoutRedirectUri, sid: null } })
         await expect(endSession(`${ISSUER}/career`)).resolves.toEqual({ redirectTo: `${ISSUER}/career` })
         await expect(endSession('https://evil.example/')).resolves.toEqual({ redirectTo: `${ISSUER}/` })
         await expect(endSession(null)).resolves.toEqual({ redirectTo: `${ISSUER}/` })

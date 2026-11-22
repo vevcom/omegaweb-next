@@ -44,6 +44,17 @@ export async function sessionTokenOf(
 }
 
 /**
+ * The session `held` going on at a sign in in the browser that holds it, when the sign in is the
+ * same user's: the token of the sign in under the id the session has, so what was signed in from
+ * it is still told of its end by that id. Null when the sign in starts a session, which another
+ * user's does, and one over a session that has no id.
+ */
+export function sessionGoingOn(held: JWT, signedIn: JWT): JWT | null {
+    const sameUser = held.user !== null && held.user.id === signedIn.user?.id
+    return sameUser && held.sid ? { ...signedIn, sid: held.sid } : null
+}
+
+/**
  * The session token of a company user: the company user and the company they act for, and the
  * permissions every visitor has. A company user holds no permission of their own and is a member
  * of nothing, so what they may do beyond a visitor comes from the company conditions of `Require`.
