@@ -53,6 +53,8 @@ const paramsFieldSchemas = z.object({
     code: parameter(oidcWireNames.code),
     grantType: oneOf(oidcWireNames.grantType, oidcProtocol.grantType, `Only ${oidcProtocol.grantType} is supported`),
     provider: loginProviderSchema,
+    /** The id of the session on the auth domain, see sessionTokenOf. Null for a session that has none. */
+    sid: z.string().min(1).nullable(),
     /** A bearer token of the provider's own, see tokens.ts. */
     accessToken: z.string().min(1),
     /** Where a logged out visitor asks to go, see RP-Initiated Logout section 2. */
@@ -72,6 +74,7 @@ export const oidcSchemas = {
             codeChallenge: true,
             codeChallengeMethod: true,
             provider: true,
+            sid: true,
         }),
         exchangeCode: paramsFieldSchemas.pick({
             clientId: true,

@@ -11,6 +11,8 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { testDomainConfig } from 'tests/testDomains'
 import { afterAll, afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import { NextRequest, NextResponse } from 'next/server'
+import { createHash } from 'node:crypto'
+import type { JWT } from 'next-auth/jwt'
 
 /** A career site on its own domain, Omega's, and a domain set apart to sign in on. */
 const withAuthDomain = DomainConfig.parse({
@@ -64,6 +66,76 @@ beforeAll(() => DomainContext.configure(withAuthDomain))
 afterAll(() => DomainContext.configure(testDomainConfig))
 afterEach(async () => {
     await prisma.user.deleteMany({ where: { username: { startsWith: 'test-sso-' } } })
+})
+
+describe('the id of a session', () => {
+    /** The token NextAuth's jwt callback gives: at a sign in with a password, and for a session that is read again. */
+    async function tokenFromCallback(user: { id: number, username: string }, held?: JWT): Promise<JWT> {
+        const jwt = authOptions.callbacks?.jwt
+        if (!jwt) throw new Error('no jwt callback')
+        const signedIn = { id: String(user.id), username: user.username }
+        return held
+            ? jwt({ token: held, user: signedIn, account: null })
+            : jwt({
+                token: {} as JWT,
+                user: signedIn,
+                account: { provider: 'credentials', type: 'credentials', providerAccountId: signedIn.id },
+                trigger: 'signIn',
+            })
+    }
+
+    test('is made when the session starts, and kept when its token is rebuilt', async () => {
+        const user = await createUser('session-id')
+        const first = await tokenFromCallback(user)
+        const second = await tokenFromCallback(user)
+        expect(first.sid).toMatch(/^[A-Za-z0-9_-]{22}$/)
+        expect(second.sid).toMatch(/^[A-Za-z0-9_-]{22}$/)
+        expect(second.sid).not.toBe(first.sid)
+
+        // A token without `iat` is never fresh, so the callback rebuilds it.
+        const rebuilt = await tokenFromCallback(user, first)
+        expect(rebuilt).not.toBe(first)
+        expect(rebuilt).toMatchObject({ sid: first.sid, sessionEpoch: first.sessionEpoch })
+    })
+
+    test('is not given to a session that was started without one', async () => {
+        const user = await createUser('session-before')
+        const { sid, ...before } = await tokenFromCallback(user)
+        expect(sid).toBeDefined()
+        expect((await tokenFromCallback(user, before)).sid).toBeUndefined()
+        const cookie = await authOptions.jwt?.encode?.({ token: before, secret: process.env.NEXTAUTH_SECRET ?? '' })
+        expect(await decodeSession(cookie ?? '')).toMatchObject({ user: { id: user.id } })
+    })
+
+    test('is on the code authorize issues, and a site\'s session has an id of its own', async () => {
+        const user = await createUser('session-code')
+        const cookie = await sessionCookieFor(user.id)
+        const { sid } = await decodeSession(cookie) ?? {}
+        expect(sid).toMatch(/^[A-Za-z0-9_-]{22}$/)
+
+        const started = await start(request('https://contactor.no/api/sso/start?callbackUrl=%2Fcareer'))
+        const back = location(await authorize(request(location(started).href, { [SESSION_COOKIE]: cookie })))
+        const codeHash = createHash('sha256').update(back.searchParams.get('code') ?? '').digest('base64url')
+        expect(await prisma.oidcAuthorizationCode.findUnique({ where: { codeHash } })).toMatchObject({ sid })
+
+        const landed = await ssoCallback(request(back.href, { [STATE_COOKIE]: cookieOf(started, STATE_COOKIE) ?? '' }))
+        const onSite = await decodeSession(cookieOf(landed, SESSION_COOKIE) ?? '')
+        expect(onSite?.sid).toMatch(/^[A-Za-z0-9_-]{22}$/)
+        expect(onSite?.sid).not.toBe(sid)
+    })
+
+    test('is not in what a page reads of the session', async () => {
+        const user = await createUser('session-page')
+        const token = await tokenFromCallback(user)
+        const sessionOf = authOptions.callbacks?.session
+        if (!sessionOf) throw new Error('no session callback')
+        const session = await sessionOf({
+            session: { expires: '' },
+            token,
+        } as unknown as Parameters<typeof sessionOf>[0])
+        expect(session).toMatchObject({ user: { id: user.id } })
+        expect(JSON.stringify(session)).not.toContain(token.sid)
+    })
 })
 
 describe('a session too large for one cookie', () => {

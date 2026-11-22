@@ -43,6 +43,7 @@ async function redeemCode(prisma: Prisma.TransactionClient, params: ExchangePara
         clientId: stored.clientId,
         scopes: stored.scope.split(' '),
         nonce: stored.nonce,
+        sid: stored.sid,
     }
 }
 
@@ -75,6 +76,7 @@ export const oidcOperations = {
                     codeHash: hashOf(code),
                     userId: params.userId,
                     provider: params.provider,
+                    sid: params.sid,
                     clientId: client.id,
                     redirectUri: params.redirectUri,
                     scope: scopes.join(' '),
@@ -114,7 +116,7 @@ export const oidcOperations = {
                 token_type: 'Bearer',
                 expires_in: OIDC_TOKEN_LIFETIME_S,
                 scope: grant.scopes.join(' '),
-                id_token: signIdToken({ ...identity, nonce: grant.nonce, claims }),
+                id_token: signIdToken({ ...identity, nonce: grant.nonce, sid: grant.sid, claims }),
             }
         },
     }),

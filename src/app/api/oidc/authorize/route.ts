@@ -32,6 +32,7 @@ export const GET = providerRoute(apiHandler({
         return {
             userId: token.user.id,
             provider: token.provider,
+            sid: token.sid ?? null,
             ...fromWire(name => query.get(name), [
                 'clientId', 'redirectUri', 'responseType', 'scope', 'state', 'nonce', 'codeChallenge', 'codeChallengeMethod',
             ]),

@@ -35,6 +35,9 @@ declare module 'next-auth/jwt' {
         memberships: MembershipFiltered[],
         // The session epoch of the user or company user when the session started. See `User.sessionEpoch`.
         sessionEpoch: number,
+        // The id of the session, which the OpenID Connect provider's ID tokens name it by. A session
+        // started before sessions had one has none, and neither has a company user's.
+        sid?: string,
         // When the permissions and memberships above were read, in milliseconds since epoch.
         permissionsReadAt: number,
 

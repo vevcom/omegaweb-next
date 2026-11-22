@@ -43,13 +43,15 @@ export type IdTokenInput = {
     userId: number,
     /** The nonce the client sent with its request, repeated so it can tie the token to that request. */
     nonce: string | null,
+    /** The id of the session on the auth domain the client signed in from, which a logout token names it by. */
+    sid: string | null,
     /** The claims the scopes gave, see {@link userClaims}. */
     claims: UserClaims,
 }
 
 /** The ID token of OpenID Connect Core section 2: who signed in, for the client alone. */
-export function signIdToken({ clientId, userId, nonce, claims }: IdTokenInput): string {
-    return sign({ ...claims, ...(nonce ? { nonce } : {}) }, keyFromEnv('JWT_PRIVATE_KEY'), {
+export function signIdToken({ clientId, userId, nonce, sid, claims }: IdTokenInput): string {
+    return sign({ ...claims, ...(nonce ? { nonce } : {}), ...(sid ? { sid } : {}) }, keyFromEnv('JWT_PRIVATE_KEY'), {
         algorithm: ALGORITHM,
         keyid: signingJwk().kid,
         issuer: oidcIssuer(),

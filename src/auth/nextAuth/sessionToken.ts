@@ -5,6 +5,7 @@ import { userOperations } from '@/services/users/operations'
 import { permissionOperations } from '@/services/permissions/operations'
 import { groupOperations } from '@/services/groups/operations'
 import { companyUserOfSessionSelection } from '@/services/careers/companies/users/constants'
+import { randomBytes } from 'node:crypto'
 import type { JWT } from 'next-auth/jwt'
 
 /** The login a session came from, which it carries so the checks on it can follow. */
@@ -15,19 +16,25 @@ export type UserLoginProvider = Exclude<LoginProvider, 'company-credentials'>
 
 /**
  * The session token of a user, as the jwt callback builds it at sign in and rebuilds it when the
- * user has changed: the user, their permissions and memberships, and the epoch the session keeps.
- * The SSO callback builds the same token for a site from a code the auth domain issued, so a
- * session is the same whichever way it was started.
+ * user has changed: the user, their permissions and memberships, and the epoch and the id the
+ * session keeps. The SSO callback builds the same token for a site from a code the auth domain
+ * issued, so a session is the same whichever way it was started.
  *
- * @param sessionEpoch - The epoch the session started with. Left out at sign in, when it is read.
+ * @param kept - The epoch and the id of the session the token is rebuilt for. Left out when the
+ * session starts: the epoch is then read and the id made.
  */
-export async function sessionTokenOf(userId: number, provider: UserLoginProvider, sessionEpoch?: number): Promise<JWT> {
+export async function sessionTokenOf(
+    userId: number,
+    provider: UserLoginProvider,
+    kept?: Pick<JWT, 'sessionEpoch' | 'sid'>,
+): Promise<JWT> {
     return {
         provider,
-        sessionEpoch: sessionEpoch ?? (await prisma.user.findUniqueOrThrow({
+        sessionEpoch: kept?.sessionEpoch ?? (await prisma.user.findUniqueOrThrow({
             where: { id: userId },
             select: { sessionEpoch: true },
         })).sessionEpoch,
+        sid: kept ? kept.sid : randomBytes(16).toString('base64url'),
         permissionsReadAt: Date.now(),
         user: await userOperations.read({ params: { id: userId }, bypassAuth: true }),
         companyUser: null,

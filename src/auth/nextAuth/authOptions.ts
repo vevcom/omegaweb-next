@@ -256,8 +256,8 @@ export const authOptions: AuthOptions = {
                 throw new Error(`Got unsupported provider. Provider: ${provider}`)
             }
 
-            // The epoch is read at sign in only: a session keeps the one it was started with.
-            return sessionTokenOf(userId, provider, account ? undefined : token.sessionEpoch)
+            // The epoch is read and the id made at sign in only: a session keeps those it was started with.
+            return sessionTokenOf(userId, provider, account ? undefined : token)
         }
     },
     // No newUser page: serverPage sends a user who has not registered to the register page of the
