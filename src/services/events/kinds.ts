@@ -21,6 +21,8 @@ type EventKindDefinition = {
         /** Null when the kind gives none, so the event starts with the period any event does. */
         registrationPeriod: { opens: TimeBeforeEventDay, closes: TimeBeforeEventDay } | null,
     },
+    /** Whether the users of the event's company see who holds each slot of its slotted variants, and how many wait. */
+    companySeesSchedule: boolean,
 }
 
 const careerRegistrationPeriod = {
@@ -39,6 +41,7 @@ export const eventKinds = {
             registrationType: 'LIST',
             registrationPeriod: null,
         },
+        companySeesSchedule: false,
     },
     COMPANY_PRESENTATION: {
         name: 'Bedriftspresentasjon',
@@ -49,6 +52,7 @@ export const eventKinds = {
             registrationType: 'LIST',
             registrationPeriod: careerRegistrationPeriod,
         },
+        companySeesSchedule: false,
     },
     SPEED_INTERVIEW: {
         name: 'Speedintervju',
@@ -59,5 +63,6 @@ export const eventKinds = {
             registrationType: 'SLOTTED',
             registrationPeriod: careerRegistrationPeriod,
         },
+        companySeesSchedule: true,
     },
 } as const satisfies Record<EventKind, EventKindDefinition>

@@ -1,5 +1,5 @@
 import type { slotScheduleSelection } from './constants'
-import type { Prisma } from '@/prisma-generated-pn-types'
+import type { ClassLevel, Prisma } from '@/prisma-generated-pn-types'
 
 export type SlotSchedule = Prisma.EventSlotScheduleGetPayload<{ select: typeof slotScheduleSelection }>
 
@@ -19,6 +19,20 @@ export type SlotOnBoard = Slot & {
     id: number,
     /** Who holds the slot, and whether they have paid for their place, which a placing does not take back. */
     holder: { registrationId: number, name: string, paid: boolean } | null,
+}
+
+/** Who holds a slot as the company of the event sees them. A guest has no class or study programme. */
+export type SlotHolderForCompany = {
+    name: string,
+    email: string | null,
+    class: ClassLevel | null,
+    studyProgrammes: string[],
+}
+
+/** A slotted variant as the company of its event sees it: the slots in order with who holds each, and how many wait. */
+export type CompanySchedule = {
+    slots: (Slot & { id: number, holder: SlotHolderForCompany | null })[],
+    waiting: number,
 }
 
 /**

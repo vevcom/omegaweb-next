@@ -30,3 +30,26 @@ export const slotScheduleSelection = {
     longBreakEveryMinutes: true,
     longBreakMinutes: true,
 } as const satisfies Prisma.EventSlotScheduleSelect
+
+/**
+ * What the company of an event is shown of who holds a slot, and nothing more. A user is reached at
+ * `email`, not at their veven mail address. Of several active classes the latest counts, as in
+ * `readClassOfUser`.
+ */
+export const slotHolderForCompanySelection = {
+    user: {
+        select: {
+            firstname: true,
+            lastname: true,
+            email: true,
+            memberships: {
+                where: { active: true, group: { groupType: { in: ['CLASS', 'STUDY_PROGRAMME'] } } },
+                orderBy: [{ order: 'desc' }, { groupId: 'asc' }],
+                select: {
+                    group: { select: { class: { select: { level: true } }, studyProgramme: { select: { name: true } } } },
+                },
+            },
+        },
+    },
+    contact: { select: { name: true, email: true } },
+} as const satisfies Prisma.EventRegistrationSelect

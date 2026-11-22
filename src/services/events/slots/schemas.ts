@@ -54,5 +54,8 @@ export const eventSlotSchemas = {
         readBoard: paramsFieldSchemas.pick({
             variantId: true,
         }),
+        readCompanySchedule: paramsFieldSchemas.pick({
+            variantId: true,
+        }),
     },
 }
