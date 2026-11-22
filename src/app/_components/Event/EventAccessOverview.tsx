@@ -82,7 +82,7 @@ export function EventAccessOfSessions({ access }: { access: EventAccess }) {
     const authorizers = {
         canSee: eventAuth.read.data(access),
         canRegister: canRegisterSelf.data(access),
-        canAdminister: eventAuth.saveSetup.data({ ...access, setsCompany: false }),
+        canAdminister: eventAuth.saveSetup.data({ ...access, setsCompany: false, linksPresentation: null }),
     }
     const rows: { who: string, capabilities: AccessCapabilities }[] = [
         { who: 'Ikke innlogget', capabilities: runCapabilities(Session.empty(), authorizers) },

@@ -11,6 +11,8 @@ type EventKindDefinition = {
     name: string,
     /** The special channel the own channels of the events of the kind sit under. */
     notificationChannel: SpecialNotificationChannel,
+    /** The kind of the one event an event of the kind may be linked to, as `Event.companyPresentationId`. */
+    linksTo: EventKind | null,
     /** What an event of the kind starts with, which its administrators change freely after. */
     firstSetup: {
         bindingRegistration: boolean,
@@ -31,6 +33,7 @@ export const eventKinds = {
     ORDINARY: {
         name: 'Arrangement',
         notificationChannel: 'EVENT',
+        linksTo: null,
         firstSetup: {
             bindingRegistration: false,
             registrationType: 'LIST',
@@ -40,6 +43,7 @@ export const eventKinds = {
     COMPANY_PRESENTATION: {
         name: 'Bedriftspresentasjon',
         notificationChannel: 'COMPANY_PRESENTATION',
+        linksTo: null,
         firstSetup: {
             bindingRegistration: true,
             registrationType: 'LIST',
@@ -49,6 +53,7 @@ export const eventKinds = {
     SPEED_INTERVIEW: {
         name: 'Speedintervju',
         notificationChannel: 'SPEED_INTERVIEW',
+        linksTo: 'COMPANY_PRESENTATION',
         firstSetup: {
             bindingRegistration: true,
             registrationType: 'SLOTTED',

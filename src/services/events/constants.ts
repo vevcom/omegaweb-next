@@ -112,3 +112,26 @@ export const eventListSelection = {
         }
     },
 } as const satisfies Prisma.EventSelect
+
+/**
+ * Left out of what the writes of an event return to those administrating it, who may not see the
+ * presentation linked. The read gives it to those who may.
+ */
+export const eventLinkOmitted = {
+    companyPresentationId: true,
+} as const satisfies Prisma.EventOmit
+
+/** What an event shows of the event linked to it, to those who may see that one. */
+export const linkedEventSelection = {
+    id: true,
+    kind: true,
+    name: true,
+} as const satisfies Prisma.EventSelect
+
+/** An event as it is offered to link another to. */
+export const linkableEventSelection = {
+    ...linkedEventSelection,
+    eventStart: true,
+    published: true,
+    company: { select: { name: true } },
+} as const satisfies Prisma.EventSelect

@@ -1,4 +1,6 @@
 import type {
+    linkableEventSelection,
+    linkedEventSelection,
     eventCompanySelection,
     eventFilterSelection,
     eventQuotaSummarySelection,
@@ -20,6 +22,11 @@ export type EventAccess = {
     quotaVisibilities: VisibilityMatrix[],
     companyId: number | null,
 }
+
+/** The event linked to another, as `linkedEventSeenBy` reads it. */
+export type LinkedEvent = Prisma.EventGetPayload<{ select: typeof linkedEventSelection }>
+
+export type LinkableEvent = Prisma.EventGetPayload<{ select: typeof linkableEventSelection }>
 
 export type EventQuotaSummary = Omit<Prisma.EventQuotaGetPayload<{
     select: typeof eventQuotaSummarySelection

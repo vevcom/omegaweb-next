@@ -1,7 +1,7 @@
 import '@ow-server-only'
 import { eventAuth, hasNoAdministrators } from './auth'
 import { eventSchemas } from './schemas'
-import { assertSeenThroughQuotas, readEventAccess, setsCompany } from './access'
+import { assertSeenThroughQuotas, linkedEventSeenBy, linksPresentation, readEventAccess, setsCompany } from './access'
 import { publishProblems } from './publishProblems'
 import { lockEvent, registrationsOfEvent } from './registration/queue'
 import { fixVariantPlaces, notifyPromoted } from './registration/fixState'
@@ -11,7 +11,9 @@ import {
     eventListSelection,
     eventQuotaOrder,
     eventVariantOrder,
+    eventLinkOmitted,
     eventVariantSummarySelection,
+    linkableEventSelection,
 } from './constants'
 import { eventVariantOperations } from './variants/operations'
 import { eventQuotaOperations } from './quotas/operations'
@@ -37,11 +39,12 @@ import { implementSearchOperation } from '@/services/search/implement'
 import { resolveAccountOwnership } from '@/services/ledger/accounts/ownership'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { implementVisibilityRead, toMatrix, visibilityIncluder } from '@/services/visibility/implement'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import type { PromotedRegistration } from './registration/fixState'
 import type { VariantStatistics } from './statistics'
 import type { SlotChange } from './slots/types'
-import type { Event, EventTag, Prisma } from '@/prisma-generated-pn-types'
-import type { EventExpanded } from './types'
+import type { Event, EventKind, EventTag, Prisma } from '@/prisma-generated-pn-types'
+import type { EventExpanded, LinkableEvent } from './types'
 import type { SearchFindArgs } from '@/services/search/implement'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
@@ -73,8 +76,8 @@ const adminVisibility = implementVisibilityRead({
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
     authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
-    operation: async ({ prisma, params }) => {
-        const event = await prisma.event.findUniqueOrThrow({
+    operation: async ({ prisma, params, session }) => {
+        const { companyPresentationId, speedInterview, ...event } = await prisma.event.findUniqueOrThrow({
             where: {
                 id: params.id,
                 kind: { in: params.kinds },
@@ -94,6 +97,7 @@ const read = defineOperation({
                 },
                 hostedByCommittee: { select: { id: true, name: true, shortName: true } },
                 company: eventCompanySelection,
+                speedInterview: { select: { id: true } },
                 ledgerAccount: { select: { id: true, name: true } },
                 notificationChannel: { include: availableNotificationMethodIncluder },
                 infoNotificationChannel: { include: availableNotificationMethodIncluder },
@@ -122,6 +126,8 @@ const read = defineOperation({
                 ...variant,
                 quotas: variant.quotas.map(({ visibility, ...quota }) => ({ ...quota, visibility: toMatrix(visibility) })),
             })),
+            companyPresentation: await linkedEventSeenBy(prisma, session, companyPresentationId),
+            speedInterview: await linkedEventSeenBy(prisma, session, speedInterview?.id ?? null),
         }
     }
 })
@@ -143,6 +149,9 @@ const updateFields = defineSubOperation({
         if ((data.eventStart ?? event.eventStart) > (data.eventEnd ?? event.eventEnd)) {
             throw new ServiceError('BAD PARAMETERS', 'Arrangementet må jo starte før det slutter')
         }
+        if (typeof data.companyPresentationId === 'number' && data.companyPresentationId !== event.companyPresentationId) {
+            await assertLinkable(prisma, event.kind, data.companyPresentationId)
+        }
 
         let mapUpdate: Prisma.EventLocationMapUpdateOneWithoutEventNestedInput | undefined
         if (locationMap) {
@@ -152,8 +161,9 @@ const updateFields = defineSubOperation({
             mapUpdate = { delete: true }
         }
 
-        const updatedEvent = await prisma.event.update({
+        const updatedEvent = await refusingSecondLink(() => prisma.event.update({
             where: { id: params.id },
+            omit: eventLinkOmitted,
             data: {
                 ...data,
                 locationMap: mapUpdate,
@@ -161,7 +171,7 @@ const updateFields = defineSubOperation({
                 // save of its variants or administrators alone is a save of the event too.
                 updatedAt: new Date(),
             },
-        })
+        }))
         await assertSeenThroughQuotas(prisma, params.id)
         if (data.name !== undefined && data.name !== event.name) {
             await eventNotificationOperations.internal.renameChannels.internalCall({
@@ -242,6 +252,7 @@ const connectToLedgerAccount = defineOperation({
 
         return await prisma.event.update({
             where: { id: params.id },
+            omit: eventLinkOmitted,
             data: { ledgerAccountId: data.ledgerAccountId },
         })
     },
@@ -306,6 +317,32 @@ export const eventOperations = {
                         : null,
                     attended: inQuota.filter(registration => registration.attendedAt !== null).length,
                 }
+            })
+        },
+    }),
+
+    /**
+     * The events the event may be linked to: of the kind it links to, not ended, and with no other
+     * event linked to them. Only those the session administrates, since linking takes that.
+     */
+    readLinkable: defineOperation({
+        paramsSchema: eventSchemas.params.readLinkable,
+        authorizer: () => eventAuth.readLinkable,
+        operation: async ({ prisma, params }, prismaWhereFilter): Promise<LinkableEvent[]> => {
+            const { kind } = await prisma.event.findUniqueOrThrow({ where: { id: params.id }, select: { kind: true } })
+            const linksTo = eventKinds[kind].linksTo
+            if (!linksTo) return []
+            return await prisma.event.findMany({
+                where: {
+                    kind: linksTo,
+                    eventEnd: { gte: new Date() },
+                    AND: [
+                        { OR: [{ speedInterview: { is: null } }, { speedInterview: { id: params.id } }] },
+                        prismaWhereFilter ?? {},
+                    ],
+                },
+                orderBy: [{ eventStart: 'asc' }, { id: 'asc' }],
+                select: linkableEventSelection,
             })
         },
     }),
@@ -562,6 +599,7 @@ export const eventOperations = {
         authorizer: async ({ params, data, prisma }) => eventAuth.saveSetup.data({
             ...await readEventAccess(prisma, params.id),
             setsCompany: await setsCompany(prisma, data.companyId, params.id),
+            linksPresentation: await linksPresentation(prisma, data.companyPresentationId),
         }),
         transaction: 'OPENS',
         operation: async ({
@@ -662,7 +700,7 @@ export const eventOperations = {
                 where: { id: params.id, published: !data.published },
                 data: { published: data.published },
             })
-            const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id } })
+            const event = await prisma.event.findUniqueOrThrow({ where: { id: params.id }, omit: eventLinkOmitted })
 
             if (data.published && flipped) {
                 await eventNotificationOperations.internal.createOwnNotification.internalCall({
@@ -954,6 +992,39 @@ async function assertNotSavedSince(prisma: PrismaPossibleTransaction<false>, eve
             + 'så ingenting av det som er lagret går tapt.'
         )
     }
+}
+
+const secondLinkRefusal = 'Bedriftspresentasjonen har allerede et speedintervju.'
+
+/**
+ * Refuses a link but from an event of a kind that links to another, to an event of that kind, and
+ * to one that has an event linked to it already.
+ */
+async function assertLinkable(prisma: PrismaPossibleTransaction<false>, kind: EventKind, linkedId: number) {
+    const linked = await prisma.event.findUniqueOrThrow({
+        where: { id: linkedId },
+        select: { kind: true, speedInterview: { select: { id: true } } },
+    })
+    if (eventKinds[kind].linksTo !== linked.kind) {
+        throw new ServiceError('BAD PARAMETERS', 'Bare et speedintervju kobles til en bedriftspresentasjon.')
+    }
+    if (linked.speedInterview) throw new ServiceError('DUPLICATE', secondLinkRefusal)
+}
+
+/** Of two linking one presentation at once both pass `assertLinkable`, and the unique link refuses the second here. */
+async function refusingSecondLink<Result>(write: () => Promise<Result>): Promise<Result> {
+    try {
+        return await write()
+    } catch (error) {
+        if (isSecondLink(error)) throw new ServiceError('DUPLICATE', secondLinkRefusal)
+        throw error
+    }
+}
+
+function isSecondLink(error: unknown) {
+    if (!(error instanceof PrismaClientKnownRequestError) || error.code !== 'P2002') return false
+    const adapterError = error.meta?.driverAdapterError as { cause?: { constraint?: { index?: string } } } | undefined
+    return adapterError?.cause?.constraint?.index === 'Event_companyPresentationId_key'
 }
 
 async function assertGroupAccount(prisma: PrismaPossibleTransaction<false>, ledgerAccountId: number) {

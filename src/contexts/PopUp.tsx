@@ -1,6 +1,6 @@
 'use client'
 import useOnNavigation from '@/hooks/useOnNavigation'
-import React, { createContext, useState, useCallback } from 'react'
+import React, { createContext, useState, useCallback, useMemo } from 'react'
 
 export type PopUpKeyType = number | string
 
@@ -32,12 +32,13 @@ export default function PopUpProvider({ children }: { children: React.ReactNode 
         setCurrent(open => (open?.key === key ? null : open))
     }, [])
 
+    // Kept while the same pop-up is open. A pop-up teleports itself again whenever what it shows
+    // changes, so a value made anew there would render whoever holds the context and teleport again.
+    const keyOfCurrentNode = current?.key
+    const value = useMemo(() => ({ teleport, remove, keyOfCurrentNode }), [teleport, remove, keyOfCurrentNode])
+
     return (
-        <PopUpContext.Provider value={{
-            teleport,
-            remove,
-            keyOfCurrentNode: current?.key
-        }}>
+        <PopUpContext.Provider value={value}>
             {current?.node}
             {children}
         </PopUpContext.Provider>

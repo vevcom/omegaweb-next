@@ -97,6 +97,9 @@ export function eventPage(config: EventPagesConfig) {
                     params: { includeGroupAccounts: true, includeUserAccounts: false },
                 }), [])
                 : []
+            const linkable = administers && eventKinds[event.kind].linksTo
+                ? await withFallback(eventOperations.readLinkable({ params: { id: event.id } }), [])
+                : []
 
             const dotPunishment = event.variants.length > 0 && session.user
                 ? await eventRegistrationOperations.readDotPunishmentOfUser({
@@ -196,6 +199,7 @@ export function eventPage(config: EventPagesConfig) {
                 access,
                 adminVisibilityKnown: adminVisibility !== null,
                 ledgerAccounts,
+                linkable,
                 dotPunishment,
                 variantViews,
                 eventPaymentBalance,
@@ -337,6 +341,7 @@ export function eventPage(config: EventPagesConfig) {
                                         seatingBoard={data.seatingBoard}
                                         savedSlots={data.savedSlots}
                                         savedWaiting={data.savedWaiting}
+                                        linkable={data.linkable}
                                         slotsOfVariants={Object.fromEntries(data.variantViews.flatMap(view => (
                                             view.slots ? [[view.variant.id, view.slots]] : []
                                         )))}
@@ -397,6 +402,11 @@ export function eventPage(config: EventPagesConfig) {
                                     capabilities={{ canReadCompany: capabilities.canReadCompany }}
                                 />
                             </EventSection>}
+                            {[event.companyPresentation, event.speedInterview].map(linked => linked && (
+                                <EventSection key={linked.id} title={eventKinds[linked.kind].name}>
+                                    <SiteLink href={links.event(linked)}>{linked.name}</SiteLink>
+                                </EventSection>
+                            ))}
                             {event.variants.length > 0 ? data.variantViews.map(view => (
                                 <EventSection
                                     key={view.variant.id}

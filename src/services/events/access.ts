@@ -1,9 +1,12 @@
 import '@ow-server-only'
+import { canSeeEvent } from './auth'
+import { linkedEventSelection } from './constants'
 import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { ServiceError } from '@/services/error'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
-import type { EventAccess } from './types'
+import type { EventAccess, LinkedEvent } from './types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /** Reads what the rules of eventAuth need to know about an event, for `.data()`. */
@@ -42,6 +45,34 @@ export async function setsCompany(
     if (eventId === undefined) return true
     const event = await prisma.event.findUniqueOrThrow({ where: { id: eventId }, select: { companyId: true } })
     return event.companyId !== companyId
+}
+
+/**
+ * The `EventAccess` of the company presentation a write of `companyPresentationId` names, for the
+ * rules of eventAuth that write it. Null when the write leaves the link or clears it. The one linked
+ * already counts too, so that an id cannot be found by posting it as kept.
+ */
+export async function linksPresentation(
+    prisma: PrismaPossibleTransaction<false>,
+    companyPresentationId: number | null | undefined,
+): Promise<EventAccess | null> {
+    if (companyPresentationId === null || companyPresentationId === undefined) return null
+    return await readEventAccess(prisma, companyPresentationId)
+}
+
+/**
+ * The event linked to another, a presentation to its speed interview or the other way round, when
+ * the session may see it. Null when there is none, and when the session may not see it, so that a
+ * draft is not given away by the event it is linked to.
+ */
+export async function linkedEventSeenBy(
+    prisma: PrismaPossibleTransaction<false>,
+    session: SessionMaybeUser,
+    linkedId: number | null,
+): Promise<LinkedEvent | null> {
+    if (linkedId === null) return null
+    if (!canSeeEvent.data(await readEventAccess(prisma, linkedId)).auth(session).authorized) return null
+    return await prisma.event.findUniqueOrThrow({ where: { id: linkedId }, select: linkedEventSelection })
 }
 
 /** The event a variant belongs to. */
