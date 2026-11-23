@@ -2,6 +2,8 @@ import SmallEventTag from './SmallEventTag'
 import { eventLinks } from '@/pageKits/events/links'
 import Image from '@/components/Image/Image'
 import { osloDateTime } from '@/lib/dates/oslo'
+import { displayTimeUntil } from '@/lib/dates/displayTimeUntil'
+import { upcomingRegistrationStart } from '@/services/events/upcomingRegistrationStart'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import React from 'react'
 import type { EventExpanded } from '@/services/events/types'
@@ -22,6 +24,8 @@ export default function EventCard({ event, config }: PropTypes) {
     const attendance = `${Math.max(0, Math.min(attendanceRatio, 1)) * 100}%`
     const from = event.registrationStart ?? event.eventStart
     const to = event.registrationEnd ?? event.eventEnd
+    const now = new Date()
+    const registrationOpens = upcomingRegistrationStart(event.variants, now)
 
     return <SiteLink href={eventLinks(config).event(event)} className="list-row">
         <div className="list-row-thumb list-row-thumb-contain">
@@ -42,6 +46,9 @@ export default function EventCard({ event, config }: PropTypes) {
                     <SmallEventTag key={tag.id} eventTag={tag} />
                 ))}
             </div>
+            {registrationOpens && (
+                <p>Påmelding åpner {displayTimeUntil(registrationOpens, now)}</p>
+            )}
         </div>
 
         <div className="list-row-meta">
