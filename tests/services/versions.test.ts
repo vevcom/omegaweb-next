@@ -8,18 +8,6 @@ import type { GithubRelease } from '@/services/versions/types'
 
 const repositoryUrl = 'https://github.com/vevcom/omegaweb-next'
 
-function release(tag: string, publishedAt: string, overrides: Partial<GithubRelease> = {}): GithubRelease {
-    return {
-        tag_name: tag,
-        name: tag,
-        body: `## What's Changed\r\n* ${tag} by someone\r\n`,
-        draft: false,
-        prerelease: false,
-        published_at: publishedAt,
-        ...overrides,
-    }
-}
-
 const releases = [
     release('v2.0.0-rc.1', '2026-11-20T10:00:00Z', { prerelease: true }),
     release('v1.1.0', '2026-11-10T10:00:00Z'),
@@ -41,17 +29,6 @@ beforeEach(() => {
 afterEach(() => {
     rmSync(root, { recursive: true, force: true })
 })
-
-function bake(currentTag: string, bakeReleases = releases) {
-    return versionsOperations.internal.bake.internalCall({
-        params: { directory },
-        data: { repositoryUrl, currentTag, releases: bakeReleases },
-    })
-}
-
-function writeVersionsFile(content: unknown) {
-    writeFileSync(join(directory, 'versions.json'), JSON.stringify(content))
-}
 
 describe('baking the versions', () => {
     test('keeps the published releases that are no pre-release, and marks the one being built current', async () => {
@@ -175,3 +152,26 @@ describe('reading the versions', () => {
         await expect(versionsOperations.readRepositoryUrl({})).rejects.toBeInstanceOf(Smorekopp)
     })
 })
+
+function release(tag: string, publishedAt: string, overrides: Partial<GithubRelease> = {}): GithubRelease {
+    return {
+        tag_name: tag,
+        name: tag,
+        body: `## What's Changed\r\n* ${tag} by someone\r\n`,
+        draft: false,
+        prerelease: false,
+        published_at: publishedAt,
+        ...overrides,
+    }
+}
+
+function bake(currentTag: string, bakeReleases = releases) {
+    return versionsOperations.internal.bake.internalCall({
+        params: { directory },
+        data: { repositoryUrl, currentTag, releases: bakeReleases },
+    })
+}
+
+function writeVersionsFile(content: unknown) {
+    writeFileSync(join(directory, 'versions.json'), JSON.stringify(content))
+}

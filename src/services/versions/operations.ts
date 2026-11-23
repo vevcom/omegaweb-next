@@ -10,31 +10,6 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { BakedVersions } from './types'
 
-const versionsOfDirectory = new Map<string, Promise<BakedVersions>>()
-
-/** An image never changes its versions, so each directory is read once. */
-function readVersions(directory: string): Promise<BakedVersions> {
-    const cached = versionsOfDirectory.get(directory)
-    if (cached) return cached
-    const read = readVersionsFile(directory)
-    versionsOfDirectory.set(directory, read)
-    read.catch(() => versionsOfDirectory.delete(directory))
-    return read
-}
-
-async function readVersionsFile(directory: string): Promise<BakedVersions> {
-    const file = join(directory, versionsFileName)
-    if (!existsSync(file)) return { repositoryUrl: null, versions: [] }
-
-    const { repositoryUrl, versions } = versionsFileSchema.parse(JSON.parse(await readFile(file, 'utf8')))
-    return {
-        repositoryUrl,
-        versions: versions
-            .map(version => ({ ...version, releasedAt: new Date(version.releasedAt) }))
-            .toSorted((first, second) => second.releasedAt.getTime() - first.releasedAt.getTime()),
-    }
-}
-
 const bake = defineSubOperation({
     paramsSchema: () => versionsSchemas.params.bake,
     dataSchema: () => versionsSchemas.data.bake,
@@ -96,3 +71,28 @@ export const versionsOperations = {
         bake,
     },
 } as const
+
+const versionsOfDirectory = new Map<string, Promise<BakedVersions>>()
+
+/** An image never changes its versions, so each directory is read once. */
+function readVersions(directory: string): Promise<BakedVersions> {
+    const cached = versionsOfDirectory.get(directory)
+    if (cached) return cached
+    const read = readVersionsFile(directory)
+    versionsOfDirectory.set(directory, read)
+    read.catch(() => versionsOfDirectory.delete(directory))
+    return read
+}
+
+async function readVersionsFile(directory: string): Promise<BakedVersions> {
+    const file = join(directory, versionsFileName)
+    if (!existsSync(file)) return { repositoryUrl: null, versions: [] }
+
+    const { repositoryUrl, versions } = versionsFileSchema.parse(JSON.parse(await readFile(file, 'utf8')))
+    return {
+        repositoryUrl,
+        versions: versions
+            .map(version => ({ ...version, releasedAt: new Date(version.releasedAt) }))
+            .toSorted((first, second) => second.releasedAt.getTime() - first.releasedAt.getTime()),
+    }
+}
