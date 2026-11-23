@@ -114,6 +114,9 @@ COPY --from=builder /usr/src/app/standard_store ./standard_store
 # reads it at start-up to refuse the development secrets it holds.
 COPY .env.default ./.env.default
 
+# The release notes, which only the release workflow writes. The pattern lets a build without them through.
+COPY version[s] ./versions
+
 # Bind mount targets in compose; created here so the image works without them too.
 RUN mkdir -p store/images logs
 

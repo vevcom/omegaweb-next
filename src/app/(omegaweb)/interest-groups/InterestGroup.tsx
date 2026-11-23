@@ -63,6 +63,7 @@ export default function InterestGroup({ interestGroup, capabilities }: PropTypes
                 capabilities={{ canEdit: capabilities.canEditArticleSection }}
                 key={interestGroup.id}
                 articleSection={interestGroup.articleSection}
+                imageFit="contain"
                 actions={{
                     updateArticleSection: configureAction(
                         updateInterestGroupArticleSectionAction, cmsArticleActionConfig

@@ -215,7 +215,7 @@ export function serverPage<
     const generateMetadata = async (props: PageProps<Params>): Promise<Metadata> => {
         if (!metadata) return {}
         try {
-            const loaded = await load(await serializeProps(props))
+            const loaded = await load(await serializeProps({ ...props, params: props.params.then(encodedAsPageParams) }))
             return metadata(loaded.data)
         } catch (error) {
             await handleServiceError(error)
@@ -224,6 +224,19 @@ export function serverPage<
     }
 
     return { page, generateMetadata }
+}
+
+/**
+ * Next hands a page its params percent-encoded but generateMetadata the same params decoded. They
+ * are encoded here as the page gets them, so the operation sees one form and runs once.
+ */
+function encodedAsPageParams<Params extends object>(params: Params): Params {
+    const encoded = (value: unknown) => {
+        if (typeof value === 'string') return encodeURIComponent(value)
+        if (Array.isArray(value)) return value.map(part => encodeURIComponent(String(part)))
+        return value
+    }
+    return Object.fromEntries(Object.entries(params).map(([name, value]) => [name, encoded(value)])) as Params
 }
 
 /**

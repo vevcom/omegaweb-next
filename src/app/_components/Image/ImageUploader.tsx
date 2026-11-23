@@ -9,7 +9,7 @@ type PropTypes = {
     uploadImageAction: UploadSpecialCollectionImageAction,
     title: string,
     className?: string,
-    successCallback?: (data?: unknown) => void,
+    successCallback?: (data: unknown) => void,
     refreshOnSuccess?: boolean,
     closePopUpOnSuccess?: PopUpKeyType,
 }

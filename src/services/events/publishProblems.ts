@@ -25,7 +25,7 @@ export type EventSetup = {
         price?: number | null,
         paymentStart?: Date | null,
         paymentEnd?: Date | null,
-        quotas: { places: number }[],
+        quotas: { places?: number }[],
     }[],
     adminVisibility: VisibilityMatrix,
 }
@@ -66,7 +66,7 @@ export function eventSetupChecks(event: EventSetup): SetupCheck[] {
         } else if (variant.registrationEnd > event.eventStart) {
             add('registration', 'warning', `${name}Påmeldingen slutter etter at arrangementet har startet.`)
         }
-        if (variant.quotas.every(quota => quota.places === 0)) {
+        if (variant.quotas.every(quota => !quota.places)) {
             add('registration', 'warning', `${name}Ingen plasser er satt.`)
         }
         if (!variant.takesPayment) return

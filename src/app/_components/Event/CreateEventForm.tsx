@@ -29,7 +29,7 @@ export default function CreateEventForm({ config, eventTags, committees, default
         className="min-w-[min(80vw,28rem)]"
         action={createEventAction}
         submitText="Opprett utkast"
-        navigateOnSuccess={data => (data?.name ? links.event(data) : links.list())}
+        navigateOnSuccess={data => links.event(data)}
     >
         <TextInput label="Navn" name="name" />
         {committees && <SelectNumberPossibleNULL

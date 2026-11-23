@@ -73,7 +73,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                     canUpdate && (
                         <Form
                             action={updateAction}
-                            navigateOnSuccess={data => (data ? omegaLinks.news(data) : appHref('/news'))}
+                            navigateOnSuccess={data => omegaLinks.news(data)}
                             submitText="Oppdater"
                         >
                             <TextInput

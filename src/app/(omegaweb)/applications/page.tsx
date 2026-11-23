@@ -6,6 +6,8 @@ import { serverPage } from '@/app/ServerPage'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import Date from '@/components/Date/Date'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
 
 const { page, generateMetadata } = serverPage({
     operation: async () => {
@@ -39,7 +41,9 @@ const { page, generateMetadata } = serverPage({
             ">
                 {data.periods.map((period) => (
                     <li key={period.name}>
-                        <a href={`/applications/${period.name}`}>{period.name}</a>
+                        <SiteLink href={appHref(`/applications/${encodeURIComponent(period.name)}`)}>
+                            {period.name}
+                        </SiteLink>
                         <Date date={period.endDate} includeTime />
                     </li>
                 ))}

@@ -4,7 +4,11 @@ import StandardImageServer from '@/components/Image/StandardImageServer'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'
-import { appHref } from '@/lib/sites/href'
+import { appHref, externalHref } from '@/lib/sites/href'
+import { withFallback, withPageSession } from '@/app/ServerPage'
+import { versionsOperations } from '@/services/versions/operations'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faGithub } from '@fortawesome/free-brands-svg-icons'
 
 // On mobile every column of the footer stacks and centres.
 const mobileColumnClassName = `
@@ -21,8 +25,12 @@ const infoClassName = `
     max-mobile:[&:not(:first-child)]:mt-10
 `
 
-function Footer() {
+async function Footer() {
     const emailDomain = DomainContext.mailDomainOf(Site.root)
+    const { currentVersion, repositoryUrl } = await withPageSession(async () => ({
+        currentVersion: await withFallback(versionsOperations.readCurrent({}), null),
+        repositoryUrl: await withFallback(versionsOperations.readRepositoryUrl({}), null),
+    }))
 
     return (
         <footer className="
@@ -58,6 +66,14 @@ function Footer() {
                         hover:underline
                     ">Vilkår og personvern</SiteLink>
                 </p>
+                {currentVersion && (
+                    <p>
+                        <SiteLink href={appHref(`/versions#${currentVersion.version}`)} className="
+                            text-base-content no-underline
+                            hover:underline
+                        ">Versjon {currentVersion.version}</SiteLink>
+                    </p>
+                )}
                 <div>
                     <div className="
                         flex justify-start
@@ -67,6 +83,11 @@ function Footer() {
                         [&_a>*>*:first-child]:pl-0
                     ">
                         <SocialIcons />
+                        {repositoryUrl && (
+                            <SiteLink href={externalHref(repositoryUrl)} target="_blank" aria-label="GitHub">
+                                <FontAwesomeIcon icon={faGithub} />
+                            </SiteLink>
+                        )}
                     </div>
                 </div>
             </div>

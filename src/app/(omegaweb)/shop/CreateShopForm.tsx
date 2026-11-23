@@ -10,7 +10,7 @@ export default function CreateShopForm() {
         action={createShopAction}
         className="min-w-[50vw]"
         submitText="Lag ny butikk"
-        navigateOnSuccess={shop => appHref(shop ? `/shop/${shop.id}` : '/shop')}
+        navigateOnSuccess={shop => appHref(`/shop/${shop.id}`)}
     >
         <TextInput name="name" label="Butikk" />
         <TextInput name="description" label="Beskrivelse" />

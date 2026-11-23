@@ -18,7 +18,7 @@ export default function CreateRevueForm({ closePopUpOnSuccess, hrefOfCreated }: 
         submitText="Legg til"
         closePopUpOnSuccess={closePopUpOnSuccess}
         refreshOnSuccess={!hrefOfCreated}
-        navigateOnSuccess={hrefOfCreated && ((revue?: { year: number }) => (revue ? hrefOfCreated(revue) : null))}
+        navigateOnSuccess={hrefOfCreated}
     >
         <NumberInput name="year" label="År" defaultValue={new Date().getUTCFullYear()} />
         <TextInput name="name" label="Navn" />

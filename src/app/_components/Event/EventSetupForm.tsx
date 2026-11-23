@@ -133,7 +133,7 @@ function SetupForm({
         saveBar
         onValuesChange={checkSetup}
         refreshOnSuccess
-        navigateOnSuccess={data => (data?.name ? links.event(data) : null)}
+        navigateOnSuccess={data => links.event(data)}
     >
         <FormTab tab="about">
             <input type="hidden" name="basedOnUpdatedAt" value={event.updatedAt.toISOString()} />

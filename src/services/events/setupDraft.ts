@@ -12,7 +12,8 @@ export type QuotaDraft = {
     key: number,
     id?: number,
     name: string,
-    places: number,
+    /** None when the field was emptied in the form, which the save refuses. */
+    places?: number,
     visibilityRequirements: VisibilityRequirement[],
     numOfRegistrations: number,
 }
@@ -103,7 +104,7 @@ function jsonField(values: FormData, name: string, reviver?: (key: string, value
 }
 
 /** A variant read back from what the form posts: what the setup checks take, with the names errors are told by. */
-type ReadVariant = Omit<EventSetup['variants'][number], 'quotas'> & { quotas: { name: string, places: number }[] }
+type ReadVariant = Omit<EventSetup['variants'][number], 'quotas'> & { quotas: { name: string, places?: number }[] }
 
 /** The variants the form would post, with their dates as dates again. None when the form has no such field. */
 export function variantsFromForm(values: FormData): ReadVariant[] {

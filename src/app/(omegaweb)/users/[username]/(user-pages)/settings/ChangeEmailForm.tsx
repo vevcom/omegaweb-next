@@ -27,7 +27,6 @@ export default function ChangeEmailForm({ user }: PropTypes) {
                 action={registerNewEmail}
                 refreshOnSuccess
                 successCallback={data => {
-                    if (!data) return
                     setFeedback(data.verified
                         ? `E-posten er ${data.email}.`
                         : `Vi har sendt en bekreftelseslenke til ${data.email}. E-posten endres når lenken er fulgt.`

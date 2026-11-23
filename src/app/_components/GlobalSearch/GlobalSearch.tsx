@@ -363,7 +363,7 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                                                             flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
                                                             no-underline transition-colors duration-300
                                                             ${index === safeActiveIndex
-                                                    ? 'bg-primary text-base-content-inv'
+                                                    ? 'bg-primary text-primary-content'
                                                     : `
                                                         text-base-content
                                                         hover:bg-base-300

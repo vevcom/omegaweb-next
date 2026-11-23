@@ -34,9 +34,7 @@ export default function RevueMetaForms({
             submitText="Lagre"
             closePopUpOnSuccess={closePopUpOnSuccess}
             refreshOnSuccess={!hrefOfUpdated}
-            navigateOnSuccess={hrefOfUpdated && (
-                (updated?: { year: number }) => (updated ? hrefOfUpdated(updated) : null)
-            )}
+            navigateOnSuccess={hrefOfUpdated}
         >
             <NumberInput name="year" label="År" defaultValue={revue.year} />
             <TextInput name="name" label="Navn" defaultValue={revue.name} />

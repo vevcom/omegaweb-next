@@ -31,8 +31,7 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
                 action={configureAction(verifyEmailAction, { params: { token } })}
                 title="Bekreft e-postadressen din"
                 submitText="Bekreft"
-                successCallback={(user?: VerifiedUser) => {
-                    if (!user) return
+                successCallback={(user: VerifiedUser) => {
                     setVerifiedUser(user)
                     if (user.id === sessionUserId && !user.acceptedTerms) {
                         push(links.register(), { servedOn: 'auth-domain' })

@@ -92,7 +92,7 @@ export default function EditableTextField<ReturnType>({
                         `
                     )}
                 submitText={submitButton.text}
-                successCallback={(data: ReturnType | undefined) => {
+                successCallback={(data: ReturnType) => {
                     setNoChange(true)
                     formProps.successCallback?.(data)
                 }}
