@@ -244,3 +244,29 @@ describe('updateTheme', () => {
         expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).theme).toBe('STANDARD')
     })
 })
+
+describe('readUnarchivedPage', () => {
+    const firstPage = { pageSize: 10, page: 0, cursor: null } as const
+
+    const usernamesFound = async (partOfName: string) => (await userOperations.readUnarchivedPage({
+        params: { paging: { page: firstPage, details: { partOfName, groups: [] } } },
+        bypassAuth: true,
+    })).map(user => user.username)
+
+    test('every word of the search matches some part of the name', async () => {
+        await userOperations.create({
+            data: {
+                username: 'searchmiddlename',
+                email: 'searchmiddlename@omega.ntnu.no',
+                firstname: 'Martin Percy',
+                lastname: 'Armstrong',
+            },
+            bypassAuth: true,
+        })
+
+        expect(await usernamesFound('Martin Armstrong')).toContain('searchmiddlename')
+        expect(await usernamesFound('armstrong percy')).toContain('searchmiddlename')
+        expect(await usernamesFound('  Martin   Armstrong ')).toContain('searchmiddlename')
+        expect(await usernamesFound('Martin Aldrin')).not.toContain('searchmiddlename')
+    })
+})

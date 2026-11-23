@@ -269,8 +269,6 @@ export const userOperations = {
     search: implementSearchOperation({
         authorizer: () => userAuth.search,
         find: async ({ prisma, query, take }) => {
-            const words = query.split(/\s+/).filter(Boolean)
-
             const users = await prisma.user.findMany({
                 take,
                 select: {
@@ -281,13 +279,7 @@ export const userOperations = {
                     image: { include: expandedImageIncluder },
                 },
                 where: {
-                    AND: [userPartitions.activeOmegaStudents, ...words.map((word): Prisma.UserWhereInput => ({
-                        OR: [
-                            { firstname: { contains: word, mode: 'insensitive' } },
-                            { lastname: { contains: word, mode: 'insensitive' } },
-                            { username: { contains: word, mode: 'insensitive' } },
-                        ],
-                    }))],
+                    AND: [userPartitions.activeOmegaStudents, ...everyWordInSomeNamePart(query)],
                 },
                 orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
             })
@@ -715,6 +707,16 @@ export const userOperations = {
     }),
 } as const
 
+function everyWordInSomeNamePart(search: string): Prisma.UserWhereInput[] {
+    return search.split(/\s+/).filter(Boolean).map(word => ({
+        OR: [
+            { firstname: { contains: word, mode: 'insensitive' } },
+            { lastname: { contains: word, mode: 'insensitive' } },
+            { username: { contains: word, mode: 'insensitive' } },
+        ],
+    }))
+}
+
 type ReadUserPageParams = z.infer<typeof userSchemas.params.readPage>
 
 async function readUserPage(
@@ -723,7 +725,6 @@ async function readUserPage(
     usersCovered: Prisma.UserWhereInput,
 ): Promise<UserPagingReturn[]> {
     const { page, details } = params.paging
-    const words = details.partOfName.split(' ')
     const sortDirection = details.sort?.direction ?? 'asc'
     // The username is always included as the final tiebreaker so the
     // ordering stays fully deterministic for cursor-based pagination.
@@ -785,19 +786,7 @@ async function readUserPage(
         where: {
             AND: [
                 usersCovered,
-                ...words.map((word, index) => {
-                    const condition = {
-                        [index === words.length - 1 ? 'contains' : 'equals']: word,
-                        mode: 'insensitive'
-                    } as const
-                    return {
-                        OR: [
-                            { firstname: condition },
-                            { lastname: condition },
-                            { username: condition },
-                        ],
-                    }
-                }),
+                ...everyWordInSomeNamePart(details.partOfName),
                 ...groups.map(group => ({
                     memberships: {
                         some: {
