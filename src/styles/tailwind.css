@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
-@custom-variant tone-light ([data-tone="light"] &);
+/* A dark wrapper inside a light one is dark, so a site's own tone wins over the tone of the user's theme on <html>. */
+@custom-variant tone-light (&:is([data-tone="light"] *):not(:where([data-tone="light"] [data-tone="dark"] *)));
 
 /* The Mørk theme as a fallback. SiteTheme sets a theme's values on :root, so these stay variables. */
 @theme static {

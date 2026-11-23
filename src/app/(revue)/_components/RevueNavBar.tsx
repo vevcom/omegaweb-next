@@ -1,8 +1,10 @@
 import RevueMobileMenu from './RevueMobileMenu'
+import RevueWordmark from './RevueWordmark'
 import { revueLinks } from '@/app/(revue)/links'
 import { revueAdminLinks } from '@/app/(revue)/revue/admin/links'
 import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
 import { revueAuthLinks } from '@/app/(revue)/revue/(auth)/links'
+import { innerClassName } from '@/app/(revue)/_lib/revueClassNames'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import EditModeSwitch from '@/components/EditModeSwitch/EditModeSwitch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
@@ -14,31 +16,62 @@ type PropTypes = {
     hasAdminPages: boolean,
 }
 
+const focusClassName = 'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent'
+
 const linkClassName = `
-    text-m font-medium text-base-content/80
-    hover:text-base-content hover:no-underline
+    text-m font-medium text-base-content/80 whitespace-nowrap transition-colors
+    hover:text-accent hover:no-underline
+    ${focusClassName}
+`
+
+const loginButtonClassName = `
+    inline-flex items-center h-10 px-5 rounded-full border border-accent/60 text-m font-medium text-accent
+    whitespace-nowrap transition-colors
+    hover:bg-accent hover:text-accent-content hover:no-underline
+    ${focusClassName}
 `
 
 const mobileItemClassName = `
-    px-[clamp(1rem,4vw,3rem)] py-4 border-t border-base-300 text-m font-medium text-base-content/80
-    hover:bg-base-300 hover:text-base-content hover:no-underline
+    px-(--revue-page-padding) py-4 text-l font-medium text-base-content transition-colors
+    not-first:border-t not-first:border-base-300
+    hover:bg-base-300 hover:text-accent hover:no-underline
+    focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent
 `
 
-/** The revue site's navigation: for now the wordmark, the admin, the way over to Omega's site and the login or logout. */
+/**
+ * The revue site's header: the wordmark, then the admin, the way over to Omega's site and the login or
+ * logout. On narrow screens the links go in a menu. The edit mode switch renders nothing for those who
+ * have nothing to edit.
+ */
 export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
     return (
-        <header className="sticky top-0 z-3 bg-base-200 border-b border-base-300">
-            <nav className="w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] min-h-[64px] flex items-center gap-6">
-                <SiteLink href={revueLinks.frontpage()} className="
-                    mr-auto text-xl font-semibold text-base-content no-underline
-                ">
-                    Omegarevyen
+        <header className="sticky top-0 z-3 bg-base-100 border-b border-accent/25">
+            <nav className={`
+                ${innerClassName}
+                h-16 flex items-center gap-6
+                max-mobile:gap-2
+            `}>
+                <SiteLink
+                    href={revueLinks.frontpage()}
+                    className={`
+                        mr-auto no-underline
+                        hover:no-underline
+                        ${focusClassName}
+                    `}
+                    aria-label="Omegarevyen, til forsiden"
+                >
+                    <RevueWordmark />
                 </SiteLink>
                 <div className="
-                    flex items-center gap-6
+                    flex items-center gap-8
                     max-mobile:hidden
                 ">
-                    <RevueLinks loggedIn={loggedIn} hasAdminPages={hasAdminPages} className={linkClassName} />
+                    <RevueLinks
+                        loggedIn={loggedIn}
+                        hasAdminPages={hasAdminPages}
+                        className={linkClassName}
+                        loginClassName={loginButtonClassName}
+                    />
                 </div>
                 <div className="
                     size-[40px]
@@ -54,7 +87,10 @@ export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
     )
 }
 
-function RevueLinks({ loggedIn, hasAdminPages, className }: PropTypes & { className: string }) {
+function RevueLinks({ loggedIn, hasAdminPages, className, loginClassName = className }: PropTypes & {
+    className: string,
+    loginClassName?: string,
+}) {
     return (
         <>
             {hasAdminPages && <SiteLink href={revueAdminLinks.frontpage()} className={className}>
@@ -65,7 +101,7 @@ function RevueLinks({ loggedIn, hasAdminPages, className }: PropTypes & { classN
             </SiteLink>
             {loggedIn
                 ? <SiteLink href={revueAuthLinks.logout()} className={className}>Logg ut</SiteLink>
-                : <LoginLink config={revueAuthPages} className={className} />}
+                : <LoginLink config={revueAuthPages} className={loginClassName} />}
         </>
     )
 }
