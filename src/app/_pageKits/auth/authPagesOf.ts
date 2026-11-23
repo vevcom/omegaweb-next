@@ -1,6 +1,6 @@
 import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
-import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
+import { revueAuthPages } from '@/app/(revue)/revue/(static-theme)/(auth)/config'
 import type { AuthPagesConfig } from './config'
 import type { Site, SiteName } from '@/lib/sites/site'
 

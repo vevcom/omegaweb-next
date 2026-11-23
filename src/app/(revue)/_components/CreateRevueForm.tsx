@@ -1,4 +1,6 @@
 'use client'
+import RevuePaletteFields from './RevuePaletteFields'
+import { defaultRevuePalette } from '@/app/(revue)/_lib/revueTheme'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
 import TextInput from '@/components/UI/TextInput'
@@ -14,6 +16,7 @@ type PropTypes = {
 export default function CreateRevueForm({ closePopUpOnSuccess, hrefOfCreated }: PropTypes) {
     return <Form
         title="Ny revy"
+        className="min-w-[min(24rem,80vw)]"
         action={createRevueAction}
         submitText="Legg til"
         closePopUpOnSuccess={closePopUpOnSuccess}
@@ -22,5 +25,6 @@ export default function CreateRevueForm({ closePopUpOnSuccess, hrefOfCreated }: 
     >
         <NumberInput name="year" label="År" defaultValue={new Date().getUTCFullYear()} />
         <TextInput name="name" label="Navn" />
+        <RevuePaletteFields defaultPalette={defaultRevuePalette} />
     </Form>
 }

@@ -7,9 +7,10 @@ import useEditMode from '@/hooks/useEditMode'
 import { revueAuth } from '@/services/revue/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
+import type { RevuePalette } from '@/app/(revue)/_lib/revueTheme'
 
 type PropTypes = {
-    revue: { id: number, year: number, name: string },
+    revue: { id: number, year: number, name: string } & RevuePalette,
 }
 
 export default function RevueSettings({ revue }: PropTypes) {

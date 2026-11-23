@@ -1,6 +1,6 @@
 import CreateRevueGroup from './CreateRevueGroup'
 import RevueSettings from './RevueSettings'
-import yearFromParam from './yearFromParam'
+import { getRevue } from './getRevue'
 import { revueLinks } from '@/app/(revue)/links'
 import {
     updateRevueArticleAction,
@@ -15,7 +15,6 @@ import {
     updateRevueArticleSectionsRemovePartAction,
 } from '@/services/revue/actions'
 import { revueAuth } from '@/services/revue/auth'
-import { revueOperations } from '@/services/revue/operations'
 import Article from '@/components/Cms/Article/Article'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -24,9 +23,7 @@ import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ params }: PageOperationArgs<{ year: string }>) => revueOperations.read({
-        params: { year: yearFromParam(params.year) },
-    }),
+    operation: ({ params }: PageOperationArgs<{ year: string }>) => getRevue(params.year),
     capabilities: () => ({
         canEdit: revueAuth.updateArticle,
     }),

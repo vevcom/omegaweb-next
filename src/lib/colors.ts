@@ -22,6 +22,15 @@ export function relativeLuminance(hex: string): number {
     return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 }
 
+/**
+ * Whichever of two texts reads better on every one of the backgrounds, by its lowest contrast on them.
+ * The first wins when they are even.
+ */
+export function moreReadableText(backgrounds: string[], firstText: string, secondText: string): string {
+    const lowestContrast = (text: string) => Math.min(...backgrounds.map(background => contrastRatio(text, background)))
+    return lowestContrast(firstText) >= lowestContrast(secondText) ? firstText : secondText
+}
+
 export function hexToRgb(hex: string): [number, number, number] {
     const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex)
     if (!match) throw new Error(`${hex} is not a colour written as #rrggbb`)

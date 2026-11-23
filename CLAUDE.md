@@ -264,8 +264,12 @@ src/
 │   ├── (omegaweb)/         # Omega's site: its navigation and the user's theme
 │   │   ├── admin/          # Admin pages
 │   │   └── [feature]/      # Feature-specific pages
-│   └── (careers)/          # The career pages as their own site: own layout, theme and fonts
-│       └── career/
+│   ├── (careers)/          # The career pages as their own site: own layout, theme and fonts
+│   │   └── career/
+│   └── (revue)/            # The revue pages as their own site, with RevueShell as their header and footer
+│       └── revue/
+│           ├── [year]/         # A revue's pages, painted with the theme revueThemeOf derives from its palette
+│           └── (static-theme)/ # Every other page, painted with the static revueTheme
 ├── auth/                   # Authentication and authorization
 │   ├── authorizer/         # Authorization classes
 │   ├── session/            # Session management

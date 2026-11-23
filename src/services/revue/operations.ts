@@ -24,13 +24,13 @@ export const revueOperations = {
         dataSchema: revueSchemas.data.create,
         authorizer: () => revueAuth.create,
         transaction: 'OPENS',
-        operation: ({ prisma, data }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, data: { name, ...revueData } }) => prisma.$transaction(async tx => {
             const createdArticle = await article.internal.create.internalCall({
                 prisma: tx,
-                data: { name: data.name },
+                data: { name },
             })
             return tx.revue.create({
-                data: { year: data.year, articleId: createdArticle.id, name: createdArticle.name },
+                data: { ...revueData, articleId: createdArticle.id, name: createdArticle.name },
             })
         }),
     }),
@@ -58,7 +58,7 @@ export const revueOperations = {
         dataSchema: revueSchemas.data.update,
         authorizer: () => revueAuth.update,
         transaction: 'OPENS',
-        operation: ({ prisma, params, data: { name, year } }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, params, data: { name, ...revueData } }) => prisma.$transaction(async tx => {
             if (name !== undefined) {
                 // The revue's name is its article's, and follows it.
                 const { articleId } = await tx.revue.findUniqueOrThrow({
@@ -67,7 +67,7 @@ export const revueOperations = {
                 })
                 await article.internal.update.internalCall({ prisma: tx, params: { articleId }, data: { name } })
             }
-            return tx.revue.update({ where: { id: params.revueId }, data: { year } })
+            return tx.revue.update({ where: { id: params.revueId }, data: revueData })
         }),
     }),
 

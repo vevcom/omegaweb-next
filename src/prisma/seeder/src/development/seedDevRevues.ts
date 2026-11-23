@@ -5,10 +5,38 @@ import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 
+// One light revue among dark ones, so both tones are seen.
 const revues = [
-    { year: 2026, name: 'Kaffemaskinen slår tilbake' },
-    { year: 2025, name: 'Det store kabelbruddet' },
-    { year: 2024, name: 'Revyen uten navn' },
+    {
+        year: 2026,
+        name: 'Kaffemaskinen slår tilbake',
+        palette: {
+            themeBackground: '#f6efe3',
+            themePrimary: '#8a3b12',
+            themeSecondary: '#d9b98c',
+            themeAccent: '#1f6f78',
+        },
+    },
+    {
+        year: 2025,
+        name: 'Det store kabelbruddet',
+        palette: {
+            themeBackground: '#0d1424',
+            themePrimary: '#3ec7ff',
+            themeSecondary: '#283a6b',
+            themeAccent: '#ffd23f',
+        },
+    },
+    {
+        year: 2024,
+        name: 'Revyen uten navn',
+        palette: {
+            themeBackground: '#1d0f24',
+            themePrimary: '#d46bff',
+            themeSecondary: '#4a2a5c',
+            themeAccent: '#7ee0a1',
+        },
+    },
 ]
 
 const groups = [
@@ -23,7 +51,9 @@ export const seedDevRevues = defineSeedOperation(async (prisma: PrismaClient) =>
     await Promise.all(revues.map(revue => upsert({
         checkExistence: () => prisma.revue.findUnique({ where: { year: revue.year }, select: { id: true } }),
         create: async () => {
-            const { id: revueId } = await revueOperations.create({ data: revue })
+            const { id: revueId } = await revueOperations.create({
+                data: { year: revue.year, name: revue.name, ...revue.palette },
+            })
             await Promise.all(groups.map(async group => {
                 const { id: groupId } = await revueGroupOperations.create({
                     params: { revueId },
@@ -41,6 +71,12 @@ export const seedDevRevues = defineSeedOperation(async (prisma: PrismaClient) =>
                 }
             }))
         },
-        update: () => {},
+        update: async () => {
+            const { id: revueId } = await prisma.revue.findUniqueOrThrow({
+                where: { year: revue.year },
+                select: { id: true },
+            })
+            await revueOperations.update({ params: { revueId }, data: revue.palette })
+        },
     })))
 })

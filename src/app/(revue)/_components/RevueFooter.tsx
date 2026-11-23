@@ -1,6 +1,6 @@
 import RevueWordmark from './RevueWordmark'
-import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
-import { revueAuthLinks } from '@/app/(revue)/revue/(auth)/links'
+import { revueAuthPages } from '@/app/(revue)/revue/(static-theme)/(auth)/config'
+import { revueAuthLinks } from '@/app/(revue)/revue/(static-theme)/(auth)/links'
 import { innerClassName } from '@/app/(revue)/_lib/revueClassNames'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import LoginLink from '@/pageKits/auth/components/LoginLink'

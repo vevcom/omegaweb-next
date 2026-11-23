@@ -7,6 +7,12 @@ model Revue {
   article   Article @relation(fields: [articleId, name], references: [id, name], onDelete: Restrict, onUpdate: Cascade)
   articleId Int     @unique
 
+  // The palette the revue's theme is derived from. A check constraint holds each to #rrggbb in lower case.
+  themeBackground String
+  themePrimary    String
+  themeSecondary  String
+  themeAccent     String
+
   groups RevueGroup[]
 
   createdAt DateTime @default(now())

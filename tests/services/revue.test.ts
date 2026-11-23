@@ -4,12 +4,13 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { revueOperations } from '@/services/revue/operations'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
 import { revueGroupMemberOperations } from '@/services/revue/groups/members/operations'
+import { defaultRevuePalette } from '@/app/(revue)/_lib/revueTheme'
 import { afterEach, describe, expect, test } from '@jest/globals'
 
 const revueAdmin = Session.fromJsObject({ user: null, permissions: ['REVUE_ADMIN'], memberships: [] })
 
-function createRevue(year: number, name: string) {
-    return revueOperations.create({ data: { year, name }, session: revueAdmin })
+function createRevue(year: number, name: string, palette = defaultRevuePalette) {
+    return revueOperations.create({ data: { year, name, ...palette }, session: revueAdmin })
 }
 
 function createGroup(revueId: number, name: string) {
@@ -27,7 +28,7 @@ afterEach(async () => {
 describe('revues', () => {
     test('only a revue admin creates one', async () => {
         await expect(revueOperations.create({
-            data: { year: 2026, name: 'Revyen' },
+            data: { year: 2026, name: 'Revyen', ...defaultRevuePalette },
             session: Session.empty(),
         })).rejects.toThrow(Smorekopp)
     })
@@ -90,6 +91,65 @@ describe('revues', () => {
         expect(await prisma.articleSection.findUnique({ where: { id: group.articleSectionId } })).toBeNull()
         expect(await prisma.revueGroup.count()).toBe(0)
         expect(await prisma.revueGroupMember.count()).toBe(0)
+    })
+})
+
+describe('the palette of a revue', () => {
+    const palette = {
+        themeBackground: '#f6efe3',
+        themePrimary: '#8a3b12',
+        themeSecondary: '#d9b98c',
+        themeAccent: '#1f6f78',
+    }
+
+    test('is needed to create one', async () => {
+        const formWithoutAccent = new FormData()
+        formWithoutAccent.set('year', '2026')
+        formWithoutAccent.set('name', 'Revyen')
+        formWithoutAccent.set('themeBackground', palette.themeBackground)
+        formWithoutAccent.set('themePrimary', palette.themePrimary)
+        formWithoutAccent.set('themeSecondary', palette.themeSecondary)
+        await expect(revueOperations.create({ data: formWithoutAccent, session: revueAdmin })).rejects.toThrow(Smorekopp)
+
+        formWithoutAccent.set('themeAccent', palette.themeAccent)
+        const created = await revueOperations.create({ data: formWithoutAccent, session: revueAdmin })
+        expect(created).toMatchObject(palette)
+    })
+
+    test.each(['#fff', 'red', '#12345g', '#1234567', 'rgb(0, 0, 0)'])('refuses %s, which is not #rrggbb', async color => {
+        await expect(createRevue(2026, 'Revyen', { ...palette, themePrimary: color })).rejects.toThrow(Smorekopp)
+        const { id: revueId } = await createRevue(2025, 'Gyldig')
+        await expect(revueOperations.update({
+            params: { revueId },
+            data: { themeBackground: color },
+            session: revueAdmin,
+        })).rejects.toThrow(Smorekopp)
+    })
+
+    test('is stored in lower case and read back by read and readMany', async () => {
+        await createRevue(2026, 'Revyen', { ...palette, themeAccent: '#1F6F78' })
+
+        const read = await revueOperations.read({ params: { year: 2026 }, session: Session.empty() })
+        expect(read).toMatchObject(palette)
+        const [first] = await revueOperations.readMany({ session: Session.empty() })
+        expect(first).toMatchObject(palette)
+    })
+
+    test('changes on update, and is left alone where update does not give it', async () => {
+        const { id: revueId } = await createRevue(2026, 'Revyen')
+        await revueOperations.update({
+            params: { revueId },
+            data: { themeBackground: '#ffffff', themeAccent: '#000000' },
+            session: revueAdmin,
+        })
+        await revueOperations.update({ params: { revueId }, data: { name: 'Nytt navn' }, session: revueAdmin })
+
+        const read = await revueOperations.read({ params: { year: 2026 }, session: Session.empty() })
+        expect(read).toMatchObject({
+            ...defaultRevuePalette,
+            themeBackground: '#ffffff',
+            themeAccent: '#000000',
+        })
     })
 })
 
