@@ -194,7 +194,7 @@ export default function Form<GiveActionReturn>({
             confirmation={confirmation}
             pending={pending && submitter === 'primary'}
             className={`
-                ${buttonClassName}
+                ${buttonClassName ?? ''}
                 m-0
             `}
             disabled={disabled || (pending && submitter !== 'primary') || (saveBar && !dirty && !success)}
@@ -207,7 +207,7 @@ export default function Form<GiveActionReturn>({
             confirmation={confirmation}
             pending={pending && submitter === 'secondary'}
             className={`
-                ${buttonClassName}
+                ${buttonClassName ?? ''}
                 m-0
             `}
             disabled={disabled || (pending && submitter !== 'secondary')}
@@ -223,7 +223,7 @@ export default function Form<GiveActionReturn>({
             <form ref={formRef} className={`
                 relative w-full
                 [&>h2]:mb-2
-                ${className}
+                ${className ?? ''}
             `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onSubmit={handleSubmit} onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {

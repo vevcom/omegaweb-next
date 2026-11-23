@@ -59,6 +59,7 @@ export default function RegisterAdmissiontrial({
                         className="m-0 p-0 text-[0.8rem]"
                         submitText="Registrer"
                         submitColor="secondary"
+                        buttonClassName="w-auto!"
                         refreshOnSuccess
                         action={configureAction(createAdmissionTrialAction, { params: { admission } })}
                     >
