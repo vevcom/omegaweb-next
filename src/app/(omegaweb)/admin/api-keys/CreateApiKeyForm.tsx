@@ -42,8 +42,8 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
         setTimeout(() => setCopySuccess_({ message: null, color: null }), 5_000)
     }
 
-    const showApiKey = (key: string | undefined) => {
-        setApiKeyToShow(key ?? null)
+    const showApiKey = (key: string) => {
+        setApiKeyToShow(key)
         setTimeout(() => {
             setApiKeyToShow(null)
             popUpContext?.remove(popUpKey)
@@ -67,7 +67,7 @@ export default function CreateApiKeyForm({ popUpKey }: PropTypes) {
             <Form
                 title="Lag en ny nøkkel"
                 action={createApiKeyAction}
-                successCallback={data => showApiKey(data?.key)}
+                successCallback={data => showApiKey(data.key)}
             >
                 <TextInput name="name" label="Navn" />
             </Form>

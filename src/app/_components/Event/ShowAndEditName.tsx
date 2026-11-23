@@ -24,7 +24,7 @@ export default function ShowAndEditName({ event, config, capabilities }: PropTyp
         <EditableTextField
             formProps={{
                 action: updateAction,
-                navigateOnSuccess: data => (data?.name ? links.event(data) : links.list()),
+                navigateOnSuccess: data => links.event(data),
             }}
             editable={editable}
             inputName="name"

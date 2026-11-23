@@ -76,8 +76,8 @@ export default function CreateOmbul({ latestOmbul }: PropTypes) {
         })
     }
 
-    const handleCreate = (ombul: Ombul | undefined) => {
-        if (ombul) push(appHref(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`))
+    const handleCreate = (ombul: Ombul) => {
+        push(appHref(`/ombul/${ombul.year}/${formatVevenUri(ombul.name, ombul.id)}`))
         refresh()
     }
 

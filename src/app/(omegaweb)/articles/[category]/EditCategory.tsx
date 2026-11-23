@@ -47,10 +47,8 @@ export default function EditCategory({ category }: PropTypes) {
         refresh()
     }
 
-    const handleSuccessUpdate = (data: ExpandedArticleCategory | undefined) => {
-        if (data) {
-            push(appHref(`/articles/${data.name}`))
-        }
+    const handleSuccessUpdate = (data: ExpandedArticleCategory) => {
+        push(appHref(`/articles/${data.name}`))
         refresh()
     }
 

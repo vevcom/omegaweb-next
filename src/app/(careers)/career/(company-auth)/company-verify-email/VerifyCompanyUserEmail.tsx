@@ -16,7 +16,7 @@ export default function VerifyCompanyUserEmail({ token }: { token: string }) {
                 action={configureAction(verifyCompanyUserEmailAction, { params: { token } })}
                 title="Bekreft e-postadressen din"
                 submitText="Bekreft"
-                successCallback={(companyUser?: { email: string }) => setVerifiedEmail(companyUser?.email ?? '')}
+                successCallback={(companyUser: { email: string }) => setVerifiedEmail(companyUser.email)}
             />
         )
     }

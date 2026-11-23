@@ -54,7 +54,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
         { params: { id: ombul.id } }
     )
 
-    const ombulPath = (newOmbul?: ExpandedOmbul) => (newOmbul ? omegaLinks.ombul(newOmbul) : null)
+    const ombulPath = (newOmbul: ExpandedOmbul) => omegaLinks.ombul(newOmbul)
 
     if (!canUpdate && !canUpdateFile && !canDestroy && !canUpdateCover) return null
 

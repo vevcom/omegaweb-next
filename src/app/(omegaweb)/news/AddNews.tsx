@@ -15,9 +15,9 @@ export default function AddNews() {
     const { push } = useSiteRouter()
     const editModeCtx = useContext(EditModeContext)
 
-    const handleCreate = (data?: ExpandedNewsArticle) => {
+    const handleCreate = (data: ExpandedNewsArticle) => {
         editModeCtx?.setEditMode(true)
-        push(appHref(`/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`))
+        push(appHref(`/news/${formatVevenUri(data.articleName, data.id)}`))
     }
 
     return (
