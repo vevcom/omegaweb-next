@@ -24,13 +24,21 @@ import { feideAccountOperations } from '@/services/auth/feideAccounts/operations
 import { userOperations } from '@/services/users/operations'
 import { userPartitions } from '@/services/users/constants'
 import logger from '@/lib/logger'
+import { Site } from '@/lib/sites/site'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { encode, decode } from 'next-auth/jwt'
 import type { AuthOptions } from 'next-auth'
+import type { Provider } from 'next-auth/providers/index'
+import type { DomainContext } from '@/lib/sites/context'
 
-export const authOptions: AuthOptions = {
-    providers: [
-        CredentialsProvider({
+/**
+ * The logins NextAuth has, and the domains each is offered on. A user signs in on the auth domain
+ * alone, and every other domain gets their session from the SSO callback. A company user signs in on
+ * a domain that serves the career site.
+ */
+const loginProviders: { provider: Provider, offeredOn: (context: DomainContext) => boolean }[] = [
+    {
+        provider: CredentialsProvider({
             name: 'Credentials',
             credentials: {
                 username: { label: 'Username', type: 'text' },
@@ -62,7 +70,10 @@ export const authOptions: AuthOptions = {
                 return { id: String(userCredentials.userId) }
             }
         }),
-        CredentialsProvider({
+        offeredOn: context => context.isAuthDomain(),
+    },
+    {
+        provider: CredentialsProvider({
             id: COMPANY_CREDENTIALS_PROVIDER,
             name: 'Company credentials',
             credentials: {
@@ -71,11 +82,19 @@ export const authOptions: AuthOptions = {
             },
             authorize: authorizeCompanyCredentials,
         }),
-        FeideProvider({
+        offeredOn: context => context.serves(Site.CAREERS),
+    },
+    {
+        provider: FeideProvider({
             clientId: process.env.FEIDE_CLIENT_ID ?? 'no_id',
             clientSecret: process.env.FEIDE_CLIENT_SECRET ?? 'no_secret',
-        })
-    ],
+        }),
+        offeredOn: context => context.isAuthDomain(),
+    },
+]
+
+export const authOptions: AuthOptions = {
+    providers: loginProviders.map(({ provider }) => provider),
     session: {
         strategy: 'jwt'
     },
@@ -193,8 +212,6 @@ export const authOptions: AuthOptions = {
                 }
                 // Trigger is undefined for subsequent calls
                 case undefined: {
-                    // A company user never signs in through NextAuth, so this is the only trigger
-                    // their token meets: it is kept, or read again when the company user has changed.
                     if (token.provider === COMPANY_CREDENTIALS_PROVIDER) return refreshedCompanySessionToken(token)
                     if (!token.user) throw new Error('A session token of a user login names no user')
 
@@ -269,4 +286,8 @@ export const authOptions: AuthOptions = {
         // profile and the PKCE, state and nonce values of every sign-in - credentials and personal
         // data that would end up in the log files.
     }
+}
+
+export function loginProvidersOn(context: DomainContext): Provider[] {
+    return loginProviders.filter(({ offeredOn }) => offeredOn(context)).map(({ provider }) => provider)
 }

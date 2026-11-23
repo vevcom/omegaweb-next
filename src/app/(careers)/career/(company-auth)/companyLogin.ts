@@ -1,8 +1,8 @@
 import { signIn } from 'next-auth/react'
 
-export type CompanyLoginError = 'CredentialsSignin' | 'AlreadySignedIn' | 'NotOnCareerSite' | 'Default'
+export type CompanyLoginError = 'CredentialsSignin' | 'AlreadySignedIn' | 'Default'
 
-const knownErrors: readonly string[] = ['CredentialsSignin', 'AlreadySignedIn', 'NotOnCareerSite']
+const knownErrors: readonly string[] = ['CredentialsSignin', 'AlreadySignedIn']
 
 /**
  * Signs a company user in on the domain the browser is on, with their email and password, through

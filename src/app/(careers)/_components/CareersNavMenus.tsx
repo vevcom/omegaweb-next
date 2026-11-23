@@ -8,8 +8,11 @@ type PropTypes = {
     children: ReactNode,
 }
 
-/** The dropdown of what belongs to the logged in user, in the navigation of wide screens. */
-export function CareersAccountMenu({ children }: PropTypes) {
+type DropdownPropTypes = PropTypes & {
+    label: string,
+}
+
+export function CareersNavDropdown({ label, children }: DropdownPropTypes) {
     const { open, setOpen, close, ref, toggleRef, closeWhenFocusLeaves } = useMenu()
 
     return (
@@ -27,7 +30,7 @@ export function CareersAccountMenu({ children }: PropTypes) {
                 aria-expanded={open}
                 onClick={() => setOpen(previousOpen => !previousOpen)}
             >
-                Min side
+                {label}
                 <FontAwesomeIcon icon={faChevronDown} className={`
                     transition-transform duration-200
                     ${open ? 'rotate-180' : ''}
