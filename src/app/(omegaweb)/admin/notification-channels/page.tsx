@@ -6,7 +6,7 @@ import { specialNotificationChannelOperations } from '@/services/notifications/c
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import SiteLink from '@/components/SiteLink/SiteLink'
+import RowLink from '@/components/Table/RowLink'
 import { appHref } from '@/lib/sites/href'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -79,42 +79,37 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {rows.map(({ channel, depth }) => (
-                            <SiteLink
-                                key={channel.id}
-                                href={appHref(`/admin/notification-channels/${channel.id}`)}
-                                className="contents no-underline text-inherit"
-                            >
-                                <tr>
-                                    <td>
-                                        <span
-                                            className="inline-flex items-center"
-                                            style={{ paddingLeft: `${depth * 1.5}rem` }}
-                                        >
-                                            {depth > 0 ? <span
-                                                className="
-                                                    inline-block size-[0.6em] mr-[0.6em] border-l-2 border-b-2
-                                                    border-base-content/80
-                                                "
-                                                aria-hidden="true"
-                                            /> : null}
+                            <tr key={channel.id} className="relative">
+                                <td>
+                                    <span
+                                        className="inline-flex items-center"
+                                        style={{ paddingLeft: `${depth * 1.5}rem` }}
+                                    >
+                                        {depth > 0 ? <span
+                                            className="
+                                                inline-block size-[0.6em] mr-[0.6em] border-l-2 border-b-2
+                                                border-base-content/80
+                                            "
+                                            aria-hidden="true"
+                                        /> : null}
+                                        <RowLink href={appHref(`/admin/notification-channels/${channel.id}`)}>
                                             {channel.name}
+                                        </RowLink>
+                                    </span>
+                                    {channel.special
+                                        ? <span
+                                            className="
+                                                ml-[0.6em] py-[0.1em] px-[0.6em] rounded-full
+                                                bg-[color-mix(in_srgb,var(--color-primary),transparent_80%)] text-primary
+                                                text-s font-medium uppercase tracking-[0.03em] whitespace-nowrap
+                                            "
+                                        >
+                                            {channel.special}
                                         </span>
-                                        {channel.special
-                                            ? <span
-                                                className="
-                                                    ml-[0.6em] py-[0.1em] px-[0.6em] rounded-full
-                                                    bg-[color-mix(in_srgb,var(--color-primary),transparent_80%)]
-                                                    text-primary text-s font-medium uppercase tracking-[0.03em]
-                                                    whitespace-nowrap
-                                                "
-                                            >
-                                                {channel.special}
-                                            </span>
-                                            : null}
-                                    </td>
-                                    <td className="text-base-content/80">{channel.description || '—'}</td>
-                                </tr>
-                            </SiteLink>
+                                        : null}
+                                </td>
+                                <td className="text-base-content/80">{channel.description || '—'}</td>
+                            </tr>
                         ))}
                     </tbody>
                 </table>
