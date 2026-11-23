@@ -1,5 +1,6 @@
 'use client'
 import Button from '@/components/UI/Button'
+import { getDefaultErrorMessage } from '@/services/error'
 import React, {
     useContext,
     useEffect,
@@ -68,6 +69,19 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
 
     const showButton = !state.allLoaded && buttonReadyFor === state
 
+    const loadingStatus = loading ? (
+        <i className="text-base-content">Laster inn flere...</i>
+    ) : (
+        <>
+            <i className="text-base-content" style={{ opacity: showButton ? 0 : 1 }}>
+                Ingen flere å laste inn
+            </i>
+            <Button style={{ opacity: showButton ? 1 : 0 }} onClick={loadMoreCallback}>
+                Last inn flere
+            </Button>
+        </>
+    )
+
     const loadingInfo = (
         <span ref={ref} className={`
             w-full py-2 relative block h-[40px] mt-[1em]
@@ -75,20 +89,11 @@ export default function EndlessScroll<Data, Cursor, const PageSize extends numbe
             [&>*]:h-[40px] [&>*]:absolute [&>*]:top-0 [&>*]:left-0
             ${loadingInfoClassName ?? ''}
         `}>
-            {
-                loading ? (
-                    <i className="text-base-content">Laster inn flere...</i>
-                ) : (
-                    <>
-                        <i className="text-base-content" style={{ opacity: showButton ? 0 : 1 }}>
-                            Ingen flere å laste inn
-                        </i>
-                        <Button style={{ opacity: showButton ? 1 : 0 }} onClick={loadMoreCallback}>
-                            Last inn flere
-                        </Button>
-                    </>
-                )
-            }
+            {/* The status is always rendered, since a screen reader only announces a change to one already there. */}
+            <i className="text-error" role="status">
+                {state.errorCode && getDefaultErrorMessage(state.errorCode)}
+            </i>
+            {!state.errorCode && loadingStatus}
         </span>
     )
 
