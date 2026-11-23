@@ -1,3 +1,4 @@
+import RevueMobileMenu from './RevueMobileMenu'
 import { revueLinks } from '@/app/(revue)/links'
 import { revueAdminLinks } from '@/app/(revue)/revue/admin/links'
 import { revueAuthPages } from '@/app/(revue)/revue/(auth)/config'
@@ -18,6 +19,11 @@ const linkClassName = `
     hover:text-base-content hover:no-underline
 `
 
+const mobileItemClassName = `
+    px-[clamp(1rem,4vw,3rem)] py-4 border-t border-base-300 text-m font-medium text-base-content/80
+    hover:bg-base-300 hover:text-base-content hover:no-underline
+`
+
 /** The revue site's navigation: for now the wordmark, the admin, the way over to Omega's site and the login or logout. */
 export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
     return (
@@ -28,22 +34,38 @@ export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
                 ">
                     Omegarevyen
                 </SiteLink>
-                {hasAdminPages && <SiteLink href={revueAdminLinks.frontpage()} className={linkClassName}>
-                    Administrasjon
-                </SiteLink>}
-                <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={linkClassName}>
-                    Til Omegaveven
-                </SiteLink>
-                {loggedIn
-                    ? <SiteLink href={revueAuthLinks.logout()} className={linkClassName}>Logg ut</SiteLink>
-                    : <LoginLink config={revueAuthPages} className={linkClassName} />}
+                <div className="
+                    flex items-center gap-6
+                    max-mobile:hidden
+                ">
+                    <RevueLinks loggedIn={loggedIn} hasAdminPages={hasAdminPages} className={linkClassName} />
+                </div>
                 <div className="
                     size-[40px]
                     empty:hidden
                 ">
                     <EditModeSwitch />
                 </div>
+                <RevueMobileMenu>
+                    <RevueLinks loggedIn={loggedIn} hasAdminPages={hasAdminPages} className={mobileItemClassName} />
+                </RevueMobileMenu>
             </nav>
         </header>
+    )
+}
+
+function RevueLinks({ loggedIn, hasAdminPages, className }: PropTypes & { className: string }) {
+    return (
+        <>
+            {hasAdminPages && <SiteLink href={revueAdminLinks.frontpage()} className={className}>
+                Administrasjon
+            </SiteLink>}
+            <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={className}>
+                Til Omegaveven
+            </SiteLink>
+            {loggedIn
+                ? <SiteLink href={revueAuthLinks.logout()} className={className}>Logg ut</SiteLink>
+                : <LoginLink config={revueAuthPages} className={className} />}
+        </>
     )
 }

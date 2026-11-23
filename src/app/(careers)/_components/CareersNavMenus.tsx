@@ -1,32 +1,21 @@
 'use client'
-import useClickOutsideRef from '@/hooks/useClickOutsideRef'
-import useKeyPress from '@/hooks/useKeyPress'
-import useOnNavigation from '@/hooks/useOnNavigation'
+import useMenu from '@/hooks/useMenu'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBars, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
-import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
     children: ReactNode,
 }
 
-function useMenu() {
-    const [open, setOpen] = useState(false)
-    const close = () => setOpen(false)
-    useOnNavigation(close)
-    useKeyPress('Escape', close)
-    const ref = useClickOutsideRef(close)
-    return { open, setOpen, close, ref }
-}
-
 /** The dropdown of what belongs to the logged in user, in the navigation of wide screens. */
 export function CareersAccountMenu({ children }: PropTypes) {
-    const { open, setOpen, close, ref } = useMenu()
+    const { open, setOpen, close, ref, toggleRef, closeWhenFocusLeaves } = useMenu()
 
     return (
-        <div ref={ref} className="relative">
+        <div ref={ref} onBlur={closeWhenFocusLeaves} className="relative">
             <button
+                ref={toggleRef}
                 type="button"
                 className="
                     inline-flex items-center gap-1.5 border-none bg-transparent text-s font-medium whitespace-nowrap
@@ -61,11 +50,12 @@ export function CareersAccountMenu({ children }: PropTypes) {
 
 /** The button and slide-down menu holding the navigation on narrow screens. */
 export function CareersMobileMenu({ children }: PropTypes) {
-    const { open, setOpen, close, ref } = useMenu()
+    const { open, setOpen, close, ref, toggleRef, closeWhenFocusLeaves } = useMenu()
 
     return (
-        <div ref={ref}>
+        <div ref={ref} onBlur={closeWhenFocusLeaves}>
             <button
+                ref={toggleRef}
                 type="button"
                 className="
                     inline-flex items-center justify-center size-10 border-none bg-transparent text-careers-navy
