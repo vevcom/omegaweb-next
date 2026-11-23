@@ -1,5 +1,4 @@
-
-import SiteLink from '@/components/SiteLink/SiteLink'
+import RowLink from './RowLink'
 import type { ReactNode } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 
@@ -12,23 +11,17 @@ export default function SimpleTable<T extends string[]>({
     body: { [K in keyof T]: ReactNode }[],
     links?: AppHref[],
 }) {
-    return <table className="
-        ohma-table
-        [&_a]:contents [&_a]:no-underline [&_a]:text-inherit
-    ">
+    return <table className="ohma-table">
         <thead>
             <tr>
                 {header.map((item, i) => <th key={i}>{item}</th>)}
             </tr>
         </thead>
         <tbody>
-            {links ? body.map((row, i) => <SiteLink key={i} href={links[i]}>
-                <tr>
-                    {row.map((item, j) => <td key={j}>{item}</td>)}
-                </tr>
-            </SiteLink>
-            ) : body.map((row, i) => <tr key={i}>
-                {row.map((item, j) => <td key={j}>{item}</td>)}
+            {body.map((row, i) => <tr key={i} className={links ? 'relative' : undefined}>
+                {row.map((item, j) => <td key={j}>
+                    {links && j === 0 ? <RowLink href={links[i]}>{item}</RowLink> : item}
+                </td>)}
             </tr>)}
         </tbody>
     </table>
