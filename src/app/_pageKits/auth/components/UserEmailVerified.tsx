@@ -1,45 +1,30 @@
 'use client'
-import Form from '@/components/Form/Form'
-import { verifyEmailAction } from '@/services/auth/actions'
-import { configureAction } from '@/services/configureAction'
 import { useSession } from '@/auth/session/useSession'
 import { authLinks } from '@/pageKits/auth/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { useState } from 'react'
+import { useEffect } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
 
-type VerifiedUser = {
-    id: number,
-    acceptedTerms: Date | null,
+type PropTypes = {
+    account: {
+        id: number,
+        acceptedTerms: Date | null,
+    },
+    config: AuthPagesConfig,
 }
 
-/**
- * The button confirming the email address of the token, then where to go from there. A user who has
- * not finished registering is sent on to it.
- */
-export default function VerifyEmail({ config, token }: { config: AuthPagesConfig, token: string }) {
+/** Where a user goes from a verified email. A user who has not finished registering is sent on to it. */
+export default function UserEmailVerified({ account, config }: PropTypes) {
     const links = authLinks(config)
     const session = useSession()
     const { push } = useSiteRouter()
-    const [verifiedUser, setVerifiedUser] = useState<VerifiedUser | null>(null)
     const sessionUserId = session.loading ? null : session.session.user?.id ?? null
+    const registerHref = account.id === sessionUserId && !account.acceptedTerms ? links.register() : null
 
-    if (!verifiedUser) {
-        return (
-            <Form
-                action={configureAction(verifyEmailAction, { params: { token } })}
-                title="Bekreft e-postadressen din"
-                submitText="Bekreft"
-                successCallback={(user: VerifiedUser) => {
-                    setVerifiedUser(user)
-                    if (user.id === sessionUserId && !user.acceptedTerms) {
-                        push(links.register(), { servedOn: 'auth-domain' })
-                    }
-                }}
-            />
-        )
-    }
+    useEffect(() => {
+        if (registerHref) push(registerHref, { servedOn: 'auth-domain' })
+    }, [registerHref, push])
 
     if (sessionUserId === null) {
         // TODO: If the user arrives here by an invitation email
@@ -51,7 +36,7 @@ export default function VerifyEmail({ config, token }: { config: AuthPagesConfig
         </>
     }
 
-    if (sessionUserId !== verifiedUser.id) {
+    if (sessionUserId !== account.id) {
         return <>
             <p>E-postadressen er bekreftet.</p>
             <p>Ops, du er visst logget inn som noen andre. Det kan skape litt problemer.</p>
