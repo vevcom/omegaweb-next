@@ -24,7 +24,7 @@ export default function EventCard({ event, config }: PropTypes) {
     const to = event.registrationEnd ?? event.eventEnd
 
     return <SiteLink href={eventLinks(config).event(event)} className="list-row">
-        <div className="list-row-thumb">
+        <div className="list-row-thumb list-row-thumb-contain">
             {event.coverImage.image && (
                 <Image width={200} image={event.coverImage.image} />
             )}
