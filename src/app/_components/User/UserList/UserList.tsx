@@ -379,8 +379,8 @@ export default function UserList({
             <div className="flex-auto overflow-y-auto">
                 <table className="
                     ohma-table m-0!
-                    [&_td_button]:border-none [&_td_button]:bg-transparent [&_td_button]:size-[25px] [&_td_button]:grid
-                    [&_td_button]:place-items-center [&_td_button]:rounded-round [&_td_button]:cursor-pointer
+                    [&_td>button]:border-none [&_td>button]:bg-transparent [&_td>button]:size-[25px] [&_td>button]:grid
+                    [&_td>button]:place-items-center [&_td>button]:rounded-round [&_td>button]:cursor-pointer
                 ">
                     <thead>
                         <tr className="sticky top-0 z-1">

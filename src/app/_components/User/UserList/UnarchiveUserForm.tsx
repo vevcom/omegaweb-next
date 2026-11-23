@@ -16,6 +16,7 @@ export default function UnarchiveUserForm({ userId }: { userId: number }) {
             action={configureAction(unarchiveUserAction, { params: { id: userId } })}
             submitText="Åpne igjen"
             submitColor="secondary"
+            buttonClassName="w-auto!"
             confirmation={{ confirm: true, text: 'Brukeren kan da logge inn igjen.' }}
             successCallback={() => userPaging?.refetch()}
         />
