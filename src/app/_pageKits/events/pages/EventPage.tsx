@@ -384,6 +384,7 @@ export function eventPage(config: EventPagesConfig) {
                                     {view.variant.takesPayment && (
                                         <EventPaymentSection
                                             eventId={event.id}
+                                            eventStart={event.eventStart}
                                             variant={view.variant}
                                             registration={view.registration}
                                             userId={session.user?.id ?? null}
