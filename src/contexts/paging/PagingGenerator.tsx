@@ -1,15 +1,11 @@
 'use client'
 
-import React, { createContext, useState, useEffect, useCallback, useEffectEvent } from 'react'
+import { pagingStateAfterFetch } from '@/lib/paging/pagingStateAfterFetch'
+import { createActionError } from '@/services/actionError'
+import React, { createContext, useState, useEffect, useCallback, useEffectEvent, useRef } from 'react'
 import type { ActionReturn } from '@/services/actionTypes'
-import type { ReadPageInput, Page } from '@/lib/paging/types'
+import type { ReadPageInput, Page, PagingState } from '@/lib/paging/types'
 import type { Context as ReactContextType } from 'react'
-
-export type PagingState<Data, Cursor, PageSize extends number> = {
-    page: Page<PageSize, Cursor>,
-    data: Data[],
-    allLoaded: boolean,
-}
 
 export type PagingData<Data, Cursor, PageSize extends number, FetcherDetails> = {
     state: PagingState<Data, Cursor, PageSize>,
@@ -95,21 +91,31 @@ export function generatePaging<Data, Cursor, PageSize extends number = number, F
             return {
                 data: serverRenderedData,
                 page,
-                allLoaded: false
+                allLoaded: false,
+                errorCode: null,
             }
         }, [serverRenderedData, startPage])
 
         const [state, setState] = useState<PagingState<Data, Cursor, PageSize>>(generateStartState())
         const [details, setDetails] = useState<FetcherDetails>(startDetails)
         const [loading, setLoading] = useState<boolean>(false)
+        const detailsOfState = useRef(details)
+        // Bumped by every reset, so a page asked for before a reset is dropped when it arrives.
+        const resetCount = useRef(0)
 
         const resetState = useCallback(() => {
-            setState(generateStartState())
+            resetCount.current += 1
+            const startState = generateStartState()
+            setState(startState)
+            setLoading(false)
+            return startState
         }, [generateStartState])
 
         const handleDetailsChange = useEffectEvent(resetState)
 
         useEffect(() => {
+            if (detailsOfState.current === details) return
+            detailsOfState.current = details
             handleDetailsChange()
         }, [details])
 
@@ -117,46 +123,30 @@ export function generatePaging<Data, Cursor, PageSize extends number = number, F
             setDetails(startDetails)
         }, [startDetails])
 
-        const loadMore = useCallback(async () => {
-            if (state.allLoaded) return []
-            if (loading) return []
+        const fetchPageAfter = useCallback(async (fromState: PagingState<Data, Cursor, PageSize>) => {
+            const resetCountAtRequest = resetCount.current
             setLoading(true)
-            const data = await fetcher({
+            const result = await fetcher({
                 paging: {
                     details,
-                    page: state.page,
+                    page: fromState.page,
                 }
-            })
+            }).catch(() => createActionError('UNKNOWN ERROR'))
+            if (resetCountAtRequest !== resetCount.current) return []
             setLoading(false)
-            const nextPageNumber = state.page.page + 1
-            if (!data.success) {
-                return []
-            }
-            const newData = data.data
-            const newCursor = getCursorAfterFetch(newData)
-            setState((prevState) => ({
-                data: [...prevState.data, ...newData],
-                page: newCursor ? {
-                    page: nextPageNumber,
-                    cursor: newCursor,
-                    pageSize: prevState.page.pageSize,
-                } : {
-                    ...prevState.page,
-                },
-                allLoaded: newData.length < prevState.page.pageSize,
-            }))
-            return newData
-        }, [details, state, loading])
+            setState(prevState => pagingStateAfterFetch(prevState, result, getCursorAfterFetch))
+            return result.success ? result.data : []
+        }, [details])
 
-        const refetch = useCallback(async () => {
-            const toPage = state.page.page
-            resetState()
-            let data: Data[] = []
-            for (let pageNumber = 1; pageNumber <= toPage; pageNumber++) {
-                data = [...data, ...(await loadMore())]
-            }
-            return data
-        }, [loadMore, state, resetState])
+        const loadMore = useCallback(async () => {
+            if (state.allLoaded || state.errorCode || loading) return []
+            return await fetchPageAfter(state)
+        }, [state, loading, fetchPageAfter])
+
+        const refetch = useCallback(
+            async () => await fetchPageAfter(resetState()),
+            [fetchPageAfter, resetState]
+        )
 
         return (
             <Context.Provider value={{
