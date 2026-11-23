@@ -5,7 +5,7 @@ import useOnNavigation from '@/hooks/useOnNavigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBars, faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FocusEvent, ReactNode } from 'react'
 
 type PropTypes = {
     children: ReactNode,
@@ -17,15 +17,19 @@ function useMenu() {
     useOnNavigation(close)
     useKeyPress('Escape', close)
     const ref = useClickOutsideRef(close)
-    return { open, setOpen, close, ref }
+    const closeWhenFocusLeaves = (event: FocusEvent<HTMLElement>) => {
+        const focusStaysInside = event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget)
+        if (!focusStaysInside) close()
+    }
+    return { open, setOpen, close, ref, closeWhenFocusLeaves }
 }
 
 /** The dropdown of what belongs to the logged in user, in the navigation of wide screens. */
 export function CareersAccountMenu({ children }: PropTypes) {
-    const { open, setOpen, close, ref } = useMenu()
+    const { open, setOpen, close, ref, closeWhenFocusLeaves } = useMenu()
 
     return (
-        <div ref={ref} className="relative">
+        <div ref={ref} className="relative" onBlur={closeWhenFocusLeaves}>
             <button
                 type="button"
                 className="
@@ -61,10 +65,10 @@ export function CareersAccountMenu({ children }: PropTypes) {
 
 /** The button and slide-down menu holding the navigation on narrow screens. */
 export function CareersMobileMenu({ children }: PropTypes) {
-    const { open, setOpen, close, ref } = useMenu()
+    const { open, setOpen, close, ref, closeWhenFocusLeaves } = useMenu()
 
     return (
-        <div ref={ref}>
+        <div ref={ref} onBlur={closeWhenFocusLeaves}>
             <button
                 type="button"
                 className="
