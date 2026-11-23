@@ -440,6 +440,7 @@ export const eventOperations = {
                     eventTagEvents: eventTagSelector(params.paging.details.tags),
                     ...prismaWhereFilter
                 },
+                orderBy: [{ eventStart: 'desc' }, { id: 'desc' }],
                 select: eventListSelection,
             })
             return events.map(withTagsAndVariantSummary)
