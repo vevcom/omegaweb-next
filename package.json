@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "worker": "IGNORE_SERVER_ONLY=true tsx src/workers/main.ts",
+    "versions:bake": "IGNORE_SERVER_ONLY=true LOG_TO_CONSOLE=true tsx src/services/versions/bakeFromGithub.ts",
     "lint": "eslint",
     "lint:fix": "eslint --fix --quiet",
     "lint:style": "stylelint \"src/**/*.{css,scss}\"",

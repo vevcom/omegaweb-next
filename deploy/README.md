@@ -124,3 +124,32 @@ Publishing a GitHub release runs `.github/workflows/release.yml`, which builds t
 pushes them to GHCR under the release tag. What happens next is the installation's: for ours,
 the workflow opens a pull request on vivat that points prod at the release, and vivat's README
 says how a deploy and a rollback work from there.
+
+### Versions
+
+The site shows the version it runs in its footer and lists every release with its notes at
+`/versions`. These come from `versions/` at the app's root, which is never in git. The release
+workflow fills it before it builds the prod image, with every published release that is no
+pre-release and the release being built. The prod image copies it, and a build without it shows
+no versions.
+
+To fill it outside Docker, give a token that can read the repository's releases and the tag to
+show as current:
+
+```bash
+GH_TOKEN=$(gh auth token) npm run versions:bake -- vevcom/omegaweb-next https://github.com v26.5.1
+```
+
+The development stack mounts only `src/` and a few files, so the app there never sees that
+directory. Fill it inside the running app container instead, then restart the container, since
+the app reads `versions/` once:
+
+```bash
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml \
+    exec -e GH_TOKEN="$(gh auth token)" omegaweb-next \
+    npm run versions:bake -- vevcom/omegaweb-next https://github.com v26.5.1
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml \
+    restart omegaweb-next
+```
+
+It lives in the container, so it is gone once `npm run docker:dev` starts the stack again.
