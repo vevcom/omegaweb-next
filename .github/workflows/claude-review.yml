@@ -1,0 +1,48 @@
+name: claude review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  review:
+    # Only branches in this repo, which takes write access to push, so never a fork's PR.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot' &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: checkout
+      uses: actions/checkout@v6
+      with:
+        # The branch itself and not its merge with main, so line numbers match the diff.
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+
+    # The review is posted as kakebot, the deploy app, with a token that can only write to pull requests.
+    - uses: actions/create-github-app-token@v2
+      id: token
+      with:
+        app-id: ${{ vars.DEPLOY_APP_ID }}
+        private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+        permission-pull-requests: write
+
+    - name: install claude
+      run: curl -fsSL https://claude.ai/install.sh | bash
+
+    # Runs the CLI and not anthropics/claude-code-action, whose calls our API credits do not cover.
+    - name: review
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GH_TOKEN: ${{ steps.token.outputs.token }}
+        PR: ${{ github.event.pull_request.number }}
+      run: |
+        ~/.local/bin/claude -p "Review pull request $PR of $GITHUB_REPOSITORY. Its branch is checked out in the working directory.
+        Look for bugs, security holes and breaks with the rules in CLAUDE.md.
+        Only report what you are confident is a real problem. Skip style nits and praise.
+        Post the review as one comment with gh pr comment, naming the file and line of each finding.
+        Say so in one line when you find nothing." \
+          --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
