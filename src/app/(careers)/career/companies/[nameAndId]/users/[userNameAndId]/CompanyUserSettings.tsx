@@ -55,7 +55,7 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                 <Form
                     title="Innlogging"
                     action={configureAction(sendCompanyUserPasswordLinkAction, params)}
-                    successCallback={(email?: string) => setSentTo(email ?? null)}
+                    successCallback={(email: string) => setSentTo(email)}
                     submitText="Send lenke for å velge passord"
                 >
                     <p>
@@ -69,9 +69,9 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                 <Form
                     title="E-post"
                     action={configureAction(registerNewCompanyUserEmailAction, params)}
-                    successCallback={(result?: { verified: boolean, email: string }) => setEmailFeedback(result?.verified
+                    successCallback={(result: { verified: boolean, email: string }) => setEmailFeedback(result.verified
                         ? 'E-postadressen er allerede bekreftet.'
-                        : `Vi har sendt en e-post til ${result?.email} med en lenke for å bekrefte adressen. `
+                        : `Vi har sendt en e-post til ${result.email} med en lenke for å bekrefte adressen. `
                             + 'Adressen byttes når lenken er fulgt.')}
                     submitText="Bytt e-post"
                 >

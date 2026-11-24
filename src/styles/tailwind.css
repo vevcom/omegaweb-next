@@ -230,10 +230,14 @@
         padding: calc(1.5 * var(--gap)) calc(2 * var(--gap));
     }
 
-    & th {
+    & thead th {
         background-color: var(--color-primary);
         color: var(--color-primary-content);
         font-weight: 500;
+    }
+
+    & tbody th {
+        font-weight: 600;
     }
 
     & tbody tr {

@@ -1,4 +1,5 @@
 import ParagraphEditor from './CmsParagraphEditor'
+import { htmlContentClassName } from './htmlContentClassName'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import React from 'react'
@@ -22,19 +23,7 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
             `}>
                 {cmsParagraph.contentHtml ? (
                     <div
-                        className="
-                            w-full
-                            [&_*]:break-words [&_*]:text-base-content/80
-                            [&_ul]:pl-[1.5em]
-                            [&_ol]:pl-[1.5em]
-                            [&_a]:no-underline [&_a]:text-primary [&_a]:font-bold
-                            [&_a:hover]:underline
-                            [&_h1]:mb-[.5em]
-                            [&_h2]:mb-[.5em]
-                            [&_h1]:text-base-content
-                            [&_h2]:text-base-content
-                            [&_p]:leading-[1.5]
-                        "
+                        className={htmlContentClassName}
                         // Sanitized again on the way out, not only when written: older rows, and the
                         // html imported from OmegaWeb Basic, never passed through it.
                         dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}

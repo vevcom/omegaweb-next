@@ -1,9 +1,10 @@
 import React from 'react'
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 
 
 export type PropTypes = ButtonHTMLAttributes<HTMLButtonElement> & {
     children: React.ReactNode,
+    ref?: Ref<HTMLButtonElement>,
     color?: 'primary' | 'secondary' | 'green' | 'red',
     /** `text` reads as a link, for an action inside a row or next to a heading, where a filled button is too much. */
     variant?: 'filled' | 'text',

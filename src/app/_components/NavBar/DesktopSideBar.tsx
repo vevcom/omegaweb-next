@@ -2,6 +2,7 @@
 
 import { dividerClassName } from './sideBarClassNames'
 import { adminNavItemHref } from './adminNavItemHref'
+import { sideBarExpandedCookie } from './sideBarExpandedCookie'
 import SideBarNavItem from './SideBarNavItem'
 import AdminNav from './AdminNav'
 import ScrollIndicator from '@/components/ScrollIndicator/ScrollIndicator'
@@ -14,11 +15,19 @@ import type { NavLink } from '@/lib/navDef/navDef'
 export type PropTypes = {
     /** The nav items the session may open, as `visibleNavItems` leaves them. */
     navItems: NavLink[]
+    initiallyExpanded: boolean
 }
 
-export default function DesktopSideBar({ navItems }: PropTypes) {
-    const [expanded, setExpanded] = useState(false)
+const oneYearInSeconds = 60 * 60 * 24 * 365
+
+export default function DesktopSideBar({ navItems, initiallyExpanded }: PropTypes) {
+    const [expanded, setExpanded] = useState(initiallyExpanded)
     const navIconsRef = useRef<HTMLElement>(null)
+
+    const toggleExpanded = () => {
+        setExpanded(!expanded)
+        document.cookie = `${sideBarExpandedCookie}=${!expanded}; path=/; max-age=${oneYearInSeconds}; samesite=lax`
+    }
 
     // The admin item gets its own spot at the bottom rather than a place among the others.
     const showAdmin = navItems.some(item => item.href === adminNavItemHref)
@@ -62,7 +71,7 @@ export default function DesktopSideBar({ navItems }: PropTypes) {
                     [&_svg]:text-base-content [&_svg]:transition-colors [&_svg]:duration-300
                     hover:[&_svg]:text-primary
                 "
-                onClick={() => setExpanded(prev => !prev)}
+                onClick={toggleExpanded}
                 aria-label={expanded ? 'Skjul navigasjonen' : 'Utvid navigasjonen'}
             >
                 <FontAwesomeIcon icon={expanded ? faChevronLeft : faChevronRight} />

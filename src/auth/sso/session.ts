@@ -2,6 +2,7 @@ import '@ow-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { COMPANY_CREDENTIALS_PROVIDER } from '@/auth/nextAuth/companyCredentials'
 import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
 import type { AnySession } from '@/auth/session/Session'
@@ -37,6 +38,19 @@ export function readSessionToken(request: NextRequest): Promise<JWT | null> {
     })
     tokensOfRequests.set(request, token)
     return token
+}
+
+type UserSessionToken = JWT & { user: NonNullable<JWT['user']>, provider: UserLoginProvider }
+
+/**
+ * The session of {@link readSessionToken} when it is a user's. A company user's session is for the
+ * career site alone and is never handed on, so where a sign in starts, a company user counts as not
+ * signed in.
+ */
+export async function readUserSessionToken(request: NextRequest): Promise<UserSessionToken | null> {
+    const token = await readSessionToken(request)
+    if (!token?.user || token.provider === COMPANY_CREDENTIALS_PROVIDER) return null
+    return { ...token, user: token.user, provider: token.provider }
 }
 
 /** The session of {@link readSessionToken} as the service operations take it, empty for a visitor not signed in. */

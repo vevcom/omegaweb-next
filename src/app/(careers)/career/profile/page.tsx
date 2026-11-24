@@ -1,5 +1,6 @@
 import ContactInfoForm from './ContactInfoForm'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
+import { careerLinks } from '@/app/(careers)/links'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
 import { badgeClassName, sectionHeadingClassName } from '@/app/(careers)/_lib/careersClassNames'
 import { userOperations } from '@/services/users/operations'
@@ -12,6 +13,7 @@ import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
 import { displayDate } from '@/lib/dates/displayDate'
 import { serverPage } from '@/app/ServerPage'
+import { siteRedirect } from '@/app/domainContextOfRequest'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
 import type { ReactNode } from 'react'
@@ -31,6 +33,8 @@ function Section({ title, children }: { title: string, children: ReactNode }) {
 /** The career site's page for the logged in user: their details, their registrations and their dots. */
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }) => {
+        const { companyUser } = session
+        if (companyUser) await siteRedirect(careerLinks.companyUser(companyUser.company, companyUser))
         if (!session.user) throw new Smorekopp('UNAUTHENTICATED')
         const userId = session.user.id
 

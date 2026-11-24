@@ -16,11 +16,7 @@ export default function MakeNewCollection() {
                     closePopUpOnSuccess={popUpKey}
                     refreshOnSuccess
                     navigateOnSuccess={
-                        collection => appHref(
-                            collection ?
-                                `/image-collections/dynamic/${encodeURIComponent(collection.name)}`
-                                : '/image-collections'
-                        )
+                        collection => appHref(`/image-collections/dynamic/${encodeURIComponent(collection.name)}`)
                     }
                     title="Lag et album"
                     submitText="Lag album"

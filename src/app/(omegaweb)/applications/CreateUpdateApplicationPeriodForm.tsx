@@ -28,7 +28,7 @@ export default function CreateUpdateApplicationPeriodForm({ committees, period, 
             refreshOnSuccess
             className="min-w-[50vw]"
             closePopUpOnSuccess={closePopUpOnSuccess}
-            navigateOnSuccess={data => (data?.name ? appHref(`/applications/${encodeURIComponent(data.name)}`) : null)}
+            navigateOnSuccess={data => appHref(`/applications/${encodeURIComponent(data.name)}`)}
         >
             <TextInput name="name" label="Navn" defaultValue={period ? period.name : undefined} />
             <DateInput

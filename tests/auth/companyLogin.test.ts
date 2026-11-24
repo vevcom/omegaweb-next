@@ -1,4 +1,6 @@
 import { GET as authorize } from '@/app/api/oidc/authorize/route'
+import { GET as ssoStart } from '@/app/api/sso/start/route'
+import { GET as nextAuth } from '@/app/api/auth/[...nextauth]/route'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { authorizeCompanyCredentials, companyLoginErrors } from '@/auth/nextAuth/companyCredentials'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
@@ -8,7 +10,7 @@ import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { prisma } from '@/prisma-pn-client-instance'
 import { testDomainConfig } from 'tests/testDomains'
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals'
+import { afterAll, beforeAll, describe, expect, jest, test } from '@jest/globals'
 import { NextRequest } from 'next/server'
 import type { JWT } from 'next-auth/jwt'
 
@@ -24,6 +26,14 @@ const PASSWORD = 'et-langt-nok-passord-123'
 const EMAIL = 'innlogging@example.com'
 
 let companyId: number
+let mockRequestHeaders = new Headers()
+
+// NextAuth's route reads the request's headers and cookies from next/headers, which Next only fills
+// for a request it serves itself.
+jest.mock('next/headers', () => ({
+    headers: () => Promise.resolve(mockRequestHeaders),
+    cookies: () => Promise.resolve({ getAll: () => [] }),
+}))
 let companyUserId: number
 
 const headersOf = (origin: string, cookies: Record<string, string> = {}) => ({
@@ -35,8 +45,8 @@ const headersOf = (origin: string, cookies: Record<string, string> = {}) => ({
 /** The sign in as NextAuth hands it to the provider: the credentials, and the headers of the request. */
 const signIn = (
     credentials: { email: string, password: string },
-    { origin = 'https://contactor.no', cookies = {} }: { origin?: string, cookies?: Record<string, string> } = {},
-) => authorizeCompanyCredentials(credentials, { headers: headersOf(origin, cookies) })
+    { cookies = {} }: { cookies?: Record<string, string> } = {},
+) => authorizeCompanyCredentials(credentials, { headers: headersOf('https://contactor.no', cookies) })
 
 /** The token NextAuth builds for whoever the provider let in, as its jwt callback does at a sign in. */
 async function tokenAtSignIn(signedIn: { id: string }): Promise<JWT> {
@@ -131,15 +141,6 @@ describe('the login of a company user', () => {
             .rejects.toThrow(companyLoginErrors.alreadySignedIn)
     })
 
-    test('it is only there on a domain that serves the career site', async () => {
-        await expect(signIn({ email: EMAIL, password: PASSWORD }, { origin: 'https://login.omega.ntnu.no' }))
-            .rejects.toThrow(companyLoginErrors.notOnCareerSite)
-
-        // Omega's domain serves the career site under its base path.
-        await expect(signIn({ email: EMAIL, password: PASSWORD }, { origin: 'https://omega.ntnu.no' }))
-            .resolves.toEqual({ id: String(companyUserId) })
-    })
-
     test('the sign in callback lets a company user through without looking for a user', async () => {
         const signInCallback = authOptions.callbacks?.signIn
         if (!signInCallback) throw new Error('no signIn callback')
@@ -170,5 +171,47 @@ describe('the login of a company user', () => {
         const location = response.headers.get('location') ?? ''
         expect(location).not.toContain('code=')
         expect(location).toContain('/login')
+    })
+})
+
+describe('where the logins are offered', () => {
+    /** The providers NextAuth's route lists on a host, which next-auth/react's `signIn` looks a provider up in. */
+    async function providersOn(host: string): Promise<string[]> {
+        const origin = `https://${host}`
+        const request = new NextRequest(`${origin}/api/auth/providers`, { headers: headersOf(origin) })
+        mockRequestHeaders = request.headers
+        const context = { params: Promise.resolve({ nextauth: ['providers'] }) }
+        const response = await (nextAuth(request, context) as Promise<Response>)
+        return Object.keys(await response.json() as object)
+    }
+
+    test('a company user signs in on the domains that serve the career site, a user on the auth domain alone', async () => {
+        expect(await providersOn('contactor.no')).toEqual(['company-credentials'])
+        expect(await providersOn('omega.ntnu.no')).toEqual(['company-credentials'])
+        expect(await providersOn('login.omega.ntnu.no')).toEqual(['credentials', 'feide'])
+    })
+
+    test('without a dedicated auth domain, Omega\'s domain offers them all', async () => {
+        DomainContext.configure(DomainConfig.parse({
+            'omega.ntnu.no': { site: 'OMEGAWEB', main: true },
+            'contactor.no': { site: 'CAREERS', main: true },
+        }))
+        try {
+            expect(await providersOn('omega.ntnu.no')).toEqual(['credentials', 'company-credentials', 'feide'])
+            expect(await providersOn('contactor.no')).toEqual(['company-credentials'])
+        } finally {
+            DomainContext.configure(withAuthDomain)
+        }
+    })
+
+    test('a company session is no user\'s, so the sign in of a site starts as for a visitor', async () => {
+        const cookie = await cookieOf(await tokenAtSignIn({ id: String(companyUserId) }))
+        const origin = 'https://contactor.no'
+        const response = await ssoStart(new NextRequest(`${origin}/api/sso/start?callbackUrl=%2Fcareer%2Fprofile`, {
+            headers: headersOf(origin, { [SESSION_COOKIE]: cookie }),
+        }))
+
+        const location = new URL(response.headers.get('location') ?? '')
+        expect(location.origin + location.pathname).toBe('https://login.omega.ntnu.no/api/oidc/authorize')
     })
 })

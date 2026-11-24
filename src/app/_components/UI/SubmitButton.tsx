@@ -1,10 +1,10 @@
 import styles from './SubmitButton.module.scss'
-import { popUpClassNames } from '@/components/PopUp/popUpClassNames'
+import { PopUpDialog } from '@/components/PopUp/PopUp'
 import Button from '@/components/UI/Button'
 import { InsidePopUpContext, PopUpContext } from '@/contexts/PopUp'
 import React, { useContext, useEffect, useId, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircleCheck, faX } from '@fortawesome/free-solid-svg-icons'
+import { faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 import { useFormStatus } from 'react-dom'
 import type { ErrorMessage } from '@/services/error'
 import type { ReactNode } from 'react'
@@ -58,6 +58,7 @@ export default function SubmitButton({
 
     const [confirmedOpen, setConfirmedOpen] = useState(false)
     const popUpKey = useId()
+    const questionId = useId()
     const popUpContext = useContext(PopUpContext)
     // Teleporting the confirmation out of a pop-up would replace the pop-up, and with it the form the
     // confirmation is about to submit, so inside one it is asked in place instead.
@@ -67,6 +68,7 @@ export default function SubmitButton({
     // form, not a descendant), so a submit button rendered there has nothing
     // to submit.
     const realSubmitRef = useRef<HTMLButtonElement>(null)
+    const confirmationTriggerRef = useRef<HTMLButtonElement>(null)
 
     const renderButtonContent = (label: ReactNode) => {
         if (pending) {
@@ -111,7 +113,7 @@ export default function SubmitButton({
 
     const confirmationQuestion = (confirmButton: ReactNode) => (
         <div>
-            <p>{confirmation?.text || 'Er du sikker?'}</p>
+            <p id={questionId}>{confirmation?.text || 'Er du sikker?'}</p>
             <div className="flex justify-center gap-2 mt-4">
                 <Button
                     className={confirmationButtonClassName}
@@ -128,6 +130,7 @@ export default function SubmitButton({
 
     const confirmationTrigger = (
         <Button
+            ref={confirmationTriggerRef}
             className={`
                 ${submitButtonClassName}
                 ${className ?? ''}
@@ -141,8 +144,7 @@ export default function SubmitButton({
     )
 
     // The confirmation asks a question that a successful submit has now answered - leaving it up
-    // means the user has to dismiss a dialog for something that already happened. Nothing else
-    // closes it: the X and 'Nei' are the only other ways out.
+    // means the user has to dismiss a dialog for something that already happened.
     useEffect(() => {
         if (!success) return undefined
         const timeout = setTimeout(() => setConfirmedOpen(false), CONFIRMATION_CLOSE_DELAY)
@@ -160,31 +162,29 @@ export default function SubmitButton({
             return undefined
         }
         popUpContext.teleport(
-            <div className={popUpClassNames.popUp}>
-                <div className={popUpClassNames.main}>
-                    <div className={popUpClassNames.overflow}>
-                        <button className={popUpClassNames.closeBtn} onClick={() => setConfirmedOpen(false)}>
-                            <FontAwesomeIcon icon={faX} />
-                        </button>
-                        {confirmationQuestion(
-                            <Button
-                                className={confirmationButtonClassName}
-                                aria-disabled={pending || success}
-                                color={success ? 'green' : 'red'}
-                                type="button"
-                                disabled={disabled || pending || success}
-                                onClick={() => realSubmitRef.current?.click()}
-                            >
-                                {renderButtonContent('Ja')}
-                            </Button>
-                        )}
-                    </div>
-                </div>
-            </div>,
+            <PopUpDialog
+                key={popUpKey}
+                triggerRef={confirmationTriggerRef}
+                close={() => setConfirmedOpen(false)}
+                ariaLabelledBy={questionId}
+            >
+                {confirmationQuestion(
+                    <Button
+                        className={confirmationButtonClassName}
+                        aria-disabled={pending || success}
+                        color={success ? 'green' : 'red'}
+                        type="button"
+                        disabled={disabled || pending || success}
+                        onClick={() => realSubmitRef.current?.click()}
+                    >
+                        {renderButtonContent('Ja')}
+                    </Button>
+                )}
+            </PopUpDialog>,
             popUpKey
         )
         return () => popUpContext.remove(popUpKey)
-    }, [confirmedOpen, pending, success, popUpKey, insidePopUp])
+    }, [confirmedOpen, pending, success, popUpKey, questionId, insidePopUp])
 
     const renderButtons = () => {
         if (!confirmation?.confirm) return submitButton(children)

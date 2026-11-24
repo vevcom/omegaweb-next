@@ -24,9 +24,9 @@ export type PropTypes<ReturnType> = Omit<FormType, 'action' | 'children'> & {
     submitColor?: Colors,
     confirmation?: Confirmation,
     action: ActionFormData<ReturnType>,
-    successCallback?: (data?: ReturnType) => void,
+    successCallback?: (data: ReturnType) => void,
     refreshOnSuccess?: boolean,
-    navigateOnSuccess?: AppHref | ((data?: ReturnType) => AppHref | null),
+    navigateOnSuccess?: AppHref | ((data: ReturnType) => AppHref | null),
     closePopUpOnSuccess?: PopUpKeyType,
     buttonClassName?: string,
     disabled?: boolean,
@@ -77,6 +77,7 @@ export default function Form<GiveActionReturn>({
     secondarySubmit,
     saveBar,
     onValuesChange,
+    onInput: onInputOfCaller,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
@@ -91,11 +92,15 @@ export default function Form<GiveActionReturn>({
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
     const formRef = useRef<HTMLFormElement>(null)
-    const { dirty, markSaved } = useUnsavedChanges(
+    const { dirty, markSaved, onInput: checkUnsaved } = useUnsavedChanges(
         formRef,
         Boolean(saveBar) || onValuesChange !== undefined,
         onValuesChange,
     )
+    const onInput = (event: React.InputEvent<HTMLFormElement>) => {
+        checkUnsaved()
+        onInputOfCaller?.(event)
+    }
 
     const actionWithError = async (formData: FormData) => {
         setGeneralErrors(undefined)
@@ -224,7 +229,8 @@ export default function Form<GiveActionReturn>({
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
-            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onSubmit={handleSubmit} onReset={handleReset}>
+            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onInput={onInput} onSubmit={handleSubmit}
+            onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
                     if (isValidElement(child) && child.type === FormTab) return child

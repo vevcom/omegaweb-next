@@ -38,7 +38,7 @@ export default function RevueGroupSettings({ group, revue }: PropTypes) {
                     action={updateGroup}
                     submitText="Lagre"
                     closePopUpOnSuccess={popUpKey}
-                    navigateOnSuccess={updated => (updated ? revueLinks.revueGroup(revue, updated) : null)}
+                    navigateOnSuccess={updated => revueLinks.revueGroup(revue, updated)}
                 >
                     <TextInput name="name" label="Navn" defaultValue={group.name} />
                 </Form>

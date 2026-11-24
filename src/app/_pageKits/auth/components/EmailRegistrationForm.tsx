@@ -50,15 +50,13 @@ export default function EmailRegistrationForm({ config, user, feideLoginMatch, c
             submitText="Lagre e-post"
             action={actionToCall}
             successCallback={(data) => {
-                if (data) {
-                    if (data.verified) {
-                        push(authLinks(config).register({ callbackUrl }), { servedOn: 'auth-domain' })
-                    } else {
-                        setFeedback(`
-                            For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.
-                            Følg instruksjonene i e-posten for å fullføre registreringen.
-                        `)
-                    }
+                if (data.verified) {
+                    push(authLinks(config).register({ callbackUrl }), { servedOn: 'auth-domain' })
+                } else {
+                    setFeedback(`
+                        For å bekrefte at dette er din e-post har vi sendt en e-post til ${data.email}.
+                        Følg instruksjonene i e-posten for å fullføre registreringen.
+                    `)
                 }
             }}
         >
