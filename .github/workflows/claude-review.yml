@@ -18,6 +18,8 @@ jobs:
     - name: checkout
       uses: actions/checkout@v6
       with:
+        # The branch itself and not its merge with main, so line numbers match the diff.
+        ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 1
 
     # The review is posted as kakebot, the deploy app, with a token that can only write to pull requests.
