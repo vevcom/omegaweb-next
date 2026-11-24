@@ -1,4 +1,5 @@
 import {
+    destroyStudyProgrammeMembershipAction,
     addStudyProgrammeMembersAction,
     removeStudyProgrammeMembersAction,
 } from '@/services/groups/studyProgrammes/actions'
@@ -43,6 +44,9 @@ const { page, generateMetadata } = serverPage({
         canRemoveMembers: studyProgrammeAuth.removeMembers.data({
             groupId: data.studyProgramme.groupId,
         }),
+        canDestroyMembership: studyProgrammeAuth.destroyMembership.data({
+            groupId: data.studyProgramme.groupId,
+        }),
     }),
     metadata: (data) => ({ title: data.studyProgramme.name }),
     render: ({ data, capabilities }) => {
@@ -78,6 +82,11 @@ const { page, generateMetadata } = serverPage({
                             }
                             removeMembersAction={
                                 capabilities.canRemoveMembers.authorized ? removeStudyProgrammeMembersAction : undefined
+                            }
+                            destroyMembershipAction={
+                                capabilities.canDestroyMembership.authorized
+                                    ? destroyStudyProgrammeMembershipAction
+                                    : undefined
                             }
                         />
                     )}

@@ -2,7 +2,7 @@ import '@ow-server-only'
 import { revueAuth } from './auth'
 import { revueCardIncluder, revueExpandedIncluder } from './constants'
 import { revueSchemas } from './schemas'
-import { destroyRevueGroups } from './groups/destroyGroups'
+import { revueGroupOperations } from './groups/operations'
 import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { implementArticleOperations } from '@/cms/articles/implement'
 import { defineOperation } from '@/services/serviceOperation'
@@ -20,18 +20,27 @@ const article = implementArticleOperations({
 })
 
 export const revueOperations = {
+    /** Makes a revue, with the groups given put in it at their orders. */
     create: defineOperation({
         dataSchema: revueSchemas.data.create,
         authorizer: () => revueAuth.create,
         transaction: 'OPENS',
-        operation: ({ prisma, data }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, data: { name, groups = [], ...revueData } }) => prisma.$transaction(async tx => {
             const createdArticle = await article.internal.create.internalCall({
                 prisma: tx,
-                data: { name: data.name },
+                data: { name },
             })
-            return tx.revue.create({
-                data: { year: data.year, articleId: createdArticle.id, name: createdArticle.name },
+            const revue = await tx.revue.create({
+                data: { ...revueData, articleId: createdArticle.id, name: createdArticle.name },
             })
+            for (const group of groups) {
+                await revueGroupOperations.internal.addToRevue.internalCall({
+                    prisma: tx,
+                    params: { revueId: revue.id },
+                    data: group,
+                })
+            }
+            return revue
         }),
     }),
 
@@ -58,7 +67,7 @@ export const revueOperations = {
         dataSchema: revueSchemas.data.update,
         authorizer: () => revueAuth.update,
         transaction: 'OPENS',
-        operation: ({ prisma, params, data: { name, year } }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, params, data: { name, ...revueData } }) => prisma.$transaction(async tx => {
             if (name !== undefined) {
                 // The revue's name is its article's, and follows it.
                 const { articleId } = await tx.revue.findUniqueOrThrow({
@@ -67,7 +76,7 @@ export const revueOperations = {
                 })
                 await article.internal.update.internalCall({ prisma: tx, params: { articleId }, data: { name } })
             }
-            return tx.revue.update({ where: { id: params.revueId }, data: { year } })
+            return tx.revue.update({ where: { id: params.revueId }, data: revueData })
         }),
     }),
 
@@ -76,7 +85,6 @@ export const revueOperations = {
         authorizer: () => revueAuth.destroy,
         transaction: 'OPENS',
         operation: ({ prisma, params }) => prisma.$transaction(async tx => {
-            await destroyRevueGroups(tx, { revueId: params.revueId })
             const revue = await tx.revue.delete({ where: { id: params.revueId } })
             await article.internal.destroy.internalCall({ prisma: tx, params: { articleId: revue.articleId } })
         }),

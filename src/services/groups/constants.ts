@@ -37,7 +37,12 @@ export const groupTypesConfig = {
         name: 'Andre grupper',
         namePlural: 'Andre grupper',
         description: 'Øvrige grupper'
-    }
+    },
+    REVUE_SUB_GROUP: {
+        name: 'Revyundergruppe',
+        namePlural: 'Revyundergrupper',
+        description: 'Undergrupper i Omegarevyen'
+    },
 } as const satisfies Record<GroupType, GroupTypeInfo>
 
 /**
@@ -94,6 +99,7 @@ export const groupsWithRelationsIncluder = {
     interestGroup: { select: { name: true } },
     omegaMembershipGroup: { select: { omegaMembershipLevel: true } },
     studyProgramme: { select: { name: true } },
+    revueSubGroup: { select: { revueGroup: { select: { name: true } } } },
 } as const satisfies Prisma.GroupInclude
 
 export const groupsExpandedIncluder = {
@@ -121,7 +127,7 @@ export const readGroupsOfUserIncluder = {
     manualGroup: true,
     omegaMembershipGroup: true,
     studyProgramme: true,
-
+    revueSubGroup: { include: { revueGroup: { select: { name: true } } } },
 } as const satisfies Prisma.GroupInclude
 
 export const membershipFieldsToExpose = [

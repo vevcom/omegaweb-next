@@ -361,6 +361,7 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
         removeMembers: ({ groupId }) => committeeAuth.removeMembers.data({ groupId }),
         setMemberAdmin: ({ groupId }) => committeeAuth.setMemberAdmin.data({ groupId }),
         setMemberTitle: ({ groupId }) => committeeAuth.setMemberTitle.data({ groupId }),
+        destroyMembership: ({ groupId }) => committeeAuth.destroyMembership.data({ groupId }),
     },
 })
 
@@ -395,6 +396,7 @@ export const committeeOperations = {
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
     reorderMembers: memberOrdering.reorderMembers,
+    destroyMembership: memberManagement.destroyMembership,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     readArticle,

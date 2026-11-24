@@ -10,6 +10,7 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
+import { revueSubGroupAuth } from '@/services/groups/revueSubGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
@@ -127,6 +128,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
                 committeeAuth.readMembershipsOfUser.data({ userId }),
                 interestGroupAuth.readMembershipsOfUser.data({ userId }),
                 manualGroupAuth.readMembershipsOfUser.data({ userId }),
+                revueSubGroupAuth.readMembershipsOfUser.data({ userId }),
             ],
         },
         {

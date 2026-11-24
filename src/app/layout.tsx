@@ -59,7 +59,8 @@ type PropTypes = {
  * the pages look like is up to the route groups - (omegaweb) is Omega's site with its navigation
  * and the user's theme, (careers) is the career site under /career with its own - so nothing here
  * paints a theme or a nav. Only the tone of the user's theme sits on <html>, so that pop-ups,
- * which teleport to the body, keep it; (careers) sets its own tone on its wrapper.
+ * which teleport to the body, keep it; (careers) and (revue) set the tone of their own theme on
+ * their wrappers.
  */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)

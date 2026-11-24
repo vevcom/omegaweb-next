@@ -164,6 +164,12 @@ export const standardStoreFiles = {
         license: 'CC BY-SA 4.0',
         originOfFile: 'https://ntnu.fotoware.cloud/fotoweb/archives/',
     }),
+    revueLogo: standardStoreFile({
+        location: 'revue_logo.svg',
+        credit: null,
+        license: null,
+        originOfFile: 'Omegarevyen',
+    }),
     treaty: standardStoreFile({
         location: 'treaty.jpg',
         credit: null,
