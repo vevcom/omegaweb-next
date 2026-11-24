@@ -2,6 +2,7 @@
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
+import Checkbox from '@/components/UI/Checkbox'
 import { SelectNumber } from '@/components/UI/Select'
 import UserList from '@/components/User/UserList/UserList'
 import ReorderableList from '@/components/UI/ReorderableList'
@@ -13,6 +14,7 @@ import type { CSSProperties } from 'react'
 import type { UserDetails, UserPageReader } from '@/services/users/types'
 import type {
     AddGroupMembersAction,
+    DestroyGroupMembershipAction,
     RemoveGroupMembersAction,
     ReorderGroupMembersAction,
     SetGroupMemberAdminAction,
@@ -66,6 +68,10 @@ type PropTypes = {
     setMemberTitleAction?: SetGroupMemberTitleAction,
     /** Given, the members can be dragged into the order they are listed in. */
     reorderMembersAction?: ReorderGroupMembersAction,
+    /** Given, any membership can be deleted for good, at every order. */
+    destroyMembershipAction?: DestroyGroupMembershipAction,
+    /** The group's own order lists its active members, with a switch to show the inactive ones too. */
+    hidesInactiveByDefault?: boolean,
     /** Reads the users to add among. Left out, they are the user list's own: the active students. */
     readAddableUsers?: (page: { params: Parameters<UserPageReader>[0]['params'] & { groupId: number } }) =>
         ReturnType<UserPageReader>,
@@ -118,9 +124,14 @@ export default function ManageGroupMembers({
     setMemberAdminAction,
     setMemberTitleAction,
     reorderMembersAction,
+    destroyMembershipAction,
+    hidesInactiveByDefault = false,
     readAddableUsers,
 }: PropTypes) {
-    const [selectedOrder, setSelectedOrder] = useState(groupOrder)
+    const [pickedOrder, setSelectedOrder] = useState(groupOrder)
+    // An order whose last membership was deleted is no longer one of the group's.
+    const selectedOrder = orders.some(order => order.order === pickedOrder) ? pickedOrder : groupOrder
+    const [showsInactive, setShowsInactive] = useState(false)
     // The same object across renders, since the list starts over when its details are replaced.
     const userListDetails = useMemo((): UserDetails => ({
         groups: [],
@@ -129,8 +140,20 @@ export default function ManageGroupMembers({
     }), [readAddableUsers, groupId])
     const addPopUpKey: PopUpKeyType = `Add members to group ${groupId} order ${selectedOrder}`
 
-    const members = orders.find(order => order.order === selectedOrder)?.members ?? []
+    const offersInactiveSwitch = hidesInactiveByDefault && selectedOrder === groupOrder
+    const hidesInactive = offersInactiveSwitch && !showsInactive
+    // The same lists across renders, since the reorderable list starts over when it is given another.
+    const membersOfOrder = useMemo(
+        () => orders.find(order => order.order === selectedOrder)?.members ?? [],
+        [orders, selectedOrder],
+    )
+    const members = useMemo(
+        () => (hidesInactive ? membersOfOrder.filter(member => member.active) : membersOfOrder),
+        [membersOfOrder, hidesInactive],
+    )
 
+    // Removing and deleting share a column, so a row needs no more width for the one than for the other.
+    const takesOut = Boolean(removeMembersAction) || Boolean(destroyMembershipAction)
     // Every row is its own grid, so the columns only line up across rows if they are all laid out
     // against the same track list. The actions that are not offered at all drop their column rather
     // than leaving a gap.
@@ -140,7 +163,7 @@ export default function ManageGroupMembers({
         setMemberTitleAction ? { track: '20rem', minRem: 20 } : { track: 'minmax(6rem, 1fr)', minRem: 6 },
         { track: '9rem', minRem: 9 },
         ...(setMemberAdminAction ? [{ track: '10.5rem', minRem: 10.5 }] : []),
-        ...(removeMembersAction ? [{ track: '6rem', minRem: 6 }] : []),
+        ...(takesOut ? [{ track: '6rem', minRem: 6 }] : []),
     ]
     const columnStyle = { '--member-columns': memberColumns.map(column => column.track).join(' ') } as CSSProperties
     // The tracks, the gap-4 between them and the px-4 around them.
@@ -205,13 +228,13 @@ export default function ManageGroupMembers({
                     </Form>
                 </span>
             )}
-            {removeMembersAction && (
+            {takesOut && (
                 <span className="
-                    min-w-0
+                    flex flex-col gap-1 min-w-0
                     [&_button]:w-full
-                    [&>*:last-child]:mt-0
+                    [&>*]:mt-0
                 ">
-                    {member.active && (
+                    {removeMembersAction && member.active && (
                         <Form
                             submitText="Fjern"
                             submitColor="red"
@@ -224,6 +247,17 @@ export default function ManageGroupMembers({
                             }}
                         >
                             <input type="hidden" name="userIds" value={member.userId} />
+                        </Form>
+                    )}
+                    {destroyMembershipAction && (
+                        <Form
+                            submitText="Slett"
+                            submitColor="secondary"
+                            action={configureAction(destroyMembershipAction, { params: { groupId, order: selectedOrder } })}
+                            refreshOnSuccess
+                            confirmation={{ confirm: true, text: destroyConfirmation(member, selectedOrder) }}
+                        >
+                            <input type="hidden" name="userId" value={member.userId} />
                         </Form>
                     )}
                 </span>
@@ -247,6 +281,14 @@ export default function ManageGroupMembers({
                         key: `${order.order}`,
                     }))}
                 />
+                {offersInactiveSwitch && (
+                    <Checkbox
+                        name={`shows-inactive-${groupId}`}
+                        label={`Vis også de inaktive i orden ${selectedOrder}`}
+                        checked={showsInactive}
+                        onChange={() => setShowsInactive(!showsInactive)}
+                    />
+                )}
                 {selectedOrder !== groupOrder && (
                     <p className="text-base-content/80 text-s">
                         Orden {selectedOrder} er historikk - gruppen selv står i orden {groupOrder}.
@@ -280,7 +322,9 @@ export default function ManageGroupMembers({
             )}
 
             {members.length === 0 ? (
-                <p className="text-base-content/80 italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
+                <p className="text-base-content/80 italic">
+                    Gruppen har ingen {membersOfOrder.length ? 'aktive medlemmer' : 'medlemskap'} i orden {selectedOrder}.
+                </p>
             ) : (
                 <div className="flex flex-col gap-1">
                     <div className={`
@@ -292,7 +336,7 @@ export default function ManageGroupMembers({
                         <span>Tittel</span>
                         <span>Status</span>
                         {setMemberAdminAction && <span />}
-                        {removeMembersAction && <span />}
+                        {takesOut && <span />}
                     </div>
                     {reorderMembersAction ? (
                         // Remounted per order, since the title inputs are uncontrolled.
@@ -300,9 +344,9 @@ export default function ManageGroupMembers({
                             key={selectedOrder}
                             items={members}
                             getId={member => member.userId}
-                            saveOrder={userIds => configureAction(
+                            saveOrder={shownUserIds => configureAction(
                                 reorderMembersAction, { params: { groupId, order: selectedOrder } }
-                            )({ data: { userIds } })}
+                            )({ data: { userIds: withHiddenInPlace(membersOfOrder, members, shownUserIds) } })}
                             className="flex flex-col gap-1"
                             itemClassName={memberRowClassName}
                             itemStyle={columnStyle}
@@ -325,6 +369,25 @@ export default function ManageGroupMembers({
             )}
         </div>
     )
+}
+
+function destroyConfirmation(member: ManageGroupMembersMember, order: number) {
+    const kept = member.active
+        ? `Har ${member.name} gått ut av gruppen, bruk «Fjern» i stedet: da står medlemskapet igjen i gruppens historikk.`
+        : 'Det er inaktivt og står i gruppens historikk.'
+    return `Slette medlemskapet til ${member.name} i orden ${order} for godt? ${kept} `
+        + '«Slett» er for et medlemskap som aldri skulle vært der, og kan ikke angres.'
+}
+
+/** The whole order's members, with those shown in their new order and those hidden kept in their places. */
+function withHiddenInPlace(
+    all: ManageGroupMembersMember[],
+    shown: ManageGroupMembersMember[],
+    shownUserIds: number[],
+) {
+    const shownIds = new Set(shown.map(member => member.userId))
+    let next = 0
+    return all.map(member => (shownIds.has(member.userId) ? shownUserIds[next++] : member.userId))
 }
 
 function stackingFor(rowMinRem: number) {

@@ -31,6 +31,7 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
         removeMembers: ({ groupId }) => revueSubGroupAuth.removeMembers.data({ groupId }),
         setMemberAdmin: ({ groupId }) => revueSubGroupAuth.setMemberAdmin.data({ groupId }),
         setMemberTitle: ({ groupId }) => revueSubGroupAuth.setMemberTitle.data({ groupId }),
+        destroyMembership: ({ groupId }) => revueSubGroupAuth.destroyMembership.data({ groupId }),
     },
 })
 
@@ -62,6 +63,7 @@ export const revueSubGroupOperations = {
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
     reorderMembers: memberOrdering.reorderMembers,
+    destroyMembership: memberManagement.destroyMembership,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
 

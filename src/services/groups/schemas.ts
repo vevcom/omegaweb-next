@@ -80,6 +80,9 @@ export const groupSchemas = {
             userId: true,
             admin: true,
         }),
+        destroyMembership: dataFieldSchemas.pick({
+            userId: true,
+        }),
         setMemberTitle: dataFieldSchemas.pick({
             userId: true,
             title: true,
@@ -103,6 +106,7 @@ export const groupSchemas = {
         addMembers: groupMember,
         removeMembers: groupMember,
         setMemberAdmin: groupMember,
+        destroyMembership: groupMember,
         setMemberTitle: groupMember,
         reorderMembers: groupMember,
         pension: group,

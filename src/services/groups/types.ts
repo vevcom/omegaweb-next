@@ -144,6 +144,7 @@ export type RemoveGroupMembersAction = ActionFromSubServiceOperation<typeof grou
 export type SetGroupMemberAdminAction = ActionFromSubServiceOperation<typeof groupOperations.setMemberAdmin>
 export type SetGroupMemberTitleAction = ActionFromSubServiceOperation<typeof groupOperations.setMemberTitle>
 export type ReorderGroupMembersAction = ActionFromSubServiceOperation<typeof groupOperations.reorderMembers>
+export type DestroyGroupMembershipAction = ActionFromSubServiceOperation<typeof groupOperations.destroyMembership>
 
 /**
  * The action retiring a group or bringing it back, shared by the group types that are migrated

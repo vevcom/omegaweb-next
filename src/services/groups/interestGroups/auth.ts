@@ -13,6 +13,7 @@ export const interestGroupAuth = {
     readMembershipsOfUser: requireReadMembershipsOfUser('INTEREST_GROUP_USE'),
     addMembers: groupAdminOrInterestGroupAdmin,
     removeMembers: groupAdminOrInterestGroupAdmin,
+    destroyMembership: groupAdminOrInterestGroupAdmin,
     setMemberAdmin: groupAdminOrInterestGroupAdmin,
     setMemberTitle: groupAdminOrInterestGroupAdmin,
     migrateGroup: groupAdminOrInterestGroupAdmin,

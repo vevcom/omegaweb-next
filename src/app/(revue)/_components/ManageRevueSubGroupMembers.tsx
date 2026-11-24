@@ -3,6 +3,7 @@ import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import {
     addRevueSubGroupMembersAction,
+    destroyRevueSubGroupMembershipAction,
     readRevueSubGroupAddableUsersAction,
     removeRevueSubGroupMembersAction,
     reorderRevueSubGroupMembersAction,
@@ -18,7 +19,7 @@ type PropTypes = {
     orders: ManageGroupMembersOrder[],
 }
 
-/** A sub group's members to add, title, make admin, order and remove, each as far as the viewer may. */
+/** A sub group's members to add, title, make admin, order, remove and delete, each as far as the viewer may. */
 export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders }: PropTypes) {
     const canAddMembers = useAuthorizer({ authorizer: revueSubGroupAuth.addMembers.data({ groupId }) })
     const canReadAddableUsers = useAuthorizer({ authorizer: revueSubGroupAuth.readAddableUsers.data({ groupId }) })
@@ -26,6 +27,7 @@ export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders
     const canSetMemberAdmin = useAuthorizer({ authorizer: revueSubGroupAuth.setMemberAdmin.data({ groupId }) })
     const canSetMemberTitle = useAuthorizer({ authorizer: revueSubGroupAuth.setMemberTitle.data({ groupId }) })
     const canReorderMembers = useAuthorizer({ authorizer: revueSubGroupAuth.reorderMembers.data({ groupId }) })
+    const canDestroyMembership = useAuthorizer({ authorizer: revueSubGroupAuth.destroyMembership.data({ groupId }) })
 
     return <ManageGroupMembers
         groupId={groupId}
@@ -37,5 +39,6 @@ export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders
         setMemberAdminAction={canSetMemberAdmin.authorized ? setRevueSubGroupMemberAdminAction : undefined}
         setMemberTitleAction={canSetMemberTitle.authorized ? setRevueSubGroupMemberTitleAction : undefined}
         reorderMembersAction={canReorderMembers.authorized ? reorderRevueSubGroupMembersAction : undefined}
+        destroyMembershipAction={canDestroyMembership.authorized ? destroyRevueSubGroupMembershipAction : undefined}
     />
 }
