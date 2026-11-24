@@ -1,0 +1,38 @@
+name: claude review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  review:
+    # Only branches in this repo, which takes write access to push, so never a fork's PR.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot' &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+    - name: checkout
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+
+    - name: review
+      uses: anthropics/claude-code-action@v1
+      with:
+        anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        prompt: |
+          REPO: ${{ github.repository }}
+          PR NUMBER: ${{ github.event.pull_request.number }}
+
+          Review this pull request. The PR branch is checked out in the working directory.
+          Look for bugs, security holes and breaks with the rules in CLAUDE.md.
+          Only report what you are confident is a real problem. Skip style nits and praise.
+          Use inline comments for specific lines and one short top-level comment as a summary.
+        claude_args: |
+          --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
