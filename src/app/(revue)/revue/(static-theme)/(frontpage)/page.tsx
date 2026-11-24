@@ -14,14 +14,20 @@ import {
 } from '@/services/revue/frontpage/actions'
 import { revueFrontpageOperations } from '@/services/revue/frontpage/operations'
 import { revueOperations } from '@/services/revue/operations'
+import RevueCover from '@/app/(revue)/_components/RevueCover'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
-import ImageCard from '@/components/ImageCard/ImageCard'
-import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { revueThemeOf } from '@/app/(revue)/_lib/revueTheme'
-import { scopedThemeProps } from '@/lib/theme'
 import { serverPage } from '@/app/ServerPage'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
+
+const linkClassName = `
+    group/cover block rounded-round no-underline
+    hover:no-underline
+    focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent
+`
 
 const { page, generateMetadata } = serverPage({
     operation: async () => ({
@@ -34,23 +40,44 @@ const { page, generateMetadata } = serverPage({
     // Absolute: the frontpage is the site, so the layout's template would read "Omegarevyen | Omegarevyen".
     metadata: () => ({ title: { absolute: 'Omegarevyen' } }),
     render: ({ data: { article, revues: [currentRevue, ...earlierRevues] }, capabilities }) => (
-        <PageWrapper>
+        <div className="flex flex-col gap-12">
+            <CreateRevue />
             {currentRevue && (
                 <SiteLink
                     href={revueLinks.revue(currentRevue)}
-                    {...scopedThemeProps(revueThemeOf(currentRevue))}
-                    className="
-                        block mb-4 p-4 rounded-round bg-base-200 text-base-content transition-colors
-                        hover:bg-base-300 hover:no-underline
-                    "
+                    className={linkClassName}
                 >
-                    <span className="block text-s text-base-content/80">Nyeste revy</span>
-                    <span className="block text-xl font-semibold">{currentRevue.name} ({currentRevue.year})</span>
+                    <RevueCover
+                        image={currentRevue.article.coverImage.image}
+                        year={currentRevue.year}
+                        label="Nyeste revy"
+                        imageWidth={1100}
+                        colors={revueThemeOf(currentRevue)}
+                        insideLink
+                        className="min-h-[clamp(22rem,55vw,32rem)]"
+                    >
+                        <span className="
+                            font-secondary text-[clamp(2.25rem,7cqw,4.5rem)] font-bold leading-[1.05] text-balance
+                        ">
+                            {currentRevue.name}
+                        </span>
+                        <span className="
+                            inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-full bg-accent text-m font-semibold
+                            text-accent-content
+                        ">
+                            Til revyen
+                            <FontAwesomeIcon icon={faArrowRight} className="
+                                size-[0.9em]! transition-transform
+                                group-hover/cover:translate-x-1
+                            " />
+                        </span>
+                    </RevueCover>
                 </SiteLink>
             )}
             <SpecialArticle
                 article={article}
                 capabilities={capabilities}
+                coverImageClass="[&_h1]:normal-case"
                 actions={{
                     update: updateMainRevueInfoAction,
                     addSection: updateMainRevueInfoAddSectionAction,
@@ -67,25 +94,43 @@ const { page, generateMetadata } = serverPage({
                 }}
             />
             {earlierRevues.length > 0 && (
-                <section className="mt-8">
-                    <h2>Tidligere revyer</h2>
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 mt-4">
+                <section className="flex flex-col gap-6">
+                    <h2 className="font-secondary text-xl">Tidligere revyer</h2>
+                    <ul className="
+                        grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-4 list-none
+                        mobile:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] mobile:gap-6
+                    ">
                         {earlierRevues.map(revue => (
-                            <div key={revue.id} {...scopedThemeProps(revueThemeOf(revue))}>
-                                <ImageCard
+                            <li key={revue.id}>
+                                <SiteLink
                                     href={revueLinks.revue(revue)}
-                                    image={revue.article.coverImage.image}
-                                    title={revue.name}
+                                    className={linkClassName}
                                 >
-                                    <p>{revue.year}</p>
-                                </ImageCard>
-                            </div>
+                                    <RevueCover
+                                        image={revue.article.coverImage.image}
+                                        year={revue.year}
+                                        imageWidth={360}
+                                        colors={revueThemeOf(revue)}
+                                        insideLink
+                                        className="
+                                            aspect-[3/4] transition-transform duration-300
+                                            group-hover/cover:-translate-y-1
+                                        "
+                                    >
+                                        <span className="
+                                            font-secondary text-[clamp(1.05rem,9cqw,1.6rem)] font-bold leading-tight
+                                            text-balance
+                                        ">
+                                            {revue.name}
+                                        </span>
+                                    </RevueCover>
+                                </SiteLink>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 </section>
             )}
-            <CreateRevue />
-        </PageWrapper>
+        </div>
     ),
 })
 
