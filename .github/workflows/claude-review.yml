@@ -14,12 +14,19 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     steps:
     - name: checkout
       uses: actions/checkout@v6
       with:
         fetch-depth: 1
+
+    # The review is posted as kakebot, the deploy app, with a token that can only write to pull requests.
+    - uses: actions/create-github-app-token@v2
+      id: token
+      with:
+        app-id: ${{ vars.DEPLOY_APP_ID }}
+        private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+        permission-pull-requests: write
 
     - name: install claude
       run: curl -fsSL https://claude.ai/install.sh | bash
@@ -28,7 +35,7 @@ jobs:
     - name: review
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ steps.token.outputs.token }}
         PR: ${{ github.event.pull_request.number }}
       run: |
         ~/.local/bin/claude -p "Review pull request $PR of $GITHUB_REPOSITORY. Its branch is checked out in the working directory.
