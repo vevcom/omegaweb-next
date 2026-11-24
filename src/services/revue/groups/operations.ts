@@ -141,7 +141,7 @@ export const revueGroupOperations = {
                 type: revueGroup.type,
                 order,
                 memberCount: await prisma.membership.count({
-                    where: membershipsInRevue(groupOfRevueGroup(revueGroup), order),
+                    where: revueMembershipsOf(groupOfRevueGroup(revueGroup), order),
                 }),
             })))
         },
@@ -249,7 +249,7 @@ export const revueGroupOperations = {
 
             const groups = groupsInRevues.map(({ revueGroup, order }) => ({ group: groupOfRevueGroup(revueGroup), order }))
             const memberships = await prisma.membership.findMany({
-                where: { userId: params.userId, OR: groups.map(({ group, order }) => membershipsInRevue(group, order)) },
+                where: { userId: params.userId, OR: groups.map(({ group, order }) => revueMembershipsOf(group, order)) },
                 select: { groupId: true, order: true, title: true },
             })
 
@@ -309,24 +309,26 @@ function groupOfRevueGroup(revueGroup: {
 }
 
 /**
- * The memberships of the group that are a revue's members of it, those of the order the group is in the
- * revue with: the active ones while the group stands in that order, and every one once it has moved past
- * it or been pensioned in it. A group has no memberships of an order it has not reached, so before that
- * there are none.
+ * A revue's members of a group are its memberships of the order the group is in the revue with. While the group
+ * stands in that order only the active ones are, and once it has moved past it or been pensioned in it every one
+ * is, since none is active then. A group has no memberships of an order it has not reached.
  */
-function membershipsInRevue(group: GroupAndOrder, order: number): Prisma.MembershipWhereInput {
-    return {
-        groupId: group.id,
-        order,
-        user: userPartitions.unarchived,
-        ...(group.order === order && !group.pensioned && { active: true }),
-    }
+function revueMembershipsOf(group: GroupAndOrder, order: number) {
+    return membershipsOfOrder({ groupId: group.id, order, onlyActive: group.order === order && !group.pensioned })
+}
+
+function membershipsOfOrder({ groupId, order, onlyActive }: {
+    groupId: number,
+    order: number,
+    onlyActive: boolean,
+}): Prisma.MembershipWhereInput {
+    return { groupId, order, user: userPartitions.unarchived, ...(onlyActive && { active: true }) }
 }
 
 /** The revue's members of the group, in the group's own order of them, with the username a profile needs. */
 async function readMembersInRevue(prisma: PrismaPossibleTransaction<false>, group: GroupAndOrder, order: number) {
     const memberships = await prisma.membership.findMany({
-        where: membershipsInRevue(group, order),
+        where: revueMembershipsOf(group, order),
         select: { title: true, user: { select: { firstname: true, lastname: true, username: true } } },
         orderBy: [{ position: 'asc' }, { userId: 'asc' }],
     })

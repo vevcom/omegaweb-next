@@ -475,6 +475,135 @@ describe('the members a revue group would have in a revue at an order', () => {
     })
 })
 
+describe('a revue\'s members of a sub group, removed and deleted', () => {
+    test('one removed is not listed while the group stands in the order, is again once it has moved past it, '
+        + 'and is gone everywhere once deleted', async () => {
+        const revue = await createRevue(2025)
+        const band = await createSubGroupWithGroupId(revue.id, 'Band', currentOrder - 1)
+        await prisma.group.update({ where: { id: band.groupId }, data: { order: currentOrder - 1 } })
+        const [kari, ola] = await createUsers('Kari', 'Ola')
+        await addMembers(band.groupId, currentOrder - 1, [kari], true)
+        await addMembers(band.groupId, currentOrder - 1, [ola])
+        const listed = async () => ({
+            groupPage: await memberNames(2025, 'Band'),
+            count: (await revueGroupOperations.readManyInRevue({
+                params: { revueId: revue.id },
+                session: Session.empty(),
+            }))[0].memberCount,
+            profile: (await revueGroupOperations.readManyOfUser({ params: { userId: ola.id }, session: revueAdmin }))
+                .map(group => group.revue.year),
+            memberProfiles: (await revueGroupOperations.readMemberProfilesInRevue({
+                params: { year: 2025, name: 'Band' },
+                session: revueAdmin,
+            })).map(member => member.username),
+            preview: (await revueGroupOperations.readMembersAtOrder({
+                params: { revueGroupId: band.id, order: currentOrder - 1 },
+                session: revueAdmin,
+            })).map(member => member.name),
+        })
+
+        await revueSubGroupOperations.removeMembers({
+            params: { groupId: band.groupId },
+            data: { userIds: [ola.id] },
+            session: revueAdmin,
+        })
+        expect(await listed()).toEqual({
+            groupPage: ['Kari Nordmann'],
+            count: 1,
+            profile: [],
+            memberProfiles: [kari.username],
+            preview: ['Kari Nordmann'],
+        })
+
+        await revueSubGroupOperations.migrateGroup({
+            params: { groupId: band.groupId },
+            data: { keep: [{ userId: kari.id, admin: true }] },
+            session: revueAdmin,
+        })
+        expect(await listed()).toEqual({
+            groupPage: ['Kari Nordmann', 'Ola Nordmann'],
+            count: 2,
+            profile: [2025],
+            memberProfiles: [kari.username, ola.username],
+            preview: ['Kari Nordmann', 'Ola Nordmann'],
+        })
+
+        await revueSubGroupOperations.destroyMembership({
+            params: { groupId: band.groupId, order: currentOrder - 1 },
+            data: { userId: ola.id },
+            session: revueAdmin,
+        })
+        expect(await listed()).toEqual({
+            groupPage: ['Kari Nordmann'],
+            count: 1,
+            profile: [],
+            memberProfiles: [kari.username],
+            preview: ['Kari Nordmann'],
+        })
+    })
+
+    test('one added to a past order by mistake is deleted by the group\'s admin and gone from that revue', async () => {
+        const revue = await createRevue(2025)
+        const band = await createSubGroupWithGroupId(revue.id, 'Band', currentOrder - 1)
+        const [kari, wrong] = await createUsers('Kari', 'Feil')
+        await addMembers(band.groupId, currentOrder, [kari], true)
+        await addMembers(band.groupId, currentOrder - 1, [kari, wrong])
+        expect(await memberNames(2025, 'Band')).toEqual(['Kari Nordmann', 'Feil Nordmann'])
+
+        await revueSubGroupOperations.destroyMembership({
+            params: { groupId: band.groupId, order: currentOrder - 1 },
+            data: { userId: wrong.id },
+            session: sessionOfAdminOf(kari, band.groupId),
+        })
+
+        expect(await memberNames(2025, 'Band')).toEqual(['Kari Nordmann'])
+    })
+
+    test('deleting is refused to a visitor, a plain user, another sub group\'s admin and a committee\'s admin', async () => {
+        const revue = await createRevue(2026)
+        const band = await createSubGroupWithGroupId(revue.id, 'Band')
+        const teknikk = await createSubGroupWithGroupId(revue.id, 'Teknikk')
+        const committee = await createCommittee()
+        const [kari, other] = await createUsers('Kari', 'Annen')
+        await addMembers(band.groupId, currentOrder, [kari])
+        await addMembers(teknikk.groupId, currentOrder, [other], true)
+
+        for (const session of [
+            Session.empty(),
+            Session.fromJsObject({ user: other, permissions: ['USERS_USE'], memberships: [] }),
+            sessionOfAdminOf(other, teknikk.groupId),
+            Session.fromJsObject({
+                user: other,
+                permissions: ['COMMITTEE_ADMIN'],
+                memberships: [{ groupId: committee.groupId, admin: true, active: true, order: currentOrder }],
+            }),
+        ]) {
+            await expect(revueSubGroupOperations.destroyMembership({
+                params: { groupId: band.groupId },
+                data: { userId: kari.id },
+                session,
+            })).rejects.toThrow(Smorekopp)
+        }
+        expect(await prisma.membership.count({ where: { groupId: band.groupId } })).toBe(1)
+    })
+
+    test('deleting through a sub group\'s operation reaches no group of another type', async () => {
+        const committee = await createCommittee()
+        const [kari] = await createUsers('Kari')
+        await committeeOperations.addMembers({
+            params: { groupId: committee.groupId },
+            data: { users: [{ userId: kari.id, admin: true }] },
+            session: committeeAdmin,
+        })
+        await expect(revueSubGroupOperations.destroyMembership({
+            params: { groupId: committee.groupId },
+            data: { userId: kari.id },
+            session: revueAdmin,
+        })).rejects.toThrow(Smorekopp)
+        expect(await prisma.membership.count({ where: { groupId: committee.groupId } })).toBe(1)
+    })
+})
+
 describe('the description of a revue group', () => {
     test('is the committee\'s admins\' to change for the revue group over their committee', async () => {
         const revue = await createRevue(2026)

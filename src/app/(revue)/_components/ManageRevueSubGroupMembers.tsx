@@ -19,7 +19,11 @@ type PropTypes = {
     orders: ManageGroupMembersOrder[],
 }
 
-/** A sub group's members to add, title, make admin, order, remove and delete, each as far as the viewer may. */
+/**
+ * A sub group's members to add, title, make admin, order, remove and delete, each as far as the viewer may. The
+ * group's own order lists the active ones until the inactive are asked for, since those are its members in the
+ * revue it stands in.
+ */
 export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders }: PropTypes) {
     const canAddMembers = useAuthorizer({ authorizer: revueSubGroupAuth.addMembers.data({ groupId }) })
     const canReadAddableUsers = useAuthorizer({ authorizer: revueSubGroupAuth.readAddableUsers.data({ groupId }) })
@@ -40,5 +44,6 @@ export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders
         setMemberTitleAction={canSetMemberTitle.authorized ? setRevueSubGroupMemberTitleAction : undefined}
         reorderMembersAction={canReorderMembers.authorized ? reorderRevueSubGroupMembersAction : undefined}
         destroyMembershipAction={canDestroyMembership.authorized ? destroyRevueSubGroupMembershipAction : undefined}
+        hidesInactiveByDefault
     />
 }
