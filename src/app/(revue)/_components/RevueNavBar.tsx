@@ -11,7 +11,8 @@ import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 
 type PropTypes = {
-    loggedIn: boolean,
+    /** The signed in user's, null for anyone else. */
+    username: string | null,
     /** Whether the session has an admin page to open, which is when the admin link is shown. */
     hasAdminPages: boolean,
 }
@@ -43,7 +44,7 @@ const mobileItemClassName = `
  * logout. On narrow screens the links go in a menu. The edit mode switch renders nothing for those who
  * have nothing to edit.
  */
-export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
+export default function RevueNavBar({ username, hasAdminPages }: PropTypes) {
     return (
         <header className="sticky top-0 z-3 bg-base-100 border-b border-accent/25">
             <nav className={`
@@ -67,7 +68,7 @@ export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
                     max-mobile:hidden
                 ">
                     <RevueLinks
-                        loggedIn={loggedIn}
+                        username={username}
                         hasAdminPages={hasAdminPages}
                         className={linkClassName}
                         loginClassName={loginButtonClassName}
@@ -80,14 +81,14 @@ export default function RevueNavBar({ loggedIn, hasAdminPages }: PropTypes) {
                     <EditModeSwitch />
                 </div>
                 <RevueMobileMenu>
-                    <RevueLinks loggedIn={loggedIn} hasAdminPages={hasAdminPages} className={mobileItemClassName} />
+                    <RevueLinks username={username} hasAdminPages={hasAdminPages} className={mobileItemClassName} />
                 </RevueMobileMenu>
             </nav>
         </header>
     )
 }
 
-function RevueLinks({ loggedIn, hasAdminPages, className, loginClassName = className }: PropTypes & {
+function RevueLinks({ username, hasAdminPages, className, loginClassName = className }: PropTypes & {
     className: string,
     loginClassName?: string,
 }) {
@@ -99,9 +100,10 @@ function RevueLinks({ loggedIn, hasAdminPages, className, loginClassName = class
             <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className={className}>
                 Til Omegaveven
             </SiteLink>
-            {loggedIn
-                ? <SiteLink href={revueAuthLinks.logout()} className={className}>Logg ut</SiteLink>
-                : <LoginLink config={revueAuthPages} className={loginClassName} />}
+            {username ? <>
+                <SiteLink href={revueLinks.user({ username })} className={className}>Min profil</SiteLink>
+                <SiteLink href={revueAuthLinks.logout()} className={className}>Logg ut</SiteLink>
+            </> : <LoginLink config={revueAuthPages} className={loginClassName} />}
         </>
     )
 }

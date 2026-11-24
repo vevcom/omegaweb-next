@@ -12,6 +12,7 @@ import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { userPrivateSelection } from '@/services/users/constants'
 import { defaultRevuePalette } from '@/app/(revue)/_lib/revueTheme'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
+import type { AnySession } from '@/auth/session/Session'
 
 const revueAdmin = Session.fromJsObject({ user: null, permissions: ['REVUE_ADMIN', 'USERS_USE'], memberships: [] })
 const committeeAdmin = Session.fromJsObject({ user: null, permissions: ['COMMITTEE_ADMIN'], memberships: [] })
@@ -635,6 +636,63 @@ describe('a revue sub group in the group system', () => {
         })
         await expect(revueSubGroupOperations.readAddableUsers({ params: page(''), session: Session.empty() }))
             .rejects.toThrow(Smorekopp)
+    })
+})
+
+describe('the revue groups of a user', () => {
+    test('are each group of each revue they were in, with the order, newest revue first', async () => {
+        const [lastYear, thisYear] = [await createRevue(2025), await createRevue(2026)]
+        const band = await createSubGroupWithGroupId(thisYear.id, 'Band')
+        await revueGroupOperations.addToRevue({
+            params: { revueId: lastYear.id },
+            data: { revueGroupId: band.id, order: currentOrder - 1 },
+            session: revueAdmin,
+        })
+        const committee = await createCommittee()
+        await revueGroupOperations.create({
+            params: { revueId: thisYear.id },
+            data: { type: 'COMMITTEE', name: 'Styret', committeeId: committee.id },
+            session: revueAdmin,
+        })
+        const [kari, ola] = await createUsers('Kari', 'Ola')
+        await addMembers(band.groupId, currentOrder - 1, [kari])
+        await addMembers(band.groupId, currentOrder, [kari, ola])
+        await committeeOperations.addMembers({
+            params: { groupId: committee.groupId },
+            data: { users: [{ userId: kari.id, admin: true }] },
+            session: committeeAdmin,
+        })
+        await revueSubGroupOperations.removeMembers({
+            params: { groupId: band.groupId },
+            data: { userIds: [ola.id] },
+            session: revueAdmin,
+        })
+
+        const groupsOf = (user: { id: number }) => revueGroupOperations.readManyOfUser({
+            params: { userId: user.id },
+            session: revueAdmin,
+        })
+        const row = (year: number, name: string, type: string, order: number) => ({
+            revue: { year, name: `Revyen ${year}` }, name, type, order, title: 'Medlem',
+        })
+        expect(await groupsOf(kari)).toEqual([
+            row(2026, 'Band', 'REVUE_SUB_GROUP', currentOrder),
+            row(2026, 'Styret', 'COMMITTEE', currentOrder),
+            row(2025, 'Band', 'REVUE_SUB_GROUP', currentOrder - 1),
+        ])
+        expect(await groupsOf(ola)).toEqual([])
+    })
+
+    test('are read by the user themself or with USERS_USE alone', async () => {
+        const [kari, ola] = await createUsers('Kari', 'Ola')
+        const read = (session: AnySession) => revueGroupOperations.readManyOfUser({ params: { userId: kari.id }, session })
+        const sessionOf = (user: typeof kari) => Session.fromJsObject({ user, permissions: [], memberships: [] })
+        const userAdmin = Session.fromJsObject({ user: null, permissions: ['USERS_USE'], memberships: [] })
+
+        await expect(read(sessionOf(kari))).resolves.toEqual([])
+        await expect(read(userAdmin)).resolves.toEqual([])
+        await expect(read(sessionOf(ola))).rejects.toThrow(Smorekopp)
+        await expect(read(Session.empty())).rejects.toThrow(Smorekopp)
     })
 })
 

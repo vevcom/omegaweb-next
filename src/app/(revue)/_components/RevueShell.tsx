@@ -19,8 +19,8 @@ type PropTypes = {
  * pages.
  */
 export default async function RevueShell({ theme, children }: PropTypes) {
-    const { loggedIn, companyUser, hasAdminPages } = await withPageSession(async session => ({
-        loggedIn: session.user !== null,
+    const { username, companyUser, hasAdminPages } = await withPageSession(async session => ({
+        username: session.user?.username ?? null,
         companyUser: session.companyUser,
         hasAdminPages: (await revueAdminNavDef.visible(session)).length > 0,
     }))
@@ -35,14 +35,14 @@ export default async function RevueShell({ theme, children }: PropTypes) {
         >
             <SiteTheme colors={theme} />
             <CompanyUserBand companyUser={companyUser} />
-            <RevueNavBar loggedIn={loggedIn} hasAdminPages={hasAdminPages} />
+            <RevueNavBar username={username} hasAdminPages={hasAdminPages} />
             <main className={`
                 ${innerClassName}
                 flex-1 py-8
             `}>
                 {children}
             </main>
-            <RevueFooter loggedIn={loggedIn} />
+            <RevueFooter loggedIn={username !== null} />
         </div>
     )
 }

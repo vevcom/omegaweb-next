@@ -26,9 +26,13 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ year: string, name: string }>) => {
-        const group = await revueGroupOperations.readInRevue({
-            params: { year: yearFromParam(params.year), name: decodeURIComponent(params.name) },
-        })
+        const groupParams = { year: yearFromParam(params.year), name: decodeURIComponent(params.name) }
+        const group = await revueGroupOperations.readInRevue({ params: groupParams })
+        const memberProfiles = await withFallback(
+            revueGroupOperations.readMemberProfilesInRevue({ params: groupParams }),
+            null,
+            ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+        )
         const managedHere = group.type === 'REVUE_SUB_GROUP' && group.order === group.group.order
             && !group.group.pensioned
         const memberships = managedHere
@@ -38,13 +42,14 @@ const { page, generateMetadata } = serverPage({
                 ['UNAUTHENTICATED', 'UNAUTHORIZED'],
             )
             : null
-        return { group, memberships }
+        const members: { name: string, title: string, username?: string }[] = memberProfiles ?? group.members
+        return { group, members, memberships }
     },
     capabilities: ({ group }) => ({
         canEdit: revueGroupAuth.updateArticleSection.data({ groupId: group.group.id }),
     }),
     metadata: ({ group }) => ({ title: `${group.name} - ${group.revue.name}` }),
-    render: ({ data: { group, memberships }, capabilities }) => {
+    render: ({ data: { group, members, memberships }, capabilities }) => {
         const actionConfig = { implementationParams: { revueGroupId: group.id } }
         const pensionedSubGroup = group.type === 'REVUE_SUB_GROUP' && group.group.pensioned
 
@@ -105,11 +110,18 @@ const { page, generateMetadata } = serverPage({
                 />
                 <section className="flex flex-col gap-6">
                     <h2 className="font-secondary text-xl">Medlemmer</h2>
-                    {group.members.length > 0 ? (
+                    {members.length > 0 ? (
                         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(13rem,100%),1fr))] gap-4 list-none">
-                            {group.members.map((member, index) => (
+                            {members.map((member, index) => (
                                 <li key={index} className="flex flex-col gap-1 p-4 rounded-round bg-base-200">
-                                    <span className="font-semibold wrap-anywhere">{member.name}</span>
+                                    {member.username ? (
+                                        <SiteLink
+                                            href={revueLinks.user({ username: member.username })}
+                                            className="font-semibold wrap-anywhere"
+                                        >
+                                            {member.name}
+                                        </SiteLink>
+                                    ) : <span className="font-semibold wrap-anywhere">{member.name}</span>}
                                     <span className="text-s text-base-content/80">{member.title}</span>
                                 </li>
                             ))}

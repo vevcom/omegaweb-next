@@ -24,6 +24,7 @@ const paramsFieldSchemas = z.object({
     revueId: z.number(),
     year: z.number(),
     name: z.string(),
+    userId: z.number(),
 })
 
 const revueGroupId = paramsFieldSchemas.pick({ revueGroupId: true })
@@ -49,5 +50,7 @@ export const revueGroupSchemas = {
         destroy: revueGroupId,
         articleSection: revueGroupId,
         carryInto: paramsFieldSchemas.pick({ revueId: true }),
+        readManyOfUser: paramsFieldSchemas.pick({ userId: true }),
+        readMemberProfilesInRevue: paramsFieldSchemas.pick({ year: true, name: true }),
     },
 }

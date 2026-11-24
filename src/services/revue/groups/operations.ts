@@ -221,7 +221,7 @@ export const revueGroupOperations = {
                     name: revueGroup.committee.name,
                     shortName: revueGroup.committee.shortName,
                 },
-                members: await readMembersInRevue(prisma, group, order),
+                members: (await readMembersInRevue(prisma, group, order)).map(({ name, title }) => ({ name, title })),
             }
         },
     }),
@@ -262,6 +262,53 @@ export const revueGroupOperations = {
     internal: {
         carryInto,
     },
+
+    /**
+     * The revue groups a user was in, one for each revue a group was in, with the order their membership
+     * is of. Newest revue first. A user is in a group in a revue by the same rule as its members there.
+     */
+    readManyOfUser: defineOperation({
+        paramsSchema: revueGroupSchemas.params.readManyOfUser,
+        authorizer: ({ params }) => revueGroupAuth.readManyOfUser.data({ userId: params.userId }),
+        operation: async ({ prisma, params }) => {
+            const memberOfGroup = { group: { memberships: { some: { userId: params.userId } } } }
+            const groupsInRevues = await prisma.revueGroupInRevue.findMany({
+                where: { revueGroup: { OR: [{ committee: memberOfGroup }, { revueSubGroup: memberOfGroup }] } },
+                include: {
+                    revue: { select: { year: true, name: true } },
+                    revueGroup: { include: revueGroupKindIncluder },
+                },
+                orderBy: [{ revue: { year: 'desc' } }, { revueGroup: { name: 'asc' } }],
+            })
+
+            const groups = groupsInRevues.map(({ revueGroup, order }) => ({ group: groupOfRevueGroup(revueGroup), order }))
+            const memberships = await prisma.membership.findMany({
+                where: { userId: params.userId, OR: groups.map(({ group, order }) => membershipsInRevue(group, order)) },
+                select: { groupId: true, order: true, title: true },
+            })
+
+            return groupsInRevues.flatMap(({ revue, revueGroup, order }, index) => {
+                const membership = memberships.find(candidate => (
+                    candidate.groupId === groups[index].group.id && candidate.order === order
+                ))
+                if (!membership) return []
+                return [{ revue, name: revueGroup.name, type: revueGroup.type, order, title: membership.title }]
+            })
+        },
+    }),
+
+    /** A group's members in a revue as `readInRevue` gives them, with the username that opens each profile. */
+    readMemberProfilesInRevue: defineOperation({
+        paramsSchema: revueGroupSchemas.params.readMemberProfilesInRevue,
+        authorizer: () => revueGroupAuth.readMemberProfilesInRevue,
+        operation: async ({ prisma, params }) => {
+            const { revueGroup, order } = await prisma.revueGroupInRevue.findFirstOrThrow({
+                where: { revue: { year: params.year }, revueGroup: { name: params.name } },
+                include: { revueGroup: { include: revueGroupKindIncluder } },
+            })
+            return readMembersInRevue(prisma, groupOfRevueGroup(revueGroup), order)
+        },
+    }),
 } as const
 
 type GroupAndOrder = { id: number, order: number, pensioned: boolean }
@@ -370,11 +417,16 @@ function membershipsInRevue(group: GroupAndOrder, order: number): Prisma.Members
     }
 }
 
+/** The revue's members of the group, in the group's own order of them, with the username a profile needs. */
 async function readMembersInRevue(prisma: PrismaPossibleTransaction<false>, group: GroupAndOrder, order: number) {
     const memberships = await prisma.membership.findMany({
         where: membershipsInRevue(group, order),
-        select: { title: true, user: { select: { firstname: true, lastname: true } } },
+        select: { title: true, user: { select: { firstname: true, lastname: true, username: true } } },
         orderBy: [{ position: 'asc' }, { userId: 'asc' }],
     })
-    return memberships.map(({ title, user }) => ({ name: `${user.firstname} ${user.lastname}`, title }))
+    return memberships.map(({ title, user }) => ({
+        name: `${user.firstname} ${user.lastname}`,
+        title,
+        username: user.username,
+    }))
 }
