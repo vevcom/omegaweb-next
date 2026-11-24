@@ -130,8 +130,8 @@ const readStandardImage = defineOperation({
 
 /**
  * Reads every standard image in two queries rather than one pair per member. The root layout awaits
- * this on every request, so resolving each of the fourteen images individually - each re-reading the
- * same standard collection - is the difference between two round trips and twenty-eight.
+ * this on every request, so resolving each image individually - each re-reading the same standard
+ * collection - is the difference between two round trips and two per image.
  *
  * Anything missing, or sitting outside the standard collection, is regenerated from static config by
  * readStandardImage, which also logs the anomaly. That is done up front and in parallel so the record
@@ -185,6 +185,7 @@ const readAllStandardImages = defineOperation({
             REALFAGSBYGGET: imageFor(StandardImage.REALFAGSBYGGET),
             FAIR: imageFor(StandardImage.FAIR),
             PWA: imageFor(StandardImage.PWA),
+            REVUE_LOGO: imageFor(StandardImage.REVUE_LOGO),
         }
     }
 })

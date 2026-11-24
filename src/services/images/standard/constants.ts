@@ -73,6 +73,11 @@ export const standardImageConfig = {
         name: 'pwa',
         alt: 'PWA',
     },
+    REVUE_LOGO: {
+        standardStoreFile: standardStoreFiles.revueLogo,
+        name: 'revue_logo',
+        alt: 'Logoen til Omegarevyen: en gul omega med to teatermasker',
+    },
 } as const satisfies Record<StandardImage, {
     standardStoreFile: StandardStoreFile
     name: string
