@@ -5,6 +5,7 @@ import { makeAction } from '@/services/serverAction'
 export const createRevueGroupAction = makeAction(revueGroupOperations.create)
 export const addRevueGroupToRevueAction = makeAction(revueGroupOperations.addToRevue)
 export const removeRevueGroupFromRevueAction = makeAction(revueGroupOperations.removeFromRevue)
+export const readRevueGroupMembersAtOrderAction = makeAction(revueGroupOperations.readMembersAtOrder)
 export const updateRevueGroupAction = makeAction(revueGroupOperations.update)
 export const destroyRevueGroupAction = makeAction(revueGroupOperations.destroy)
 

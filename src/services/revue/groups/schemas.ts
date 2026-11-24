@@ -25,6 +25,7 @@ const paramsFieldSchemas = z.object({
     year: z.number(),
     name: z.string(),
     userId: z.number(),
+    order: z.number().int(),
 })
 
 const revueGroupId = paramsFieldSchemas.pick({ revueGroupId: true })
@@ -52,5 +53,6 @@ export const revueGroupSchemas = {
         carryInto: paramsFieldSchemas.pick({ revueId: true }),
         readManyOfUser: paramsFieldSchemas.pick({ userId: true }),
         readMemberProfilesInRevue: paramsFieldSchemas.pick({ year: true, name: true }),
+        readMembersAtOrder: paramsFieldSchemas.pick({ revueGroupId: true, order: true }),
     },
 }

@@ -1,4 +1,4 @@
-import CreateCommitteeRevueGroupForm from './CreateCommitteeRevueGroupForm'
+import CreateRevueGroupForms from './CreateRevueGroupForms'
 import { revueAdminLinks } from '@/app/(revue)/revue/(static-theme)/admin/links'
 import { revueAdminNavDef } from '@/app/(revue)/revue/(static-theme)/admin/revueAdminNavDef'
 import { omegaLinks } from '@/app/(omegaweb)/links'
@@ -13,7 +13,7 @@ import { revueGroupOperations } from '@/services/revue/groups/operations'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
-const createPopUpKey = 'CreateCommitteeRevueGroup'
+const createPopUpKey = 'CreateRevueGroup'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
@@ -48,17 +48,18 @@ const { page, generateMetadata } = serverPage({
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-4">
                     <h1 className="m-0">Grupper</h1>
-                    {capabilities.canCreate.authorized && committees && <AddHeaderItemPopUp popUpKey={createPopUpKey}>
-                        <CreateCommitteeRevueGroupForm
-                            committees={committees.filter(committee => !revueGroups.some(
+                    {capabilities.canCreate.authorized && <AddHeaderItemPopUp popUpKey={createPopUpKey}>
+                        <CreateRevueGroupForms
+                            committees={committees?.filter(committee => !revueGroups.some(
                                 revueGroup => revueGroup.committee?.group.id === committee.groupId
-                            ))}
+                            )) ?? null}
                             closePopUpOnSuccess={createPopUpKey}
                         />
                     </AddHeaderItemPopUp>}
                 </div>
                 <p className="m-0 text-base-content/80">
-                    En revygruppe er en revyundergruppe eller en komité. En ny undergruppe lages på revyens side.
+                    En revygruppe er en revyundergruppe eller en komité. En ny gruppe er ikke med i noen revy før den
+                    legges inn fra revyens side under Revyer.
                 </p>
                 <h2 className="m-0 mt-4">Revyundergrupper</h2>
                 <GroupTypeTable

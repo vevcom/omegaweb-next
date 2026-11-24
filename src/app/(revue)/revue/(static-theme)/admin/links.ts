@@ -8,6 +8,7 @@ export type RevueAdminLinks = {
     frontpage: () => AppHref,
     mail: () => AppHref,
     revues: () => AppHref,
+    revue: (revue: { year: number }) => AppHref,
     groups: () => AppHref,
     group: (group: { name: string }) => AppHref,
 }
@@ -16,6 +17,7 @@ export const revueAdminLinks: RevueAdminLinks = defineLinks<PagesMount, RevueAdm
     frontpage: () => href(),
     mail: () => revueMailServerLinks.frontpage(),
     revues: () => href('/revues'),
+    revue: revue => href(`/revues/${revue.year}`),
     groups: () => href('/groups'),
     group: group => href(`/groups/${encodeURIComponent(group.name)}`),
 }))(revueAdminPages)

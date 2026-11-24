@@ -56,7 +56,7 @@ const { page, generateMetadata } = serverPage({
                 <h2>I revyene</h2>
                 {revueGroup.revues.length === 0
                     ? <p className="m-0 text-base-content/80">
-                        Gruppen er ikke med i noen revy. Den legges inn fra revyens innstillinger.
+                        Gruppen er ikke med i noen revy. Den legges inn fra revyens side under Revyer.
                     </p>
                     : <ul className="m-0 p-0 list-none flex flex-col gap-1">
                         {revueGroup.revues.map(({ revue, order }) => (

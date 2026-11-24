@@ -54,7 +54,7 @@ export default function RevueMetaForms({
             navigateOnSuccess={hrefAfterDestroy}
             confirmation={{
                 confirm: true,
-                text: `Vil du slette ${revue.name} med alle undergruppene og medlemmene?`,
+                text: `Vil du slette ${revue.name}? Gruppene og medlemmene deres blir som de er.`,
             }}
         />}
     </div>

@@ -12,6 +12,7 @@ export const revueGroupAuth = {
     readToCarryOver: requireReadGroupMembers('REVUE_ADMIN'),
     readManyInRevue: Require.nothing(),
     readInRevue: Require.nothing(),
+    readMembersAtOrder: revueAdmin,
     update: revueAdmin,
     destroy: revueAdmin,
     updateArticleSection: revueAdmin.or().groupAdmin(),

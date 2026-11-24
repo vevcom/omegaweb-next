@@ -74,6 +74,21 @@ describe('creating a revue group', () => {
         expect(made.revues).toEqual([{ revueId: revue.id, revueGroupId: revueGroup.id, order: currentOrder }])
     })
 
+    test('of a sub group without a revue puts its group at Omega\'s order and it in no revue', async () => {
+        const revueGroup = await revueGroupOperations.create({
+            params: {},
+            data: { type: 'REVUE_SUB_GROUP', name: 'Band' },
+            session: revueAdmin,
+        })
+
+        const made = await prisma.revueGroup.findUniqueOrThrow({
+            where: { id: revueGroup.id },
+            include: { revueSubGroup: { include: { group: true } }, revues: true },
+        })
+        expect(made.revueSubGroup?.group).toMatchObject({ order: currentOrder, pensioned: false })
+        expect(made.revues).toEqual([])
+    })
+
     test('of a committee points at the committee, makes no group of its own and is in no revue', async () => {
         const committee = await createCommittee()
         const groupCount = await prisma.group.count()
@@ -438,6 +453,50 @@ describe('the members of a revue group in a revue', () => {
             session: Session.empty(),
         })
         expect(group.members).toEqual([{ name: 'Kari Nordmann', title: 'Kapellmester' }])
+    })
+})
+
+describe('the members a revue group would have in a revue at an order', () => {
+    test('are those a revue at that order would list, whether or not the group is in a revue', async () => {
+        const band = await revueGroupOperations.create({
+            params: {},
+            data: { type: 'REVUE_SUB_GROUP', name: 'Band' },
+            session: revueAdmin,
+        })
+        const { groupId } = await prisma.revueSubGroup.findUniqueOrThrow({ where: { id: band.revueSubGroupId ?? 0 } })
+        const [kari, ola, per] = await createUsers('Kari', 'Ola', 'Per')
+        await addMembers(groupId, currentOrder, [kari, ola])
+        await revueSubGroupOperations.removeMembers({
+            params: { groupId },
+            data: { userIds: [ola.id] },
+            session: revueAdmin,
+        })
+        await addMembers(groupId, currentOrder - 1, [per])
+        const membersAt = (order: number) => revueGroupOperations.readMembersAtOrder({
+            params: { revueGroupId: band.id, order },
+            session: revueAdmin,
+        })
+
+        expect(await membersAt(currentOrder)).toEqual([{ name: 'Kari Nordmann', title: 'Medlem' }])
+        expect(await membersAt(currentOrder - 1)).toEqual([{ name: 'Per Nordmann', title: 'Medlem' }])
+        expect(await membersAt(currentOrder + 1)).toEqual([])
+    })
+
+    test('are read by a revue admin, and not by a visitor, a plain user or the sub group\'s admin', async () => {
+        const revue = await createRevue(2026)
+        const { id, groupId } = await createSubGroupWithGroupId(revue.id, 'Band')
+        const [admin] = await createUsers('Admin')
+        await addMembers(groupId, currentOrder, [admin], true)
+        const params = { revueGroupId: id, order: currentOrder }
+
+        await expect(revueGroupOperations.readMembersAtOrder({ params, session: revueAdmin })).resolves.toHaveLength(1)
+        for (const session of [
+            Session.empty(),
+            Session.fromJsObject({ user: admin, permissions: ['USERS_USE'], memberships: [] }),
+            sessionOfAdminOf(admin, groupId),
+        ]) {
+            await expect(revueGroupOperations.readMembersAtOrder({ params, session })).rejects.toThrow(Smorekopp)
+        }
     })
 })
 

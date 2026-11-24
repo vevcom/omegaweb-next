@@ -2,7 +2,6 @@ import RevueRow from './RevueRow'
 import CreateRevueForm from '@/app/(revue)/_components/CreateRevueForm'
 import { revueAdminNavDef } from '@/app/(revue)/revue/(static-theme)/admin/revueAdminNavDef'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { revueAuth } from '@/services/revue/auth'
 import { revueOperations } from '@/services/revue/operations'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
@@ -25,8 +24,6 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: () => ({
         canCreate: revueAuth.create,
-        canUpdate: revueAuth.update,
-        canDestroy: revueAuth.destroy,
     }),
     metadata: () => ({ title: 'Revyer' }),
     render: ({ data: { revues, carryOver }, capabilities }) => (
@@ -46,7 +43,6 @@ const { page, generateMetadata } = serverPage({
                     {revues.map(revue => <RevueRow
                         key={revue.id}
                         revue={{
-                            id: revue.id,
                             year: revue.year,
                             name: revue.name,
                             themeBackground: revue.themeBackground,
@@ -54,10 +50,6 @@ const { page, generateMetadata } = serverPage({
                             themeSecondary: revue.themeSecondary,
                             themeAccent: revue.themeAccent,
                         }}
-                        capabilities={capabilitiesToJsObject({
-                            canUpdate: capabilities.canUpdate,
-                            canDestroy: capabilities.canDestroy,
-                        })}
                     />)}
                 </ul>}
         </div>

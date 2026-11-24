@@ -195,6 +195,20 @@ export const revueGroupOperations = {
         },
     }),
 
+    /** Who a group's members in a revue would be at an order, as names and titles, for choosing the order. */
+    readMembersAtOrder: defineOperation({
+        paramsSchema: revueGroupSchemas.params.readMembersAtOrder,
+        authorizer: () => revueGroupAuth.readMembersAtOrder,
+        operation: async ({ prisma, params }) => {
+            const revueGroup = await prisma.revueGroup.findUniqueOrThrow({
+                where: { id: params.revueGroupId },
+                include: revueGroupKindIncluder,
+            })
+            const members = await readMembersInRevue(prisma, groupOfRevueGroup(revueGroup), params.order)
+            return members.map(({ name, title }) => ({ name, title }))
+        },
+    }),
+
     /** A group as a revue shows it, with its members of that revue as names and titles alone. */
     readInRevue: defineOperation({
         paramsSchema: revueGroupSchemas.params.readInRevue,
