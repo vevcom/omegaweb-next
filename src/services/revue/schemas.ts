@@ -9,7 +9,7 @@ const dataFieldSchemas = z.object({
     themePrimary: Zpn.hexColor(),
     themeSecondary: Zpn.hexColor(),
     themeAccent: Zpn.hexColor(),
-    carriedGroups: Zpn.json({ label: 'Grupper', schema: revueGroupDataFieldSchemas.shape.carriedGroups }),
+    groups: Zpn.json({ label: 'Grupper', schema: revueGroupDataFieldSchemas.shape.groupsAtOrders }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -31,7 +31,7 @@ const revueId = paramsFieldSchemas.pick({ revueId: true })
 export const revueSchemas = {
     data: {
         create: dataFieldSchemas.pick(revueFields).extend({
-            carriedGroups: dataFieldSchemas.shape.carriedGroups.optional(),
+            groups: dataFieldSchemas.shape.groups.optional(),
         }),
         update: dataFieldSchemas.pick(revueFields).partial(),
     },

@@ -34,8 +34,8 @@ const { page, generateMetadata } = serverPage({
     operation: async () => ({
         article: await revueFrontpageOperations.mainRevueInfo.read({}),
         revues: await revueOperations.readMany({}),
-        carryOver: await withFallback(
-            revueGroupOperations.readToCarryOver({}),
+        groupsForNewRevue: await withFallback(
+            revueGroupOperations.readManyForNewRevue({}),
             null,
             ['UNAUTHENTICATED', 'UNAUTHORIZED'],
         ),
@@ -45,9 +45,9 @@ const { page, generateMetadata } = serverPage({
     }),
     // Absolute: the frontpage is the site, so the layout's template would read "Omegarevyen | Omegarevyen".
     metadata: () => ({ title: { absolute: 'Omegarevyen' } }),
-    render: ({ data: { article, revues: [currentRevue, ...earlierRevues], carryOver }, capabilities }) => (
+    render: ({ data: { article, revues: [currentRevue, ...earlierRevues], groupsForNewRevue }, capabilities }) => (
         <div className="flex flex-col gap-12">
-            <CreateRevue carryOver={carryOver} />
+            <CreateRevue groups={groupsForNewRevue} />
             {currentRevue && (
                 <SiteLink
                     href={revueLinks.revue(currentRevue)}

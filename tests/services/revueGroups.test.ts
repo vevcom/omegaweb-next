@@ -1,6 +1,6 @@
 import { Session } from '@/auth/session/Session'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
-import { ParseError, Smorekopp } from '@/services/error'
+import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { revueOperations } from '@/services/revue/operations'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
@@ -189,19 +189,14 @@ describe('migrating a revue sub group', () => {
     })
 })
 
-describe('a new revue carrying the previous revue\'s groups', () => {
-    test('puts a committee in at its order plus one and a sub group at Omega\'s, migrated with whom it keeps', async () => {
-        const previous = await createRevue(2026)
-        const committeeKind = await createCommitteeKind(previous.id, currentOrder - 2)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-        const [kari, ola] = await createUsers('Kari', 'Ola')
-        await addMembers(band.groupId, currentOrder - 1, [kari], true)
-        await addMembers(band.groupId, currentOrder - 1, [ola])
-        const updatedAt = await updatedAtOf(kari, ola)
+describe('making a revue with groups', () => {
+    test('puts each group in at the order chosen for it, of either kind', async () => {
+        const styret = await createCommitteeKindInNoRevue()
+        const band = await createSubGroupInNoRevue('Band')
 
-        const revue = await createRevueCarrying(2027, [
-            { revueGroupId: committeeKind.id, keep: [] },
-            { revueGroupId: band.id, keep: [{ userId: kari.id, admin: false }, { userId: ola.id, admin: true }] },
+        const revue = await createRevueWithGroups(2027, [
+            { revueGroupId: styret.id, order: currentOrder - 1 },
+            { revueGroupId: band.id, order: currentOrder },
         ])
 
         expect(await prisma.revueGroupInRevue.findMany({
@@ -209,138 +204,118 @@ describe('a new revue carrying the previous revue\'s groups', () => {
             select: { revueGroupId: true, order: true },
             orderBy: { order: 'asc' },
         })).toEqual([
-            { revueGroupId: committeeKind.id, order: currentOrder - 1 },
+            { revueGroupId: styret.id, order: currentOrder - 1 },
             { revueGroupId: band.id, order: currentOrder },
         ])
-        expect(await prisma.membership.findMany({
-            where: { groupId: band.groupId, order: currentOrder },
-            select: { userId: true, admin: true, active: true },
-            orderBy: { userId: 'asc' },
-        })).toEqual([
-            { userId: kari.id, admin: false, active: true },
-            { userId: ola.id, admin: true, active: true },
-        ].sort((one, other) => one.userId - other.userId))
-        const updatedAfter = await updatedAtOf(kari, ola)
-        updatedAfter.forEach((after, index) => expect(after.getTime()).toBeGreaterThan(updatedAt[index].getTime()))
-        expect(await memberNames(2026, 'Band')).toEqual(['Kari Nordmann', 'Ola Nordmann'])
     })
 
-    test('pensions a sub group left out, so Omega\'s next increment is not held back', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-        const teknikk = await createSubGroupBehind(previous.id, 'Teknikk')
+    test('puts no group in when none is given', async () => {
+        await createSubGroupInNoRevue('Band')
 
-        const revue = await createRevueCarrying(2027, [{ revueGroupId: band.id, keep: [] }])
+        await createRevue(2026)
+        await createRevueWithGroups(2027, [])
 
-        expect(await prisma.group.findUniqueOrThrow({ where: { id: teknikk.groupId } }))
-            .toMatchObject({ pensioned: true, order: currentOrder - 1 })
-        expect(await prisma.revueGroupInRevue.findMany({ where: { revueId: revue.id }, select: { revueGroupId: true } }))
-            .toEqual([{ revueGroupId: band.id }])
-        const requirements = await omegaOrderOperations.readRequirements({ bypassAuth: true })
-        expect(requirements.find(requirement => requirement.key === 'GROUPS_MIGRATED_REVUE_SUB_GROUP'))
-            .toMatchObject({ fulfilled: true })
+        expect(await prisma.revueGroupInRevue.count()).toBe(0)
     })
 
-    test('does not migrate a sub group already at Omega\'s order again', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-        const [kari] = await createUsers('Kari')
-        await addMembers(band.groupId, currentOrder - 1, [kari], true)
-        await revueSubGroupOperations.migrateGroup({
-            params: { groupId: band.groupId },
-            data: { keep: [{ userId: kari.id, admin: true }] },
+    test('is refused, leaving no revue, for an order Omega lacks, a group twice or one that does not exist', async () => {
+        const band = await createSubGroupInNoRevue('Band')
+
+        await expect(createRevueWithGroups(2027, [{ revueGroupId: band.id, order: currentOrder + 1 }]))
+            .rejects.toMatchObject({ errors: [{ message: `Omega har ingen orden ${currentOrder + 1}` }] })
+        await expect(createRevueWithGroups(2027, [
+            { revueGroupId: band.id, order: currentOrder },
+            { revueGroupId: band.id, order: currentOrder - 1 },
+        ])).rejects.toMatchObject({ errorCode: 'DUPLICATE' })
+        await expect(createRevueWithGroups(2027, [
+            { revueGroupId: band.id, order: currentOrder },
+            { revueGroupId: band.id + 1000, order: currentOrder },
+        ])).rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
+        expect(await prisma.revue.count()).toBe(0)
+        expect(await prisma.revueGroupInRevue.count()).toBe(0)
+    })
+
+    test('changes no group\'s order, memberships or pension', async () => {
+        const committee = await createCommittee()
+        const [kari, ola] = await createUsers('Kari', 'Ola')
+        await committeeOperations.addMembers({
+            params: { groupId: committee.groupId },
+            data: { users: [{ userId: kari.id, admin: true }] },
+            session: committeeAdmin,
+        })
+        const styret = await revueGroupOperations.create({
+            params: {},
+            data: { type: 'COMMITTEE', name: 'Styret', committeeId: committee.id },
             session: revueAdmin,
         })
+        const band = await createSubGroupInNoRevue('Band')
+        await addMembers(band.groupId, currentOrder, [ola], true)
+        const groupIds = [committee.groupId, band.groupId]
+        const groupsAndMemberships = async () => ({
+            groups: await prisma.group.findMany({
+                where: { id: { in: groupIds } },
+                select: { id: true, order: true, pensioned: true },
+                orderBy: { id: 'asc' },
+            }),
+            memberships: await prisma.membership.findMany({
+                where: { groupId: { in: groupIds } },
+                select: { groupId: true, userId: true, order: true, active: true, admin: true },
+                orderBy: [{ groupId: 'asc' }, { userId: 'asc' }],
+            }),
+        })
+        const before = await groupsAndMemberships()
 
-        const revue = await createRevueCarrying(2027, [{ revueGroupId: band.id, keep: [] }])
+        await createRevueWithGroups(2027, [
+            { revueGroupId: styret.id, order: currentOrder - 1 },
+            { revueGroupId: band.id, order: currentOrder - 1 },
+        ])
 
-        expect(await prisma.membership.findMany({
-            where: { groupId: band.groupId, order: currentOrder },
-            select: { userId: true, admin: true, active: true },
-        })).toEqual([{ userId: kari.id, admin: true, active: true }])
+        expect(await groupsAndMemberships()).toEqual(before)
+    })
+
+    test('is made while Omega has not incremented since the previous revue', async () => {
+        const previous = await createRevue(2026)
+        const band = await createSubGroupWithGroupId(previous.id, 'Band')
+
+        const revue = await createRevueWithGroups(2027, [{ revueGroupId: band.id, order: currentOrder }])
+
         expect(await prisma.revueGroupInRevue.findMany({ where: { revueId: revue.id }, select: { order: true } }))
             .toEqual([{ order: currentOrder }])
     })
 
-    test('is refused while Omega has not incremented since the previous revue, and writes nothing', async () => {
+    test('chooses from every revue group, with its own order and its order in the previous revue', async () => {
+        await createRevue(2025)
         const previous = await createRevue(2026)
-        const band = await createSubGroupWithGroupId(previous.id, 'Band')
-
-        await expect(createRevueCarrying(2027, [{ revueGroupId: band.id, keep: [] }])).rejects.toMatchObject({
-            errors: [{ message: expect.stringContaining('Omega har ikke inkrementert siden Revyen 2026') }],
-        })
-        expect(await prisma.revue.count()).toBe(1)
-        expect(await prisma.revueGroupInRevue.count()).toBe(1)
-    })
-
-    test('that fails half-way leaves no revue and no group changed, saying which group failed', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-        const skuespill = await createSubGroupBehind(previous.id, 'Skuespill')
-        const [kari, ola] = await createUsers('Kari', 'Ola')
-        await addMembers(band.groupId, currentOrder - 1, [kari], true)
-        await addMembers(skuespill.groupId, currentOrder - 1, [ola], true)
-
-        await expect(createRevueCarrying(2027, [
-            { revueGroupId: band.id, keep: [{ userId: kari.id, admin: true }] },
-            { revueGroupId: skuespill.id, keep: [] },
-        ])).rejects.toMatchObject({ errors: [{ message: expect.stringMatching(/^Skuespill: Minst ett medlem/) }] })
-
-        expect(await prisma.revue.count()).toBe(1)
-        expect(await prisma.group.findUniqueOrThrow({ where: { id: band.groupId } }))
-            .toMatchObject({ order: currentOrder - 1 })
-        expect(await prisma.membership.count({ where: { groupId: band.groupId, order: currentOrder } })).toBe(0)
-    })
-
-    test('is refused when it names a group twice', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-
-        await expect(createRevueCarrying(2027, [
-            { revueGroupId: band.id, keep: [] },
-            { revueGroupId: band.id, keep: [] },
-        ])).rejects.toBeInstanceOf(ParseError)
-        expect(await prisma.revue.count()).toBe(1)
-    })
-
-    test('is refused into a year that is not after the previous revue\'s', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-
-        await expect(createRevueCarrying(2025, [{ revueGroupId: band.id, keep: [] }])).rejects.toMatchObject({
-            errors: [{ message: 'Gruppene kan bare tas med til en revy etter Revyen 2026 (2026)' }],
-        })
-    })
-
-    test('offers a revue admin the previous revue\'s groups but the pensioned, with whom a migration may keep', async () => {
-        const previous = await createRevue(2026)
-        const band = await createSubGroupBehind(previous.id, 'Band')
-        const teknikk = await createSubGroupBehind(previous.id, 'Teknikk')
+        const band = await createSubGroupWithGroupId(previous.id, 'Band', currentOrder - 1)
+        const teknikk = await createSubGroupInNoRevue('Teknikk')
         await revueSubGroupOperations.pension({
             params: { groupId: teknikk.groupId },
             data: { pensioned: true },
             session: revueAdmin,
         })
-        const [kari] = await createUsers('Kari')
-        await addMembers(band.groupId, currentOrder - 1, [kari], true)
 
-        expect(await revueGroupOperations.readToCarryOver({ session: revueAdmin })).toEqual({
+        expect(await revueGroupOperations.readManyForNewRevue({ session: revueAdmin })).toEqual({
             previousRevue: { year: 2026, name: 'Revyen 2026' },
-            omegaHasNotIncremented: null,
-            groups: [{
-                id: band.id,
-                name: 'Band',
-                type: 'REVUE_SUB_GROUP',
-                order: currentOrder - 1,
-                orderInNewRevue: currentOrder,
-                migration: {
-                    groupId: band.groupId,
-                    groupOrder: currentOrder - 1,
-                    candidates: [{ userId: kari.id, title: 'Medlem', admin: true, name: 'Kari Nordmann' }],
+            groups: [
+                {
+                    id: band.id,
+                    name: 'Band',
+                    type: 'REVUE_SUB_GROUP',
+                    order: currentOrder,
+                    pensioned: false,
+                    orderInPreviousRevue: currentOrder - 1,
                 },
-            }],
+                {
+                    id: teknikk.id,
+                    name: 'Teknikk',
+                    type: 'REVUE_SUB_GROUP',
+                    order: currentOrder,
+                    pensioned: true,
+                    orderInPreviousRevue: null,
+                },
+            ],
         })
-        await expect(revueGroupOperations.readToCarryOver({ session: Session.empty() })).rejects.toThrow(Smorekopp)
+        await expect(revueGroupOperations.readManyForNewRevue({ session: Session.empty() })).rejects.toThrow(Smorekopp)
     })
 })
 
@@ -774,40 +749,31 @@ async function createSubGroupWithGroupId(revueId: number, name: string, order = 
     return { ...revueGroup, groupId }
 }
 
-function createRevueCarrying(year: number, carriedGroups: { revueGroupId: number, keep: KeptMember[] }[]) {
+function createRevueWithGroups(year: number, groups: { revueGroupId: number, order: number }[]) {
     return revueOperations.create({
-        data: { year, name: `Revyen ${year}`, ...defaultRevuePalette, carriedGroups },
+        data: { year, name: `Revyen ${year}`, ...defaultRevuePalette, groups },
         session: revueAdmin,
     })
 }
 
-/** A sub group in the revue, standing with its group in the order before Omega's, as last year's would. */
-async function createSubGroupBehind(revueId: number, name: string) {
-    const revueGroup = await createSubGroupWithGroupId(revueId, name, currentOrder - 1)
-    await prisma.group.update({ where: { id: revueGroup.groupId }, data: { order: currentOrder - 1 } })
-    return revueGroup
+async function createSubGroupInNoRevue(name: string) {
+    const revueGroup = await revueGroupOperations.create({
+        params: {},
+        data: { type: 'REVUE_SUB_GROUP', name },
+        session: revueAdmin,
+    })
+    const { groupId } = await prisma.revueSubGroup.findUniqueOrThrow({ where: { id: revueGroup.revueSubGroupId ?? 0 } })
+    return { ...revueGroup, groupId }
 }
 
-async function createCommitteeKind(revueId: number, order: number) {
+async function createCommitteeKindInNoRevue() {
     const committee = await createCommittee()
-    const revueGroup = await revueGroupOperations.create({
+    return revueGroupOperations.create({
         params: {},
         data: { type: 'COMMITTEE', name: 'Styret', committeeId: committee.id },
         session: revueAdmin,
     })
-    await revueGroupOperations.addToRevue({
-        params: { revueId },
-        data: { revueGroupId: revueGroup.id, order },
-        session: revueAdmin,
-    })
-    return revueGroup
 }
-
-async function updatedAtOf(...users: { id: number }[]) {
-    return Promise.all(users.map(async user => (await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).updatedAt))
-}
-
-type KeptMember = { userId: number, admin: boolean }
 
 async function createCommittee() {
     return committeeOperations.create({

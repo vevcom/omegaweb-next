@@ -5,18 +5,8 @@ export const revueGroupDataFieldSchemas = z.object({
     committeeId: z.coerce.number().int(),
     order: z.coerce.number().int(),
     revueGroupId: z.coerce.number().int(),
-    /**
-     * The groups of the previous revue a new revue carries over, each with the members of a sub group
-     * that go with it and whether each administers it. One of the previous revue's that is left out is
-     * not carried over.
-     */
-    carriedGroups: z.array(z.object({
-        revueGroupId: z.number(),
-        keep: z.array(z.object({ userId: z.number(), admin: z.boolean() })),
-    })).refine(
-        groups => new Set(groups.map(group => group.revueGroupId)).size === groups.length,
-        'En gruppe kan bare tas med én gang',
-    ),
+    /** Groups to put in a revue, each at its order. */
+    groupsAtOrders: z.array(z.object({ revueGroupId: z.number(), order: z.number().int() })),
 })
 
 const paramsFieldSchemas = z.object({
@@ -38,7 +28,6 @@ export const revueGroupSchemas = {
         ]),
         addToRevue: revueGroupDataFieldSchemas.pick({ revueGroupId: true, order: true }),
         update: revueGroupDataFieldSchemas.pick({ name: true }),
-        carryInto: revueGroupDataFieldSchemas.pick({ carriedGroups: true }),
     },
     params: {
         create: paramsFieldSchemas.pick({ revueId: true }).partial(),
@@ -50,7 +39,6 @@ export const revueGroupSchemas = {
         update: revueGroupId,
         destroy: revueGroupId,
         articleSection: revueGroupId,
-        carryInto: paramsFieldSchemas.pick({ revueId: true }),
         readManyOfUser: paramsFieldSchemas.pick({ userId: true }),
         readMemberProfilesInRevue: paramsFieldSchemas.pick({ year: true, name: true }),
         readMembersAtOrder: paramsFieldSchemas.pick({ revueGroupId: true, order: true }),

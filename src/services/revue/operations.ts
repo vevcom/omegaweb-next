@@ -20,12 +20,12 @@ const article = implementArticleOperations({
 })
 
 export const revueOperations = {
-    /** Makes a revue, and carries the previous revue's groups into it when what to carry is given. */
+    /** Makes a revue, with the groups given put in it at their orders. */
     create: defineOperation({
         dataSchema: revueSchemas.data.create,
         authorizer: () => revueAuth.create,
         transaction: 'OPENS',
-        operation: ({ prisma, data: { name, carriedGroups, ...revueData } }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, data: { name, groups = [], ...revueData } }) => prisma.$transaction(async tx => {
             const createdArticle = await article.internal.create.internalCall({
                 prisma: tx,
                 data: { name },
@@ -33,11 +33,11 @@ export const revueOperations = {
             const revue = await tx.revue.create({
                 data: { ...revueData, articleId: createdArticle.id, name: createdArticle.name },
             })
-            if (carriedGroups) {
-                await revueGroupOperations.internal.carryInto.internalCall({
+            for (const group of groups) {
+                await revueGroupOperations.internal.addToRevue.internalCall({
                     prisma: tx,
                     params: { revueId: revue.id },
-                    data: { carriedGroups },
+                    data: group,
                 })
             }
             return revue

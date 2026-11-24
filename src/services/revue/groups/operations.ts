@@ -26,54 +26,6 @@ const addToRevue = defineSubOperation({
     },
 })
 
-/**
- * Carries the previous revue's groups into a new one, in the new revue's transaction, once Omega has passed the
- * previous revue's order. A committee is put in at its order in the previous revue plus one and nothing else. A
- * sub group is put in at Omega's current order, migrated there with the members kept for it unless it stands
- * there already, and a sub group left out is pensioned.
- */
-const carryInto = defineSubOperation({
-    paramsSchema: () => revueGroupSchemas.params.carryInto,
-    dataSchema: () => revueGroupSchemas.data.carryInto,
-    operation: () => async ({ prisma, params, data }) => {
-        const revue = await prisma.revue.findUniqueOrThrow({ where: { id: params.revueId }, select: { year: true } })
-        const previous = await readPreviousRevue(prisma, { exceptRevueId: params.revueId })
-        const carriable = previous ? carriableGroups(previous) : []
-        const keepOf = new Map(data.carriedGroups.map(carried => [carried.revueGroupId, carried.keep]))
-        const carriableIds = carriable.map(({ revueGroup }) => revueGroup.id)
-        if (data.carriedGroups.some(carried => !carriableIds.includes(carried.revueGroupId))) {
-            throw new ServiceError('BAD DATA', 'Bare grupper i forrige revy som ikke er pensjonert kan tas med')
-        }
-        if (!previous || !carriable.length) return
-        if (revue.year <= previous.year) {
-            throw new ServiceError(
-                'BAD DATA',
-                `Gruppene kan bare tas med til en revy etter ${previous.name} (${previous.year})`,
-            )
-        }
-        const { order: currentOrder } = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
-        if (currentOrder <= orderOf(previous)) {
-            throw new ServiceError('BAD DATA', omegaHasNotIncrementedText(previous))
-        }
-
-        for (const { revueGroup, order } of carriable) {
-            const keep = keepOf.get(revueGroup.id)
-            const group = revueGroup.revueSubGroup?.group
-            const revueGroupId = revueGroup.id
-            if (!group) {
-                if (keep) await addToRevue.internalCall({ prisma, params, data: { revueGroupId, order: order + 1 } })
-                continue
-            }
-            if (!keep) {
-                await revueSubGroupOperations.pension({ prisma, params: { groupId: group.id }, data: { pensioned: true } })
-                continue
-            }
-            if (group.order < currentOrder) await migrateWithItsName(prisma, revueGroup.name, group.id, keep)
-            await addToRevue.internalCall({ prisma, params, data: { revueGroupId, order: currentOrder } })
-        }
-    },
-})
-
 export const revueGroupOperations = {
     /** Makes a revue group, and puts it in the revue at Omega's current order when a revue is given. */
     create: defineOperation({
@@ -117,34 +69,34 @@ export const revueGroupOperations = {
     }),
 
     /**
-     * The groups the next revue may carry over from the previous one, the newest: each with the order it would
-     * have in the new revue, and for a sub group to be migrated the active members it may take along.
+     * Every revue group with the order its group stands in and the order it had in the previous revue, the one of
+     * the highest year, for choosing those a new revue starts with.
      */
-    readToCarryOver: defineOperation({
-        authorizer: () => revueGroupAuth.readToCarryOver,
+    readManyForNewRevue: defineOperation({
+        authorizer: () => revueGroupAuth.readManyForNewRevue,
         operation: async ({ prisma }) => {
-            const previous = await readPreviousRevue(prisma, {})
-            const { order: currentOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-            if (!previous) return null
+            const [previousRevue, revueGroups] = await Promise.all([
+                prisma.revue.findFirst({
+                    orderBy: { year: 'desc' },
+                    select: { year: true, name: true, groups: { select: { revueGroupId: true, order: true } } },
+                }),
+                prisma.revueGroup.findMany({ include: revueGroupKindIncluder, orderBy: { name: 'asc' } }),
+            ])
 
             return {
-                previousRevue: { year: previous.year, name: previous.name },
-                omegaHasNotIncremented: currentOrder <= orderOf(previous) ? omegaHasNotIncrementedText(previous) : null,
-                groups: await Promise.all(carriableGroups(previous).map(async ({ revueGroup, order }) => {
-                    const group = revueGroup.revueSubGroup?.group
+                previousRevue: previousRevue && { year: previousRevue.year, name: previousRevue.name },
+                groups: revueGroups.map(revueGroup => {
+                    const group = groupOfRevueGroup(revueGroup)
                     return {
                         id: revueGroup.id,
                         name: revueGroup.name,
                         type: revueGroup.type,
-                        order,
-                        orderInNewRevue: group ? currentOrder : order + 1,
-                        migration: group && group.order < currentOrder ? {
-                            groupId: group.id,
-                            groupOrder: group.order,
-                            candidates: await readMigrationCandidates(prisma, group),
-                        } : null,
+                        order: group.order,
+                        pensioned: group.pensioned,
+                        orderInPreviousRevue: previousRevue?.groups
+                            .find(inRevue => inRevue.revueGroupId === revueGroup.id)?.order ?? null,
                     }
-                })),
+                }),
             }
         },
     }),
@@ -274,7 +226,7 @@ export const revueGroupOperations = {
     articleSection: revueGroupArticleSection,
 
     internal: {
-        carryInto,
+        addToRevue,
     },
 
     /**
@@ -326,66 +278,6 @@ export const revueGroupOperations = {
 } as const
 
 type GroupAndOrder = { id: number, order: number, pensioned: boolean }
-
-/** The revue with the highest year, which is the one a new revue carries groups over from. */
-function readPreviousRevue(prisma: PrismaPossibleTransaction<false>, { exceptRevueId }: { exceptRevueId?: number }) {
-    return prisma.revue.findFirst({
-        where: { id: { not: exceptRevueId } },
-        orderBy: { year: 'desc' },
-        select: {
-            year: true,
-            name: true,
-            groups: {
-                include: { revueGroup: { include: revueGroupKindIncluder } },
-                orderBy: { revueGroup: { name: 'asc' } },
-            },
-        },
-    })
-}
-
-type PreviousRevue = NonNullable<Awaited<ReturnType<typeof readPreviousRevue>>>
-
-/** A pensioned sub group is not carried, since it may not change. */
-function carriableGroups(previous: PreviousRevue) {
-    return previous.groups.filter(({ revueGroup }) => !revueGroup.revueSubGroup?.group.pensioned)
-}
-
-/**
- * The order the previous revue stood in, which Omega must have passed before its groups are carried on. It stands
- * in, a little strictly, for the rule that no group sits at the same order in two revues after one another.
- */
-function orderOf(previous: PreviousRevue) {
-    return Math.max(...previous.groups.map(({ order }) => order))
-}
-
-function omegaHasNotIncrementedText(previous: PreviousRevue) {
-    return `Omega har ikke inkrementert siden ${previous.name} (orden ${orderOf(previous)}). `
-        + 'Gruppene kan tas med når Omega har inkrementert.'
-}
-
-async function readMigrationCandidates(prisma: PrismaPossibleTransaction<false>, group: GroupAndOrder) {
-    const memberships = await prisma.membership.findMany({
-        where: { groupId: group.id, order: group.order, active: true, user: userPartitions.unarchived },
-        select: { userId: true, title: true, admin: true, user: { select: { firstname: true, lastname: true } } },
-        orderBy: [{ position: 'asc' }, { userId: 'asc' }],
-    })
-    return memberships.map(({ user, ...membership }) => ({ ...membership, name: `${user.firstname} ${user.lastname}` }))
-}
-
-/** A migration the group system refuses says which group it is about, since a new revue migrates several. */
-async function migrateWithItsName(
-    prisma: PrismaPossibleTransaction<false>,
-    name: string,
-    groupId: number,
-    keep: { userId: number, admin: boolean }[],
-) {
-    try {
-        await revueSubGroupOperations.migrateGroup({ prisma, params: { groupId }, data: { keep } })
-    } catch (error) {
-        if (!(error instanceof ServiceError)) throw error
-        throw new ServiceError(error.errorCode, `${name}: ${error.errors.map(({ message }) => message).join(', ')}`)
-    }
-}
 
 /** A pensioned sub group is not changed, as no group of the group system is. A committee's pension is its own. */
 async function assertSubGroupNotPensioned(prisma: PrismaPossibleTransaction<false>, revueGroupId: number) {
