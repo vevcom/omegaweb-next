@@ -88,6 +88,7 @@ const { page, generateMetadata } = serverPage({
                                     ? destroyStudyProgrammeMembershipAction
                                     : undefined
                             }
+                            keepsEarlierOrdersActive
                         />
                     )}
                 </div>
