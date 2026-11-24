@@ -14,12 +14,13 @@ import {
 } from '@/services/revue/frontpage/actions'
 import { revueFrontpageOperations } from '@/services/revue/frontpage/operations'
 import { revueOperations } from '@/services/revue/operations'
+import { revueGroupOperations } from '@/services/revue/groups/operations'
 import RevueCover from '@/app/(revue)/_components/RevueCover'
 import SpecialArticle from '@/cms/SpecialArticle/SpecialArticle'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
 import { revueThemeOf } from '@/app/(revue)/_lib/revueTheme'
-import { serverPage } from '@/app/ServerPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 
@@ -33,15 +34,20 @@ const { page, generateMetadata } = serverPage({
     operation: async () => ({
         article: await revueFrontpageOperations.mainRevueInfo.read({}),
         revues: await revueOperations.readMany({}),
+        carryOver: await withFallback(
+            revueGroupOperations.readToCarryOver({}),
+            null,
+            ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+        ),
     }),
     capabilities: () => ({
         canEdit: revueFrontpageAuth.mainRevueInfo.update,
     }),
     // Absolute: the frontpage is the site, so the layout's template would read "Omegarevyen | Omegarevyen".
     metadata: () => ({ title: { absolute: 'Omegarevyen' } }),
-    render: ({ data: { article, revues: [currentRevue, ...earlierRevues] }, capabilities }) => (
+    render: ({ data: { article, revues: [currentRevue, ...earlierRevues], carryOver }, capabilities }) => (
         <div className="flex flex-col gap-12">
-            <CreateRevue />
+            <CreateRevue carryOver={carryOver} />
             {currentRevue && (
                 <SiteLink
                     href={revueLinks.revue(currentRevue)}

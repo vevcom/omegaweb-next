@@ -6,10 +6,11 @@ import useEditMode from '@/hooks/useEditMode'
 import { revueAuth } from '@/services/revue/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
+import type { RevueGroupsToCarryOver } from '@/services/revue/groups/types'
 
 const popUpKey = 'CreateRevue'
 
-export default function CreateRevue() {
+export default function CreateRevue({ carryOver }: { carryOver: RevueGroupsToCarryOver | null }) {
     const editable = useEditMode({ authorizer: revueAuth.create })
 
     if (!editable) return null
@@ -26,7 +27,7 @@ export default function CreateRevue() {
                 Legg til revy
             </>}
         >
-            <CreateRevueForm closePopUpOnSuccess={popUpKey} hrefOfCreated={revueLinks.revue} />
+            <CreateRevueForm closePopUpOnSuccess={popUpKey} hrefOfCreated={revueLinks.revue} carryOver={carryOver} />
         </PopUp>
     )
 }

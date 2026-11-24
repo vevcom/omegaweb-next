@@ -1,3 +1,4 @@
+import { revueGroupDataFieldSchemas } from './groups/schemas'
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
@@ -8,6 +9,7 @@ const dataFieldSchemas = z.object({
     themePrimary: Zpn.hexColor(),
     themeSecondary: Zpn.hexColor(),
     themeAccent: Zpn.hexColor(),
+    carriedGroups: Zpn.json({ label: 'Grupper', schema: revueGroupDataFieldSchemas.shape.carriedGroups }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -28,7 +30,9 @@ const revueId = paramsFieldSchemas.pick({ revueId: true })
 
 export const revueSchemas = {
     data: {
-        create: dataFieldSchemas.pick(revueFields),
+        create: dataFieldSchemas.pick(revueFields).extend({
+            carriedGroups: dataFieldSchemas.shape.carriedGroups.optional(),
+        }),
         update: dataFieldSchemas.pick(revueFields).partial(),
     },
     params: {

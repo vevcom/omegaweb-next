@@ -2,6 +2,7 @@ import '@ow-server-only'
 import { revueAuth } from './auth'
 import { revueCardIncluder, revueExpandedIncluder } from './constants'
 import { revueSchemas } from './schemas'
+import { revueGroupOperations } from './groups/operations'
 import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { implementArticleOperations } from '@/cms/articles/implement'
 import { defineOperation } from '@/services/serviceOperation'
@@ -19,18 +20,27 @@ const article = implementArticleOperations({
 })
 
 export const revueOperations = {
+    /** Makes a revue, and carries the previous revue's groups into it when what to carry is given. */
     create: defineOperation({
         dataSchema: revueSchemas.data.create,
         authorizer: () => revueAuth.create,
         transaction: 'OPENS',
-        operation: ({ prisma, data: { name, ...revueData } }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, data: { name, carriedGroups, ...revueData } }) => prisma.$transaction(async tx => {
             const createdArticle = await article.internal.create.internalCall({
                 prisma: tx,
                 data: { name },
             })
-            return tx.revue.create({
+            const revue = await tx.revue.create({
                 data: { ...revueData, articleId: createdArticle.id, name: createdArticle.name },
             })
+            if (carriedGroups) {
+                await revueGroupOperations.internal.carryInto.internalCall({
+                    prisma: tx,
+                    params: { revueId: revue.id },
+                    data: { carriedGroups },
+                })
+            }
+            return revue
         }),
     }),
 
