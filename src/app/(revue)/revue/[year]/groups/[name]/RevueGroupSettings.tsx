@@ -9,16 +9,17 @@ import { destroyRevueGroupAction, updateRevueGroupAction } from '@/services/revu
 import { revueGroupAuth } from '@/services/revue/groups/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
+import type { RevueGroupType } from '@/prisma-generated-pn-types'
 
 type PropTypes = {
-    group: { id: number, name: string },
+    group: { id: number, name: string, type: RevueGroupType },
     revue: { year: number },
 }
 
 export default function RevueGroupSettings({ group, revue }: PropTypes) {
     const editable = useEditMode({ authorizer: revueGroupAuth.update })
     const popUpKey = `RevueGroupSettings${group.id}`
-    const params = { params: { groupId: group.id } }
+    const params = { params: { revueGroupId: group.id } }
     const updateGroup = configureAction(updateRevueGroupAction, params)
 
     if (!editable) return null
@@ -44,13 +45,15 @@ export default function RevueGroupSettings({ group, revue }: PropTypes) {
                 </Form>
                 <Form
                     action={configureAction(destroyRevueGroupAction, params)}
-                    submitText="Slett undergruppe"
+                    submitText="Slett gruppen"
                     submitColor="red"
                     closePopUpOnSuccess={popUpKey}
                     navigateOnSuccess={revueLinks.revue(revue)}
                     confirmation={{
                         confirm: true,
-                        text: `Vil du slette ${group.name} med alle medlemmene?`,
+                        text: group.type === 'REVUE_SUB_GROUP'
+                            ? `Vil du slette ${group.name} med alle medlemskapene, også de i andre revyer?`
+                            : `Vil du slette ${group.name} fra revysiden? Komiteen og medlemmene dens blir som de er.`,
                     }}
                 />
             </div>

@@ -8,8 +8,9 @@ import ReorderableList from '@/components/UI/ReorderableList'
 import { configureAction } from '@/services/configureAction'
 import UsersSelectionProvider, { UsersSelectionContext } from '@/contexts/UsersSelection'
 import { UserPagingProvider } from '@/contexts/paging/UserPaging'
-import { useContext, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import type { UserDetails, UserPageReader } from '@/services/users/types'
 import type {
     AddGroupMembersAction,
     RemoveGroupMembersAction,
@@ -55,6 +56,9 @@ type PropTypes = {
     setMemberTitleAction?: SetGroupMemberTitleAction,
     /** Given, the members can be dragged into the order they are listed in. */
     reorderMembersAction?: ReorderGroupMembersAction,
+    /** Reads the users to add among. Left out, they are the user list's own: the active students. */
+    readAddableUsers?: (page: { params: Parameters<UserPageReader>[0]['params'] & { groupId: number } }) =>
+        ReturnType<UserPageReader>,
 }
 
 /**
@@ -104,8 +108,15 @@ export default function ManageGroupMembers({
     setMemberAdminAction,
     setMemberTitleAction,
     reorderMembersAction,
+    readAddableUsers,
 }: PropTypes) {
     const [selectedOrder, setSelectedOrder] = useState(groupOrder)
+    // The same object across renders, since the list starts over when its details are replaced.
+    const userListDetails = useMemo((): UserDetails => ({
+        groups: [],
+        partOfName: '',
+        readPage: readAddableUsers && (({ params }) => readAddableUsers({ params: { ...params, groupId } })),
+    }), [readAddableUsers, groupId])
     const addPopUpKey: PopUpKeyType = `Add members to group ${groupId} order ${selectedOrder}`
 
     const members = orders.find(order => order.order === selectedOrder)?.members ?? []
@@ -241,7 +252,7 @@ export default function ManageGroupMembers({
                     <UserPagingProvider
                         serverRenderedData={[]}
                         startPage={{ page: 0, pageSize: 50 }}
-                        details={{ groups: [], partOfName: '' }}
+                        details={userListDetails}
                     >
                         <UsersSelectionProvider>
                             <AddMembers

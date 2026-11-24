@@ -16,6 +16,8 @@ import {
 } from '@/services/revue/actions'
 import { revueAuth } from '@/services/revue/auth'
 import { revueGroupAuth } from '@/services/revue/groups/auth'
+import { revueGroupOperations } from '@/services/revue/groups/operations'
+import { groupTypesConfig } from '@/services/groups/constants'
 import RevueCover from '@/app/(revue)/_components/RevueCover'
 import Article from '@/components/Cms/Article/Article'
 import ChangeName from '@/components/Cms/Article/ChangeName'
@@ -29,13 +31,16 @@ import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: ({ params }: PageOperationArgs<{ year: string }>) => getRevue(params.year),
+    operation: async ({ params }: PageOperationArgs<{ year: string }>) => {
+        const revue = await getRevue(params.year)
+        return { revue, groups: await revueGroupOperations.readManyInRevue({ params: { revueId: revue.id } }) }
+    },
     capabilities: () => ({
         canEdit: revueAuth.updateArticle,
         canCreateGroup: revueGroupAuth.create,
     }),
-    metadata: revue => ({ title: revue.name }),
-    render: ({ data: revue, capabilities }) => {
+    metadata: ({ revue }) => ({ title: revue.name }),
+    render: ({ data: { revue, groups }, capabilities }) => {
         const actionConfig = { implementationParams: { revueId: revue.id } }
         const clientCapabilities = capabilitiesToJsObject({ canEdit: capabilities.canEdit })
 
@@ -107,11 +112,11 @@ const { page, generateMetadata } = serverPage({
                         },
                     }}
                 />
-                {(revue.groups.length > 0 || capabilities.canCreateGroup.authorized) && (
+                {(groups.length > 0 || capabilities.canCreateGroup.authorized) && (
                     <section className="flex flex-col gap-6">
-                        <h2 className="font-secondary text-xl">Undergrupper</h2>
+                        <h2 className="font-secondary text-xl">Grupper</h2>
                         <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(15rem,100%),1fr))] gap-4 list-none">
-                            {revue.groups.map(group => (
+                            {groups.map(group => (
                                 <li key={group.id}>
                                     <SiteLink
                                         href={revueLinks.revueGroup(revue, group)}
@@ -128,7 +133,7 @@ const { page, generateMetadata } = serverPage({
                                                 {group.name}
                                             </span>
                                             <span className="block text-s text-base-content/80">
-                                                {memberCount(group._count.members)}
+                                                {groupTypesConfig[group.type].name} · {memberCount(group.memberCount)}
                                             </span>
                                         </span>
                                         <FontAwesomeIcon icon={faArrowRight} className="

@@ -10,12 +10,17 @@ import type {
     ManualGroup,
     Membership,
     OmegaMembershipGroup,
+    RevueGroup,
+    RevueSubGroup,
     StudyProgramme
 } from '@/prisma-generated-pn-types'
 
 type PartialNullable<T> = {
     [P in keyof T]?: T[P] | null;
 };
+
+/** A revue sub group has no name of its own: it is named by its revue group. */
+export type RevueSubGroupWithRevueGroup = RevueSubGroup & { revueGroup: Pick<RevueGroup, 'name'> | null }
 
 /**
  * Dumb type that holds all possible relation to types of groups
@@ -26,7 +31,8 @@ export type GroupWithDumbRelations<
     ClassKeys extends keyof Class,
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
-    StudyProgrammeKeys extends keyof StudyProgramme
+    StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
 > = Group & PartialNullable<{
     committee: Pick<Committee, CommitteeKeys>,
     manualGroup: Pick<ManualGroup, ManualGroupKeys>,
@@ -34,6 +40,7 @@ export type GroupWithDumbRelations<
     interestGroup: Pick<InterestGroup, InterestGroupKeys>,
     omegaMembershipGroup: Pick<OmegaMembershipGroup, OmegaMembershipGroupKeys>,
     studyProgramme: Pick<StudyProgramme, StudyProgrammeKeys>,
+    revueSubGroup: Pick<RevueSubGroupWithRevueGroup, RevueSubGroupKeys>,
 }>
 
 /**
@@ -45,7 +52,8 @@ export type GroupWithRelations<
     ClassKeys extends keyof Class,
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
-    StudyProgrammeKeys extends keyof StudyProgramme
+    StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
 > = Omit<Group, 'groupType'> & ({
     groupType: 'COMMITTEE',
     committee: Pick<Committee, CommitteeKeys>
@@ -68,10 +76,14 @@ export type GroupWithRelations<
 {
     groupType: 'STUDY_PROGRAMME',
     studyProgramme: Pick<StudyProgramme, StudyProgrammeKeys>
+} |
+{
+    groupType: 'REVUE_SUB_GROUP',
+    revueSubGroup: Pick<RevueSubGroupWithRevueGroup, RevueSubGroupKeys>
 })
 
 export type GroupWithRelationsNameInferencer = GroupWithRelations<
-    'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name'
+    'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name', 'revueGroup'
 >
 
 /**

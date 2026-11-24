@@ -4,8 +4,9 @@ const revueAdmin = Require.permission('REVUE_ADMIN')
 
 export const revueGroupAuth = {
     create: revueAdmin,
-    read: Require.nothing(),
+    readManyInRevue: Require.nothing(),
+    readInRevue: Require.nothing(),
     update: revueAdmin,
     destroy: revueAdmin,
-    updateArticleSection: revueAdmin,
+    updateArticleSection: revueAdmin.or().groupAdmin(),
 } as const

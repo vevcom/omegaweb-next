@@ -9,6 +9,8 @@ import { manualGroupAuth } from './manualGroups/auth'
 import { manualGroupOperations } from './manualGroups/operations'
 import { omegaMembershipGroupAuth } from './omegaMembershipGroups/auth'
 import { omegaMembershipGroupOperations } from './omegaMembershipGroups/operations'
+import { revueSubGroupAuth } from './revueSubGroups/auth'
+import { revueSubGroupOperations } from './revueSubGroups/operations'
 import { studyProgrammeAuth } from './studyProgrammes/auth'
 import { studyProgrammeOperations } from './studyProgrammes/operations'
 import { defineOperation } from '@/services/serviceOperation'
@@ -45,6 +47,10 @@ const groupTypeExpandedReads = {
     STUDY_PROGRAMME: {
         auth: studyProgrammeAuth.readExpanded,
         readExpanded: studyProgrammeOperations.readExpanded,
+    },
+    REVUE_SUB_GROUP: {
+        auth: revueSubGroupAuth.readExpanded,
+        readExpanded: revueSubGroupOperations.readExpanded,
     },
 } as const satisfies Record<GroupType, {
     auth: typeof committeeAuth.readExpanded,

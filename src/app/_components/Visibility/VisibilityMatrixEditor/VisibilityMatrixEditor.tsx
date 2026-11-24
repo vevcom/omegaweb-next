@@ -37,6 +37,7 @@ const groupTypeNames: Record<GroupType, string> = {
     INTEREST_GROUP: 'Interessegruppe',
     STUDY_PROGRAMME: 'Studieretning',
     MANUAL_GROUP: 'Andre grupper',
+    REVUE_SUB_GROUP: 'Revyundergruppe',
 }
 const NOW = -1
 

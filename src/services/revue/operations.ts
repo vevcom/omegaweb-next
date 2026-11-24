@@ -2,7 +2,6 @@ import '@ow-server-only'
 import { revueAuth } from './auth'
 import { revueCardIncluder, revueExpandedIncluder } from './constants'
 import { revueSchemas } from './schemas'
-import { destroyRevueGroups } from './groups/destroyGroups'
 import { articleRelationsIncluder } from '@/cms/articles/constants'
 import { implementArticleOperations } from '@/cms/articles/implement'
 import { defineOperation } from '@/services/serviceOperation'
@@ -76,7 +75,6 @@ export const revueOperations = {
         authorizer: () => revueAuth.destroy,
         transaction: 'OPENS',
         operation: ({ prisma, params }) => prisma.$transaction(async tx => {
-            await destroyRevueGroups(tx, { revueId: params.revueId })
             const revue = await tx.revue.delete({ where: { id: params.revueId } })
             await article.internal.destroy.internalCall({ prisma: tx, params: { articleId: revue.articleId } })
         }),
