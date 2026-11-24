@@ -20,6 +20,16 @@ import type {
 } from '@/services/groups/types'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 
+/**
+ * Where a member row stacks, by the least width its columns need in rem. The rows stack by the width of the
+ * component, not the screen, since it is mounted in columns of many widths. The class names are whole for Tailwind.
+ */
+const stackings = [
+    { belowRem: 32, row: '@max-[32rem]:grid-cols-1 @max-[32rem]:gap-2', header: '@max-[32rem]:hidden' },
+    { belowRem: 57.5, row: '@max-[57.5rem]:grid-cols-1 @max-[57.5rem]:gap-2', header: '@max-[57.5rem]:hidden' },
+    { belowRem: 60, row: '@max-[60rem]:grid-cols-1 @max-[60rem]:gap-2', header: '@max-[60rem]:hidden' },
+]
+
 export type ManageGroupMembersMember = {
     userId: number,
     name: string,
@@ -125,17 +135,20 @@ export default function ManageGroupMembers({
     // against the same track list. The actions that are not offered at all drop their column rather
     // than leaving a gap.
     const memberColumns = [
-        ...(reorderMembersAction ? ['1.5rem'] : []),
-        'minmax(6rem, 1fr)',
-        setMemberTitleAction ? '20rem' : 'minmax(6rem, 1fr)',
-        '9rem',
-        ...(setMemberAdminAction ? ['10.5rem'] : []),
-        ...(removeMembersAction ? ['6rem'] : []),
-    ].join(' ')
-    const columnStyle = { '--member-columns': memberColumns } as CSSProperties
+        ...(reorderMembersAction ? [{ track: '1.5rem', minRem: 1.5 }] : []),
+        { track: 'minmax(6rem, 1fr)', minRem: 6 },
+        setMemberTitleAction ? { track: '20rem', minRem: 20 } : { track: 'minmax(6rem, 1fr)', minRem: 6 },
+        { track: '9rem', minRem: 9 },
+        ...(setMemberAdminAction ? [{ track: '10.5rem', minRem: 10.5 }] : []),
+        ...(removeMembersAction ? [{ track: '6rem', minRem: 6 }] : []),
+    ]
+    const columnStyle = { '--member-columns': memberColumns.map(column => column.track).join(' ') } as CSSProperties
+    // The tracks, the gap-4 between them and the px-4 around them.
+    const rowMinRem = memberColumns.reduce((sum, column) => sum + column.minRem, 0) + memberColumns.length - 1 + 2
+    const stacking = stackingFor(rowMinRem)
     const memberRowClassName = `
         grid grid-cols-(--member-columns) items-center gap-4 py-2 px-4 rounded-round layer
-        max-mobile:grid-cols-1 max-mobile:gap-2
+        ${stacking.row}
         [&_p:empty]:min-h-0 [&_p:empty]:m-0
     `
 
@@ -219,7 +232,7 @@ export default function ManageGroupMembers({
     )
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="@container flex flex-col gap-4">
             <div className="flex flex-col gap-1 items-start">
                 <SelectNumber
                     name={`order-of-group-${groupId}`}
@@ -270,10 +283,10 @@ export default function ManageGroupMembers({
                 <p className="text-base-content/80 italic">Gruppen har ingen medlemskap i orden {selectedOrder}.</p>
             ) : (
                 <div className="flex flex-col gap-1">
-                    <div className="
+                    <div className={`
                         grid grid-cols-(--member-columns) items-center gap-4 px-4 text-base-content/80 text-s
-                        max-mobile:hidden
-                    " style={columnStyle}>
+                        ${stacking.header}
+                    `} style={columnStyle}>
                         {reorderMembersAction && <span />}
                         <span>Navn</span>
                         <span>Tittel</span>
@@ -312,4 +325,9 @@ export default function ManageGroupMembers({
             )}
         </div>
     )
+}
+
+function stackingFor(rowMinRem: number) {
+    // A column set not listed stacks at the next listed width up, a little early. One past the widest needs its own.
+    return stackings.find(stacking => stacking.belowRem >= rowMinRem) ?? stackings[stackings.length - 1]
 }
