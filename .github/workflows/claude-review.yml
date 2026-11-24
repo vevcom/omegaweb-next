@@ -21,33 +21,19 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: install claude
+      run: curl -fsSL https://claude.ai/install.sh | bash
+
+    # Runs the CLI and not anthropics/claude-code-action, whose calls our API credits do not cover.
     - name: review
-      uses: anthropics/claude-code-action@v1
-      with:
-        anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        prompt: |
-          REPO: ${{ github.repository }}
-          PR NUMBER: ${{ github.event.pull_request.number }}
-
-          Review this pull request. The PR branch is checked out in the working directory.
-          Look for bugs, security holes and breaks with the rules in CLAUDE.md.
-          Only report what you are confident is a real problem. Skip style nits and praise.
-          Use inline comments for specific lines and one short top-level comment as a summary.
-        claude_args: |
-          --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
-
-    # Temporary, to see why the first runs failed.
-    - name: review error
-      if: failure()
-      run: jq -r '.[] | select(.type == "result" or .type == "assistant") | (.result // (.message.content[]?.text))' "$RUNNER_TEMP/claude-execution-output.json"
-
-    - name: sdk check
-      if: always()
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR: ${{ github.event.pull_request.number }}
       run: |
-        mkdir /tmp/sdk && cd /tmp/sdk && npm init -y >/dev/null && npm i @anthropic-ai/claude-agent-sdk >/dev/null 2>&1
-        node --input-type=module -e 'import { query } from "@anthropic-ai/claude-agent-sdk"; for await (const message of query({ prompt: "hi", options: { maxTurns: 1 } })) if (message.type === "result") console.log("sdk:", message.is_error, message.result)' || true
-        echo "cli: $(~/.local/bin/claude -p hi 2>&1 | head -c 200)"
-        echo "cli as sdk: $(CLAUDE_CODE_ENTRYPOINT=sdk-ts ~/.local/bin/claude -p hi 2>&1 | head -c 200)"
+        ~/.local/bin/claude -p "Review pull request $PR of $GITHUB_REPOSITORY. Its branch is checked out in the working directory.
+        Look for bugs, security holes and breaks with the rules in CLAUDE.md.
+        Only report what you are confident is a real problem. Skip style nits and praise.
+        Post the review as one comment with gh pr comment, naming the file and line of each finding.
+        Say so in one line when you find nothing." \
+          --allowedTools "Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
