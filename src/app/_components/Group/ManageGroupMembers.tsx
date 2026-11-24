@@ -2,6 +2,7 @@
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
+import NumberInput from '@/components/UI/NumberInput'
 import Checkbox from '@/components/UI/Checkbox'
 import { SelectNumber } from '@/components/UI/Select'
 import UserList from '@/components/User/UserList/UserList'
@@ -72,6 +73,8 @@ type PropTypes = {
     destroyMembershipAction?: DestroyGroupMembershipAction,
     /** The group's own order lists its active members, with a switch to show the inactive ones too. */
     hidesInactiveByDefault?: boolean,
+    /** For a group type that follows Omega's order, where a membership added to an earlier order is active too. */
+    keepsEarlierOrdersActive?: boolean,
     /** Reads the users to add among. Left out, they are the user list's own: the active students. */
     readAddableUsers?: (page: { params: Parameters<UserPageReader>[0]['params'] & { groupId: number } }) =>
         ReturnType<UserPageReader>,
@@ -84,21 +87,23 @@ type PropTypes = {
  * stays intact - which is why a removed member goes inactive here rather than disappearing.
  *
  * Adding to an order below the group's own gives an inactive membership, since a group migrated by
- * hand holds no active memberships below its own order. Every group type that exposes these actions
- * today is migrated by hand; the note about it would need revisiting if that changed.
+ * hand holds no active memberships below its own order. A group type that follows Omega's order keeps
+ * them active, which its mount says with `keepsEarlierOrdersActive`.
  */
-function AddMembers({ groupId, order, addMembersAction, popUpKey }: {
+function AddMembers({ groupId, order, addMembersAction, popUpKey, onAdded }: {
     groupId: number,
-    order: number,
+    /** Null while no order is chosen, which keeps the users picked and offers nothing to submit. */
+    order: number | null,
     addMembersAction: AddGroupMembersAction,
     popUpKey: PopUpKeyType,
+    onAdded?: () => void,
 }) {
     const selection = useContext(UsersSelectionContext)
     const selectedUsers = selection?.users ?? []
 
     return (
         <div className="flex flex-col gap-2 min-w-[min(80vw,700px)]">
-            {selectedUsers.length > 0 && (
+            {order !== null && selectedUsers.length > 0 && (
                 <Form
                     submitText={`Legg til ${selectedUsers.length} bruker(e) i orden ${order}`}
                     action={() => configureAction(addMembersAction, { params: { groupId, order } })({
@@ -108,6 +113,7 @@ function AddMembers({ groupId, order, addMembersAction, popUpKey }: {
                     })}
                     refreshOnSuccess
                     closePopUpOnSuccess={popUpKey}
+                    successCallback={onAdded}
                 />
             )}
             <UserList />
@@ -126,6 +132,7 @@ export default function ManageGroupMembers({
     reorderMembersAction,
     destroyMembershipAction,
     hidesInactiveByDefault = false,
+    keepsEarlierOrdersActive = false,
     readAddableUsers,
 }: PropTypes) {
     const [pickedOrder, setSelectedOrder] = useState(groupOrder)
@@ -139,6 +146,7 @@ export default function ManageGroupMembers({
         readPage: readAddableUsers && (({ params }) => readAddableUsers({ params: { ...params, groupId } })),
     }), [readAddableUsers, groupId])
     const addPopUpKey: PopUpKeyType = `Add members to group ${groupId} order ${selectedOrder}`
+    const addAtTypedOrderPopUpKey: PopUpKeyType = `Add members to group ${groupId} at a typed order`
 
     const offersInactiveSwitch = hidesInactiveByDefault && selectedOrder === groupOrder
     const hidesInactive = offersInactiveSwitch && !showsInactive
@@ -289,7 +297,7 @@ export default function ManageGroupMembers({
                         onChange={() => setShowsInactive(!showsInactive)}
                     />
                 )}
-                {selectedOrder !== groupOrder && (
+                {selectedOrder !== groupOrder && !keepsEarlierOrdersActive && (
                     <p className="text-base-content/80 text-s">
                         Orden {selectedOrder} er historikk - gruppen selv står i orden {groupOrder}.
                         Medlemmer som legges til her blir lagt til som inaktive medlemskap.
@@ -298,27 +306,44 @@ export default function ManageGroupMembers({
             </div>
 
             {addMembersAction && (
-                <PopUp
-                    key={selectedOrder}
-                    popUpKey={addPopUpKey}
-                    showButtonClass="btn-neutral self-start py-2 px-4 text-s"
-                    showButtonContent={<>Legg til medlemmer</>}
-                >
-                    <UserPagingProvider
-                        serverRenderedData={[]}
-                        startPage={{ page: 0, pageSize: 50 }}
-                        details={userListDetails}
+                <div className="flex flex-wrap gap-2">
+                    <PopUp
+                        key={selectedOrder}
+                        popUpKey={addPopUpKey}
+                        showButtonClass="btn-neutral py-2 px-4 text-s"
+                        showButtonContent={<>Legg til medlemmer i orden {selectedOrder}</>}
                     >
-                        <UsersSelectionProvider>
-                            <AddMembers
-                                groupId={groupId}
-                                order={selectedOrder}
-                                addMembersAction={addMembersAction}
-                                popUpKey={addPopUpKey}
-                            />
-                        </UsersSelectionProvider>
-                    </UserPagingProvider>
-                </PopUp>
+                        <UserPagingProvider
+                            serverRenderedData={[]}
+                            startPage={{ page: 0, pageSize: 50 }}
+                            details={userListDetails}
+                        >
+                            <UsersSelectionProvider>
+                                <AddMembers
+                                    groupId={groupId}
+                                    order={selectedOrder}
+                                    addMembersAction={addMembersAction}
+                                    popUpKey={addPopUpKey}
+                                />
+                            </UsersSelectionProvider>
+                        </UserPagingProvider>
+                    </PopUp>
+                    <PopUp
+                        popUpKey={addAtTypedOrderPopUpKey}
+                        showButtonClass="btn-neutral py-2 px-4 text-s"
+                        showButtonContent={<>Legg til medlemmer i en annen orden</>}
+                    >
+                        <AddMembersAtTypedOrder
+                            groupId={groupId}
+                            groupOrder={groupOrder}
+                            addMembersAction={addMembersAction}
+                            popUpKey={addAtTypedOrderPopUpKey}
+                            userListDetails={userListDetails}
+                            keepsEarlierOrdersActive={keepsEarlierOrdersActive}
+                            onAdded={setSelectedOrder}
+                        />
+                    </PopUp>
+                </div>
             )}
 
             {members.length === 0 ? (
@@ -369,6 +394,61 @@ export default function ManageGroupMembers({
             )}
         </div>
     )
+}
+
+/**
+ * The order picker lists only the orders the group has memberships in, so this is how the first member of any
+ * other order is added: the order is typed, up to the group's own.
+ */
+function AddMembersAtTypedOrder({
+    groupId,
+    groupOrder,
+    addMembersAction,
+    popUpKey,
+    userListDetails,
+    keepsEarlierOrdersActive,
+    onAdded,
+}: {
+    groupId: number,
+    groupOrder: number,
+    addMembersAction: AddGroupMembersAction,
+    popUpKey: PopUpKeyType,
+    userListDetails: UserDetails,
+    keepsEarlierOrdersActive: boolean,
+    onAdded: (order: number) => void,
+}) {
+    const [typed, setTyped] = useState('')
+    const order = orderOf(typed, groupOrder)
+
+    return (
+        <div className="flex flex-col gap-2">
+            <NumberInput label="Orden" min={1} max={groupOrder} onChange={event => setTyped(event.target.value)} />
+            <p className="text-base-content/80 text-s">
+                Velg en orden til og med gruppens egen, {groupOrder}.
+                {!keepsEarlierOrdersActive && ' I en tidligere orden blir medlemmene lagt til som inaktive medlemskap.'}
+            </p>
+            {typed.trim() !== '' && order === null && (
+                <p className="text-error text-s" role="alert">Ordenen må være et helt tall fra 1 til {groupOrder}.</p>
+            )}
+            <UserPagingProvider serverRenderedData={[]} startPage={{ page: 0, pageSize: 50 }} details={userListDetails}>
+                <UsersSelectionProvider>
+                    <AddMembers
+                        groupId={groupId}
+                        order={order}
+                        addMembersAction={addMembersAction}
+                        popUpKey={popUpKey}
+                        onAdded={() => order !== null && onAdded(order)}
+                    />
+                </UsersSelectionProvider>
+            </UserPagingProvider>
+        </div>
+    )
+}
+
+/** The order typed, when it is one the group can have memberships in. */
+function orderOf(typed: string, groupOrder: number) {
+    const order = Number(typed)
+    return typed.trim() !== '' && Number.isInteger(order) && order >= 1 && order <= groupOrder ? order : null
 }
 
 function destroyConfirmation(member: ManageGroupMembersMember, order: number) {
