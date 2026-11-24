@@ -2,7 +2,7 @@ name: claude review
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
 
 jobs:
   review:
@@ -41,3 +41,13 @@ jobs:
     - name: review error
       if: failure()
       run: jq -r '.[] | select(.type == "result" or .type == "assistant") | (.result // (.message.content[]?.text))' "$RUNNER_TEMP/claude-execution-output.json"
+
+    - name: sdk check
+      if: always()
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      run: |
+        mkdir /tmp/sdk && cd /tmp/sdk && npm init -y >/dev/null && npm i @anthropic-ai/claude-agent-sdk >/dev/null 2>&1
+        node --input-type=module -e 'import { query } from "@anthropic-ai/claude-agent-sdk"; for await (const message of query({ prompt: "hi", options: { maxTurns: 1 } })) if (message.type === "result") console.log("sdk:", message.is_error, message.result)' || true
+        echo "cli: $(~/.local/bin/claude -p hi 2>&1 | head -c 200)"
+        echo "cli as sdk: $(CLAUDE_CODE_ENTRYPOINT=sdk-ts ~/.local/bin/claude -p hi 2>&1 | head -c 200)"
