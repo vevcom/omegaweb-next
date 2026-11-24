@@ -76,7 +76,7 @@ export default function ChatSessionProvider({ config: { homeserverUrl, clientId,
             config: { homeserverUrl, clientId, matrixUserId },
             browser,
             redirectUri: new URL(redirectHref, window.location.origin).href,
-            show: setState,
+            show: shown => setState(previous => (isSameState(previous, shown) ? previous : shown)),
         })
         run.current = started
         return () => {
@@ -97,4 +97,14 @@ export default function ChatSessionProvider({ config: { homeserverUrl, clientId,
     }), [state, matrixUserId])
 
     return <ChatSessionContext.Provider value={session}>{children}</ChatSessionContext.Provider>
+}
+
+/**
+ * Whether a state that is shown is the one that was. A running client shows its state anew at
+ * every sync, and the components are only to render again when it is another.
+ */
+function isSameState(one: ChatSessionState, other: ChatSessionState): boolean {
+    const [before, after]: Record<string, unknown>[] = [one, other]
+    const keys = Object.keys(after)
+    return Object.keys(before).length === keys.length && keys.every(key => before[key] === after[key])
 }

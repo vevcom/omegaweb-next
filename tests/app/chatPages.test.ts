@@ -84,6 +84,7 @@ describe('the chat pages', () => {
     test('are linked to under /chat', () => {
         expect(loaded.chatLinks.messages()).toBe('/chat')
         expect(loaded.chatLinks.directMessage({ username: 'kari' })).toBe('/chat/messages/kari')
+        expect(loaded.chatLinks.room({ id: '!et/rom:chat.test' })).toBe('/chat/rooms/!et%2From%3Achat.test')
         expect(loaded.chatLinks.spaces()).toBe('/chat/spaces')
         expect(loaded.chatLinks.settings()).toBe('/chat/settings')
         expect(loaded.chatLinks.signIn()).toBe('/chat/sign-in')

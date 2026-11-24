@@ -1,6 +1,9 @@
 import 'fake-indexeddb/auto'
+import { runChatSession } from '@/lib/chatSession/run'
 import { IDBFactory } from 'fake-indexeddb'
+import type { ChatSessionRun } from '@/lib/chatSession/run'
 import type { ChatSessionBrowser } from '@/lib/chatSession/browser'
+import type { MatrixClient } from 'matrix-js-sdk'
 import type { jest } from '@jest/globals'
 import type { ChatSessionConfig } from '@/services/chat/session/types'
 
@@ -28,15 +31,44 @@ export function tameChatSdk(spyOn: typeof jest.spyOn): void {
     }
 }
 
+const runs: ChatSessionRun[] = []
+
+/**
+ * The client of the session a browser has kept for the user, once it runs and has synced, as a
+ * chat page has it. To be stopped with `stopSyncedChatClients` in an `afterEach`.
+ */
+export function syncedChatClient(browser: ChatSessionBrowser, matrixUserId: string): Promise<MatrixClient> {
+    return new Promise(resolve => {
+        runs.push(runChatSession({
+            config: configFor(matrixUserId),
+            browser,
+            redirectUri: REDIRECT_URI,
+            show: state => {
+                if (state.status === 'RUNNING' && state.connection === 'CONNECTED') resolve(state.client)
+            },
+        }))
+    })
+}
+
+/** Stops the clients of `syncedChatClient`, and waits while the SDK finishes what it was writing. */
+export async function stopSyncedChatClients(): Promise<void> {
+    runs.splice(0).forEach(run => run.stop())
+    await new Promise(resolve => setTimeout(resolve, 50))
+}
+
 export type ChatCall = {
     method: string,
     url: URL,
     /** What a form posted to the chat's sign in held. */
     form: URLSearchParams,
+    /** What was sent to the homeserver as JSON. */
+    json: unknown,
     token: string | null,
 }
 
 type Answer = { status?: number, body: unknown } | 'UNREACHABLE' | 'NEVER'
+/** An answer, at once or when the test has it. */
+type Answering = (call: ChatCall) => Answer | Promise<Answer>
 
 const authMetadata = {
     issuer: `${CHAT_AUTH}/`,
@@ -55,7 +87,8 @@ const authMetadata = {
  * sign in at CHAT_AUTH. The sign in hands out `access-1` and `refresh-1`, then `access-2` and so
  * on, and the homeserver says they are the tokens of `account`. It answers a first sync with
  * `rooms` and holds every later one, as a homeserver does until there is news. `answer` says what
- * a path answers in place of that. `browser` is one tab of it and `openTab` gives another: the tabs
+ * a path answers in place of that, at once or when the test has it, and `tellingOfNews` makes the
+ * later syncs the test's to answer. `browser` is one tab of it and `openTab` gives another: the tabs
  * share what is kept between visits, the synced databases and the lock, and each is told of what
  * another changes in what is kept.
  */
@@ -65,7 +98,8 @@ export function fakeChatBrowser() {
     const leftFor: string[] = []
     const watchersOfTabs = new Set<Set<() => void>>()
     const indexedDB = new IDBFactory()
-    const answers = new Map<string, (call: ChatCall) => Answer>()
+    const answers = new Map<string, Answering>()
+    const answersUnder: [string, Answering][] = []
     let heldRequests = 0
     const chat = { account: '@kari:chat.test', tokensGiven: 0, rooms: {} as object }
 
@@ -111,24 +145,31 @@ export function fakeChatBrowser() {
             method: init?.method ?? 'GET',
             url,
             form: new URLSearchParams(init?.body instanceof URLSearchParams ? init.body : undefined),
+            json: typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined,
             token: headers.get('Authorization'),
         }
         calls.push(call)
-        const answer = (answers.get(url.pathname) ?? defaultAnswer)(call)
-        if (answer === 'UNREACHABLE') return Promise.reject(new TypeError('fetch failed'))
-        if (answer === 'NEVER') {
+        const aborted = () => new Promise<Response>((_, reject) => {
+            init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
+        })
+        const held = () => {
             heldRequests++
-            return new Promise((_, reject) => {
-                init?.signal?.addEventListener('abort', () => {
-                    heldRequests--
-                    reject(new DOMException('Aborted', 'AbortError'))
-                })
-            })
+            init?.signal?.addEventListener('abort', () => heldRequests--)
+            return aborted()
         }
-        return Promise.resolve(new Response(JSON.stringify(answer.body), {
-            status: answer.status ?? 200,
-            headers: { 'Content-Type': 'application/json' },
-        }))
+        const respond = (answer: Answer) => {
+            if (answer === 'UNREACHABLE') return Promise.reject(new TypeError('fetch failed'))
+            if (answer === 'NEVER') return held()
+            return Promise.resolve(new Response(JSON.stringify(answer.body), {
+                status: answer.status ?? 200,
+                headers: { 'Content-Type': 'application/json' },
+            }))
+        }
+        const answering = answers.get(url.pathname)
+            ?? answersUnder.find(([pathnameStart]) => url.pathname.startsWith(pathnameStart))?.[1]
+            ?? defaultAnswer
+        const answer = answering(call)
+        return answer instanceof Promise ? Promise.race([answer.then(respond), aborted()]) : respond(answer)
     }
 
     let lockIsHeld = false
@@ -201,8 +242,37 @@ export function fakeChatBrowser() {
         calls,
         leftFor,
         /** What the path answers from now on, in place of what the chat would. */
-        answer: (pathname: string, answer: (call: ChatCall) => Answer) => {
+        answer: (pathname: string, answer: Answering) => {
             answers.set(pathname, answer)
+        },
+        /** What every path that starts so answers from now on, where no path is given an answer of its own. */
+        answerUnder: (pathnameStart: string, answer: Answering) => {
+            answersUnder.unshift([pathnameStart, answer])
+        },
+        /**
+         * Lets the test say what the homeserver tells of after the first sync: `tell` answers the
+         * sync that waits, or the next to come, with what has happened in the rooms.
+         */
+        tellingOfNews: () => {
+            const news: object[] = []
+            let told = 0
+            let waiting: ((answer: Answer) => void) | null = null
+            const answerWith = (rooms: object): Answer => ({ body: { next_batch: `news-${++told}`, rooms } })
+            answers.set('/_matrix/client/v3/sync', call => {
+                if (!call.url.searchParams.has('since')) return { body: { next_batch: 'first', rooms: chat.rooms } }
+                const rooms = news.shift()
+                return rooms ? answerWith(rooms) : new Promise<Answer>(resolve => {
+                    waiting = resolve
+                })
+            })
+            return {
+                tell: (rooms: object) => {
+                    const answerTheOneThatWaits = waiting
+                    waiting = null
+                    if (answerTheOneThatWaits) answerTheOneThatWaits(answerWith(rooms))
+                    else news.push(rooms)
+                },
+            }
         },
         callsTo: (pathname: string) => calls.filter(call => call.url.pathname === pathname),
         /** How many requests the chat holds unanswered, as it holds the long poll of a running client. */
