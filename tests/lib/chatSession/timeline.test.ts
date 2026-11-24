@@ -9,6 +9,8 @@ const ROOM = '!rom:chat.test'
 const OTHER_ROOM = '!annet:chat.test'
 const MESSAGES = `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/messages`
 const SEND = `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/send/m.room.message/`
+const receiptOf = (eventId: string) =>
+    `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/receipt/m.read/${encodeURIComponent(eventId)}`
 const ofKari = { userId: KARI, deviceId: 'KARISDEVICE1', accessToken: 'access-0', refreshToken: 'refresh-0' }
 
 beforeAll(() => tameChatSdk(jest.spyOn))
@@ -58,6 +60,7 @@ async function inRoom(timeline: object[]) {
         room,
         watched,
         told,
+        tell,
         lines: () => watched.read().lines,
         tellOf: (events: object[], roomId = ROOM, more: object = {}) =>
             tell({ join: { [roomId]: { timeline: { events, ...more } } } }),
@@ -482,5 +485,77 @@ describe('a message the user writes', () => {
         expect(written()).toEqual([['To', 'FAILED']])
         await settled()
         expect(sends(fake)).toHaveLength(1)
+    })
+})
+
+describe('a room that is read to its end', () => {
+    test('is said to be read at the homeserver, up to its last message and once', async () => {
+        const { fake, watched } = await inRoom([text('$1', OLA, 'Hei'), text('$2', OLA, 'Hallo')])
+
+        watched.markRead()
+        watched.markRead()
+        await settled()
+        watched.markRead()
+        await settled()
+
+        expect(fake.callsTo(receiptOf('$2')).map(call => call.method)).toEqual(['POST'])
+        expect(fake.callsTo(receiptOf('$1'))).toHaveLength(0)
+    })
+
+    test('is said to be read again when more has arrived, and not what the homeserver has said is read', async () => {
+        const { fake, watched, tell, tellOf } = await inRoom([text('$1', OLA, 'Hei')])
+        const readBy = (userId: string, eventId: string) => {
+            const receipt = { type: 'm.receipt', content: { [eventId]: { 'm.read': { [userId]: { ts: 1 } } } } }
+            return { join: { [ROOM]: { ephemeral: { events: [receipt] } } } }
+        }
+        watched.markRead()
+
+        tellOf([text('$2', OLA, 'Er du der?')])
+        await settled()
+        watched.markRead()
+        await settled()
+        expect(fake.callsTo(receiptOf('$2'))).toHaveLength(1)
+
+        // As when the user read it in another client.
+        tellOf([text('$3', OLA, 'Hallo?')])
+        tell(readBy(KARI, '$3'))
+        await settled()
+        watched.markRead()
+        await settled()
+        expect(fake.callsTo(receiptOf('$3'))).toHaveLength(0)
+
+        tellOf([text('$4', OLA, 'Fint')])
+        tell(readBy(OLA, '$4'))
+        await settled()
+        watched.markRead()
+        await settled()
+        expect(fake.callsTo(receiptOf('$4'))).toHaveLength(1)
+    })
+
+    test('is said to be read again when the homeserver could not be told', async () => {
+        const { fake, watched } = await inRoom([text('$1', OLA, 'Hei')])
+        fake.answer(receiptOf('$1'), () => 'UNREACHABLE')
+
+        watched.markRead()
+        await settled()
+        fake.answer(receiptOf('$1'), () => ({ body: {} }))
+        watched.markRead()
+        await settled()
+        watched.markRead()
+        await settled()
+
+        expect(fake.callsTo(receiptOf('$1'))).toHaveLength(2)
+    })
+
+    test('is read up to the last message the homeserver has, whatever the user is sending', async () => {
+        const { fake, watched } = await inRoom([text('$1', OLA, 'Hei')])
+        fake.answerUnder(SEND, () => 'NEVER')
+        watched.send('På vei')
+
+        watched.markRead()
+        await settled()
+
+        expect(fake.calls.filter(call => call.url.pathname.includes('/receipt/')).map(call => call.url.pathname))
+            .toEqual([receiptOf('$1')])
     })
 })

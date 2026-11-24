@@ -56,6 +56,13 @@ export type WatchedRoomTimeline = Watched<RoomTimeline> & {
     resend: () => void,
     /** Lets go of a message that was not sent, by the id of its line. */
     drop: (lineId: string) => void,
+    /**
+     * Tells the homeserver that the user has read the room to its end, which everyone in the room
+     * may see, and which takes its unread away in every client of the user's. It is told once of
+     * each last message. When it could not be reached it is told the next time this is called, and
+     * not by itself.
+     */
+    markRead: () => void,
 }
 
 const PAGE_SIZE = 50
@@ -90,6 +97,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     const watchers = new Set<() => void>()
     let shown: RoomTimeline | null = null
     let fetching: 'FETCHING' | 'FAILED' | null = null
+    let toldReadTo: string | null = null
 
     const changed = () => {
         shown = null
@@ -100,6 +108,8 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     }
     const hasEarlier = () => room.getLiveTimeline().getPaginationToken(Direction.Backward) !== null
     const unsent = () => room.getPendingEvents().filter(event => event.status === EventStatus.NOT_SENT)
+    // The SDK counts a receipt as given from when it is sent, so what the homeserver has said is asked for.
+    const hasReadTo = (eventId: string) => room.getEventReadUpTo(client.getSafeUserId(), true) === eventId
 
     return {
         subscribe: onChange => {
@@ -144,6 +154,15 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         drop: lineId => {
             const event = unsent().find(unsentEvent => unsentEvent.getId() === lineId)
             if (event) client.cancelPendingEvent(event)
+        },
+        markRead: () => {
+            const last = room.getLiveTimeline().getEvents().at(-1)
+            const lastId = last?.getId()
+            if (!last || !lastId || lastId === toldReadTo || hasReadTo(lastId)) return
+            toldReadTo = lastId
+            void client.sendReadReceipt(last).catch(() => {
+                if (toldReadTo === lastId) toldReadTo = null
+            })
         },
     }
 }

@@ -1,3 +1,4 @@
+import { loadedChatSdk } from './sdk'
 import { isSameList, watchAtSync } from './watch'
 import type { Watched } from './watch'
 import type { MatrixClient, Room, RoomNameState, RoomNameType } from 'matrix-js-sdk'
@@ -65,9 +66,30 @@ export function standaloneRoomsOf(client: MatrixClient, roomIdsOfSpaces: readonl
         .sort((one, other) => one.name.localeCompare(other.name, 'nb'))
 }
 
-/** The list of standaloneRoomsOf as a component shows it, which changes as the homeserver tells of the rooms. */
-export function watchStandaloneRooms(client: MatrixClient, roomIdsOfSpaces: readonly string[]): Watched<StandaloneRoom[]> {
-    return watchAtSync(client, () => standaloneRoomsOf(client, roomIdsOfSpaces), isSameList)
+export type ListedRoom = StandaloneRoom & {
+    /**
+     * How many messages the user has not read, as the homeserver counts them: those it would
+     * notify the user of, since the one the user last told it was read.
+     */
+    unread: number,
+    /** How many of the unread mention the user. */
+    mentions: number,
+}
+
+/**
+ * The list of standaloneRoomsOf as a component shows it, each room with its unread, which changes
+ * as the homeserver tells of the rooms.
+ */
+export function watchStandaloneRooms(client: MatrixClient, roomIdsOfSpaces: readonly string[]): Watched<ListedRoom[]> {
+    const { NotificationCountType } = loadedChatSdk()
+    return watchAtSync(client, () => standaloneRoomsOf(client, roomIdsOfSpaces).map(listed => {
+        const room = client.getRoom(listed.id)
+        return {
+            ...listed,
+            unread: room?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0,
+            mentions: room?.getUnreadNotificationCount(NotificationCountType.Highlight) ?? 0,
+        }
+    }), isSameList)
 }
 
 /** A room the user is in, which is one that opens. Null until the client knows of it, and for a room the user is not in. */

@@ -19,6 +19,8 @@ type PropTypes = {
     ownId: string,
     profiles: ReadonlyMap<string, ChatProfile>,
     onPageBack: () => void,
+    /** Called when the reader has the end of the timeline before them, and may be called again for the same end. */
+    onEndSeen: () => void,
     onResend: () => void,
     onDrop: (lineId: string) => void,
 }
@@ -36,6 +38,7 @@ export default function ChatTimeline({
     ownId,
     profiles,
     onPageBack,
+    onEndSeen,
     onResend,
     onDrop,
 }: PropTypes) {
@@ -49,12 +52,17 @@ export default function ChatTimeline({
         return profile ? `${profile.firstname} ${profile.lastname}` : name
     }, [profiles])
 
+    const seeEnd = useCallback(() => {
+        if (place.current.isAtEnd && document.visibilityState === 'visible') onEndSeen()
+    }, [onEndSeen])
+
     const notePlace = () => {
         const box = scroller.current
         if (!box) return
         const fromEnd = box.scrollHeight - box.clientHeight - box.scrollTop
         place.current = { ...place.current, isAtEnd: fromEnd < AT_END_WITHIN_PX, fromEnd }
         if (earlier === 'SOME' && box.scrollTop < PAGES_BACK_WITHIN_PX) onPageBack()
+        seeEnd()
     }
 
     useLayoutEffect(() => {
@@ -67,7 +75,13 @@ export default function ChatTimeline({
         else if (lines[0]?.id !== firstLineId) box.scrollTop = box.scrollHeight - box.clientHeight - fromEnd
         place.current = { ...place.current, firstLineId: lines[0]?.id, lastLineId: last?.id }
         if (earlier === 'SOME' && box.scrollTop < PAGES_BACK_WITHIN_PX) onPageBack()
-    }, [lines, earlier, ownId, onPageBack])
+        seeEnd()
+    }, [lines, earlier, ownId, onPageBack, seeEnd])
+
+    useEffect(() => {
+        document.addEventListener('visibilitychange', seeEnd)
+        return () => document.removeEventListener('visibilitychange', seeEnd)
+    }, [seeEnd])
 
     useEffect(() => {
         const box = scroller.current

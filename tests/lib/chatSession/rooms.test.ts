@@ -155,3 +155,36 @@ describe('the list of rooms that is watched', () => {
         expect(watched.read().map(room => room.name)).toEqual(['Hyttetur', 'Ola Nordmann'])
     })
 })
+
+describe('the unread of a room in the list', () => {
+    test('is what the homeserver counts, with the mentions apart, and follows as it counts anew', async () => {
+        const counted = (unread: number, mentions: number) => ({
+            unread_notifications: { notification_count: unread, highlight_count: mentions },
+        })
+        const { client, tell } = await inRooms({
+            join: {
+                '!direkte:chat.test': { ...joined([kari, ola]), ...counted(3, 1) },
+                '!gruppe:chat.test': joined([named('Hyttetur'), kari, ola, per]),
+            },
+        })
+        const watched = watchStandaloneRooms(client, [])
+        let told = 0
+        watched.subscribe(() => told++)
+
+        expect(watched.read()).toMatchObject([
+            { name: 'Hyttetur', unread: 0, mentions: 0 },
+            { name: 'Ola Nordmann', unread: 3, mentions: 1 },
+        ])
+
+        tell({ join: { '!direkte:chat.test': counted(4, 1), '!gruppe:chat.test': counted(1, 0) } })
+        await settled()
+        expect(told).toBe(1)
+        expect(watched.read()).toMatchObject([{ unread: 1, mentions: 0 }, { unread: 4, mentions: 1 }])
+
+        // As when the user has read the direct message, here or in another client.
+        tell({ join: { '!direkte:chat.test': counted(0, 0) } })
+        await settled()
+        expect(told).toBe(2)
+        expect(watched.read()).toMatchObject([{ unread: 1, mentions: 0 }, { unread: 0, mentions: 0 }])
+    })
+})

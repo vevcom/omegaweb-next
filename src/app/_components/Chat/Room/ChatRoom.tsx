@@ -23,8 +23,9 @@ type PropTypes = {
 
 /**
  * A room that is open: its timeline, and where a message to it is written. What is written goes
- * from the browser straight to the homeserver. The people of the room are shown as the app knows
- * them, and as the homeserver names them until it has answered and where it knows nobody.
+ * from the browser straight to the homeserver, and so does the word that the room is read. The
+ * people of the room are shown as the app knows them, and as the homeserver names them until it
+ * has answered and where it knows nobody.
  */
 export default function ChatRoom({ client, room, isConnectionLost, directWith }: PropTypes) {
     const watched = useMemo(() => watchRoomTimeline(client, room), [client, room])
@@ -48,6 +49,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith }:
                 ownId={client.getSafeUserId()}
                 profiles={profiles}
                 onPageBack={pageBack}
+                onEndSeen={watched.markRead}
                 onResend={watched.resend}
                 onDrop={watched.drop}
             />

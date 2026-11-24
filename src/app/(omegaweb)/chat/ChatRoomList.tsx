@@ -31,7 +31,10 @@ export default function ChatRoomList({ roomIdsOfSpaces }: PropTypes) {
     return <RoomsOfRunningSession state={state} roomIdsOfSpaces={roomIdsOfSpaces} />
 }
 
-/** A room the user is in opens. One they are only asked into does not, since nothing here answers an invitation yet. */
+/**
+ * A room the user is in opens, and says how much in it is unread. One they are only asked into does
+ * not open, since nothing here answers an invitation yet.
+ */
 function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces }: PropTypes & {
     state: ChatSessionState & { status: 'RUNNING' },
 }) {
@@ -51,9 +54,15 @@ function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces 
                 <li key={room.id} className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
                     {room.isInvitation
                         ? <span className="font-medium">{room.name}</span>
-                        : <SiteLink href={chatLinks.room(room)} className="font-medium">{room.name}</SiteLink>}
+                        : (
+                            <SiteLink href={chatLinks.room(room)} className={room.unread > 0 ? 'font-bold' : 'font-medium'}>
+                                {room.name}
+                            </SiteLink>
+                        )}
                     <Tag>{room.kind === 'DIRECT' ? 'Direktemelding' : 'Gruppe'}</Tag>
                     {room.isInvitation && <Tag>Invitasjon</Tag>}
+                    {room.unread > 0 && <Tag>{`${room.unread} ${room.unread === 1 ? 'ulest' : 'uleste'}`}</Tag>}
+                    {room.mentions > 0 && <Tag>{`${room.mentions} ${room.mentions === 1 ? 'omtale' : 'omtaler'}`}</Tag>}
                 </li>
             ))}
         </ul>
