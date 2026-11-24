@@ -1,10 +1,12 @@
 import { Session } from '@/auth/session/Session'
+import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { ParseError, Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { revueOperations } from '@/services/revue/operations'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
 import { revueSubGroupOperations } from '@/services/groups/revueSubGroups/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
+import { groupOperations } from '@/services/groups/operations'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { userPrivateSelection } from '@/services/users/constants'
@@ -549,6 +551,30 @@ describe('a revue sub group in the group system', () => {
             bypassAuth: true,
         })
         expect(memberships.map(membership => membership.groupName)).toEqual(['Orkesteret'])
+    })
+
+    test('is in a user\'s membership read, which a visibility is checked against by ACTIVE and by ORDER', async () => {
+        const revue = await createRevue(2026)
+        const { groupId } = await createSubGroupWithGroupId(revue.id, 'Band')
+        const [member, removed, outsider] = await createUsers('Medlem', 'Fjernet', 'Utenfor')
+        await addMembers(groupId, currentOrder, [member, removed])
+        await revueSubGroupOperations.removeMembers({
+            params: { groupId },
+            data: { userIds: [removed.id] },
+            session: revueAdmin,
+        })
+        const active = { requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }] }
+        const ofOrder = { requirements: [{ conditions: [{ type: 'ORDER' as const, groupId, order: currentOrder }] }] }
+
+        const letIn = async (user: { id: number }) => {
+            const memberships = await groupOperations.readMembershipsOfUserOfAllTypes.internalCall({
+                params: { userId: user.id },
+            })
+            return [checkVisibility(memberships, active), checkVisibility(memberships, ofOrder)]
+        }
+        expect(await letIn(member)).toEqual([true, true])
+        expect(await letIn(removed)).toEqual([false, true])
+        expect(await letIn(outsider)).toEqual([false, false])
     })
 
     test('behind Omega\'s order holds the next increment back until it is migrated or pensioned', async () => {
