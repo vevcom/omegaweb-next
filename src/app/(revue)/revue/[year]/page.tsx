@@ -17,6 +17,7 @@ import {
 import { revueAuth } from '@/services/revue/auth'
 import { revueGroupAuth } from '@/services/revue/groups/auth'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
+import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { groupTypesConfig } from '@/services/groups/constants'
 import RevueCover from '@/app/(revue)/_components/RevueCover'
 import Article from '@/components/Cms/Article/Article'
@@ -25,7 +26,7 @@ import CmsImageEditor from '@/components/Cms/CmsImage/CmsImageEditor'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { configureAction } from '@/services/configureAction'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
-import { serverPage } from '@/app/ServerPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -33,14 +34,29 @@ import type { PageOperationArgs } from '@/app/ServerPage'
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ year: string }>) => {
         const revue = await getRevue(params.year)
-        return { revue, groups: await revueGroupOperations.readManyInRevue({ params: { revueId: revue.id } }) }
+        const [groups, allGroups] = await Promise.all([
+            revueGroupOperations.readManyInRevue({ params: { revueId: revue.id } }),
+            withFallback(revueGroupOperations.readMany({}), null, ['UNAUTHENTICATED', 'UNAUTHORIZED']),
+        ])
+        const groupSettings = allGroups && {
+            groupsInRevue: groups,
+            groupsNotInRevue: allGroups
+                .filter(group => !groups.some(inRevue => inRevue.id === group.id))
+                .map(group => ({ id: group.id, name: group.name })),
+            currentOrder: (await withFallback(
+                omegaOrderOperations.readCurrent({}),
+                null,
+                ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+            ))?.order ?? null,
+        }
+        return { revue, groups, groupSettings }
     },
     capabilities: () => ({
         canEdit: revueAuth.updateArticle,
         canCreateGroup: revueGroupAuth.create,
     }),
     metadata: ({ revue }) => ({ title: revue.name }),
-    render: ({ data: { revue, groups }, capabilities }) => {
+    render: ({ data: { revue, groups, groupSettings }, capabilities }) => {
         const actionConfig = { implementationParams: { revueId: revue.id } }
         const clientCapabilities = capabilitiesToJsObject({ canEdit: capabilities.canEdit })
 
@@ -55,7 +71,7 @@ const { page, generateMetadata } = serverPage({
                             <FontAwesomeIcon icon={faArrowLeft} />
                             Alle revyer
                         </SiteLink>
-                        <RevueSettings revue={revue} />
+                        <RevueSettings revue={revue} groups={groupSettings} />
                     </div>
                     <RevueCover
                         image={revue.article.coverImage.image}

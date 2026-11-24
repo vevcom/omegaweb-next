@@ -8,3 +8,5 @@ export const removeRevueSubGroupMembersAction = makeAction(revueSubGroupOperatio
 export const setRevueSubGroupMemberAdminAction = makeAction(revueSubGroupOperations.setMemberAdmin)
 export const setRevueSubGroupMemberTitleAction = makeAction(revueSubGroupOperations.setMemberTitle)
 export const reorderRevueSubGroupMembersAction = makeAction(revueSubGroupOperations.reorderMembers)
+export const migrateRevueSubGroupAction = makeAction(revueSubGroupOperations.migrateGroup)
+export const pensionRevueSubGroupAction = makeAction(revueSubGroupOperations.pension)

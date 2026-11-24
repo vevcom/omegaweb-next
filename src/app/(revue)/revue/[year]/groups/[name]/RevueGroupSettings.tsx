@@ -1,11 +1,8 @@
 'use client'
 import { revueLinks } from '@/app/(revue)/links'
-import Form from '@/components/Form/Form'
+import RevueGroupMetaForms from '@/app/(revue)/_components/RevueGroupMetaForms'
 import PopUp from '@/components/PopUp/PopUp'
-import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
-import { configureAction } from '@/services/configureAction'
-import { destroyRevueGroupAction, updateRevueGroupAction } from '@/services/revue/groups/actions'
 import { revueGroupAuth } from '@/services/revue/groups/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
@@ -19,8 +16,6 @@ type PropTypes = {
 export default function RevueGroupSettings({ group, revue }: PropTypes) {
     const editable = useEditMode({ authorizer: revueGroupAuth.update })
     const popUpKey = `RevueGroupSettings${group.id}`
-    const params = { params: { revueGroupId: group.id } }
-    const updateGroup = configureAction(updateRevueGroupAction, params)
 
     if (!editable) return null
     return (
@@ -33,30 +28,12 @@ export default function RevueGroupSettings({ group, revue }: PropTypes) {
             showButtonContent={<FontAwesomeIcon icon={faGear} />}
             ariaLabel={`Innstillinger for ${group.name}`}
         >
-            <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
-                <Form
-                    title="Innstillinger"
-                    action={updateGroup}
-                    submitText="Lagre"
-                    closePopUpOnSuccess={popUpKey}
-                    navigateOnSuccess={updated => revueLinks.revueGroup(revue, updated)}
-                >
-                    <TextInput name="name" label="Navn" defaultValue={group.name} />
-                </Form>
-                <Form
-                    action={configureAction(destroyRevueGroupAction, params)}
-                    submitText="Slett gruppen"
-                    submitColor="red"
-                    closePopUpOnSuccess={popUpKey}
-                    navigateOnSuccess={revueLinks.revue(revue)}
-                    confirmation={{
-                        confirm: true,
-                        text: group.type === 'REVUE_SUB_GROUP'
-                            ? `Vil du slette ${group.name} med alle medlemskapene, også de i andre revyer?`
-                            : `Vil du slette ${group.name} fra revysiden? Komiteen og medlemmene dens blir som de er.`,
-                    }}
-                />
-            </div>
+            <RevueGroupMetaForms
+                group={group}
+                closePopUpOnSuccess={popUpKey}
+                hrefOfUpdated={updated => revueLinks.revueGroup(revue, updated)}
+                hrefAfterDestroy={revueLinks.revue(revue)}
+            />
         </PopUp>
     )
 }

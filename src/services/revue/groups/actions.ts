@@ -3,6 +3,8 @@ import { revueGroupOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
 export const createRevueGroupAction = makeAction(revueGroupOperations.create)
+export const addRevueGroupToRevueAction = makeAction(revueGroupOperations.addToRevue)
+export const removeRevueGroupFromRevueAction = makeAction(revueGroupOperations.removeFromRevue)
 export const updateRevueGroupAction = makeAction(revueGroupOperations.update)
 export const destroyRevueGroupAction = makeAction(revueGroupOperations.destroy)
 

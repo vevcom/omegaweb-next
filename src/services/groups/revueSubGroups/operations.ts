@@ -4,6 +4,7 @@ import { revueSubGroupSchemas } from './schemas'
 import { groupOperations } from '@/services/groups/operations'
 import {
     implementGroupType,
+    implementManualMigrationPerGroup,
     implementReorderMembersOperation,
     implementSimpleAddRemoveMembersOperation,
 } from '@/services/groups/implementGroupType'
@@ -40,6 +41,14 @@ const memberOrdering = implementReorderMembersOperation({
     },
 })
 
+const migration = implementManualMigrationPerGroup({
+    type: GroupType.REVUE_SUB_GROUP,
+    auth: {
+        migrateGroup: () => revueSubGroupAuth.migrateGroup,
+        pension: () => revueSubGroupAuth.pension,
+    },
+})
+
 /**
  * The operations of the revue's own groups. A sub group is named by its revue group, so the revue
  * service makes and destroys one with its revue group, through `internal`, and nothing else does.
@@ -53,6 +62,8 @@ export const revueSubGroupOperations = {
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
     reorderMembers: memberOrdering.reorderMembers,
+    migrateGroup: migration.migrateGroup,
+    pension: migration.pension,
 
     /**
      * A page of those who can be added to a sub group: everyone who is not archived, since the revue

@@ -13,4 +13,6 @@ export const revueSubGroupAuth = {
     setMemberAdmin: revueAdminOrGroupAdmin,
     setMemberTitle: revueAdminOrGroupAdmin,
     reorderMembers: revueAdminOrGroupAdmin,
+    migrateGroup: Require.permission('REVUE_ADMIN'),
+    pension: Require.permission('REVUE_ADMIN'),
 } as const

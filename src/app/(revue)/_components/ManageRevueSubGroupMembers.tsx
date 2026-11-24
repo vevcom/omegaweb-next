@@ -1,7 +1,6 @@
 'use client'
 import ManageGroupMembers from '@/components/Group/ManageGroupMembers'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import useEditMode from '@/hooks/useEditMode'
 import {
     addRevueSubGroupMembersAction,
     readRevueSubGroupAddableUsersAction,
@@ -19,30 +18,24 @@ type PropTypes = {
     orders: ManageGroupMembersOrder[],
 }
 
-/** A sub group's members to add, title, make admin, order and remove, in edit mode. */
+/** A sub group's members to add, title, make admin, order and remove, each as far as the viewer may. */
 export default function ManageRevueSubGroupMembers({ groupId, groupOrder, orders }: PropTypes) {
-    const editable = useEditMode({ authorizer: revueSubGroupAuth.addMembers.data({ groupId }) })
+    const canAddMembers = useAuthorizer({ authorizer: revueSubGroupAuth.addMembers.data({ groupId }) })
     const canReadAddableUsers = useAuthorizer({ authorizer: revueSubGroupAuth.readAddableUsers.data({ groupId }) })
     const canRemoveMembers = useAuthorizer({ authorizer: revueSubGroupAuth.removeMembers.data({ groupId }) })
     const canSetMemberAdmin = useAuthorizer({ authorizer: revueSubGroupAuth.setMemberAdmin.data({ groupId }) })
     const canSetMemberTitle = useAuthorizer({ authorizer: revueSubGroupAuth.setMemberTitle.data({ groupId }) })
     const canReorderMembers = useAuthorizer({ authorizer: revueSubGroupAuth.reorderMembers.data({ groupId }) })
 
-    if (!editable) return null
-    return (
-        <section className="flex flex-col gap-6">
-            <h2 className="font-secondary text-xl">Administrer medlemmer</h2>
-            <ManageGroupMembers
-                groupId={groupId}
-                groupOrder={groupOrder}
-                orders={orders}
-                addMembersAction={addRevueSubGroupMembersAction}
-                readAddableUsers={canReadAddableUsers.authorized ? readRevueSubGroupAddableUsersAction : undefined}
-                removeMembersAction={canRemoveMembers.authorized ? removeRevueSubGroupMembersAction : undefined}
-                setMemberAdminAction={canSetMemberAdmin.authorized ? setRevueSubGroupMemberAdminAction : undefined}
-                setMemberTitleAction={canSetMemberTitle.authorized ? setRevueSubGroupMemberTitleAction : undefined}
-                reorderMembersAction={canReorderMembers.authorized ? reorderRevueSubGroupMembersAction : undefined}
-            />
-        </section>
-    )
+    return <ManageGroupMembers
+        groupId={groupId}
+        groupOrder={groupOrder}
+        orders={orders}
+        addMembersAction={canAddMembers.authorized ? addRevueSubGroupMembersAction : undefined}
+        readAddableUsers={canReadAddableUsers.authorized ? readRevueSubGroupAddableUsersAction : undefined}
+        removeMembersAction={canRemoveMembers.authorized ? removeRevueSubGroupMembersAction : undefined}
+        setMemberAdminAction={canSetMemberAdmin.authorized ? setRevueSubGroupMemberAdminAction : undefined}
+        setMemberTitleAction={canSetMemberTitle.authorized ? setRevueSubGroupMemberTitleAction : undefined}
+        reorderMembersAction={canReorderMembers.authorized ? reorderRevueSubGroupMembersAction : undefined}
+    />
 }

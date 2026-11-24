@@ -121,9 +121,9 @@ export const seedDevRevues = defineSeedOperation(async (prisma: PrismaClient) =>
     })
 
     async function putInEarlierRevues(revueGroupId: number) {
-        await Promise.all(earlier.map(revue => revueGroupOperations.internal.addToRevue.internalCall({
-            params: { revueId: revue.id, revueGroupId },
-            data: { order: revue.order },
+        await Promise.all(earlier.map(revue => revueGroupOperations.addToRevue({
+            params: { revueId: revue.id },
+            data: { revueGroupId, order: revue.order },
         })))
     }
 })

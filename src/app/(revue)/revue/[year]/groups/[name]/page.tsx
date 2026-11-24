@@ -1,5 +1,5 @@
-import ManageRevueSubGroupMembers from './ManageRevueSubGroupMembers'
 import RevueGroupSettings from './RevueGroupSettings'
+import ManageMembersInEditMode from './ManageMembersInEditMode'
 import yearFromParam from '@/app/(revue)/revue/[year]/yearFromParam'
 import { revueLinks } from '@/app/(revue)/links'
 import { omegaLinks } from '@/app/(omegaweb)/links'
@@ -29,8 +29,9 @@ const { page, generateMetadata } = serverPage({
         const group = await revueGroupOperations.readInRevue({
             params: { year: yearFromParam(params.year), name: decodeURIComponent(params.name) },
         })
-        // Every membership of every order, for those who manage the sub group's members in the revue it stands in.
-        const memberships = group.type === 'REVUE_SUB_GROUP' && group.order === group.group.order
+        const managedHere = group.type === 'REVUE_SUB_GROUP' && group.order === group.group.order
+            && !group.group.pensioned
+        const memberships = managedHere
             ? await withFallback(
                 revueSubGroupOperations.readMembers({ params: { groupId: group.group.id } }),
                 null,
@@ -45,6 +46,7 @@ const { page, generateMetadata } = serverPage({
     metadata: ({ group }) => ({ title: `${group.name} - ${group.revue.name}` }),
     render: ({ data: { group, memberships }, capabilities }) => {
         const actionConfig = { implementationParams: { revueGroupId: group.id } }
+        const pensionedSubGroup = group.type === 'REVUE_SUB_GROUP' && group.group.pensioned
 
         return (
             <div className="flex flex-col gap-8">
@@ -57,7 +59,7 @@ const { page, generateMetadata } = serverPage({
                             <FontAwesomeIcon icon={faArrowLeft} />
                             {group.revue.name}
                         </SiteLink>
-                        <RevueGroupSettings group={group} revue={group.revue} />
+                        {!pensionedSubGroup && <RevueGroupSettings group={group} revue={group.revue} />}
                     </div>
                     <header className="
                         flex flex-col items-start gap-3 p-[clamp(1.25rem,5vw,2.5rem)] rounded-round border-l-4
@@ -115,7 +117,7 @@ const { page, generateMetadata } = serverPage({
                     ) : <p className="text-base-content/80">Ingen medlemmer i {group.revue.name}.</p>}
                 </section>
                 {memberships && (
-                    <ManageRevueSubGroupMembers
+                    <ManageMembersInEditMode
                         groupId={group.group.id}
                         groupOrder={group.group.order}
                         orders={groupMembersByOrder(memberships, group.group.order)}

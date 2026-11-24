@@ -2,7 +2,8 @@ import { revueAdminLinks } from './links'
 import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { revueAuth } from '@/services/revue/auth'
-import { faEnvelopesBulk, faMasksTheater } from '@fortawesome/free-solid-svg-icons'
+import { revueGroupAuth } from '@/services/revue/groups/auth'
+import { faEnvelopesBulk, faMasksTheater, faPeopleGroup } from '@fortawesome/free-solid-svg-icons'
 
 /** The admin pages of the revue site, in the order the sidebar shows them. */
 export const revueAdminNavDef = defineNavDef([
@@ -12,6 +13,13 @@ export const revueAdminNavDef = defineNavDef([
         href: revueAdminLinks.revues(),
         icon: faMasksTheater,
         authorizers: () => [revueAuth.create, revueAuth.update, revueAuth.destroy],
+    },
+    {
+        key: 'groups',
+        name: 'Grupper',
+        href: revueAdminLinks.groups(),
+        icon: faPeopleGroup,
+        authorizers: () => [revueGroupAuth.readMany],
     },
     {
         key: 'mail',

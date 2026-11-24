@@ -6,6 +6,7 @@ import { revueGroupSchemas } from './schemas'
 import { revueSubGroupOperations } from '@/services/groups/revueSubGroups/operations'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { userPartitions } from '@/services/users/constants'
+import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import type { Prisma } from '@/prisma-generated-pn-types'
@@ -15,34 +16,79 @@ import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 const addToRevue = defineSubOperation({
     paramsSchema: () => revueGroupSchemas.params.addToRevue,
     dataSchema: () => revueGroupSchemas.data.addToRevue,
-    operation: () => ({ prisma, params, data }) => prisma.revueGroupInRevue.create({
-        data: { revueId: params.revueId, revueGroupId: params.revueGroupId, order: data.order },
-    }),
+    operation: () => async ({ prisma, params, data }) => {
+        if (!await prisma.omegaOrder.findUnique({ where: { order: data.order } })) {
+            throw new ServiceError('BAD DATA', `Omega har ingen orden ${data.order}`)
+        }
+        return prisma.revueGroupInRevue.create({
+            data: { revueId: params.revueId, revueGroupId: data.revueGroupId, order: data.order },
+        })
+    },
 })
 
 export const revueGroupOperations = {
-    /** Makes a revue group and puts it in the revue at Omega's current order. */
+    /** Makes a revue group, and puts it in the revue at Omega's current order when a revue is given. */
     create: defineOperation({
         paramsSchema: revueGroupSchemas.params.create,
         dataSchema: revueGroupSchemas.data.create,
         authorizer: () => revueGroupAuth.create,
         transaction: 'OPENS',
-        operation: ({ prisma, params, data }) => prisma.$transaction(async tx => {
+        operation: ({ prisma, params: { revueId }, data }) => prisma.$transaction(async tx => {
+            if (data.type === 'COMMITTEE') await assertNotARevueGroupYet(tx, data.committeeId)
             const articleSection = await revueGroupArticleSection.internal.create.internalCall({ data: {}, prisma: tx })
             const kind = data.type === 'COMMITTEE'
                 ? { committeeId: data.committeeId }
                 : { revueSubGroupId: (await revueSubGroupOperations.internal.create.internalCall({ prisma: tx })).id }
-            const { order } = await omegaOrderOperations.readCurrent({ prisma: tx, bypassAuth: true })
 
             const revueGroup = await tx.revueGroup.create({
                 data: { name: data.name, type: data.type, ...kind, articleSectionId: articleSection.id },
             })
-            await addToRevue.internalCall({
-                prisma: tx,
-                params: { revueId: params.revueId, revueGroupId: revueGroup.id },
-                data: { order },
-            })
+            if (revueId !== undefined) {
+                const { order } = await omegaOrderOperations.readCurrent({ prisma: tx, bypassAuth: true })
+                await addToRevue.internalCall({
+                    prisma: tx,
+                    params: { revueId },
+                    data: { revueGroupId: revueGroup.id, order },
+                })
+            }
             return revueGroup
+        }),
+    }),
+
+    addToRevue: addToRevue.implement({
+        authorizer: () => revueGroupAuth.addToRevue,
+        ownershipCheck: () => true,
+    }),
+
+    removeFromRevue: defineOperation({
+        paramsSchema: revueGroupSchemas.params.removeFromRevue,
+        authorizer: () => revueGroupAuth.removeFromRevue,
+        operation: ({ prisma, params }) => prisma.revueGroupInRevue.delete({
+            where: { revueId_revueGroupId: params },
+        }),
+    }),
+
+    readMany: defineOperation({
+        authorizer: () => revueGroupAuth.readMany,
+        operation: ({ prisma }) => prisma.revueGroup.findMany({
+            include: revueGroupKindIncluder,
+            orderBy: { name: 'asc' },
+        }),
+    }),
+
+    /** A group with the revues it is in, for its admin page. */
+    read: defineOperation({
+        paramsSchema: revueGroupSchemas.params.read,
+        authorizer: () => revueGroupAuth.read,
+        operation: ({ prisma, params }) => prisma.revueGroup.findUniqueOrThrow({
+            where: { name: params.name },
+            include: {
+                ...revueGroupKindIncluder,
+                revues: {
+                    select: { order: true, revue: { select: { year: true, name: true } } },
+                    orderBy: { revue: { year: 'desc' } },
+                },
+            },
         }),
     }),
 
@@ -60,6 +106,7 @@ export const revueGroupOperations = {
                 id: revueGroup.id,
                 name: revueGroup.name,
                 type: revueGroup.type,
+                order,
                 memberCount: await prisma.membership.count({
                     where: membershipsInRevue(groupOfRevueGroup(revueGroup), order),
                 }),
@@ -88,7 +135,7 @@ export const revueGroupOperations = {
                 articleSection: revueGroup.articleSection,
                 revue,
                 order,
-                group: { id: group.id, order: group.order },
+                group,
                 committee: revueGroup.committee && {
                     name: revueGroup.committee.name,
                     shortName: revueGroup.committee.shortName,
@@ -102,10 +149,10 @@ export const revueGroupOperations = {
         paramsSchema: revueGroupSchemas.params.update,
         dataSchema: revueGroupSchemas.data.update,
         authorizer: () => revueGroupAuth.update,
-        operation: ({ prisma, params, data }) => prisma.revueGroup.update({
-            where: { id: params.revueGroupId },
-            data,
-        }),
+        operation: async ({ prisma, params, data }) => {
+            await assertSubGroupNotPensioned(prisma, params.revueGroupId)
+            return prisma.revueGroup.update({ where: { id: params.revueGroupId }, data })
+        },
     }),
 
     /** A sub group goes with its revue group, its memberships too. A committee is never touched. */
@@ -114,6 +161,7 @@ export const revueGroupOperations = {
         authorizer: () => revueGroupAuth.destroy,
         transaction: 'OPENS',
         operation: ({ prisma, params }) => prisma.$transaction(async tx => {
+            await assertSubGroupNotPensioned(tx, params.revueGroupId)
             const revueGroup = await tx.revueGroup.delete({ where: { id: params.revueGroupId } })
             await revueGroupArticleSection.internal.destroy.internalCall({
                 prisma: tx,
@@ -129,13 +177,29 @@ export const revueGroupOperations = {
     }),
 
     articleSection: revueGroupArticleSection,
-
-    internal: {
-        addToRevue,
-    },
 } as const
 
 type GroupAndOrder = { id: number, order: number, pensioned: boolean }
+
+/** A pensioned sub group is not changed, as no group of the group system is. A committee's pension is its own. */
+async function assertSubGroupNotPensioned(prisma: PrismaPossibleTransaction<false>, revueGroupId: number) {
+    const { revueSubGroup } = await prisma.revueGroup.findUniqueOrThrow({
+        where: { id: revueGroupId },
+        select: { revueSubGroup: { select: { groupId: true } } },
+    })
+    if (revueSubGroup) await assertGroupNotPensioned(prisma, revueSubGroup.groupId)
+}
+
+/** A committee is one revue group at most, which the unique column holds and this says in words. */
+async function assertNotARevueGroupYet(prisma: PrismaPossibleTransaction<false>, committeeId: number) {
+    const committee = await prisma.committee.findUniqueOrThrow({
+        where: { id: committeeId },
+        select: { name: true, revueGroup: { select: { name: true } } },
+    })
+    if (committee.revueGroup) {
+        throw new ServiceError('DUPLICATE', `${committee.name} er allerede revygruppen ${committee.revueGroup.name}`)
+    }
+}
 
 function groupOfRevueGroup(revueGroup: {
     committee: { group: GroupAndOrder } | null,

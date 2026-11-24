@@ -4,6 +4,7 @@ const dataFieldSchemas = z.object({
     name: z.string().trim().min(2, 'Navnet må ha minst 2 tegn').max(30, 'Navnet kan ha maks 30 tegn'),
     committeeId: z.coerce.number().int(),
     order: z.coerce.number().int(),
+    revueGroupId: z.coerce.number().int(),
 })
 
 const paramsFieldSchemas = z.object({
@@ -21,12 +22,14 @@ export const revueGroupSchemas = {
             dataFieldSchemas.pick({ name: true }).extend({ type: z.literal('REVUE_SUB_GROUP') }),
             dataFieldSchemas.pick({ name: true, committeeId: true }).extend({ type: z.literal('COMMITTEE') }),
         ]),
-        addToRevue: dataFieldSchemas.pick({ order: true }),
+        addToRevue: dataFieldSchemas.pick({ revueGroupId: true, order: true }),
         update: dataFieldSchemas.pick({ name: true }),
     },
     params: {
-        create: paramsFieldSchemas.pick({ revueId: true }),
-        addToRevue: paramsFieldSchemas.pick({ revueId: true, revueGroupId: true }),
+        create: paramsFieldSchemas.pick({ revueId: true }).partial(),
+        addToRevue: paramsFieldSchemas.pick({ revueId: true }),
+        removeFromRevue: paramsFieldSchemas.pick({ revueId: true, revueGroupId: true }),
+        read: paramsFieldSchemas.pick({ name: true }),
         readManyInRevue: paramsFieldSchemas.pick({ revueId: true }),
         readInRevue: paramsFieldSchemas.pick({ year: true, name: true }),
         update: revueGroupId,

@@ -21,8 +21,18 @@ beforeAll(async () => {
 })
 
 afterEach(async () => {
-    const revueGroups = await prisma.revueGroup.findMany({ select: { id: true } })
+    const revueGroups = await prisma.revueGroup.findMany({
+        select: { id: true, revueSubGroup: { select: { group: { select: { id: true, pensioned: true } } } } },
+    })
     for (const revueGroup of revueGroups) {
+        const group = revueGroup.revueSubGroup?.group
+        if (group?.pensioned) {
+            await revueSubGroupOperations.pension({
+                params: { groupId: group.id },
+                data: { pensioned: false },
+                session: revueAdmin,
+            })
+        }
         await revueGroupOperations.destroy({ params: { revueGroupId: revueGroup.id }, session: revueAdmin })
     }
     const revues = await prisma.revue.findMany({ select: { id: true } })
@@ -61,19 +71,34 @@ describe('creating a revue group', () => {
         expect(made.revues).toEqual([{ revueId: revue.id, revueGroupId: revueGroup.id, order: currentOrder }])
     })
 
-    test('of a committee points at the committee and makes no group of its own', async () => {
-        const revue = await createRevue(2026)
+    test('of a committee points at the committee, makes no group of its own and is in no revue', async () => {
         const committee = await createCommittee()
         const groupCount = await prisma.group.count()
 
         const revueGroup = await revueGroupOperations.create({
-            params: { revueId: revue.id },
+            params: {},
             data: { type: 'COMMITTEE', name: 'Styret', committeeId: committee.id },
             session: revueAdmin,
         })
 
         expect(revueGroup).toMatchObject({ type: 'COMMITTEE', committeeId: committee.id, revueSubGroupId: null })
         expect(await prisma.group.count()).toBe(groupCount)
+        expect(await prisma.revueGroupInRevue.count()).toBe(0)
+    })
+
+    test('of a committee that is a revue group already is refused, saying which', async () => {
+        const committee = await createCommittee()
+        const create = (name: string) => revueGroupOperations.create({
+            params: {},
+            data: { type: 'COMMITTEE', name, committeeId: committee.id },
+            session: revueAdmin,
+        })
+        await create('Styret')
+
+        await expect(create('Styret igjen')).rejects.toMatchObject({
+            errorCode: 'DUPLICATE',
+            errors: [{ message: 'Revystyret er allerede revygruppen Styret' }],
+        })
     })
 
     test('is for a revue admin alone', async () => {
@@ -83,6 +108,66 @@ describe('creating a revue group', () => {
             data: { type: 'REVUE_SUB_GROUP', name: 'Band' },
             session: Session.empty(),
         })).rejects.toThrow(Smorekopp)
+    })
+})
+
+describe('a revue group in a revue', () => {
+    test('is put in at an order Omega has, and taken out again', async () => {
+        const committee = await createCommittee()
+        const { id } = await revueGroupOperations.create({
+            params: {},
+            data: { type: 'COMMITTEE', name: 'Styret', committeeId: committee.id },
+            session: revueAdmin,
+        })
+        const revue = await createRevue(2026)
+        const addToRevue = (order: number) => revueGroupOperations.addToRevue({
+            params: { revueId: revue.id },
+            data: { revueGroupId: id, order },
+            session: revueAdmin,
+        })
+
+        await expect(addToRevue(currentOrder + 1)).rejects.toMatchObject({
+            errors: [{ message: `Omega har ingen orden ${currentOrder + 1}` }],
+        })
+        await addToRevue(currentOrder)
+        expect(await memberNames(2026, 'Styret')).toEqual([])
+
+        await revueGroupOperations.removeFromRevue({
+            params: { revueId: revue.id, revueGroupId: id },
+            session: revueAdmin,
+        })
+        expect(await prisma.revueGroupInRevue.count()).toBe(0)
+        expect(await prisma.revueGroup.count()).toBe(1)
+    })
+})
+
+describe('migrating a revue sub group', () => {
+    test('leaves its last revue with the members of the order it left, and puts it in no revue', async () => {
+        const revue = await createRevue(2025)
+        const { groupId } = await createSubGroupWithGroupId(revue.id, 'Band', currentOrder - 1)
+        await prisma.group.update({ where: { id: groupId }, data: { order: currentOrder - 1 } })
+        const [kari, ola] = await createUsers('Kari', 'Ola')
+        await addMembers(groupId, currentOrder - 1, [kari, ola])
+
+        await expect(revueSubGroupOperations.migrateGroup({
+            params: { groupId },
+            data: { keep: [{ userId: kari.id, admin: true }] },
+            session: sessionOfAdminOf(kari, groupId),
+        })).rejects.toThrow(Smorekopp)
+        await revueSubGroupOperations.migrateGroup({
+            params: { groupId },
+            data: { keep: [{ userId: kari.id, admin: true }] },
+            session: revueAdmin,
+        })
+
+        const group = await revueGroupOperations.readInRevue({
+            params: { year: 2025, name: 'Band' },
+            session: Session.empty(),
+        })
+        expect(group.members.map(member => member.name)).toEqual(['Kari Nordmann', 'Ola Nordmann'])
+        expect(group.group.order).toBe(currentOrder)
+        expect(await prisma.revueGroupInRevue.findMany({ select: { order: true } }))
+            .toEqual([{ order: currentOrder - 1 }])
     })
 })
 
@@ -276,9 +361,10 @@ describe('destroying a revue group', () => {
         const first = await createRevue(2025)
         const second = await createRevue(2026)
         const { id } = await createSubGroupWithGroupId(second.id, 'Band')
-        await revueGroupOperations.internal.addToRevue.internalCall({
-            params: { revueId: first.id, revueGroupId: id },
-            data: { order: currentOrder - 1 },
+        await revueGroupOperations.addToRevue({
+            params: { revueId: first.id },
+            data: { revueGroupId: id, order: currentOrder - 1 },
+            session: revueAdmin,
         })
 
         await revueOperations.destroy({ params: { revueId: second.id }, session: revueAdmin })
@@ -310,7 +396,7 @@ describe('a revue sub group in the group system', () => {
         expect(memberships.map(membership => membership.groupName)).toEqual(['Orkesteret'])
     })
 
-    test('behind Omega\'s order holds the next increment back', async () => {
+    test('behind Omega\'s order holds the next increment back until it is migrated or pensioned', async () => {
         const revue = await createRevue(2026)
         const { groupId } = await createSubGroupWithGroupId(revue.id, 'Band')
         const requirementOf = async () => (await omegaOrderOperations.readRequirements({ bypassAuth: true }))
@@ -322,6 +408,27 @@ describe('a revue sub group in the group system', () => {
         })
         await prisma.group.update({ where: { id: groupId }, data: { order: currentOrder - 1 } })
         expect(await requirementOf()).toMatchObject({ fulfilled: false, detail: '1 gjenstår' })
+
+        await revueSubGroupOperations.migrateGroup({ params: { groupId }, data: { keep: [] }, session: revueAdmin })
+        expect(await requirementOf()).toMatchObject({ fulfilled: true })
+
+        await prisma.group.update({ where: { id: groupId }, data: { order: currentOrder - 1 } })
+        await revueSubGroupOperations.pension({ params: { groupId }, data: { pensioned: true }, session: revueAdmin })
+        expect(await requirementOf()).toMatchObject({ fulfilled: true })
+    })
+
+    test('pensioned is not renamed or destroyed until it is brought back', async () => {
+        const revue = await createRevue(2026)
+        const { id, groupId } = await createSubGroupWithGroupId(revue.id, 'Band')
+        await revueSubGroupOperations.pension({ params: { groupId }, data: { pensioned: true }, session: revueAdmin })
+
+        await expect(revueGroupOperations.update({
+            params: { revueGroupId: id },
+            data: { name: 'Orkesteret' },
+            session: revueAdmin,
+        })).rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
+        await expect(revueGroupOperations.destroy({ params: { revueGroupId: id }, session: revueAdmin }))
+            .rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
     })
 
     test('takes members who are not active students, picked by its own admin', async () => {
