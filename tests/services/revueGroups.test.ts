@@ -11,6 +11,7 @@ import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { userPrivateSelection } from '@/services/users/constants'
 import { defaultRevuePalette } from '@/app/(revue)/_lib/revueTheme'
+import { activeMembersOf } from 'tests/utils'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { AnySession } from '@/auth/session/Session'
 
@@ -727,8 +728,10 @@ describe('a revue sub group in the group system', () => {
             data: { userIds: [removed.id] },
             session: revueAdmin,
         })
-        const active = { requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }] }
-        const ofOrder = { requirements: [{ conditions: [{ type: 'ORDER' as const, groupId, order: currentOrder }] }] }
+        const active = { requirements: [{ conditions: [activeMembersOf(groupId)] }] }
+        const ofOrder = {
+            requirements: [{ conditions: [{ groupId, order: currentOrder, onlyActive: false, onlyAdmins: false }] }],
+        }
 
         const letIn = async (user: { id: number }) => {
             const memberships = await groupOperations.readMembershipsOfUserOfAllTypes.internalCall({

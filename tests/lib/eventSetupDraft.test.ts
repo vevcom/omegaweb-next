@@ -8,6 +8,7 @@ import {
 } from '@/services/events/setupDraft'
 import { eventSetupChecks } from '@/services/events/publishProblems'
 import { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
+import { activeMembersOf } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
 
@@ -38,7 +39,7 @@ const saved = (id: number, quotaIds: number[]): EventVariantExpanded => ({
         places: 5,
         visibilityId: quotaId,
         numOfRegistrations: 1,
-        visibility: { requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: 4 }] }] },
+        visibility: { requirements: [{ conditions: [activeMembersOf(4)] }] },
     })),
 })
 
@@ -135,7 +136,7 @@ describe('the setup read from what the form would post', () => {
             eventEnd: '2026-11-24T12:00',
             canBeViewedBy: 'CAN_REGISTER',
             ledgerAccountSelection: '12',
-            adminRequirements: JSON.stringify([{ conditions: [{ type: 'ACTIVE', groupId: 1 }] }]),
+            adminRequirements: JSON.stringify([{ conditions: [activeMembersOf(1)] }]),
             variants,
         }), asSaved)
 
@@ -145,7 +146,7 @@ describe('the setup read from what the form would post', () => {
             eventEnd: new Date('2026-11-24T12:00:00.000Z'),
             canBeViewedBy: 'CAN_REGISTER',
             ledgerAccount: { id: 12 },
-            adminVisibility: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: 1 }] }] },
+            adminVisibility: { requirements: [{ conditions: [activeMembersOf(1)] }] },
         })
         expect(setup.variants).toHaveLength(1)
     })

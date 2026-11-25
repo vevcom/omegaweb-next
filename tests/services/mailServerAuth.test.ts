@@ -10,6 +10,7 @@ import { mailAddressExternalOperations } from '@/services/mail/mailAddressExtern
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { userPrivateSelection } from '@/services/users/constants'
 import { COMMITTEE_PERMISSIONS } from '@/seeder/src/permissions'
+import { activeMembersOf } from 'tests/utils'
 import { afterEach, describe, expect, test } from '@jest/globals'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -89,7 +90,7 @@ describe('reading the mail server as an owner', () => {
         const owners = await createGroup('owners')
         const others = await createGroup('others')
         const member = await createUser('owner-member')
-        const ownerRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: owners.id }] }]
+        const ownerRequirements = [{ conditions: [activeMembersOf(owners.id)] }]
         const ownAlias = await aliasOperations.create({
             data: { localPart: 'test-own', domain: 'omega.ntnu.no', description: '', ownerRequirements },
             bypassAuth: true,
@@ -154,7 +155,7 @@ describe('reading the mail server as an owner', () => {
             data: {
                 name: 'test-pool',
                 description: '',
-                ownerRequirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: owners.id }] }],
+                ownerRequirements: [{ conditions: [activeMembersOf(owners.id)] }],
             },
             bypassAuth: true,
         })
@@ -184,7 +185,7 @@ describe('reading the mail server as an owner', () => {
             data: {
                 name: 'test-nav',
                 description: '',
-                ownerRequirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: owners.id }] }],
+                ownerRequirements: [{ conditions: [activeMembersOf(owners.id)] }],
             },
             bypassAuth: true,
         })
@@ -267,7 +268,7 @@ describe('mail server permissions', () => {
 })
 
 describe('wiring the mail server as an owner', () => {
-    const activeIn = (groupId: number) => [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+    const activeIn = (groupId: number) => [{ conditions: [activeMembersOf(groupId)] }]
 
     test('a connection needs authority over both ends, cutting it over either', async () => {
         const owners = await createGroup('wire-owners')

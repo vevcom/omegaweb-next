@@ -4,22 +4,23 @@ import CountDown from '@/components/CountDown/CountDown'
 import DateDisplay from '@/components/Date/Date'
 import EventPaymentModal from '@/components/Ledger/Modals/EventPaymentModal'
 import { displayAmount } from '@/lib/currency/convert'
+import { paymentStatus } from '@/services/events/registration/paymentStatus'
+import { requeueNotice } from '@/services/events/registration/requeueNotice'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleExclamation } from '@fortawesome/free-solid-svg-icons'
+import type { RequeueNotice } from '@/services/events/registration/requeueNotice'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type { EventVariantSummary } from '@/services/events/types'
 import type { EventRegistrationOfUser } from '@/services/events/registration/types'
 
-/** Where the visitor stands with paying for the variant. Only a registration holding a place is paid for. */
-function paymentStatus(registration: EventRegistrationOfUser | null) {
-    if (!registration) return 'NOT_REGISTERED'
-    if (registration.state === 'WAITING_LIST') return 'WAITING_LIST'
-    if (registration.ledgerTransactions.length > 0 || registration.manuallyPaid) return 'PAID'
-    return 'UNPAID'
-}
+const requeueNoticeText = {
+    BEFORE_DEADLINE: 'Er plassen ikke betalt innen fristen, kan du bli flyttet bakerst på ventelisten.',
+    AFTER_DEADLINE: 'Plassen er ikke betalt. Står noen på ventelisten, kan du bli flyttet bakerst på den.',
+} satisfies Record<RequeueNotice, string>
 
 export default function EventPaymentSection({
     eventId,
+    eventStart,
     variant,
     registration,
     userId,
@@ -28,6 +29,7 @@ export default function EventPaymentSection({
     capabilities,
 }: {
     eventId: number,
+    eventStart: Date,
     variant: EventVariantSummary,
     /** The visitor's registration in the variant, with whether a payment is in effect for it. */
     registration: EventRegistrationOfUser | null,
@@ -43,6 +45,15 @@ export default function EventPaymentSection({
     const deadline = registration?.paymentDeadline ?? paymentEnd
     const paymentOpen = paymentStart <= now && now <= deadline
     const status = paymentStatus(registration)
+    const notice = requeueNotice({
+        requeueUnpaidRegistrations: variant.requeueUnpaidRegistrations,
+        status,
+        deadline,
+        paymentEnd,
+        eventStart,
+        registeredAt: registration?.createdAt ?? null,
+        now,
+    })
 
     return <EventSubSection title="Betaling">
         <EventInfoRow label="Pris">{displayAmount(price, false)}</EventInfoRow>
@@ -77,9 +88,6 @@ export default function EventPaymentSection({
                     triggerLabel="Betal nå"
                 />
             )}
-            {variant.requeueUnpaidRegistrations && deadline >= now && (
-                <p className="m-0 text-base-content/80">Betaler du ikke innen fristen, flyttes du bakerst på ventelisten.</p>
-            )}
             {paymentStart > now && (
                 <p className="m-0 text-base-content/80">Betaling åpner om <CountDown referenceDate={paymentStart} /></p>
             )}
@@ -93,5 +101,6 @@ export default function EventPaymentSection({
         {status === 'NOT_REGISTERED' && (
             <p className="m-0 text-base-content/80">Betales etter påmelding.</p>
         )}
+        {notice && <p className="m-0 text-base-content/80">{requeueNoticeText[notice]}</p>}
     </EventSubSection>
 }

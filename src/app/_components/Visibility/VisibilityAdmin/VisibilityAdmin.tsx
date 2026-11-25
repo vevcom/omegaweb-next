@@ -2,6 +2,7 @@
 import Form from '@/components/Form/Form'
 import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { configureAction } from '@/services/configureAction'
+import type { DefaultMembershipRequirements } from '@/components/Visibility/pickedGroups'
 import type { UpdateVisibilityAction, VisibilityMatrix } from '@/services/visibility/types'
 
 type PropTypes = {
@@ -11,6 +12,7 @@ type PropTypes = {
     /** See VisibilityMatrixEditor. */
     verb: string,
     everyone?: string,
+    defaultMembershipRequirements: DefaultMembershipRequirements,
 }
 
 export default function VisibilityAdmin({
@@ -19,6 +21,7 @@ export default function VisibilityAdmin({
     updateVisibilityAction,
     verb,
     everyone,
+    defaultMembershipRequirements,
 }: PropTypes) {
     return (
         <Form
@@ -33,6 +36,7 @@ export default function VisibilityAdmin({
                 defaultValue={visibility.requirements}
                 verb={verb}
                 everyone={everyone}
+                defaultMembershipRequirements={defaultMembershipRequirements}
             />
         </Form>
     )

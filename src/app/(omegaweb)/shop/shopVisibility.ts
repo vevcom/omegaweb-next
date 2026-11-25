@@ -1,5 +1,9 @@
 'use client'
 import { implementDoubleLevelVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
+import {
+    adminDefaultMembershipRequirements,
+    regularDefaultMembershipRequirements,
+} from '@/components/Visibility/defaultMembershipRequirements'
 import { configureAction } from '@/services/configureAction'
 import {
     updateShopAdminLevelVisibilityAction,
@@ -11,11 +15,13 @@ export const shopVisibility = implementDoubleLevelVisibilityComponents<{ shopId:
     regular: {
         verb: 'kan handle i butikken',
         everyone: 'Alle',
+        defaultMembershipRequirements: regularDefaultMembershipRequirements,
         update: implementationParams => configureAction(updateShopRegularLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => shopAuth.updateRegularLevel.data({ visibility }),
     },
     admin: {
         verb: 'kan administrere butikken',
+        defaultMembershipRequirements: adminDefaultMembershipRequirements,
         update: implementationParams => configureAction(updateShopAdminLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => shopAuth.updateAdminLevel.data({ visibility }),
     },

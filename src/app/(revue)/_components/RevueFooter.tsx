@@ -18,7 +18,7 @@ const linkClassName = `
 
 export default function RevueFooter({ loggedIn }: PropTypes) {
     return (
-        <footer className="mt-16 bg-base-200 border-t border-accent/25">
+        <footer className="mt-16 pb-[env(safe-area-inset-bottom)] bg-base-200 border-t border-accent/25">
             <div className={`
                 ${innerClassName}
                 flex justify-between items-start gap-10 py-12

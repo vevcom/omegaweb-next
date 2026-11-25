@@ -25,7 +25,7 @@ const textClassName = 'text-white/80 text-m leading-[1.6]'
 
 export default function CareersFooter({ capabilities, showOmegaLink, showCompanyLogin }: PropTypes) {
     return (
-        <footer className="mt-20 bg-careers-navy">
+        <footer className="mt-20 pb-[env(safe-area-inset-bottom)] bg-careers-navy">
             <div className={`
                 ${innerClassName}
                 py-16 grid grid-cols-[2fr_1fr_1fr] gap-10

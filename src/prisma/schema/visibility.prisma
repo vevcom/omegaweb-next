@@ -32,20 +32,21 @@ model VisibilityRequirement {
   conditions   VisibilityRequirementGroup[] //must be in one of these to fullfill this requirement
 }
 
-enum VisibilityRequirementGroupType {
-  ACTIVE
-  ORDER
-}
-
+/// A condition of a requirement: a membership of the group, of `order` or of any order when it is
+/// null, active when `onlyActive` and an admin of the group when `onlyAdmins`.
 model VisibilityRequirementGroup {
-  id                      Int                            @id @default(autoincrement())
-  visibilityRequirement   VisibilityRequirement          @relation(fields: [visibilityRequirementId], references: [id], onDelete: Cascade)
+  id                      Int                   @id @default(autoincrement())
+  visibilityRequirement   VisibilityRequirement @relation(fields: [visibilityRequirementId], references: [id], onDelete: Cascade)
   visibilityRequirementId Int
-  group                   Group                          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group                   Group                 @relation(fields: [groupId], references: [id], onDelete: Cascade)
   groupId                 Int
-  type                    VisibilityRequirementGroupType
-  omegaOrder              OmegaOrder                     @relation(fields: [order], references: [order], onDelete: Restrict)
-  order                   Int
+  omegaOrder              OmegaOrder?           @relation(fields: [order], references: [order], onDelete: Restrict)
+  order                   Int?
+  onlyActive              Boolean
+  onlyAdmins              Boolean
 
-  @@unique([visibilityRequirementId, groupId, order])
+  // Two conditions of a requirement never say the same. Postgres tells null orders apart in a
+  // unique index, so those of any order have an index of their own.
+  @@unique([visibilityRequirementId, groupId, order, onlyActive, onlyAdmins])
+  @@unique([visibilityRequirementId, groupId, onlyActive, onlyAdmins], where: { order: null }, map: "VisibilityRequirementGroup_any_order_key")
 }

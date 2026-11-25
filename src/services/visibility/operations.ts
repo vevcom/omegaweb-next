@@ -1,77 +1,10 @@
 import '@ow-server-only'
 import { visibilitySchemas } from './schemas'
+import { conditionKey } from './conditionKey'
 import { defineSubOperation } from '@/services/serviceOperation'
-import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import type { visibilityRequirementsSchema } from './schemas'
-import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
+import type { VisibilityCondition } from './types'
 import type { z } from 'zod'
-
-/**
- * A condition as stored: unlike `VisibilityCondition` in types.ts, every row has an order, the
- * current one for an ACTIVE condition.
- */
-type VisibilityConditionRow = {
-    groupId: number,
-    type: VisibilityRequirementGroupType,
-    order: number,
-}
-
-/**
- * Drops conditions that are identical in every field, so that a requirement listing the same group
- * twice does not collide on @@unique([visibilityRequirementId, groupId, order]).
- *
- * Note this cannot remove every possible collision: an ACTIVE and an ORDER condition on the same
- * group resolve to the same (groupId, order) row when the order is the current one, yet mean
- * different things to checkVisibility. Those still hit the unique index and roll the transaction
- * back, which is the safe outcome.
- */
-function dedupeConditions(conditions: VisibilityConditionRow[]): VisibilityConditionRow[] {
-    const seen = new Map<string, VisibilityConditionRow>()
-    conditions.forEach(condition => {
-        seen.set(`${condition.groupId}-${condition.type}-${condition.order}`, condition)
-    })
-    return Array.from(seen.values())
-}
-
-/**
- * Resolves a visibility matrix into prisma nested-create input. ACTIVE conditions carry no order of
- * their own, so they are pinned to the current omega order. Shared by update and
- * createWithRequirements so the two cannot drift apart on that resolution.
- */
-async function buildRequirementsCreateInput(requirements: z.infer<typeof visibilityRequirementsSchema>) {
-    const currentOrder = await omegaOrderOperations.readCurrent({ bypassAuth: true })
-
-    return requirements.map(requirement => ({
-        conditions: {
-            create: dedupeConditions(requirement.conditions.map(condition => ({
-                groupId: condition.groupId,
-                type: condition.type,
-                order: condition.type === 'ORDER' ? condition.order : currentOrder.order
-            })))
-        }
-    }))
-}
-
-/** A condition as `sameRequirements` tells it from another: an ACTIVE one by its group, an ORDER one by the order too. */
-function conditionKey(condition: { groupId: number, type: VisibilityRequirementGroupType, order?: number }) {
-    return condition.type === 'ORDER' ? `${condition.groupId}-ORDER-${condition.order}` : `${condition.groupId}-ACTIVE`
-}
-
-/**
- * Whether the requirements given are the ones stored, whatever order they and their conditions
- * come in. The order an ACTIVE condition is stored with says nothing, so it is left out.
- */
-function sameRequirements(
-    stored: { conditions: VisibilityConditionRow[] }[],
-    given: z.infer<typeof visibilityRequirementsSchema>,
-) {
-    const keysOf = (requirements: { conditions: Parameters<typeof conditionKey>[0][] }[]) => requirements
-        .map(requirement => Array.from(new Set(requirement.conditions.map(conditionKey))).sort().join(','))
-        .sort()
-    const storedKeys = keysOf(stored)
-    const givenKeys = keysOf(given)
-    return storedKeys.length === givenKeys.length && storedKeys.every((key, index) => key === givenKeys[index])
-}
 
 export const visibilityOperations = {
     create: defineSubOperation({
@@ -86,10 +19,10 @@ export const visibilityOperations = {
      */
     createWithRequirements: defineSubOperation({
         dataSchema: () => visibilitySchemas.data.createWithRequirements,
-        operation: () => async ({ prisma, data }) =>
+        operation: () => ({ prisma, data }) =>
             prisma.visibility.create({
                 data: {
-                    requirements: { create: await buildRequirementsCreateInput(data.requirements) }
+                    requirements: { create: buildRequirementsCreateInput(data.requirements) }
                 }
             })
     }),
@@ -119,8 +52,43 @@ export const visibilityOperations = {
             await prisma.visibilityRequirement.deleteMany({ where: { visibilityId: params.visibilityId } })
             return await prisma.visibility.update({
                 where: { id: params.visibilityId },
-                data: { requirements: { create: await buildRequirementsCreateInput(data.requirements) } },
+                data: { requirements: { create: buildRequirementsCreateInput(data.requirements) } },
             })
         }
     }),
 } as const
+
+/**
+ * Drops conditions that say the same, so that a requirement listing the same group twice does not
+ * collide on the unique indexes of a requirement's conditions.
+ */
+function dedupeConditions(conditions: VisibilityCondition[]): VisibilityCondition[] {
+    return Array.from(new Map(conditions.map(condition => [conditionKey(condition), condition])).values())
+}
+
+/** Shared by update and createWithRequirements so the two cannot drift apart. */
+function buildRequirementsCreateInput(requirements: z.infer<typeof visibilityRequirementsSchema>) {
+    return requirements.map(requirement => ({
+        conditions: {
+            create: dedupeConditions(requirement.conditions).map(({ groupId, order, onlyActive, onlyAdmins }) => ({
+                groupId,
+                order,
+                onlyActive,
+                onlyAdmins,
+            }))
+        }
+    }))
+}
+
+/** Whether the requirements given are the ones stored, whatever order they and their conditions come in. */
+function sameRequirements(
+    stored: { conditions: VisibilityCondition[] }[],
+    given: z.infer<typeof visibilityRequirementsSchema>,
+) {
+    const keysOf = (requirements: { conditions: VisibilityCondition[] }[]) => requirements
+        .map(requirement => Array.from(new Set(requirement.conditions.map(conditionKey))).sort().join(','))
+        .sort()
+    const storedKeys = keysOf(stored)
+    const givenKeys = keysOf(given)
+    return storedKeys.length === givenKeys.length && storedKeys.every((key, index) => key === givenKeys[index])
+}

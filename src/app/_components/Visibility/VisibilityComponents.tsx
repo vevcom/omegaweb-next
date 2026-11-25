@@ -4,6 +4,7 @@ import VisibilityAdmin from './VisibilityAdmin/VisibilityAdmin'
 import VisibilityMatrixEditor from './VisibilityMatrixEditor/VisibilityMatrixEditor'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import useFlatGroups from '@/hooks/useFlatGroups'
+import type { DefaultMembershipRequirements } from './pickedGroups'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type {
@@ -18,6 +19,11 @@ export type VisibilityComponentsConfig<Params> = {
     verb: string,
     /** What no requirements means. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
+    /**
+     * What a group picked in the editor starts as, by its type: `regularDefaultMembershipRequirements` for
+     * a visibility of who sees or signs up, and `adminDefaultMembershipRequirements` otherwise.
+     */
+    defaultMembershipRequirements: DefaultMembershipRequirements,
     /** The owner's action for changing the visibility, with what names the owner bound, such as its id. */
     update?: (params: Params) => UpdateVisibilityAction,
 }
@@ -44,14 +50,19 @@ const capitalized = (text: string) => text.charAt(0).toUpperCase() + text.slice(
  * `update`. `Description` and `describe` say who passes, and `heading` asks it.
  */
 export function implementVisibilityComponents<Params = never>(
-    { verb, everyone, update }: VisibilityComponentsConfig<Params>,
+    { verb, everyone, defaultMembershipRequirements, update }: VisibilityComponentsConfig<Params>,
 ) {
     const describe = (visibility: VisibilityMatrix, groups: ExpandedGroup[] | null) => (
         describeVisibility(visibility, groups, { everyone })
     )
 
     function Field(props: FieldProps) {
-        return <VisibilityMatrixEditor {...props} verb={verb} everyone={everyone} />
+        return <VisibilityMatrixEditor
+            {...props}
+            verb={verb}
+            everyone={everyone}
+            defaultMembershipRequirements={defaultMembershipRequirements}
+        />
     }
 
     function Form({ visibility, visibilityId, params }: {
@@ -66,6 +77,7 @@ export function implementVisibilityComponents<Params = never>(
             updateVisibilityAction={update(params)}
             verb={verb}
             everyone={everyone}
+            defaultMembershipRequirements={defaultMembershipRequirements}
         />
     }
 
