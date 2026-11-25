@@ -2,12 +2,18 @@
 import { SelectNumber } from '@/components/UI/Select'
 import CreateNotificationForm from '@/components/Notifications/CreateNotificationForm'
 import { implementVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
+import { adminDefaultMembershipRequirements } from '@/components/Visibility/defaultMembershipRequirements'
 import { createNotificationInManualChannelAction } from '@/services/notifications/channels/manual/actions'
 import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
-const audience = implementVisibilityComponents({ verb: 'får varselet', everyone: 'Alle abonnenter' })
+const audience = implementVisibilityComponents({
+    verb: 'får varselet',
+    everyone: 'Alle abonnenter',
+    // Sent at once, so to those in the group now.
+    defaultMembershipRequirements: adminDefaultMembershipRequirements,
+})
 
 export default function NotificationForm({
     channels,

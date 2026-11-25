@@ -14,7 +14,7 @@ import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
-import { testSession } from 'tests/utils'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { Session } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -147,7 +147,7 @@ describe('global search', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
@@ -194,7 +194,7 @@ describe('global search', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds,
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
@@ -243,8 +243,8 @@ describe('search respects a provider\'s own visibility filter', () => {
             data: {
                 name: 'Søketest Nyhet',
                 description: 'En nyhet bare noen kan se.',
-                visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityRegularRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
             },
             bypassAuth: true,
         })
@@ -298,7 +298,7 @@ describe('search respects a provider\'s own visibility filter', () => {
             data: {
                 name: 'Medlemmer',
                 places: 10,
-                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
             },
         })
         await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })

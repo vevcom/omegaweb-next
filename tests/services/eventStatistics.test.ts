@@ -1,4 +1,4 @@
-import { testSession } from 'tests/utils'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -20,7 +20,7 @@ async function setUp() {
             eventStart: new Date(Date.now() + 48 * HOUR),
             eventEnd: new Date(Date.now() + 50 * HOUR),
             takesRegistration: false,
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
         },
         bypassAuth: true,
     })

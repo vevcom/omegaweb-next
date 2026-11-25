@@ -25,7 +25,7 @@ export default function TagHeaderItem({
     search,
 }: PropTypes) {
     return (
-        <TagHeasderItemPopUp scale={35} popUpKey="TagEventPopUp">
+        <TagHeasderItemPopUp popUpKey="TagEventPopUp">
             <PopUpProvider>
                 <EventTagsAdmin
                     capabilities={capabilities}

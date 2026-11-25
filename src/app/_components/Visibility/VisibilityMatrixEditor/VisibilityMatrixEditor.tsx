@@ -1,16 +1,24 @@
 'use client'
 import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
+import Checkbox from '@/components/UI/Checkbox'
 import ModeSwitch from '@/components/UI/ModeSwitch'
 import MultiSearchableDropdown from '@/components/UI/MultiSearchableDropdown'
 import { SelectNumber } from '@/components/UI/Select'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
-import { describeVisibility, listsContradict } from '@/components/Visibility/describeVisibility'
+import {
+    describeMemberships,
+    describeVisibility,
+    groupNameOf,
+    visibilityWarnings,
+} from '@/components/Visibility/describeVisibility'
+import { pickedGroupIds, withPickedGroups, withoutRepeats } from '@/components/Visibility/pickedGroups'
 import { findGroup, orderOptions } from '@/lib/groups/groupOptions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
+import type { DefaultMembershipRequirements } from '@/components/Visibility/pickedGroups'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { VisibilityCondition, VisibilityRequirement } from '@/services/visibility/types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -20,6 +28,7 @@ type PropTypes = {
     verb: string,
     /** What no requirements means here. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
+    defaultMembershipRequirements: DefaultMembershipRequirements,
 } & ({
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
@@ -39,16 +48,7 @@ const groupTypeNames: Record<GroupType, string> = {
     MANUAL_GROUP: 'Andre grupper',
     REVUE_SUB_GROUP: 'Revyundergruppe',
 }
-const NOW = -1
-
-const conditionKey = (condition: VisibilityCondition) => (
-    condition.type === 'ORDER' ? `${condition.groupId}-${condition.order}` : `${condition.groupId}`
-)
-
-/** A chip changed into what another already says leaves one of them. */
-const withoutRepeats = (conditions: VisibilityCondition[]) => Array.from(
-    new Map(conditions.map(condition => [conditionKey(condition), condition])).values()
-)
+const ANY_ORDER = -1
 
 const groupOptions = (groups: ExpandedGroup[]) => Object.entries(groupTypeNames).flatMap(([type, section]) => (
     groups
@@ -63,24 +63,23 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
     onChange: (condition: VisibilityCondition) => void,
     onRemove: () => void,
 }) {
-    const [choosingWhen, setChoosingWhen] = useState(false)
-    const group = findGroup(groups, condition.groupId)
-    const name = group?.name ?? `gruppe #${condition.groupId}`
+    const [choosing, setChoosing] = useState(false)
+    const name = groupNameOf(condition, groups)
 
     return <li className="flex flex-col gap-1 min-w-0">
         <span className={`
             inline-flex items-center self-start max-w-full rounded-round border bg-base-200 text-s
-            ${condition.type === 'ORDER' ? 'border-dashed border-base-content/80' : 'border-base-300'}
+            ${condition.order !== null ? 'border-dashed border-base-content/80' : 'border-base-300'}
         `}>
             <button
                 type="button"
-                title="Velg om dette gjelder nå eller et tidligere år"
-                aria-expanded={choosingWhen}
-                onClick={() => setChoosingWhen(!choosingWhen)}
+                title="Velg orden, og om bare de aktive eller administratorene gjelder"
+                aria-expanded={choosing}
+                onClick={() => setChoosing(!choosing)}
                 className="py-1 pl-3 pr-1 border-none bg-transparent text-base-content text-left cursor-pointer"
             >
                 {name}
-                {condition.type === 'ORDER' && <span className="text-base-content/80"> · {condition.order}. orden</span>}
+                <span className="text-base-content/80">{' · '}{describeMemberships(condition)}</span>
             </button>
             <button
                 type="button"
@@ -95,32 +94,43 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
                 <FontAwesomeIcon icon={faXmark} />
             </button>
         </span>
-        {choosingWhen && <SelectNumber
-            label="Gjelder"
-            value={condition.type === 'ORDER' ? condition.order : NOW}
-            options={[
-                { value: NOW, label: 'De som er med nå', key: 'now' },
-                ...orderOptions(group).reverse().map(option => ({
-                    ...option,
-                    label: `De som var med i ${option.label}. orden`,
-                })),
-            ]}
-            onChange={value => onChange(value === NOW
-                ? { type: 'ACTIVE', groupId: condition.groupId }
-                : { type: 'ORDER', groupId: condition.groupId, order: value })}
-        />}
+        {choosing && <div className="flex flex-wrap items-center gap-x-3">
+            <SelectNumber
+                label="Orden"
+                value={condition.order ?? ANY_ORDER}
+                options={[
+                    { value: ANY_ORDER, label: 'Alle ordener', key: 'any' },
+                    ...orderOptions(findGroup(groups, condition.groupId)).reverse().map(option => ({
+                        ...option,
+                        label: `${option.label}. orden`,
+                    })),
+                ]}
+                onChange={value => onChange({ ...condition, order: value === ANY_ORDER ? null : value })}
+            />
+            <Checkbox
+                label="Bare aktive"
+                checked={condition.onlyActive}
+                onChange={event => onChange({ ...condition, onlyActive: event.target.checked })}
+            />
+            <Checkbox
+                label="Bare administratorer"
+                checked={condition.onlyAdmins}
+                onChange={event => onChange({ ...condition, onlyAdmins: event.target.checked })}
+            />
+        </div>}
     </li>
 }
 
 /**
  * An editor for a single visibility matrix, which says who gets in as a sentence. A list here is a
- * requirement, so someone must be in one group of every list. Given `name` it is a form field that
- * posts the matrix as JSON. Given `requirements` and `onChange` it is controlled, for a form that
- * needs the matrix as it is edited and posts it itself. Its other inputs have no names, since they
- * load late, which a form would count as a change.
+ * requirement, so someone must be in one group of every list, and a group picked in one starts as
+ * `defaultMembershipRequirements` says. Given `name` it is a form field that posts the matrix as JSON. Given
+ * `requirements` and `onChange` it is controlled, for a form that needs the matrix as it is edited
+ * and posts it itself. Its other inputs have no names, since they load late, which a form would
+ * count as a change.
  */
 export default function VisibilityMatrixEditor(props: PropTypes) {
-    const { verb, everyone } = props
+    const { verb, everyone, defaultMembershipRequirements } = props
     const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
         'defaultValue' in props ? props.defaultValue ?? [] : [],
     )
@@ -191,7 +201,7 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     </div>
                     {list.conditions.length > 0 && <ul className="flex flex-wrap gap-2 m-0 p-0 list-none">
                         {list.conditions.map((condition, conditionIndex) => <ConditionChip
-                            key={conditionKey(condition)}
+                            key={chipKey(list.conditions, conditionIndex)}
                             condition={condition}
                             groups={groups}
                             onChange={changed => setConditions(listIndex, withoutRepeats(
@@ -206,27 +216,21 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     <MultiSearchableDropdown
                         label="Legg til gruppe"
                         options={groupOptions(groups)}
-                        values={list.conditions.flatMap(({ type, groupId }) => (type === 'ACTIVE' ? [groupId] : []))}
+                        values={pickedGroupIds(list.conditions, groups, defaultMembershipRequirements)}
                         hideSelected
-                        onChange={groupIds => setConditions(listIndex, [
-                            ...list.conditions.filter(condition => (
-                                condition.type === 'ORDER' || groupIds.includes(condition.groupId)
-                            )),
-                            ...groupIds
-                                .filter(groupId => !list.conditions.some(condition => (
-                                    condition.type === 'ACTIVE' && condition.groupId === groupId
-                                )))
-                                .map(groupId => ({ type: 'ACTIVE' as const, groupId })),
-                        ])}
+                        onChange={groupIds => setConditions(
+                            listIndex,
+                            withPickedGroups(list.conditions, groupIds, groups, defaultMembershipRequirements),
+                        )}
                         className="max-w-none! mt-0!"
                     />
                 </div>
             </div>)}
-            {listsContradict({ requirements: lists }, groups) && <p className="
+            {visibilityWarnings({ requirements: lists }, groups).map(warning => <p key={warning} className="
                 m-0 py-2 px-3 rounded-inner bg-warning/15 text-s
             ">
-                Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.
-            </p>}
+                {warning}
+            </p>)}
             <Button
                 type="button"
                 color="secondary"
@@ -237,4 +241,10 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
             </Button>
         </>)}
     </div>
+}
+
+/** A chip keeps its key when what it says is changed, so the select in it stays open with the focus. */
+function chipKey(conditions: VisibilityCondition[], index: number) {
+    const { groupId } = conditions[index]
+    return `${groupId}-${conditions.slice(0, index).filter(other => other.groupId === groupId).length}`
 }

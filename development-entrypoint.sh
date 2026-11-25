@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Starts the development stack and follows the app's log. With --mail, the mail server from the
 # mail-infrastructure submodule comes up too, and with --chat the chat from the chat-infrastructure
 # submodule, see README.md.

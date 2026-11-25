@@ -4,6 +4,7 @@ import { innerClassName } from '@/app/(revue)/_lib/revueClassNames'
 import { revueAdminNavDef } from '@/app/(revue)/revue/(static-theme)/admin/revueAdminNavDef'
 import CompanyUserBand from '@/components/CompanyUserBand/CompanyUserBand'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import StatusBarStrip from '@/components/StatusBarStrip/StatusBarStrip'
 import { withPageSession } from '@/app/ServerPage'
 import type { ThemeColors } from '@/lib/theme'
 import type { ReactNode } from 'react'
@@ -28,12 +29,13 @@ export default async function RevueShell({ theme, children }: PropTypes) {
     return (
         <div
             className="
-                min-h-dvh flex flex-col bg-base-100 text-base-content [--revue-max-width:1100px]
-                [--revue-page-padding:clamp(1rem,4vw,3rem)]
+                min-h-dvh flex flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-base-100
+                text-base-content [--revue-max-width:1100px] [--revue-page-padding:clamp(1rem,4vw,3rem)]
             "
             data-tone={theme['color-scheme']}
         >
             <SiteTheme colors={theme} />
+            <StatusBarStrip />
             <CompanyUserBand companyUser={companyUser} />
             <RevueNavBar username={username} hasAdminPages={hasAdminPages} />
             <main className={`

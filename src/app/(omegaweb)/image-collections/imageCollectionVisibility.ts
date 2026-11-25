@@ -1,5 +1,9 @@
 'use client'
 import { implementDoubleLevelVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
+import {
+    adminDefaultMembershipRequirements,
+    regularDefaultMembershipRequirements,
+} from '@/components/Visibility/defaultMembershipRequirements'
 import { configureAction } from '@/services/configureAction'
 import {
     updateDynamicImageCollectionAdminLevelVisibilityAction,
@@ -11,6 +15,7 @@ export const imageCollectionVisibility = implementDoubleLevelVisibilityComponent
     regular: {
         verb: 'kan se albumet',
         everyone: 'Alle',
+        defaultMembershipRequirements: regularDefaultMembershipRequirements,
         update: implementationParams => configureAction(
             updateDynamicImageCollectionRegularLevelVisibilityAction,
             { implementationParams },
@@ -19,6 +24,7 @@ export const imageCollectionVisibility = implementDoubleLevelVisibilityComponent
     },
     admin: {
         verb: 'kan administrere albumet',
+        defaultMembershipRequirements: adminDefaultMembershipRequirements,
         update: implementationParams => configureAction(
             updateDynamicImageCollectionAdminLevelVisibilityAction,
             { implementationParams },

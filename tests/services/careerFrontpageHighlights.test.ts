@@ -5,7 +5,7 @@ import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage
 import { isHighlightShowable } from '@/services/careers/frontpage/highlights/constants'
 import { eventOperations } from '@/services/events/operations'
 import { jobAdOperations } from '@/services/careers/jobAds/operations'
-import { testSession } from 'tests/utils'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { AnySession } from '@/auth/session/Session'
 
@@ -37,7 +37,7 @@ async function createEvent({ tagged = true, published = true, startsIn = 10, end
             takesRegistration: false,
             waitingList: false,
             tagIds: tagged ? [companyPresentationTagId] : [],
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: adminGroupId }] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(adminGroupId)] }],
         },
         bypassAuth: true,
     })

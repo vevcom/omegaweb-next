@@ -2,7 +2,7 @@ import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
-import { testSession } from 'tests/utils'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -35,12 +35,12 @@ function sessionWithPermissions(...permissions: Parameters<typeof Session.fromDe
 }
 
 function activeIn(groupId: number): VisibilityMatrix {
-    return { requirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] }
+    return { requirements: [{ conditions: [activeMembersOf(groupId)] }] }
 }
 
 /** One requirement satisfied by being active in any one of the given groups. */
 function activeInAnyOf(...groupIds: number[]): VisibilityMatrix {
-    return { requirements: [{ conditions: groupIds.map(groupId => ({ type: 'ACTIVE', groupId })) }] }
+    return { requirements: [{ conditions: groupIds.map(groupId => (activeMembersOf(groupId))) }] }
 }
 
 async function createManualGroup(shortName: string) {

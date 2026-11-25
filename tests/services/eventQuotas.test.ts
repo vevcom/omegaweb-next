@@ -9,6 +9,7 @@ import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventVariantOperations } from '@/services/events/variants/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { userOperations } from '@/services/users/operations'
+import { activeMembersOf } from 'tests/utils'
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
@@ -69,7 +70,7 @@ function sessionOf({ user, groupIds }: TestUser) {
     return Session.fromJsObject({ user, permissions: [], memberships })
 }
 
-const activeIn = (groupId: number): VisibilityMatrix => ({ requirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] })
+const activeIn = (groupId: number): VisibilityMatrix => ({ requirements: [{ conditions: [activeMembersOf(groupId)] }] })
 const everyone: VisibilityMatrix = { requirements: [] }
 
 type QuotaSpec = { name: string, places: number, visibility?: VisibilityMatrix }

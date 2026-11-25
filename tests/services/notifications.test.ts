@@ -16,6 +16,7 @@ import { eventVariantOperations } from '@/services/events/variants/operations'
 import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { activeMembersOf } from 'tests/utils'
 import { afterAll, afterEach, beforeAll, describe, expect, test } from '@jest/globals'
 import type { NotificationMethods } from '@/services/notifications/types'
 import type { Permission } from '@/prisma-generated-pn-types'
@@ -173,7 +174,7 @@ describe('notification recipient resolution', () => {
                 requirements: {
                     create: [{
                         conditions: {
-                            create: [{ groupId: group.id, type: 'ACTIVE', order }],
+                            create: [activeMembersOf(group.id)],
                         },
                     }],
                 },
@@ -223,7 +224,7 @@ describe('notification recipient resolution', () => {
                 waitingList: false,
                 allowRegistrationInMultipleVariants: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
@@ -251,7 +252,7 @@ describe('notification recipient resolution', () => {
             data: {
                 name: 'Gruppa',
                 places: 5,
-                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
         })
         expect(await resolveRecipientIds(notification.id, 'email')).toEqual([member.id])

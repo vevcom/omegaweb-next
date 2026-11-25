@@ -1,21 +1,29 @@
 import { findGroup } from '@/lib/groups/groupOptions'
+import { MigratedStraightAwayOnIncrement } from '@/services/omegaOrder/constants'
 import type { VisibilityCondition, VisibilityMatrix } from '@/services/visibility/types'
 import type { ExpandedGroup } from '@/services/groups/types'
+import type { GroupType } from '@/prisma-generated-pn-types'
 
-function describeCondition(condition: VisibilityCondition, groups: ExpandedGroup[] | null): string {
-    const groupName = findGroup(groups, condition.groupId)?.name ?? `gruppe #${condition.groupId}`
-    return condition.type === 'ACTIVE' ? groupName : `${groupName} i orden ${condition.order}`
-}
-
-function listNames(names: string[]) {
-    return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} eller ${names[names.length - 1]}`
+/**
+ * The group types of which someone holds one group at a time among their active memberships, and
+ * where `perOrder` one group at each order too, with what the editor warns of a list that asks for two.
+ */
+const heldOneAtATime: Partial<Record<GroupType, { perOrder: boolean, warning: string }>> = {
+    CLASS: {
+        perOrder: true,
+        warning: 'Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.',
+    },
+    OMEGA_MEMBERSHIP_GROUP: {
+        perOrder: false,
+        warning: 'Ingen har to medlemskap i Omega samtidig. Skal begge med, legg dem i samme liste.',
+    },
 }
 
 /**
- * Who passes a visibility, in words: "Alle", "Ingen", or the groups, as in "Arrkom eller Styret som
- * også er i 3. klasse". Every place that says who a visibility lets in says it with this. `everyone`
- * is for a rule that asks more than the visibility of those who pass one without requirements, such
- * as "Alle som er logget inn" where it takes a user.
+ * Who passes a visibility, in words: "Alle", "Ingen", or the groups, as in "Arrkom (aktive) eller
+ * Styret (108. orden) som også er i 3. klasse (aktive)". Every place that says who a visibility lets
+ * in says it with this. `everyone` is for a rule that asks more than the visibility of those who
+ * pass one without requirements, such as "Alle som er logget inn" where it takes a user.
  */
 export function describeVisibility(
     visibility: VisibilityMatrix,
@@ -26,19 +34,79 @@ export function describeVisibility(
     // A list with no groups in it passes no one.
     if (visibility.requirements.some(requirement => requirement.conditions.length === 0)) return 'Ingen'
     return visibility.requirements
-        .map(requirement => listNames(requirement.conditions.map(condition => describeCondition(condition, groups))))
+        .map(requirement => listNames(requirement.conditions.map(condition => (
+            `${groupNameOf(condition, groups)} (${describeMemberships(condition)})`
+        ))))
         .join(' som også er i ')
 }
 
-/** Someone is only in one class at a time, so lists of nothing but classes must share a class to all pass. */
-export function listsContradict(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): boolean {
-    const classLists = visibility.requirements.filter(({ conditions }) => (
-        conditions.length > 0 && conditions.every(condition => (
-            condition.type === 'ACTIVE' && findGroup(groups, condition.groupId)?.groupType === 'CLASS'
-        ))
-    ))
-    if (classLists.length < 2) return false
-    return !classLists[0].conditions.some(({ groupId }) => classLists.every(
-        ({ conditions }) => conditions.some(condition => condition.groupId === groupId)
-    ))
+/**
+ * Which memberships of its group a condition lets in, as in "aktive", "108. orden" or "107. orden,
+ * aktive administratorer". "alle ordener" is said only where nothing narrows the order, since the
+ * active members are of any order already.
+ */
+export function describeMemberships({ order, onlyActive, onlyAdmins }: VisibilityCondition): string {
+    const orderPart = order !== null ? `${order}. orden` : !onlyActive && 'alle ordener'
+    const whoPart = [onlyActive && 'aktive', onlyAdmins && 'administratorer'].filter(Boolean).join(' ')
+    return [orderPart, whoPart].filter(Boolean).join(', ')
+}
+
+export function groupNameOf(condition: VisibilityCondition, groups: ExpandedGroup[] | null) {
+    return findGroup(groups, condition.groupId)?.name ?? `gruppe #${condition.groupId}`
+}
+
+/** What the editor warns of a visibility that lets no one in, though it can still be saved. */
+export function visibilityWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): string[] {
+    return Array.from(new Set([
+        ...contradictingListsWarnings(visibility, groups),
+        ...noActiveMembersWarnings(visibility, groups),
+    ]))
+}
+
+function listNames(names: string[]) {
+    return names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} eller ${names[names.length - 1]}`
+}
+
+/**
+ * Someone holds one class at a time, so lists of nothing but classes must share a class to all pass.
+ * That holds for lists of the active members, and for lists of one and the same order. The same goes
+ * for the active members of Omega's membership groups.
+ */
+function contradictingListsWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null) {
+    const listsBySlot = new Map<string, { warning: string, lists: VisibilityCondition[][] }>()
+    visibility.requirements.forEach(({ conditions }) => {
+        const slots = conditions.map(condition => slotOf(condition, groups))
+        const slot = slots[0]
+        if (!slot || slots.some(other => other?.key !== slot.key)) return
+        const entry = listsBySlot.get(slot.key) ?? { warning: slot.warning, lists: [] }
+        listsBySlot.set(slot.key, { ...entry, lists: [...entry.lists, conditions] })
+    })
+    return Array.from(listsBySlot.values()).filter(({ lists }) => lists.length > 1 && !lists[0].some(
+        ({ groupId }) => lists.every(conditions => conditions.some(condition => condition.groupId === groupId))
+    )).map(({ warning }) => warning)
+}
+
+/** The one group of a type someone can be in at a time that a condition asks for, if it asks for one. */
+function slotOf(condition: VisibilityCondition, groups: ExpandedGroup[] | null) {
+    const groupType = findGroup(groups, condition.groupId)?.groupType
+    const rule = groupType && heldOneAtATime[groupType]
+    if (!rule) return null
+    if (condition.onlyActive) return { key: `${groupType}-active`, warning: rule.warning }
+    if (condition.order !== null && rule.perOrder) return { key: `${groupType}-${condition.order}`, warning: rule.warning }
+    return null
+}
+
+/** A group migrated by hand holds active memberships only of its own current order. */
+function noActiveMembersWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null) {
+    return visibility.requirements.flatMap(({ conditions }) => conditions).flatMap(condition => {
+        const group = findGroup(groups, condition.groupId)
+        if (
+            !group || !condition.onlyActive || condition.order === null || condition.order === group.order
+            || MigratedStraightAwayOnIncrement[group.groupType]
+        ) return []
+        return [
+            `Ingen i ${group.name} er aktive i ${condition.order}. orden, siden bare de i gruppens nåværende orden, `
+            + `${group.order}., er aktive. Velg ${group.order}. orden eller ta bort «Bare aktive».`
+        ]
+    })
 }

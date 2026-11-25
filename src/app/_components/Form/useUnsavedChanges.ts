@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { RefObject } from 'react'
+import type { ChangeEvent, InputEvent, RefObject } from 'react'
 
 function serialize(formData: FormData) {
     const entries: [string, string][] = []
@@ -10,8 +10,9 @@ function serialize(formData: FormData) {
 
 /**
  * Whether a form holds anything other than what it started with or last saved. It compares what the
- * form would submit, so it covers every input, and looks again on `onInput`, which goes on the form,
- * and when the form is reset. An input whose value React sets fires `input` with `useInputEvent`.
+ * form would submit, so it covers every input, and looks again on `onInput` and `onChange`, which go
+ * on the form, and when the form is reset. An input whose value React sets fires `input` with
+ * `useInputEvent`.
  */
 export function useUnsavedChanges(
     formRef: RefObject<HTMLFormElement | null>,
@@ -44,11 +45,17 @@ export function useUnsavedChanges(
         return () => form.removeEventListener('reset', checkAfterReset)
     }, [enabled, formRef, check])
 
-    // React's own handler and not a listener on the form, which runs before React's. The state set
+    // React's own handlers and not listeners on the form, which run before React's. The state set
     // there would be rendered in between, putting a controlled input's old value back before React
-    // sees the new one, so its onChange would never fire.
-    const onInput = useCallback(() => {
-        if (enabled) check()
+    // sees the new one, so its onChange would never fire. A select tells React in `change`, which
+    // the browser fires as an event of its own after `input`, so a select is looked at only then:
+    // looked at on `input`, its onChange would read the old value.
+    const onInput = useCallback((event: InputEvent<HTMLFormElement>) => {
+        if (enabled && !(event.target instanceof HTMLSelectElement)) check()
+    }, [enabled, check])
+
+    const onChange = useCallback((event: ChangeEvent<HTMLFormElement>) => {
+        if (enabled && event.target instanceof HTMLSelectElement) check()
     }, [enabled, check])
 
     const markSaved = useCallback((formData: FormData) => {
@@ -56,5 +63,5 @@ export function useUnsavedChanges(
         check()
     }, [check])
 
-    return { dirty, markSaved, onInput }
+    return { dirty, markSaved, onInput, onChange }
 }

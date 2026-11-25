@@ -1,4 +1,4 @@
-import { testSession } from 'tests/utils'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -54,7 +54,7 @@ async function createEvent(name: string) {
             eventStart: new Date(Date.now() + 48 * HOUR),
             eventEnd: new Date(Date.now() + 50 * HOUR),
             takesRegistration: false,
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
         },
         bypassAuth: true,
     })
@@ -143,7 +143,7 @@ describe('saving an event with its registration', () => {
 
     test('saves who may register through a quota', async () => {
         const { eventId, variant } = await createEventWithQueue('Bytter hvem')
-        const requirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+        const requirements = [{ conditions: [activeMembersOf(groupId)] }]
 
         await save(eventId, {
             variants: [{
@@ -268,7 +268,7 @@ describe('a save of what is already saved', () => {
     test('writes only what changed', async () => {
         const { eventId, variant } = await createEventWithQueue('Lagres igjen')
         const quotaId = variant.quotas[0].id
-        const requirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+        const requirements = [{ conditions: [activeMembersOf(groupId)] }]
         const setupWith = (places: number, visibilityRequirements = requirements) => ({
             adminRequirements: requirements,
             variants: [{
@@ -395,7 +395,7 @@ describe('a save based on the event as it was', () => {
         const afterVariants = await updatedAtOf(eventId)
         expect(afterVariants.getTime()).toBeGreaterThan(before.getTime())
 
-        await save(eventId, { adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] })
+        await save(eventId, { adminRequirements: [{ conditions: [activeMembersOf(groupId)] }] })
         const afterAdministrators = await updatedAtOf(eventId)
         expect(afterAdministrators.getTime()).toBeGreaterThan(afterVariants.getTime())
 
@@ -427,7 +427,7 @@ describe('who administrates, and the account', () => {
             },
         })
 
-        await save(eventId, { adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: other.id }] }] })
+        await save(eventId, { adminRequirements: [{ conditions: [activeMembersOf(other.id)] }] })
 
         const matrix = await eventOperations.adminVisibility.readMatrix({ params: { id: eventId }, bypassAuth: true })
         expect(matrix.requirements[0].conditions[0]).toMatchObject({ groupId: other.id })
@@ -450,7 +450,7 @@ describe('who administrates, and the account', () => {
 
         await eventOperations.saveSetup({
             params: { id: eventId },
-            data: { name: 'Gitt videre', adminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: other.id }] }] },
+            data: { name: 'Gitt videre', adminRequirements: [{ conditions: [activeMembersOf(other.id)] }] },
             session: administrator,
         })
 

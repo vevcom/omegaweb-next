@@ -10,7 +10,9 @@ import { userOperations } from '@/services/users/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
+import { activeMembersOf } from 'tests/utils'
 import { afterAll, afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
+import type { VisibilityRequirement } from '@/services/visibility/types'
 
 const createdChannelIds: number[] = []
 
@@ -93,7 +95,7 @@ describe('the special and the manual notification channels', () => {
         const root = await readRoot()
         const channel = await createManualChannel('test-audience', root.id)
         const group = await prisma.group.findFirstOrThrow()
-        const send = (requirements: { conditions: { type: 'ACTIVE', groupId: number }[] }[]) =>
+        const send = (requirements: VisibilityRequirement[]) =>
             manualNotificationChannelOperations.createNotification({
                 params: { channelId: channel.id },
                 data: { title: 'To some', message: 'Only those in the group get this.', audience: { requirements } },
@@ -106,7 +108,7 @@ describe('the special and the manual notification channels', () => {
         const notificationsOff = process.env.NOTIFICATIONS_OFF
         Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
         try {
-            const { notification: toSome } = await send([{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }])
+            const { notification: toSome } = await send([{ conditions: [activeMembersOf(group.id)] }])
             const { notification: toAll } = await send([])
             expect(toAll?.visibilityId).toBeNull()
             const visibility = await prisma.visibility.findUniqueOrThrow({

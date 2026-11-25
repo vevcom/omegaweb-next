@@ -1,3 +1,4 @@
+import { activeMembersOf } from './utils'
 import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
@@ -48,7 +49,7 @@ export async function createAdministrators(shortName: string): Promise<Visibilit
     const group = await prisma.group.create({
         data: { groupType: 'MANUAL_GROUP', order, manualGroup: { create: { name: shortName, shortName } } },
     })
-    return [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }]
+    return [{ conditions: [activeMembersOf(group.id)] }]
 }
 
 /** Gives a quota the places by saving the setup of its event. */
