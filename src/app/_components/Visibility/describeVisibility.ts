@@ -4,7 +4,7 @@ import type { ExpandedGroup } from '@/services/groups/types'
 
 function describeCondition(condition: VisibilityCondition, groups: ExpandedGroup[] | null): string {
     const groupName = findGroup(groups, condition.groupId)?.name ?? `gruppe #${condition.groupId}`
-    return condition.type === 'ACTIVE' ? groupName : `${groupName} i orden ${condition.order}`
+    return condition.type === 'ACTIVE' ? `${groupName} (aktive)` : `${groupName} i orden ${condition.order}`
 }
 
 function listNames(names: string[]) {
@@ -12,10 +12,10 @@ function listNames(names: string[]) {
 }
 
 /**
- * Who passes a visibility, in words: "Alle", "Ingen", or the groups, as in "Arrkom eller Styret som
- * også er i 3. klasse". Every place that says who a visibility lets in says it with this. `everyone`
- * is for a rule that asks more than the visibility of those who pass one without requirements, such
- * as "Alle som er logget inn" where it takes a user.
+ * Who passes a visibility, in words: "Alle", "Ingen", or the groups, as in "Arrkom (aktive) eller
+ * Styret i orden 108 som også er i 3. klasse (aktive)". Every place that says who a visibility lets
+ * in says it with this. `everyone` is for a rule that asks more than the visibility of those who
+ * pass one without requirements, such as "Alle som er logget inn" where it takes a user.
  */
 export function describeVisibility(
     visibility: VisibilityMatrix,

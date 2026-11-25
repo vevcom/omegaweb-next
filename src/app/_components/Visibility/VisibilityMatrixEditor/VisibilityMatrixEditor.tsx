@@ -39,7 +39,7 @@ const groupTypeNames: Record<GroupType, string> = {
     MANUAL_GROUP: 'Andre grupper',
     REVUE_SUB_GROUP: 'Revyundergruppe',
 }
-const NOW = -1
+const ACTIVE_MEMBERS = -1
 
 const conditionKey = (condition: VisibilityCondition) => (
     condition.type === 'ORDER' ? `${condition.groupId}-${condition.order}` : `${condition.groupId}`
@@ -74,13 +74,15 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
         `}>
             <button
                 type="button"
-                title="Velg om dette gjelder nå eller et tidligere år"
+                title="Velg om dette gjelder de aktive eller en bestemt orden"
                 aria-expanded={choosingWhen}
                 onClick={() => setChoosingWhen(!choosingWhen)}
                 className="py-1 pl-3 pr-1 border-none bg-transparent text-base-content text-left cursor-pointer"
             >
                 {name}
-                {condition.type === 'ORDER' && <span className="text-base-content/80"> · {condition.order}. orden</span>}
+                <span className="text-base-content/80">
+                    {' · '}{condition.type === 'ORDER' ? `${condition.order}. orden` : 'aktive'}
+                </span>
             </button>
             <button
                 type="button"
@@ -97,15 +99,15 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
         </span>
         {choosingWhen && <SelectNumber
             label="Gjelder"
-            value={condition.type === 'ORDER' ? condition.order : NOW}
+            value={condition.type === 'ORDER' ? condition.order : ACTIVE_MEMBERS}
             options={[
-                { value: NOW, label: 'De som er med nå', key: 'now' },
+                { value: ACTIVE_MEMBERS, label: 'Aktive', key: 'active' },
                 ...orderOptions(group).reverse().map(option => ({
                     ...option,
                     label: `De som var med i ${option.label}. orden`,
                 })),
             ]}
-            onChange={value => onChange(value === NOW
+            onChange={value => onChange(value === ACTIVE_MEMBERS
                 ? { type: 'ACTIVE', groupId: condition.groupId }
                 : { type: 'ORDER', groupId: condition.groupId, order: value })}
         />}
@@ -191,7 +193,7 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     </div>
                     {list.conditions.length > 0 && <ul className="flex flex-wrap gap-2 m-0 p-0 list-none">
                         {list.conditions.map((condition, conditionIndex) => <ConditionChip
-                            key={conditionKey(condition)}
+                            key={chipKey(list.conditions, conditionIndex)}
                             condition={condition}
                             groups={groups}
                             onChange={changed => setConditions(listIndex, withoutRepeats(
@@ -237,4 +239,10 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
             </Button>
         </>)}
     </div>
+}
+
+/** A chip keeps its key when what it says is changed, so the select in it stays open with the focus. */
+function chipKey(conditions: VisibilityCondition[], index: number) {
+    const { groupId } = conditions[index]
+    return `${groupId}-${conditions.slice(0, index).filter(other => other.groupId === groupId).length}`
 }

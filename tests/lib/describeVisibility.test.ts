@@ -22,13 +22,19 @@ describe('describeVisibility', () => {
 
     test('names the groups of one requirement as alternatives', () => {
         expect(describeVisibility({ requirements: [{ conditions: [active(1), active(2)] }] }, groups))
-            .toBe('1. klasse eller 2. klasse')
+            .toBe('1. klasse (aktive) eller 2. klasse (aktive)')
     })
 
     test('joins several requirements, since all of them must pass', () => {
         expect(describeVisibility({
             requirements: [{ conditions: [active(3)] }, { conditions: [active(1)] }],
-        }, groups)).toBe('Medlemmer som også er i 1. klasse')
+        }, groups)).toBe('Medlemmer (aktive) som også er i 1. klasse (aktive)')
+    })
+
+    test('says of each group whether it is its active members or those of an order', () => {
+        const order104 = { type: 'ORDER' as const, groupId: 1, order: 104 }
+        expect(describeVisibility({ requirements: [{ conditions: [order104, active(2)] }] }, groups))
+            .toBe('1. klasse i orden 104 eller 2. klasse (aktive)')
     })
 
     test('a list without groups lets no one in', () => {
@@ -36,14 +42,14 @@ describe('describeVisibility', () => {
     })
 
     test('falls back to the id of a group it does not know', () => {
-        expect(describeVisibility({ requirements: [{ conditions: [active(9)] }] }, null)).toBe('gruppe #9')
+        expect(describeVisibility({ requirements: [{ conditions: [active(9)] }] }, null)).toBe('gruppe #9 (aktive)')
     })
 })
 
 describe('listing several groups', () => {
     test('uses commas until the last one', () => {
         expect(describeVisibility({ requirements: [{ conditions: [active(1), active(2), active(3)] }] }, groups))
-            .toBe('1. klasse, 2. klasse eller Medlemmer')
+            .toBe('1. klasse (aktive), 2. klasse (aktive) eller Medlemmer (aktive)')
     })
 })
 

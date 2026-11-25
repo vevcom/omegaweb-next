@@ -78,6 +78,7 @@ export default function Form<GiveActionReturn>({
     saveBar,
     onValuesChange,
     onInput: onInputOfCaller,
+    onChange: onChangeOfCaller,
     ...props
 }: PropTypes<GiveActionReturn>) {
     const [generalErrors, setGeneralErrors] = useState<ErrorMessage[]>()
@@ -92,14 +93,18 @@ export default function Form<GiveActionReturn>({
     const PopUpCtx = useContext(PopUpContext)
     const { refresh, push } = useSiteRouter()
     const formRef = useRef<HTMLFormElement>(null)
-    const { dirty, markSaved, onInput: checkUnsaved } = useUnsavedChanges(
+    const { dirty, markSaved, onInput: checkUnsavedInput, onChange: checkUnsavedChange } = useUnsavedChanges(
         formRef,
         Boolean(saveBar) || onValuesChange !== undefined,
         onValuesChange,
     )
     const onInput = (event: React.InputEvent<HTMLFormElement>) => {
-        checkUnsaved()
+        checkUnsavedInput(event)
         onInputOfCaller?.(event)
+    }
+    const onChange = (event: React.ChangeEvent<HTMLFormElement>) => {
+        checkUnsavedChange(event)
+        onChangeOfCaller?.(event)
     }
 
     const actionWithError = async (formData: FormData) => {
@@ -229,7 +234,8 @@ export default function Form<GiveActionReturn>({
                 relative w-full
                 [&>h2]:mb-2
                 ${className}
-            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onInput={onInput} onSubmit={handleSubmit}
+            `} {...props} inert={Boolean(saveBar) && (pending || refreshing)} onInput={onInput} onChange={onChange}
+            onSubmit={handleSubmit}
             onReset={handleReset}>
                 {title && <h2 className="text-base-content">{title}</h2>}
                 {Children.toArray(children).map((child, index) => {
