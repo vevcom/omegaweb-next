@@ -13,6 +13,7 @@ enum StandardImage {
   MACHINE
   FAIR
   PWA
+  REVUE_LOGO
 }
 
 enum ImageType {

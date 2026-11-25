@@ -29,7 +29,7 @@ import type { GroupType } from '@/prisma-generated-pn-types'
 import type { ExpandedGroup, ExpandedGroupsOfAllTypes } from '@/services/groups/types'
 import type { AppHref } from '@/lib/sites/href'
 
-type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP'>
+type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP' | 'REVUE_SUB_GROUP'>
 
 type DisableGroupFilters = Partial<Record<GroupSelectionType, boolean>>
 

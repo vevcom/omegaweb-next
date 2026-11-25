@@ -18,11 +18,11 @@ export default function ChangeName({ article, updateArticleAction, capabilities 
     const [currentName, setCurrentName] = useState(article.name)
     const editable = useEditMode({ authResult: capabilities.canEdit })
 
-    const successCallback = (data: ExpandedArticle | undefined) => {
+    const successCallback = (data: ExpandedArticle) => {
         const oldName = encodeURIComponent(currentName)
-        const newName = encodeURIComponent(data ? data.name : '')
+        const newName = encodeURIComponent(data.name)
         const newPath = currentPath.replace(oldName, newName)
-        setCurrentName(data ? data.name : article.name)
+        setCurrentName(data.name)
         if (typeof window !== 'undefined') {
             window.history.replaceState({}, '', newPath)
         }

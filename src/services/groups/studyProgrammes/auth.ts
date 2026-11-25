@@ -16,6 +16,7 @@ export const studyProgrammeAuth = {
     update: Require.permission('STUDY_PROGRAMME_ADMIN'),
     addMembers: adminOrGroupAdmin,
     removeMembers: adminOrGroupAdmin,
+    destroyMembership: adminOrGroupAdmin,
     setMemberAdmin: adminOrGroupAdmin,
     setMemberTitle: adminOrGroupAdmin,
     destroy: Require.permission('STUDY_PROGRAMME_ADMIN'),

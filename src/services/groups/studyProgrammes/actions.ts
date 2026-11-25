@@ -7,3 +7,4 @@ export const createStudyProgrammeAction = makeAction(studyProgrammeOperations.cr
 export const updateStudyProgrammeAction = makeAction(studyProgrammeOperations.update)
 export const addStudyProgrammeMembersAction = makeAction(studyProgrammeOperations.addMembers)
 export const removeStudyProgrammeMembersAction = makeAction(studyProgrammeOperations.removeMembers)
+export const destroyStudyProgrammeMembershipAction = makeAction(studyProgrammeOperations.destroyMembership)

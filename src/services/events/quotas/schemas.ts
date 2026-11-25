@@ -36,6 +36,8 @@ const quotaFieldsWithVisibility = {
 // A quota as a save of the whole variant gives it. One without an id is new.
 const quotaSetup = dataFieldSchemas.pick(quotaFieldsWithVisibility).extend({
     id: z.number().int().optional(),
+    places: dataFieldSchemas.shape.places.optional()
+        .refine((places): places is number => places !== undefined, 'Antall plasser må fylles ut'),
 })
 
 const quotaId = paramsFieldSchemas.pick({

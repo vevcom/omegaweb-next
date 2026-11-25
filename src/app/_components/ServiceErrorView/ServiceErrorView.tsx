@@ -1,6 +1,6 @@
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
-import { errorCodes } from '@/services/error'
+import { getDefaultErrorMessage } from '@/services/error'
 import type { Smorekopp } from '@/services/error'
 
 /**
@@ -10,25 +10,27 @@ import type { Smorekopp } from '@/services/error'
  * has to be smuggled through an encoded native Error.
  */
 export default function ServiceErrorView({ error }: { error: Smorekopp }) {
-    const errorConfig = errorCodes.find((code) => code.name === error.errorCode)
-    const message = error.errors.at(0)?.message ?? errorConfig?.defaultMessage ?? 'En ukjent feil har oppstått'
+    const message = error.errors.at(0)?.message ?? getDefaultErrorMessage(error.errorCode)
 
     return (
         <div className="bg-base-100 px-4 flex-1 flex flex-col justify-center items-center min-h-[50vh]">
             <PageTitleSetter title="Feil" />
             <div className="
                 flex justify-center items-center
-                max-mobile:min-h-[50vh]
+                max-mobile:min-h-[50vh] max-mobile:flex-col max-mobile:text-center
                 [&_h3]:text-base-content
             ">
-                <div className="border-r-2 border-solid border-base-100 pr-[20px] mr-[20px]">
+                <div className="
+                    border-r-2 border-solid border-base-100 pr-[20px] mr-[20px]
+                    max-mobile:border-r-0 max-mobile:pr-0 max-mobile:mr-0 max-mobile:mb-[20px]
+                ">
                     <StandardImageServer
                         width={70}
                         standardImage="LOGO_SIMPLE"
                         tint="var(--color-base-content)"
                     />
                 </div>
-                <div>
+                <div className="wrap-anywhere">
                     <h3>{message}</h3>
                     <p className="text-base-content opacity-60 text-s">{error.httpCode} - {error.errorCode}</p>
                 </div>

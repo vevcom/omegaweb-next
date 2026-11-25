@@ -2,6 +2,7 @@ import styles from './Article.module.scss'
 import AddSection from './AddSection'
 import SectionMover from './SectionMover'
 import ChangeName from './ChangeName'
+import EmptyArticle from './EmptyArticle'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import SlideInOnView from '@/components/SlideInOnView/SlideInOnView'
 import { configureAction } from '@/services/configureAction'
@@ -28,6 +29,8 @@ export type PropTypes = {
     sideBarClassName?: string
     articleClassName?: string
     addSectionClassName?: string
+    /** Shows "Denne artikkelen er tom" in edit mode only, to the one who may fill the article. */
+    emptyTextOnlyInEditMode?: boolean
     actions: {
         updateCoverImageAction: UpdateCmsImageAction,
         updateArticleAction: UpdateArticleAction,
@@ -47,6 +50,7 @@ export default function Article({
     sideBarClassName,
     articleClassName,
     addSectionClassName,
+    emptyTextOnlyInEditMode = false,
     actions,
     capabilities,
 }: PropTypes) {
@@ -140,7 +144,7 @@ export default function Article({
                             </SlideInOnView>
                         ))
                     ) : (
-                        <i className="flex h-[2em]">Denne artikkelen er tom</i>
+                        <EmptyArticle onlyInEditMode={emptyTextOnlyInEditMode} capabilities={clientCapabilities} />
                     )
                 }
             </article>

@@ -16,7 +16,6 @@ export default function CreateMailAddressExternal({ config }: { config: MailServ
         submitText="Opprett"
         action={createMailAddressExternalAction}
         successCallback={data => {
-            if (!data) return
             push(links.node('mailaddressExternal', data.id))
         }}
     >

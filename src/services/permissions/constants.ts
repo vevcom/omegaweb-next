@@ -161,7 +161,7 @@ export const permissionConfig = {
     },
     REVUE_ADMIN: {
         name: 'Administrer revysiden',
-        description: 'kan administrere artikkelen på revysiden',
+        description: 'kan administrere revysiden: revyene, gruppene deres og medlemmene i revyundergruppene',
         category: 'public',
         canBeDefault: false,
     },

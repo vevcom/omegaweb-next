@@ -6,6 +6,7 @@ import {
     variantsFromForm,
     variantsToPost,
 } from '@/services/events/setupDraft'
+import { eventSetupChecks } from '@/services/events/publishProblems'
 import { eventVariantSetupFormSchema } from '@/services/events/variants/schemas'
 import { describe, expect, test } from '@jest/globals'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
@@ -89,6 +90,19 @@ describe('the drafts of the setup form', () => {
         expect(variantsFromForm(values)[0]).toMatchObject({
             registrationStart: opens, registrationEnd: null, paymentStart: null,
         })
+    })
+
+    test('post emptied places as none, which the save refuses and the checks count as no places', () => {
+        const [draft] = toVariantDrafts([saved(7, [3])])
+        const posted = variantsToPost([{ ...draft, quotas: [{ ...draft.quotas[0], places: undefined }] }])
+        const values = formOf({ variants: JSON.stringify(posted) })
+
+        const result = eventVariantSetupFormSchema.safeParse(JSON.parse(JSON.stringify(posted)))
+        expect(result.error?.issues.map(issue => issue.path.join('.'))).toEqual(['0.quotas.0.places'])
+        expect(result.error?.issues[0].message).toBe('Antall plasser må fylles ut')
+
+        expect(eventSetupChecks(eventSetupFromForm(values, asSaved)).map(check => check.message))
+            .toContain('Ingen plasser er satt.')
     })
 
     test('get keys of their own, below those of their siblings and of anything saved', () => {

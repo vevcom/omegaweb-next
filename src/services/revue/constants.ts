@@ -8,5 +8,4 @@ export const revueCardIncluder = {
 
 export const revueExpandedIncluder = {
     article: { include: articleRelationsIncluder },
-    groups: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
 } as const satisfies Prisma.RevueInclude

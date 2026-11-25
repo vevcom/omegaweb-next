@@ -28,16 +28,23 @@ type PropTypes = {
         removePartFromArticleSection: RemovePartFromArticleSectionAction
     }
     capabilities: Capabilities<'canEdit'>
+    imageFit?: 'cover' | 'contain'
 }
 
 export type ArticleSectionActions = PropTypes['actions']
 
 const removerClassName = 'absolute -top-[10px] -right-[10px] z-2'
 
+const imageFitClassNames = {
+    cover: '[&>*:first-child_img]:object-cover',
+    contain: '[&>*:first-child_img]:object-contain',
+}
+
 export default function ArticleSection({
     articleSection,
     actions,
     capabilities,
+    imageFit = 'cover',
 }: PropTypes) {
     const { cmsParagraph, cmsImage, cmsLink } = articleSection
     const clientCapabilities = capabilitiesToJsObject(capabilities)
@@ -51,7 +58,7 @@ export default function ArticleSection({
             max-mobile:order-2 max-mobile:rounded-round max-mobile:h-[min(300px,40vh)]
         " style={{ width: articleSection.imageSize }}>
             {cmsImage && <>
-                <span className="
+                <span className={`
                     absolute inset-0 flex overflow-hidden z-1
                     [&>*:first-child]:absolute [&>*:first-child]:inset-0 [&>*:first-child]:w-full [&>*:first-child]:h-full
                     [&>*:first-child]:rounded-round [&>*:first-child]:overflow-hidden [&>*:first-child]:max-w-[90vw]
@@ -59,8 +66,9 @@ export default function ArticleSection({
                     [&>*:first-child_div]:absolute [&>*:first-child_div]:inset-0 [&>*:first-child_div]:w-full
                     [&>*:first-child_div]:h-full
                     [&>*:first-child_img]:absolute [&>*:first-child_img]:inset-0 [&>*:first-child_img]:w-full
-                    [&>*:first-child_img]:h-full [&>*:first-child_img]:object-cover
-                ">
+                    [&>*:first-child_img]:h-full
+                    ${imageFitClassNames[imageFit]}
+                `}>
                     <CmsImage
                         width={articleSection.imageSize}
                         cmsImage={cmsImage}

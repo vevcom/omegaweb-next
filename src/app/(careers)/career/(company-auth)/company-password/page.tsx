@@ -1,4 +1,4 @@
-import ChooseCompanyUserPassword from './ChooseCompanyUserPassword'
+import { ResetPasswordForm } from '@/app/(careers)/career/(company-auth)/companyUserAccountFlowComponents'
 import { companyUserAuthOperations } from '@/services/careers/companies/users/auth/operations'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage, withFallback } from '@/app/ServerPage'
@@ -26,7 +26,7 @@ const { page, generateMetadata } = serverPage({
                 </p>
             </>
         }
-        return <ChooseCompanyUserPassword token={data.token} email={data.email} />
+        return <ResetPasswordForm token={data.token} email={data.email} />
     },
 })
 

@@ -6,4 +6,5 @@ model OmegaOrder {
   memberships                Membership[]
   groups                     Group[]
   VisibilityRequirementGroup VisibilityRequirementGroup[]
+  revueGroupsInRevues        RevueGroupInRevue[]
 }

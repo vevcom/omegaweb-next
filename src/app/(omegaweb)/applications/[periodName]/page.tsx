@@ -54,7 +54,7 @@ const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ periodName: string }>) => {
         const userId = session.user?.id
         const period = await applicationPeriodOperations.read({
-            params: { name: params.periodName },
+            params: { name: decodeURIComponent(params.periodName) },
         })
         const [applications, committees] = await Promise.all([
             userId
@@ -342,7 +342,9 @@ const { page, generateMetadata } = serverPage({
                                         text-m
                                         [&_a]:text-inherit [&_a]:no-underline
                                     ">
-                                        <SiteLink href={appHref(`/applications/${period.name}/countdown`)}>
+                                        <SiteLink
+                                            href={appHref(`/applications/${encodeURIComponent(period.name)}/countdown`)}
+                                        >
                                             <CountDown referenceDate={period.endDate} />
                                         </SiteLink>
                                     </div>

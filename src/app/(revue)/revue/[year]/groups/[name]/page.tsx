@@ -1,8 +1,8 @@
-import AddRevueGroupMember from './AddRevueGroupMember'
-import RevueGroupMember from './RevueGroupMember'
 import RevueGroupSettings from './RevueGroupSettings'
+import ManageMembersInEditMode from './ManageMembersInEditMode'
 import yearFromParam from '@/app/(revue)/revue/[year]/yearFromParam'
 import { revueLinks } from '@/app/(revue)/links'
+import { omegaLinks } from '@/app/(omegaweb)/links'
 import {
     addPartToRevueGroupArticleSectionAction,
     removePartFromRevueGroupArticleSectionAction,
@@ -12,36 +12,88 @@ import {
     updateRevueGroupCmsParagraphAction,
 } from '@/services/revue/groups/actions'
 import { revueGroupAuth } from '@/services/revue/groups/auth'
-import { revueGroupMemberAuth } from '@/services/revue/groups/members/auth'
 import { revueGroupOperations } from '@/services/revue/groups/operations'
-import { userAuth } from '@/services/users/auth'
+import { revueSubGroupOperations } from '@/services/groups/revueSubGroups/operations'
+import { groupTypesConfig } from '@/services/groups/constants'
 import ArticleSection from '@/components/Cms/ArticleSection/ArticleSection'
-import PageWrapper from '@/components/PageWrapper/PageWrapper'
+import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { configureAction } from '@/services/configureAction'
-import { serverPage } from '@/app/ServerPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const { page, generateMetadata } = serverPage({
-    operation: async ({ params }: PageOperationArgs<{ year: string, name: string }>) => revueGroupOperations.read({
-        params: { year: yearFromParam(params.year), name: decodeURIComponent(params.name) },
+    operation: async ({ params }: PageOperationArgs<{ year: string, name: string }>) => {
+        const groupParams = { year: yearFromParam(params.year), name: decodeURIComponent(params.name) }
+        const group = await revueGroupOperations.readInRevue({ params: groupParams })
+        const memberProfiles = await withFallback(
+            revueGroupOperations.readMemberProfilesInRevue({ params: groupParams }),
+            null,
+            ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+        )
+        const managedHere = group.type === 'REVUE_SUB_GROUP' && group.order === group.group.order
+            && !group.group.pensioned
+        const memberships = managedHere
+            ? await withFallback(
+                revueSubGroupOperations.readMembers({ params: { groupId: group.group.id } }),
+                null,
+                ['UNAUTHENTICATED', 'UNAUTHORIZED'],
+            )
+            : null
+        const members: { name: string, title: string, username?: string }[] = memberProfiles ?? group.members
+        return { group, members, memberships }
+    },
+    capabilities: ({ group }) => ({
+        canEdit: revueGroupAuth.updateArticleSection.data({ groupId: group.group.id }),
     }),
-    capabilities: () => ({
-        canEdit: revueGroupAuth.updateArticleSection,
-        canEditMembers: revueGroupMemberAuth.update,
-    }),
-    metadata: group => ({ title: `${group.name} - ${group.revue.name}` }),
-    render: ({ data: group, capabilities, session }) => {
-        const actionConfig = { implementationParams: { groupId: group.id } }
+    metadata: ({ group }) => ({ title: `${group.name} - ${group.revue.name}` }),
+    render: ({ data: { group, members, memberships }, capabilities }) => {
+        const actionConfig = { implementationParams: { revueGroupId: group.id } }
+        const pensionedSubGroup = group.type === 'REVUE_SUB_GROUP' && group.group.pensioned
 
         return (
-            <PageWrapper>
-                <div className="flex justify-between items-center mb-4">
-                    <SiteLink href={revueLinks.revue(group.revue)}>{group.revue.name}</SiteLink>
-                    <RevueGroupSettings group={group} revue={group.revue} />
+            <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                        <SiteLink href={revueLinks.revue(group.revue)} className="
+                            inline-flex items-center gap-2 text-m
+                            [&_svg]:size-[0.85em]!
+                        ">
+                            <FontAwesomeIcon icon={faArrowLeft} />
+                            {group.revue.name}
+                        </SiteLink>
+                        {!pensionedSubGroup && <RevueGroupSettings group={group} revue={group.revue} />}
+                    </div>
+                    <header className="
+                        flex flex-col items-start gap-3 p-[clamp(1.25rem,5vw,2.5rem)] rounded-round border-l-4
+                        border-accent bg-base-200
+                    ">
+                        <span className="text-s font-semibold tracking-[0.2em] uppercase text-base-content/80">
+                            {groupTypesConfig[group.type].name} · {group.revue.year}
+                        </span>
+                        <h1 className="
+                            font-secondary text-[clamp(2.25rem,7vw,4rem)] font-bold leading-[1.05] text-balance
+                            wrap-anywhere
+                        ">
+                            {group.name}
+                        </h1>
+                        {group.committee && (
+                            <SiteLink
+                                href={omegaLinks.committee(group.committee)}
+                                toMainDomainServingSite
+                                className="
+                                    inline-flex items-center gap-2 text-m
+                                    [&_svg]:size-[0.85em]!
+                                "
+                            >
+                                {group.committee.name} på Omegaveven
+                                <FontAwesomeIcon icon={faArrowRight} />
+                            </SiteLink>
+                        )}
+                    </header>
                 </div>
-                <h1>{group.name}</h1>
                 <ArticleSection
                     articleSection={group.articleSection}
                     capabilities={{ canEdit: capabilities.canEdit }}
@@ -56,29 +108,34 @@ const { page, generateMetadata } = serverPage({
                         updateCmsLink: configureAction(updateRevueGroupCmsLinkAction, actionConfig),
                     }}
                 />
-                <section className="mt-8">
-                    <h2>Medlemmer</h2>
-                    {group.members.length > 0 ? (
-                        <ul className="list-none p-0 mt-2">
-                            {group.members.map(member => (
-                                <RevueGroupMember
-                                    key={member.id}
-                                    member={member}
-                                    capabilities={{
-                                        canEdit: capabilities.canEditMembers,
-                                        ...runCapabilities(session, {
-                                            canReadProfile: userAuth.readProfile.data({
-                                                userField: { id: member.userId ?? undefined },
-                                            }),
-                                        }),
-                                    }}
-                                />
+                <section className="flex flex-col gap-6">
+                    <h2 className="font-secondary text-xl">Medlemmer</h2>
+                    {members.length > 0 ? (
+                        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(13rem,100%),1fr))] gap-4 list-none">
+                            {members.map((member, index) => (
+                                <li key={index} className="flex flex-col gap-1 p-4 rounded-round bg-base-200">
+                                    {member.username ? (
+                                        <SiteLink
+                                            href={revueLinks.user({ username: member.username })}
+                                            className="font-semibold wrap-anywhere"
+                                        >
+                                            {member.name}
+                                        </SiteLink>
+                                    ) : <span className="font-semibold wrap-anywhere">{member.name}</span>}
+                                    <span className="text-s text-base-content/80">{member.title}</span>
+                                </li>
                             ))}
                         </ul>
-                    ) : <p className="mt-2 text-base-content/80">Ingen medlemmer enda</p>}
-                    <AddRevueGroupMember groupId={group.id} />
+                    ) : <p className="text-base-content/80">Ingen medlemmer i {group.revue.name}.</p>}
                 </section>
-            </PageWrapper>
+                {memberships && (
+                    <ManageMembersInEditMode
+                        groupId={group.group.id}
+                        groupOrder={group.group.order}
+                        orders={groupMembersByOrder(memberships, group.group.order)}
+                    />
+                )}
+            </div>
         )
     },
 })

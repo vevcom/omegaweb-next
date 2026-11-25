@@ -33,6 +33,7 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
         removeMembers: ({ groupId }) => studyProgrammeAuth.removeMembers.data({ groupId }),
         setMemberAdmin: ({ groupId }) => studyProgrammeAuth.setMemberAdmin.data({ groupId }),
         setMemberTitle: ({ groupId }) => studyProgrammeAuth.setMemberTitle.data({ groupId }),
+        destroyMembership: ({ groupId }) => studyProgrammeAuth.destroyMembership.data({ groupId }),
     },
 })
 
@@ -201,5 +202,6 @@ export const studyProgrammeOperations = {
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
+    destroyMembership: memberManagement.destroyMembership,
     migrateGroups: migration.migrateGroups,
 } as const

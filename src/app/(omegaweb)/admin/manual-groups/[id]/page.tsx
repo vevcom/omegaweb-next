@@ -1,4 +1,5 @@
 import {
+    destroyManualGroupMembershipAction,
     addManualGroupMembersAction,
     migrateManualGroupAction,
     removeManualGroupMembersAction,
@@ -50,6 +51,7 @@ const { page, generateMetadata } = serverPage({
         }),
         canPension: manualGroupAuth.pension,
         canRemoveMembers: manualGroupAuth.removeMembers.data({ groupId: data.manualGroup.groupId }),
+        canDestroyMembership: manualGroupAuth.destroyMembership.data({ groupId: data.manualGroup.groupId }),
     }),
     metadata: (data) => ({ title: data.manualGroup.name }),
     render: ({ data, capabilities }) => {
@@ -101,6 +103,11 @@ const { page, generateMetadata } = serverPage({
                                 }
                                 removeMembersAction={
                                     capabilities.canRemoveMembers.authorized ? removeManualGroupMembersAction : undefined
+                                }
+                                destroyMembershipAction={
+                                    capabilities.canDestroyMembership.authorized
+                                        ? destroyManualGroupMembershipAction
+                                        : undefined
                                 }
                             />
                         </div>
