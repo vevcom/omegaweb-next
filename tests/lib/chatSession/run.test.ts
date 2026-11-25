@@ -3,6 +3,7 @@ import { runChatSession } from '@/lib/chatSession/run'
 import { signOut } from '@/lib/chatSession/client'
 import { standaloneRoomsOf } from '@/lib/chatSession/rooms'
 import { readStoredSession, requestSignOut, storeSession } from '@/lib/chatSession/storage'
+import { MatrixClient } from 'matrix-js-sdk'
 import { afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
 import type { ChatSessionRun, ChatSessionState } from '@/lib/chatSession/run'
 
@@ -214,26 +215,28 @@ describe('a tab on a chat page with no session to run', () => {
     })
 })
 
-describe('what a user has synced in the browser', () => {
+describe('what a user has synced in the browser, and the keys of their device', () => {
     const KARIS = 'matrix-js-sdk:ow-chat-sync:@kari:chat.test'
     const OLAS = 'matrix-js-sdk:ow-chat-sync:@ola:chat.test'
+    const keysOf = (session: { userId: string, deviceId: string }) =>
+        `ow-chat-crypto:${session.userId}:${session.deviceId}::matrix-sdk-crypto`
     const roomNamed = (name: string, ...members: object[]) =>
         joined(stateEvent('m.room.create', OLA, {}), named(name), ...members)
     const kari = member(KARI, 'Kari Nordmann')
     const ola = member(OLA, 'Ola Nordmann')
 
-    test('is kept in a database of the user\'s own, and deleted when the session is signed out', async () => {
+    test('are kept in databases of their own, and deleted when the session is signed out', async () => {
         const fake = fakeChatBrowser()
         storeSession(fake.browser, ofKari)
         await tab(fake, KARI).running('CONNECTED')
-        await expect(fake.databases()).resolves.toEqual([KARIS])
+        await expect(fake.databases()).resolves.toEqual([KARIS, keysOf(ofKari)])
 
         await signOut(configFor(KARI), fake.openTab())
 
-        await expect(fake.databases()).resolves.toEqual([])
+        await expect(fake.databasesLeft()).resolves.toEqual([])
     })
 
-    test('is deleted when the homeserver ends the session', async () => {
+    test('are deleted when the homeserver ends the session', async () => {
         const fake = fakeChatBrowser()
         storeSession(fake.browser, ofKari)
         fake.answer(SYNC, call => (call.url.searchParams.has('since')
@@ -243,10 +246,10 @@ describe('what a user has synced in the browser', () => {
 
         await tab(fake, KARI).signedOut()
 
-        await expect(fake.databases()).resolves.toEqual([])
+        await expect(fake.databasesLeft()).resolves.toEqual([])
     })
 
-    test('is deleted with a kept session that is another user\'s, and is never the next user\'s', async () => {
+    test('are deleted with a kept session that is another user\'s, and are never the next user\'s', async () => {
         const fake = fakeChatBrowser()
         storeSession(fake.browser, ofKari)
         fake.chat.rooms = { join: { '!karis:chat.test': roomNamed('Karis gruppe', kari, ola) } }
@@ -258,24 +261,25 @@ describe('what a user has synced in the browser', () => {
         fake.chat.rooms = { join: { '!olas:chat.test': roomNamed('Olas gruppe', ola) } }
         const olasTab = tab(fake, OLA)
         await olasTab.signedOut()
-        await expect(fake.databases()).resolves.toEqual([])
+        await expect(fake.databasesLeft()).resolves.toEqual([])
         await olasTab.run.signIn()
         const state = new URL(fake.leftFor[0]).searchParams.get('state') ?? ''
         await olasTab.run.completeSignIn(new URLSearchParams({ state, code: 'the-code' }))
 
         const { client } = await olasTab.running('CONNECTED')
         expect(standaloneRoomsOf(client, []).map(room => room.name)).toEqual(['Olas gruppe'])
-        await expect(fake.databases()).resolves.toEqual([OLAS])
+        const olasDevice = { userId: OLA, deviceId: client.getDeviceId() ?? '' }
+        await expect(fake.databases()).resolves.toEqual([OLAS, keysOf(olasDevice)])
     })
 
-    test('is not opened by another user, and is deleted, also when it was left behind', async () => {
+    test('are not opened by another user, and are deleted, also when they were left behind', async () => {
         const fake = fakeChatBrowser()
         storeSession(fake.browser, ofKari)
         fake.chat.rooms = { join: { '!karis:chat.test': roomNamed('Karis gruppe', kari, ola) } }
         const karisTab = tab(fake, KARI)
         await karisTab.running('CONNECTED')
         karisTab.run.stop()
-        await expect(fake.databases()).resolves.toEqual([KARIS])
+        await expect(fake.databases()).resolves.toEqual([KARIS, keysOf(ofKari)])
 
         // As when the session was forgotten and the deletion never went through.
         storeSession(fake.browser, ofOla)
@@ -284,7 +288,56 @@ describe('what a user has synced in the browser', () => {
 
         expect(standaloneRoomsOf(client, []).map(room => room.name)).toEqual(['Olas gruppe'])
         expect(fake.callsTo(SYNC).at(-2)?.url.searchParams.has('since')).toBe(false)
-        await expect(fake.databases()).resolves.toEqual([OLAS])
+        await expect(fake.databases()).resolves.toEqual([OLAS, keysOf(ofOla)])
+    })
+
+    test('the keys of a device are not opened by another device of the user, and are deleted', async () => {
+        const fake = fakeChatBrowser()
+        storeSession(fake.browser, ofKari)
+        const first = tab(fake, KARI)
+        await first.running('CONNECTED')
+        first.run.stop()
+
+        // As when the device was forgotten and the deletion of its keys never went through.
+        const newDevice = { ...ofKari, deviceId: 'KARISDEVICE2' }
+        storeSession(fake.browser, newDevice)
+        await tab(fake, KARI).running('CONNECTED')
+
+        await expect(fake.databases()).resolves.toEqual([KARIS, keysOf(newDevice)])
+    })
+})
+
+describe('a tab that is stopped while its client is being started', () => {
+    test('keeps every other tab from starting a client on the same keys until that start is done with', async () => {
+        const fake = fakeChatBrowser()
+        storeSession(fake.browser, ofKari)
+        const start = MatrixClient.prototype.initRustCrypto
+        let goOn = () => undefined as void
+        const held = new Promise<void>(resolve => {
+            goOn = resolve
+        })
+        const starting = jest.spyOn(MatrixClient.prototype, 'initRustCrypto').mockImplementation(async function (
+            this: MatrixClient,
+            ...args: Parameters<typeof start>
+        ) {
+            if (starting.mock.calls.length === 1) await held
+            return Reflect.apply(start, this, args)
+        })
+        const first = tab(fake, KARI)
+        for (let waits = 0; waits < 200 && starting.mock.calls.length === 0; waits++) {
+            await new Promise(resolve => setTimeout(resolve, 10))
+        }
+
+        first.run.stop()
+        const second = tab(fake, KARI, fake.openTab())
+        await second.has('WAITING_FOR_TAB')
+        await new Promise(resolve => setTimeout(resolve, 100))
+        expect(starting).toHaveBeenCalledTimes(1)
+
+        goOn()
+        await second.running('CONNECTED')
+        expect(starting).toHaveBeenCalledTimes(2)
+        starting.mockRestore()
     })
 })
 
@@ -315,7 +368,7 @@ describe('a tab the logout page has asked a sign out in', () => {
         expect(fake.callsTo(REVOKE).map(call => call.form.get('token'))).toEqual(['refresh-0'])
         expect(fake.callsTo(SYNC)).toHaveLength(0)
         expect(fake.kept.size).toBe(0)
-        await expect(fake.databases()).resolves.toEqual([])
+        await expect(fake.databasesLeft()).resolves.toEqual([])
     })
 
     test('says it is signed out also when the chat cannot be reached, with the session forgotten', async () => {

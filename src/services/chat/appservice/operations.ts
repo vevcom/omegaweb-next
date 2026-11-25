@@ -5,7 +5,10 @@ import { chatHomeserverToken } from '@/lib/chatSync/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import type { RoomMessageEvent } from './schemas'
 
-const isEditOfEarlierMessage = (message: RoomMessageEvent) => message.content['m.relates_to']?.rel_type === 'm.replace'
+// What is of an earlier event and no message: an edit, a reaction, which some clients encrypt as
+// they do a message, and what refers to one, such as the steps of a verification and an answer to a poll.
+const OF_EARLIER_MESSAGE: readonly unknown[] = ['m.replace', 'm.annotation', 'm.reference']
+const isOfEarlierMessage = ({ content }: RoomMessageEvent) => OF_EARLIER_MESSAGE.includes(content['m.relates_to']?.rel_type)
 
 export const chatAppserviceOperations = {
     /**
@@ -13,7 +16,9 @@ export const chatAppserviceOperations = {
      * few at a time. The messages are kept for the chat worker to notify of, without what they say:
      * those in the rooms of the spaces by their room, and those outside every space, in direct
      * messages and group rooms, by the Matrix room they were written in. One that is removed before
-     * it is notified of is forgotten. Everything else is let go.
+     * it is notified of is forgotten. Everything else is let go. A message of an encrypted room is
+     * kept as any other, with whom its client said beside the encrypted part that it mentions.
+     * Whether its sender may mention the whole room is for the chat worker to say, as of any message.
      */
     receiveTransaction: defineOperation({
         paramsSchema: chatAppserviceSchemas.params.receiveTransaction,
@@ -28,7 +33,7 @@ export const chatAppserviceOperations = {
                     const message = roomMessageEventSchema.safeParse(event)
                     return message.success ? [message.data] : []
                 })
-                .filter(message => !isEditOfEarlierMessage(message))
+                .filter(message => !isOfEarlierMessage(message))
             const removedEventIds = data.events.flatMap(event => {
                 const removal = roomRedactionEventSchema.safeParse(event)
                 return removal.success ? removal.data.redacts ?? removal.data.content?.redacts ?? [] : []

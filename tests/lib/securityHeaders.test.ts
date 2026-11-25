@@ -31,11 +31,12 @@ describe('the content security policy', () => {
         expect(contentSecurityPolicy('abc', { development: true })).toBe(PLAIN_IN_DEVELOPMENT.join('; '))
     })
 
-    test('of a chat page lets it fetch from the chat, and nothing else', () => {
+    test('of a chat page lets it fetch from the chat and compile WebAssembly, and nothing else', () => {
         const directives = (development: boolean) => contentSecurityPolicy('abc', { development, chatPage }).split('; ')
         const ownAndStripe = "connect-src 'self' https://api.stripe.com"
-        const withTheChat = (directive: string) =>
-            directive.replace(ownAndStripe, `${ownAndStripe} https://matrix.chat.test https://account.chat.test`)
+        const withTheChat = (directive: string) => (directive.startsWith('script-src')
+            ? `${directive} 'wasm-unsafe-eval'`
+            : directive.replace(ownAndStripe, `${ownAndStripe} https://matrix.chat.test https://account.chat.test`))
 
         expect(directives(false)).toEqual(PLAIN.map(withTheChat))
         expect(directives(true)).toEqual(PLAIN_IN_DEVELOPMENT.map(withTheChat))

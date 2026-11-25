@@ -6,7 +6,7 @@ const wordings: Record<Exclude<TimelineNote, 'NAMED' | 'INVITED' | 'TAKEN_OUT' |
     LOCATION: `delte en posisjon, ${notShown}`,
     STICKER: `sendte et klistremerke, ${notShown}`,
     REMOVED: 'sendte en melding som er fjernet',
-    ENCRYPTED: 'sendte en kryptert melding, som ikke kan leses her',
+    ENCRYPTED: 'sendte en melding som ikke kan leses i denne nettleseren',
     OTHER: `sendte noe ${notShown}`,
     CREATED: 'opprettet rommet',
     JOINED: 'ble med',

@@ -91,7 +91,11 @@ export function runChatSession({ config, browser, redirectUri, show }: Params): 
         letGo()
         const mine: Running = { life: new AbortController(), session: null, client: null }
         running = mine
-        await holdTabLock(browser.locks, mine.life.signal, () => showUnlessStopped({ status: 'WAITING_FOR_TAB' }))
+        // The lock is kept while a client is being started, also when the tab has let go of it
+        // meanwhile: another tab would otherwise start its own on the same keys.
+        let starting: Promise<unknown> = Promise.resolve()
+        const onWaiting = () => showUnlessStopped({ status: 'WAITING_FOR_TAB' })
+        await holdTabLock(browser.locks, mine.life.signal, onWaiting, () => starting)
             .catch((error: unknown) => {
                 if (!mine.life.signal.aborted) throw error
             })
@@ -106,11 +110,14 @@ export function runChatSession({ config, browser, redirectUri, show }: Params): 
         mine.session = session
 
         const { ClientEvent, HttpApiEvent, PendingEventOrdering, SyncState } = await loadChatSdk()
-        const client = await chatClientOf(config, browser, session)
-        if (running !== mine) {
-            stopChatClient(client)
-            return
-        }
+        const started = chatClientOf(config, browser, session).then(made => {
+            if (running === mine) return made
+            stopChatClient(made)
+            return null
+        })
+        starting = started
+        const client = await started
+        if (!client) return
         mine.client = client
         client.on(HttpApiEvent.SessionLoggedOut, () => void end(mine))
         // eslint-disable-next-line no-sync -- The event of the client's sync, and no synchronous call.

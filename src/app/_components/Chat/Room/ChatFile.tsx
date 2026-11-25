@@ -5,6 +5,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperclip } from '@fortawesome/free-solid-svg-icons'
 import { useCallback, useEffect, useState } from 'react'
+import type { Media } from '@/lib/chatSession/media'
 import type { TimelineFile, WatchedRoomTimeline } from '@/lib/chatSession/timeline'
 import type { ImgHTMLAttributes, ReactNode } from 'react'
 
@@ -15,7 +16,7 @@ const SAVED_ADDRESS_KEPT_MS = 60_000
 
 type PropTypes = {
     file: TimelineFile,
-    /** The small picture of it, while it is fetched, or none: it is no picture, or the homeserver made none of it. */
+    /** The small picture of it, while it is fetched, or none: it is no picture, or there is none of it that is shown. */
     thumbnail: Blob | 'FETCHING' | 'NONE',
     /** The line's id, which names the pop-up of the picture. */
     lineId: string,
@@ -27,7 +28,9 @@ type PropTypes = {
  * The file or the picture of a message. A picture is the small one the homeserver made of it, in
  * the box kept for it, and opens whole. Anything else is its name, which downloads it: also a
  * picture the homeserver made no small one of, such as an SVG, which is a document and is never
- * shown. The line's actions hold the same, so neither button here is a stop for the keyboard.
+ * shown. An encrypted picture the homeserver cannot read, so the browser fetches and unlocks it
+ * and shows it where it is a picture by its own bytes, see fetchMedia. The line's actions hold the
+ * same, so neither button here is a stop for the keyboard.
  */
 export default function ChatFile({ file, thumbnail, lineId, fetchFile, onDownload }: PropTypes) {
     const { name, size, media, box } = file
@@ -112,9 +115,9 @@ function WholePicture({ file: { name, media }, fetchFile, onDownload }: Omit<Who
     )
 }
 
-/** The small picture the homeserver made of a file that was sent as a picture, see the thumbnail of ChatFile. */
+/** The small picture of a file that was sent as a picture, see the thumbnail of ChatFile. */
 export function useThumbnail(file: TimelineFile | null, fetchFile: FetchFile): Blob | 'FETCHING' | 'NONE' {
-    return useFetched(file?.isPicture ? file.media : null, 'THUMBNAIL', fetchFile)
+    return useFetched(file?.small ?? null, 'THUMBNAIL', fetchFile)
 }
 
 /**
@@ -159,17 +162,17 @@ function useFetched(
     fetchFile: FetchFile,
 ): Blob | 'FETCHING' | 'NONE' {
     const [fetched, setFetched] = useState<{ of: string, picture: Blob | null } | null>(null)
-    const { serverName, mediaId } = media ?? {}
-    const wanted = serverName && mediaId ? `${serverName}/${mediaId}` : null
+    // A line that changes holds a new object for the same file, which is not to be fetched again.
+    const wanted = media && JSON.stringify(media)
     useEffect(() => {
-        if (!serverName || !mediaId) return undefined
+        if (wanted === null) return undefined
         const stop = new AbortController()
         const keep = (picture: Blob | null) => {
-            if (!stop.signal.aborted) setFetched({ of: `${serverName}/${mediaId}`, picture })
+            if (!stop.signal.aborted) setFetched({ of: wanted, picture })
         }
-        fetchFile({ serverName, mediaId }, as, stop.signal).then(keep, () => keep(null))
+        fetchFile(JSON.parse(wanted) as Media, as, stop.signal).then(keep, () => keep(null))
         return () => stop.abort()
-    }, [serverName, mediaId, as, fetchFile])
+    }, [wanted, as, fetchFile])
     if (wanted === null) return 'NONE'
     return fetched?.of === wanted ? fetched.picture ?? 'NONE' : 'FETCHING'
 }

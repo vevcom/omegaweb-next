@@ -83,7 +83,8 @@ const SELF = "'self'"
 
 /**
  * What a chat page is let do that no other page is. The browser keeps the user's session with the
- * chat itself, so the page fetches from the chat.
+ * chat itself, so the page fetches from the chat. It also reads and writes the encrypted rooms
+ * itself, with code that is WebAssembly, which a page may only compile where its policy says so.
  */
 type ChatPage = {
     /** The origins of the homeserver and its sign in, as browsers reach them. */
@@ -115,6 +116,7 @@ export function contentSecurityPolicy(
             ...originsFor('scripts'),
             // React needs eval in development for its debugging features, never in production.
             ...(development ? ["'unsafe-eval'"] : []),
+            ...(chatPage ? ["'wasm-unsafe-eval'"] : []),
         ],
         'style-src': [SELF, "'unsafe-inline'", ...originsFor('styles')],
         'img-src': [SELF, ...ownSources.images, ...originsFor('images')],

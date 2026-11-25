@@ -1,4 +1,10 @@
-import { fakeChatBrowser, stopSyncedChatClients, syncedChatClient, tameChatSdk } from 'tests/chatSessionBrowser'
+import {
+    fakeChatBrowser,
+    newsTaken,
+    stopSyncedChatClients,
+    syncedChatClient,
+    tameChatSdk,
+} from 'tests/chatSessionBrowser'
 import { storeSession } from '@/lib/chatSession/storage'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
 import { refusalOf } from '@/lib/chatSession/membership'
@@ -107,7 +113,7 @@ async function inRoom(timeline: object[]) {
 type TextLine = TimelineLine & { kind: 'MESSAGE' }
 /** A homeserver that takes every message, and gives each an id made of its text. */
 const taking = (call: { json: unknown }) => ({ body: { event_id: `$${(call.json as { body: string }).body}` } })
-const settled = () => new Promise(resolve => setTimeout(resolve, 30))
+const settled = () => newsTaken().then(() => new Promise(resolve => setTimeout(resolve, 30)))
 const sends = (fake: ReturnType<typeof fakeChatBrowser>) =>
     fake.calls.filter(call => call.url.pathname.startsWith(SEND))
 
@@ -480,7 +486,7 @@ describe('a message the user writes', () => {
         expect(bodiesSent()).toEqual(['En'])
 
         watched.resend()
-        expect(written()).toEqual([['En', 'SENDING'], ['To', 'SENDING'], ['Tre', 'SENDING']])
+        expect(written()).toEqual([['En', 'SENDING'], ['To', 'HELD'], ['Tre', 'HELD']])
         await settled()
         expect(written()).toEqual([['En', 'FAILED'], ['To', 'HELD'], ['Tre', 'HELD']])
         expect(bodiesSent()).toEqual(['En', 'En'])
@@ -489,6 +495,23 @@ describe('a message the user writes', () => {
         watched.resend()
         await settled()
         expect(bodiesSent()).toEqual(['En', 'En', 'En', 'To', 'Tre'])
+        expect(lines().map(line => line.id)).toEqual(['$En', '$To', '$Tre'])
+    })
+
+    test('is sent with the others when it was written while they were sent again', async () => {
+        const { fake, watched, lines } = await inRoom([])
+        const bodiesSent = () => sends(fake).map(call => (call.json as { body: string }).body)
+        fake.answerUnder(SEND, () => ({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }))
+        watched.send('En')
+        await settled()
+        watched.send('To')
+
+        fake.answerUnder(SEND, taking)
+        watched.resend()
+        watched.send('Tre')
+        await settled()
+
+        expect(bodiesSent()).toEqual(['En', 'En', 'To', 'Tre'])
         expect(lines().map(line => line.id)).toEqual(['$En', '$To', '$Tre'])
     })
 
@@ -1063,12 +1086,13 @@ describe('a file and a picture', () => {
             sent('$video', 'm.video', { body: 'film.mp4', url: 'mxc://chat.test/jkl' }),
         ])
 
-        const ofFile = { isPicture: false, size: null, box: { width: 320, height: 240 } }
+        const ofFile = { isPicture: false, size: null, small: null, box: { width: 320, height: 240 } }
         expect(lines().map(line => line.kind === 'MESSAGE' && [line.text, line.canEdit, line.file])).toEqual([
             ['Se her!', false, {
                 name: 'katt.png',
                 isPicture: true,
                 media: { serverName: 'chat.test', mediaId: 'abc' },
+                small: { serverName: 'chat.test', mediaId: 'abc' },
                 size: 2048,
                 box: { width: 320, height: 213 },
             }],
@@ -1211,13 +1235,14 @@ describe('a file that is fetched', () => {
             const fetched = await watched.fetchFile(media, 'DOWNLOAD')
             expect([fetched.type, await fetched.text()]).toEqual(['application/octet-stream', await given.text()])
         }
-        expect(fake.calls.at(-1)?.url.pathname).toBe(`${MEDIA}/download/chat.test/abc`)
+        expect(fake.calls.findLast(call => call.url.pathname.startsWith(MEDIA))?.url.pathname)
+            .toBe(`${MEDIA}/download/chat.test/abc`)
     })
 
     test('says so when the homeserver does not give it', async () => {
         const { fake, watched } = await inRoom([])
         fake.answerUnder(MEDIA, () => ({ status: 400, body: { errcode: 'M_UNKNOWN', error: 'Cannot find any thumbnails' } }))
-        await expect(watched.fetchFile(media, 'THUMBNAIL')).rejects.toMatchObject({ errcode: 'M_UNKNOWN' })
+        await expect(watched.fetchFile(media, 'THUMBNAIL')).rejects.toThrow('did not give')
     })
 })
 
