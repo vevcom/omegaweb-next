@@ -114,7 +114,7 @@ const { page, generateMetadata } = serverPage({
                 <div className="flex items-center gap-[1em]">
                     {capabilities.canReadOwnBookings.authorized &&
                         <HeaderItemLink
-                            href={appHref('/users/me/cabin-bookings')}
+                            href={appHref('/users/me/registrations')}
                             label="Mine hyttebookinger"
                             icon={faHouse}
                         />

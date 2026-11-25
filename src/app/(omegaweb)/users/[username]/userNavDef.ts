@@ -26,7 +26,6 @@ import {
     faComments,
     faEnvelope,
     faHatWizard,
-    faHouse,
     faIdCard,
     faKey,
     faMoneyBill,
@@ -77,14 +76,10 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             name: 'Påmeldinger',
             href: appHref(`/users/${username}/registrations`),
             icon: faCalendarCheck,
-            authorizers: () => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
-        },
-        {
-            key: 'cabin-bookings',
-            name: 'Hyttebookinger',
-            href: appHref(`/users/${username}/cabin-bookings`),
-            icon: faHouse,
-            authorizers: () => [cabinBookingAuth.readManyOfUser.data({ userId })],
+            authorizers: () => [
+                eventRegistrationAuth.readUpcomingOfUser.data({ userId }),
+                cabinBookingAuth.readManyOfUser.data({ userId }),
+            ],
         },
         {
             key: 'mail',
