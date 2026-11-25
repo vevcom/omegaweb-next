@@ -1,16 +1,21 @@
 import { fakeChatBrowser, stopSyncedChatClients, syncedChatClient, tameChatSdk } from 'tests/chatSessionBrowser'
 import { storeSession } from '@/lib/chatSession/storage'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
+import { refusalOf } from '@/lib/chatSession/membership'
 import { afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
+import type { TimelineLine } from '@/lib/chatSession/timeline'
 
 const KARI = '@kari:chat.test'
 const OLA = '@ola:chat.test'
+const MAKER = '@the-maker:chat.test'
 const ROOM = '!rom:chat.test'
 const OTHER_ROOM = '!annet:chat.test'
-const MESSAGES = `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/messages`
-const SEND = `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/send/m.room.message/`
-const receiptOf = (eventId: string) =>
-    `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}/receipt/m.read/${encodeURIComponent(eventId)}`
+const OF_ROOM = `/_matrix/client/v3/rooms/${encodeURIComponent(ROOM)}`
+const MESSAGES = `${OF_ROOM}/messages`
+const SEND = `${OF_ROOM}/send/m.room.message/`
+const REACT = `${OF_ROOM}/send/m.reaction/`
+const REMOVE = `${OF_ROOM}/redact/`
+const receiptOf = (eventId: string) => `${OF_ROOM}/receipt/m.read/${encodeURIComponent(eventId)}`
 const ofKari = { userId: KARI, deviceId: 'KARISDEVICE1', accessToken: 'access-0', refreshToken: 'refresh-0' }
 
 beforeAll(() => tameChatSdk(jest.spyOn))
@@ -34,8 +39,34 @@ const member = (userId: string, displayname: string, membership = 'join', rest: 
     userId,
     { type: 'm.room.member', state_key: userId, content: { membership, displayname }, ...rest },
 )
+const reply = (id: string, sender: string, of: unknown, body: string) =>
+    text(id, sender, body, { content: { 'm.relates_to': { 'm.in_reply_to': { event_id: of } } } })
+const edit = (id: string, sender: string, of: string, body: string, newContent: unknown = { msgtype: 'm.text', body }) =>
+    text(id, sender, `* ${body}`, {
+        content: { 'm.new_content': newContent, 'm.relates_to': { rel_type: 'm.replace', event_id: of } },
+    })
+const reaction = (id: string, sender: string, of: unknown, key: unknown) => event(id, sender, {
+    type: 'm.reaction',
+    content: { 'm.relates_to': { rel_type: 'm.annotation', event_id: of, key } },
+})
+const removal = (id: string, sender: string, of: string) =>
+    ({ ...event(id, sender, { type: 'm.room.redaction', content: { redacts: of } }), redacts: of })
+/** The levels of a room where those of `moderators` remove what others wrote and mention the whole room. */
+const levels = (...moderators: string[]) => event('$levels', OLA, {
+    type: 'm.room.power_levels',
+    state_key: '',
+    content: { users: Object.fromEntries(moderators.map(moderator => [moderator, 50])) },
+})
 const joined = (timeline: object[], more: object = {}) => ({
-    state: { events: [member(KARI, 'Kari'), member(OLA, 'Ola')] },
+    state: {
+        events: [
+            // The SDK gives nobody a level in a room it knows no maker of. The maker is in no test, since the
+            // maker of a room of this version holds every level whatever its levels say.
+            event('$create', MAKER, { type: 'm.room.create', state_key: '', content: { room_version: '12' } }),
+            member(KARI, 'Kari'),
+            member(OLA, 'Ola'),
+        ],
+    },
     timeline: { events: timeline, prev_batch: 'before-the-sync', ...more },
 })
 
@@ -62,11 +93,17 @@ async function inRoom(timeline: object[]) {
         told,
         tell,
         lines: () => watched.read().lines,
+        /** The text lines by their ids, as what `of` gives of each. */
+        texts: <Given>(of: (line: TextLine) => Given) => Object.fromEntries(watched.read().lines
+            .flatMap(line => (line.kind === 'TEXT' ? [[line.id, of(line)] as const] : []))),
         tellOf: (events: object[], roomId = ROOM, more: object = {}) =>
             tell({ join: { [roomId]: { timeline: { events, ...more } } } }),
     }
 }
 
+type TextLine = TimelineLine & { kind: 'TEXT' }
+/** A homeserver that takes every message, and gives each an id made of its text. */
+const taking = (call: { json: unknown }) => ({ body: { event_id: `$${(call.json as { body: string }).body}` } })
 const settled = () => new Promise(resolve => setTimeout(resolve, 30))
 const sends = (fake: ReturnType<typeof fakeChatBrowser>) =>
     fake.calls.filter(call => call.url.pathname.startsWith(SEND))
@@ -79,11 +116,20 @@ describe('the lines of a timeline', () => {
             text('$3', OLA, 'Sist', { origin_server_ts: 2000 }),
         ])
 
-        const ofText = { kind: 'TEXT', isReply: false, sending: null }
+        const ofText = {
+            kind: 'TEXT',
+            isEdited: false,
+            repliesTo: null,
+            mentionsUser: false,
+            reactions: [],
+            canRemove: false,
+            sending: null,
+        }
+        const ofOwn = { canEdit: true, canRemove: true }
         expect(lines()).toEqual([
-            { id: '$1', senderId: OLA, senderName: 'Ola', sentAt: 3000, text: 'Først', ...ofText },
-            { id: '$2', senderId: KARI, senderName: 'Kari', sentAt: 1000, text: 'Så', ...ofText },
-            { id: '$3', senderId: OLA, senderName: 'Ola', sentAt: 2000, text: 'Sist', ...ofText },
+            { id: '$1', senderId: OLA, senderName: 'Ola', sentAt: 3000, text: 'Først', canEdit: false, ...ofText },
+            { id: '$2', senderId: KARI, senderName: 'Kari', sentAt: 1000, text: 'Så', ...ofText, ...ofOwn },
+            { id: '$3', senderId: OLA, senderName: 'Ola', sentAt: 2000, text: 'Sist', canEdit: false, ...ofText },
         ])
     })
 
@@ -105,11 +151,6 @@ describe('the lines of a timeline', () => {
             text('$video', OLA, 'film.mp4', of('m.video')),
             text('$unknown', OLA, 'hm', of('constructor')),
             event('$bodiless', OLA, { content: { msgtype: 'm.text', body: { not: 'text' } } }),
-            text('$reply', OLA, 'Ja', { content: { 'm.relates_to': { 'm.in_reply_to': { event_id: '$image' } } } }),
-            event('$reaction', OLA, {
-                type: 'm.reaction',
-                content: { 'm.relates_to': { rel_type: 'm.annotation', event_id: '$reply', key: '👍' } },
-            }),
             event('$sticker', OLA, { type: 'm.sticker', content: { body: 'katt', url: 'mxc://chat.test/def' } }),
             event('$encrypted', OLA, { type: 'm.room.encrypted', content: { algorithm: 'm.megolm.v1.aes-sha2' } }),
             event('$poll', OLA, { type: 'org.matrix.msc3381.poll.start', content: { question: 'Hva?' } }),
@@ -126,14 +167,11 @@ describe('the lines of a timeline', () => {
             ['$video', 'VIDEO'],
             ['$unknown', 'OTHER'],
             ['$bodiless', 'OTHER'],
-            ['$reply', 'Ja'],
-            ['$reaction', 'REACTION'],
             ['$sticker', 'STICKER'],
             ['$encrypted', 'ENCRYPTED'],
             ['$poll', 'OTHER'],
             ['$removed', 'REMOVED'],
         ])
-        expect(lines().find(line => line.id === '$reply')).toMatchObject({ isReply: true })
     })
 
     test('say what happened to the room, its settings as one line and a new name of a member as none', async () => {
@@ -171,21 +209,6 @@ describe('the lines of a timeline', () => {
             [OLA, 'TAKEN_OUT', KARI],
         ])
     })
-
-    test('show a message that was edited with its new text, and the edit as a line that says so', async () => {
-        const { lines, tellOf, told } = await inRoom([text('$1', OLA, 'Vi møtes kl 18')])
-
-        tellOf([text('$2', OLA, '* Vi møtes kl 19', {
-            content: {
-                'm.new_content': { msgtype: 'm.text', body: 'Vi møtes kl 19' },
-                'm.relates_to': { rel_type: 'm.replace', event_id: '$1' },
-            },
-        })])
-        await settled()
-
-        expect(told.times).toBeGreaterThan(0)
-        expect(lines().map(line => (line.kind === 'NOTE' ? line.what : line.text))).toEqual(['Vi møtes kl 19', 'EDIT'])
-    })
 })
 
 describe('an event that holds something else than it should', () => {
@@ -220,17 +243,16 @@ describe('an event that holds something else than it should', () => {
         expect(typeof watched.read().name).toBe('string')
     })
 
-    test('does not keep the room from showing when it is an edit, which gives another message what it holds', async () => {
+    test('gives a message nothing when it is an edit that holds no text', async () => {
         const { lines, tellOf } = await inRoom([text('$1', OLA, 'Vi møtes kl 18'), text('$2', OLA, 'Fint')])
-        const edit = (id: string, of: string, newContent: unknown) => text(id, OLA, '* endret', {
-            content: { 'm.new_content': newContent, 'm.relates_to': { rel_type: 'm.replace', event_id: of } },
-        })
 
-        tellOf([edit('$3', '$1', { msgtype: NO_TEXT, body: 'Vi møtes kl 19' }), edit('$4', '$2', 'ingenting')])
+        tellOf([
+            edit('$3', OLA, '$1', 'endret', { msgtype: NO_TEXT, body: 'Vi møtes kl 19' }),
+            edit('$4', OLA, '$2', 'endret', 'ingenting'),
+        ])
         await settled()
 
-        expect(lines().map(line => (line.kind === 'NOTE' ? line.what : line.text)))
-            .toEqual(['OTHER', 'OTHER', 'EDIT', 'EDIT'])
+        expect(lines().map(line => (line.kind === 'NOTE' ? line.what : line.text))).toEqual(['Vi møtes kl 18', 'Fint'])
     })
 
     test('never keeps the other lines from showing, whatever it is', async () => {
@@ -250,7 +272,8 @@ describe('an event that holds something else than it should', () => {
                 unsigned: { prev_content: 7 },
             }),
             event('$j', OLA, { type: 'm.room.name', state_key: '', content: null }),
-            event('$k', OLA, { type: 'm.reaction', content: { 'm.relates_to': NO_TEXT } }),
+            text('$l', OLA, 'Hei', { content: { 'm.mentions': 'alle' } }),
+            text('$m', OLA, 'Hei', { content: { 'm.mentions': { user_ids: NO_TEXT, room: NO_TEXT } } }),
         ]
         const { room, lines } = await inRoom([
             text('$1', OLA, 'Før'),
@@ -412,7 +435,7 @@ describe('a message the user writes', () => {
         ])
         await settled()
         const [sent] = sends(fake)
-        expect(sent.json).toEqual({ msgtype: 'm.text', body: 'Hei selv' })
+        expect(sent.json).toEqual({ msgtype: 'm.text', body: 'Hei selv', 'm.mentions': {} })
 
         tellOf([text('$2', OLA, 'Imens')])
         await settled()
@@ -420,7 +443,8 @@ describe('a message the user writes', () => {
 
         taken({ body: { event_id: '$mine' } })
         await settled()
-        expect(lines().at(-1)).toMatchObject({ id: '$mine', text: 'Hei selv', sending: null })
+        // The homeserver has it, and nothing is asked of it before the sync has brought it.
+        expect(lines().at(-1)).toMatchObject({ id: '$mine', text: 'Hei selv', sending: 'SENDING', canEdit: false })
 
         const transactionId = sent.url.pathname.slice(SEND.length)
         tellOf([text('$mine', KARI, 'Hei selv', { unsigned: { transaction_id: decodeURIComponent(transactionId) } })])
@@ -466,8 +490,7 @@ describe('a message the user writes', () => {
         watched.resend()
         await settled()
         expect(bodiesSent()).toEqual(['En', 'En', 'En', 'To', 'Tre'])
-        expect(lines().map(line => [line.id, line.kind === 'TEXT' && line.sending]))
-            .toEqual([['$En', null], ['$To', null], ['$Tre', null]])
+        expect(lines().map(line => line.id)).toEqual(['$En', '$To', '$Tre'])
     })
 
     test('is let go when it was not sent, and the next one that was held is then the one to send again', async () => {
@@ -557,5 +580,398 @@ describe('a room that is read to its end', () => {
 
         expect(fake.calls.filter(call => call.url.pathname.includes('/receipt/')).map(call => call.url.pathname))
             .toEqual([receiptOf('$1')])
+    })
+})
+
+describe('a message that answers another', () => {
+    test('says whom and what it answers, the newest text cut short, when the timeline holds that message', async () => {
+        const long = `Vi  møtes\n${'å'.repeat(100)}`
+        const { fake, watched, texts } = await inRoom([
+            text('$2', OLA, 'Gammel tekst'),
+            edit('$2e', OLA, '$2', long),
+            event('$3', OLA, { content: { msgtype: 'm.image', body: 'bilde.png' } }),
+            reply('$4', KARI, '$2', 'Ja'),
+            reply('$5', KARI, '$3', 'Fint bilde'),
+            reply('$6', KARI, '$1', 'Til en som ikke er hentet'),
+            reply('$7', KARI, '$2e', 'Til en redigering'),
+            reply('$8', KARI, '$elsewhere', 'Til en i et annet rom'),
+            reply('$9', KARI, NO_TEXT, 'Til ingenting'),
+        ])
+
+        const ola = { id: OLA, name: 'Ola' }
+        expect(texts(line => line.repliesTo)).toMatchObject({
+            $4: { id: '$2', sender: ola, excerpt: `Vi møtes ${'å'.repeat(71)}…` },
+            $5: { id: '$3', sender: ola, excerpt: null },
+            $6: 'NOT_LOADED',
+            $7: 'NOT_LOADED',
+            $8: 'NOT_LOADED',
+            $9: null,
+        })
+
+        fake.answer(MESSAGES, () => ({ body: { chunk: [text('$1', OLA, 'Den første')] } }))
+        await watched.pageBack()
+        expect(texts(line => line.repliesTo).$6).toEqual({ id: '$1', sender: ola, excerpt: 'Den første' })
+    })
+
+    test('is sent as an answer to a message the timeline holds, and as no answer to any other', async () => {
+        const { fake, watched } = await inRoom([text('$1', OLA, 'Hei')])
+        fake.answerUnder(SEND, taking)
+
+        const ofText = { msgtype: 'm.text', 'm.mentions': {} }
+        watched.send('Hei selv', { replyTo: '$1' })
+        watched.send('Til hvem?', { replyTo: '$unknown' })
+        await settled()
+
+        expect(sends(fake).map(call => call.json)).toEqual([
+            { ...ofText, body: 'Hei selv', 'm.relates_to': { 'm.in_reply_to': { event_id: '$1' } } },
+            { ...ofText, body: 'Til hvem?' },
+        ])
+    })
+})
+
+describe('an edit', () => {
+    test('gives the message its newest text and is no line, and the text before it when it is removed', async () => {
+        const { texts, lines, tellOf } = await inRoom([text('$1', OLA, 'Kl 18'), text('$2', OLA, 'Fint')])
+
+        tellOf([edit('$3', OLA, '$1', 'Kl 19'), edit('$4', OLA, '$1', 'Kl 20')])
+        await settled()
+        expect(lines().map(line => line.id)).toEqual(['$1', '$2'])
+        expect(texts(line => [line.text, line.isEdited])).toEqual({ $1: ['Kl 20', true], $2: ['Fint', false] })
+
+        tellOf([removal('$5', OLA, '$4')])
+        await settled()
+        expect(texts(line => line.text).$1).toBe('Kl 19')
+    })
+
+    test('counts only from the one who wrote the message, of a text message and as one', async () => {
+        const PER = '@per:chat.test'
+        const { fake, watched, lines } = await inRoom([
+            text('$text', OLA, 'Olas egen'),
+            text('$other', OLA, 'Olas andre'),
+            event('$image', OLA, { content: { msgtype: 'm.image', body: 'bilde.png' } }),
+            member(OLA, 'Ola', 'join', { unsigned: { prev_content: { membership: 'join' } } }),
+            edit('$by-another', PER, '$text', 'Pers ord i Olas munn'),
+            edit('$of-image', OLA, '$image', 'Et bilde blir tekst'),
+            edit('$to-image', OLA, '$text', 'x', { msgtype: 'm.image', body: 'Tekst blir et bilde' }),
+            edit('$of-member', OLA, `$member-${OLA}-join-Ola`, 'Et medlem blir tekst'),
+            edit('$of-text', OLA, '$other', 'En redigering'),
+            edit('$of-edit', OLA, '$of-text', 'En redigering av en redigering'),
+            edit('$of-earlier', OLA, '$earlier', 'Ny tekst'),
+        ])
+
+        expect(lines().map(line => [line.id, line.kind === 'TEXT' ? line.text : line.what]))
+            .toEqual([['$text', 'Olas egen'], ['$other', 'En redigering'], ['$image', 'IMAGE']])
+
+        fake.answer(MESSAGES, () => ({ body: { chunk: [text('$earlier', OLA, 'Før')] } }))
+        await watched.pageBack()
+        expect(lines()[0]).toMatchObject({ id: '$earlier', text: 'Ny tekst', isEdited: true })
+    })
+
+    test('of the user\'s own is sent with whom its text mentions, tells only those it adds, and shows at once', async () => {
+        const PER = '@per:chat.test'
+        const { fake, watched, texts } = await inRoom([
+            member(PER, 'Per'),
+            text('$mine', KARI, 'Hei Ola', { content: { 'm.mentions': { user_ids: [OLA, 7], room: 'ja' } } }),
+            text('$olas', OLA, 'Hei'),
+            event('$notice', KARI, { content: { msgtype: 'm.notice', body: 'Fra en robot' } }),
+        ])
+        fake.answerUnder(SEND, () => 'NEVER')
+        expect(texts(line => line.canEdit)).toEqual({ $mine: true, $olas: false, $notice: false })
+        expect(watched.mentionedIn('$mine')).toEqual([{ id: OLA, name: 'Ola' }])
+
+        expect([
+            watched.edit('$olas', 'Ikke min'),
+            watched.edit('$mine', ' Hei Ola '),
+            watched.edit('$mine', ' '),
+            watched.edit('$gone', 'Finnes ikke'),
+        ]).toEqual([null, null, null, null])
+        expect(watched.edit('$mine', 'Hallo Ola og Per', { userIds: [OLA, PER], room: true })).not.toBeNull()
+        await settled()
+
+        expect(sends(fake).map(call => call.json)).toEqual([{
+            msgtype: 'm.text',
+            body: '* Hallo Ola og Per',
+            'm.mentions': { user_ids: [PER] },
+            'm.new_content': { msgtype: 'm.text', body: 'Hallo Ola og Per', 'm.mentions': { user_ids: [OLA, PER] } },
+            'm.relates_to': { rel_type: 'm.replace', event_id: '$mine' },
+        }])
+        expect(texts(line => [line.text, line.isEdited]).$mine).toEqual(['Hallo Ola og Per', true])
+    })
+
+    test('that no longer names one the message mentioned mentions them no more', async () => {
+        const { fake, watched } = await inRoom([
+            text('$mine', KARI, 'Hei @Ola', { content: { 'm.mentions': { user_ids: [OLA] } } }),
+        ])
+        fake.answerUnder(SEND, () => 'NEVER')
+
+        void watched.edit('$mine', 'Hei alle')
+        await settled()
+
+        const [sent] = sends(fake).map(call => call.json as Record<string, unknown>)
+        expect([sent['m.mentions'], sent['m.new_content']])
+            .toEqual([{}, { msgtype: 'm.text', body: 'Hei alle', 'm.mentions': {} }])
+    })
+})
+
+describe('reactions', () => {
+    test('are shown with the message, each emoji with how many reacted, who, and whether the user did', async () => {
+        const { lines, texts, tellOf } = await inRoom([
+            text('$1', OLA, 'Pizza?'),
+            reaction('$a', OLA, '$1', '👍'),
+            reaction('$b', KARI, '$1', '👍'),
+            reaction('$c', OLA, '$1', '🇳🇴'),
+            reaction('$again', OLA, '$1', '👍'),
+        ])
+
+        expect(lines().map(line => line.id)).toEqual(['$1'])
+        expect(texts(line => line.reactions).$1).toEqual([
+            { key: '👍', count: 2, by: [{ id: OLA, name: 'Ola' }, { id: KARI, name: 'Kari' }], own: 'SENT' },
+            { key: '🇳🇴', count: 1, by: [{ id: OLA, name: 'Ola' }], own: 'NONE' },
+        ])
+
+        tellOf([removal('$d', KARI, '$b'), removal('$e', OLA, '$c')])
+        await settled()
+        expect(texts(line => line.reactions).$1).toEqual([
+            { key: '👍', count: 1, by: [{ id: OLA, name: 'Ola' }], own: 'NONE' },
+        ])
+    })
+
+    test('count only as one emoji to a message the timeline holds, and a message has no more than twenty', async () => {
+        const emojis = Array.from({ length: 30 }, (_, index) => String.fromCodePoint(0x1F600 + index))
+        const { texts } = await inRoom([
+            text('$1', OLA, 'Pizza?'),
+            text('$2', OLA, 'Eller taco?'),
+            reaction('$long', OLA, '$1', '👍'.repeat(5000)),
+            reaction('$word', OLA, '$1', 'enig'),
+            reaction('$html', OLA, '$1', '<img src=x onerror=alert(1)>'),
+            reaction('$two', OLA, '$1', '👍👍'),
+            reaction('$none', OLA, '$1', NO_TEXT),
+            reaction('$nowhere', OLA, NO_TEXT, '👍'),
+            reaction('$elsewhere', OLA, '$in-another-room', '👍'),
+            ...emojis.map((emoji, index) => reaction(`$r${index}`, OLA, '$2', emoji)),
+            ...Array.from({ length: 3000 }, (_, index) => reaction(`$many${index}`, `@nr${index}:chat.test`, '$2', '😀')),
+        ])
+
+        const { $1: ofFirst, $2: ofSecond } = texts(line => line.reactions)
+        expect(ofFirst).toEqual([])
+        expect(ofSecond.map(({ key }) => key)).toEqual(emojis.slice(0, 20))
+        expect(ofSecond[0]).toMatchObject({ count: 3001, own: 'NONE' })
+        expect(ofSecond[0].by).toHaveLength(5)
+    })
+
+    test('count only as an emoji that does not look like another, with one skin tone and a few joined at most', async () => {
+        const family = '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}'
+        const england = '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}'
+        const real = ['👍', '👍\uFE0F', '❤\uFE0F', '👍🏽', family, england, '1\uFE0F\u20E3']
+        const lookalikes = [
+            '👍\uFE0F\uFE0F',
+            '👍🏽🏽🏽🏽',
+            '👍\u{E0061}\u{E007F}',
+            Array.from({ length: 10 }, () => '👍').join('\u200D'),
+            '©',
+            '™',
+        ]
+        const { texts } = await inRoom([
+            text('$1', OLA, 'Pizza?'),
+            ...[...real, ...lookalikes].map((key, index) => reaction(`$r${index}`, OLA, '$1', key)),
+        ])
+
+        expect(texts(line => line.reactions.map(({ key }) => key)).$1).toEqual(real)
+    })
+
+    test('show the emojis most have given, however many others were given first, and always the user\'s own', async () => {
+        const crafted = Array.from({ length: 25 }, (_, index) => String.fromCodePoint(0x1F600 + index))
+        const { texts } = await inRoom([
+            text('$1', OLA, 'Pizza?'),
+            ...crafted.map((emoji, index) => reaction(`$crafted${index}`, '@mallory:chat.test', '$1', emoji)),
+            reaction('$common1', OLA, '$1', '👍'),
+            reaction('$common2', '@per:chat.test', '$1', '👍'),
+            reaction('$own', KARI, '$1', '🎉'),
+        ])
+
+        const shown = texts(line => line.reactions.map(({ key, count, own }) => [key, count, own])).$1
+        expect(shown).toEqual([...crafted.slice(0, 19).map(emoji => [emoji, 1, 'NONE']), ['👍', 2, 'NONE'], ['🎉', 1, 'SENT']])
+    })
+
+    test('are sent by the user and taken back, once however often it is asked', async () => {
+        const { fake, watched, texts } = await inRoom([text('$1', OLA, 'Pizza?')])
+        let taken: (answer: { body: object }) => void = () => undefined
+        fake.answerUnder(REACT, () => new Promise(resolve => {
+            taken = resolve
+        }))
+        const ownOf = () => texts(line => line.reactions.map(({ key, count, own }) => [key, count, own])).$1
+        const called = (pathnameStart: string) => fake.calls.filter(call => call.url.pathname.startsWith(pathnameStart))
+
+        const reacting = watched.react('$1', '👍')
+        await Promise.all([watched.react('$1', '👍'), watched.react('$1', 'enig'), watched.react('$unknown', '👍')])
+        await settled()
+        expect(ownOf()).toEqual([['👍', 1, 'SENDING']])
+        expect(called(REACT).map(call => call.json))
+            .toEqual([{ 'm.relates_to': { rel_type: 'm.annotation', event_id: '$1', key: '👍' } }])
+
+        taken({ body: { event_id: '$mine' } })
+        await reacting
+        expect(ownOf()).toEqual([['👍', 1, 'SENT']])
+
+        fake.answerUnder(REMOVE, () => ({ body: { event_id: '$taken-back' } }))
+        await watched.react('$1', '👍')
+        expect(ownOf()).toEqual([])
+        expect(called(REMOVE).map(call => call.url.pathname.slice(REMOVE.length).split('/')[0])).toEqual(['%24mine'])
+    })
+})
+
+describe('a message that is removed', () => {
+    test('is the user\'s to remove when it is their own, and another\'s where the room\'s levels let them', async () => {
+        const { texts, tellOf } = await inRoom([text('$olas', OLA, 'Hei'), text('$mine', KARI, 'Hei selv')])
+        expect(texts(line => line.canRemove)).toEqual({ $olas: false, $mine: true })
+
+        tellOf([levels(KARI)])
+        await settled()
+        expect(texts(line => line.canRemove)).toEqual({ $olas: true, $mine: true })
+    })
+
+    test('says so in place of its text at once, and holds its text again when the homeserver refuses', async () => {
+        const { fake, watched, lines } = await inRoom([text('$olas', OLA, 'Hei'), text('$mine', KARI, 'Hemmelig')])
+        const shown = () => lines().map(line => (line.kind === 'TEXT' ? line.text : line.what))
+        let answerIt: (answer: { status?: number, body: object }) => void = () => undefined
+        fake.answerUnder(REMOVE, () => new Promise(resolve => {
+            answerIt = resolve
+        }))
+
+        expect([watched.remove('$olas'), watched.remove('$gone')]).toEqual([null, null])
+        const refused = watched.remove('$mine')?.then(() => null, refusalOf)
+        await settled()
+        expect(shown()).toEqual(['Hei', 'REMOVED'])
+        expect(fake.calls.filter(call => call.url.pathname.startsWith(REMOVE))).toHaveLength(1)
+
+        answerIt({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } })
+        expect(await refused).toBe('REFUSED')
+        expect(shown()).toEqual(['Hei', 'Hemmelig'])
+
+        fake.answerUnder(REMOVE, () => ({ body: { event_id: '$removal' } }))
+        await watched.remove('$mine')
+        expect(shown()).toEqual(['Hei', 'REMOVED'])
+    })
+})
+
+describe('what the user asks of a message', () => {
+    test('is let go when it fails, so that what is written after it is sent', async () => {
+        const { fake, room, watched, texts } = await inRoom([text('$mine', KARI, 'Hei'), text('$olas', OLA, 'Hallo')])
+        fake.answerUnder(REACT, () => 'UNREACHABLE')
+        fake.answerUnder(SEND, call => ((call.json as { body: string }).body.startsWith('*')
+            ? { status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }
+            : { body: { event_id: '$after' } }))
+        const heldUp: boolean[] = []
+        watched.subscribe(() => heldUp.push(watched.read().isHeldUp))
+
+        expect(await watched.react('$olas', '👍').then(() => null, refusalOf)).toBe('UNREACHABLE')
+        expect(await watched.edit('$mine', 'Hei igjen')?.then(() => null, refusalOf)).toBe('REFUSED')
+        expect(room.getPendingEvents()).toHaveLength(0)
+        expect(texts(line => [line.text, line.isEdited, line.reactions]))
+            .toEqual({ $mine: ['Hei', false, []], $olas: ['Hallo', false, []] })
+        expect(heldUp).not.toContain(true)
+
+        watched.send('Etterpå')
+        await settled()
+        expect(texts(line => line.text).$after).toBe('Etterpå')
+    })
+
+    test('is not asked while a message of the user\'s was not sent, which the timeline says', async () => {
+        const { fake, watched, texts } = await inRoom([
+            text('$mine', KARI, 'Hei'),
+            text('$olas', OLA, 'Hallo'),
+            levels(KARI),
+        ])
+        fake.answerUnder(SEND, () => ({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }))
+        expect(watched.read().isHeldUp).toBe(false)
+        watched.send('Sendes ikke')
+        await settled()
+        const callsBefore = fake.calls.length
+
+        expect(watched.read().isHeldUp).toBe(true)
+        expect(texts(line => [line.canEdit, line.canRemove])).toMatchObject({ $mine: [false, false], $olas: [false, false] })
+        await watched.react('$olas', '👍')
+        expect([watched.edit('$mine', 'Ny'), watched.remove('$mine')]).toEqual([null, null])
+        expect(fake.calls).toHaveLength(callsBefore)
+        expect(texts(line => line.text)).toMatchObject({ $mine: 'Hei', $olas: 'Hallo' })
+    })
+})
+
+describe('a mention', () => {
+    test('is of the user when it names them, or the whole room from one the room\'s levels let', async () => {
+        const PER = '@per:chat.test'
+        const mentioning = (id: string, sender: string, mentions: unknown) =>
+            text(id, sender, 'Hei', { content: { 'm.mentions': mentions } })
+        const { texts, tellOf } = await inRoom([
+            levels(OLA),
+            member(PER, 'Per'),
+            mentioning('$named', PER, { user_ids: [OLA, KARI] }),
+            mentioning('$others', PER, { user_ids: [OLA] }),
+            mentioning('$as-text', PER, { user_ids: KARI }),
+            mentioning('$room', OLA, { room: true }),
+            mentioning('$room-unallowed', PER, { room: true }),
+            mentioning('$own', KARI, { user_ids: [KARI], room: true }),
+            text('$in-text', PER, `Hei ${KARI} og Kari`),
+            text('$edited', PER, 'Hei'),
+        ])
+        expect(texts(line => line.mentionsUser)).toEqual({
+            $named: true,
+            $others: false,
+            '$as-text': false,
+            $room: true,
+            '$room-unallowed': false,
+            $own: false,
+            '$in-text': false,
+            $edited: false,
+        })
+
+        const naming = { msgtype: 'm.text', body: 'Hei Kari', 'm.mentions': { user_ids: [KARI] } }
+        tellOf([edit('$e', PER, '$edited', 'Hei Kari', naming)])
+        await settled()
+        expect(texts(line => line.mentionsUser).$edited).toBe(true)
+    })
+
+    test('is sent with the message, once of each, and of the whole room only from one who may', async () => {
+        const { fake, watched, tellOf } = await inRoom([])
+        fake.answerUnder(SEND, taking)
+        expect(watched.read().canMentionRoom).toBe(false)
+
+        watched.send('Hei @Ola og @room', { mentions: { userIds: [OLA, OLA], room: true } })
+        tellOf([levels(KARI)])
+        await settled()
+        expect(watched.read().canMentionRoom).toBe(true)
+        watched.send('Hei @room', { mentions: { userIds: [], room: true } })
+        await settled()
+
+        expect(sends(fake).map(call => (call.json as Record<string, unknown>)['m.mentions']))
+            .toEqual([{ user_ids: [OLA] }, { room: true }])
+    })
+
+    test('is picked among those in the room, whom the homeserver is asked for once', async () => {
+        const [PER, GONE] = ['@per:chat.test', '@gone:chat.test']
+        const { fake, watched } = await inRoom([])
+        fake.answer(`${OF_ROOM}/members`, () => ({
+            body: { chunk: [member(KARI, 'Kari'), member(OLA, 'Ola'), member(PER, 'Per'), member(GONE, 'Borte', 'leave')] },
+        }))
+
+        const picked = await watched.members()
+        await watched.members()
+
+        expect(picked).toEqual([{ id: OLA, name: 'Ola' }, { id: PER, name: 'Per' }])
+        expect(fake.callsTo(`${OF_ROOM}/members`)).toHaveLength(1)
+    })
+})
+
+describe('a line', () => {
+    test('is the same object until what it shows has changed, so only that line is shown anew', async () => {
+        const { lines, tellOf } = await inRoom([text('$1', OLA, 'Pizza?'), text('$2', OLA, 'Eller taco?')])
+        const [first, second] = lines()
+
+        tellOf([reaction('$a', OLA, '$2', '🌮'), text('$3', OLA, 'Hallo?')])
+        await settled()
+
+        expect(lines()[0]).toBe(first)
+        expect(lines()[1]).not.toBe(second)
+        expect(lines()[1]).toMatchObject({ reactions: [{ key: '🌮' }] })
     })
 })

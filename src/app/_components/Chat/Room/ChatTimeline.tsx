@@ -1,12 +1,14 @@
 'use client'
-import { ChatMessageLine, ChatNoteLine } from './ChatTimelineLine'
+import { ChatMessageLine, ChatNoteLine, LINE_ACTIONS } from './ChatTimelineLine'
 import { wordingOfNote } from './timelineWording'
 import Button from '@/components/UI/Button'
 import ScrollIndicator from '@/components/ScrollIndicator/ScrollIndicator'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { RoomTimeline, TimelineLine } from '@/lib/chatSession/timeline'
+import type { LineActions } from './ChatTimelineLine'
+import type { Person, RoomTimeline, TimelineLine } from '@/lib/chatSession/timeline'
 import type { ChatProfile } from '@/services/chat/users/types'
+import type { KeyboardEvent } from 'react'
 
 const AT_END_WITHIN_PX = 40
 const PAGES_BACK_WITHIN_PX = 300
@@ -18,11 +20,12 @@ type PropTypes = {
     roomName: string,
     ownId: string,
     profiles: ReadonlyMap<string, ChatProfile>,
+    /** The name a person of the room is shown by. */
+    nameOf: (person: Person) => string,
+    actions: LineActions,
     onPageBack: () => void,
     /** Called when the reader has the end of the timeline before them, and may be called again for the same end. */
     onEndSeen: () => void,
-    onResend: () => void,
-    onDrop: (lineId: string) => void,
 }
 
 /**
@@ -30,27 +33,24 @@ type PropTypes = {
  * arrive while the reader is there, and stays where the reader is otherwise, also as earlier lines
  * are put in above, which are fetched as the reader nears the top. A screen reader is read what
  * arrives after the room was opened, from a log of its own, since a log of every line would also
- * read out the earlier ones as they are fetched.
+ * read out the earlier ones as they are fetched. Tab stops once among the lines, at the actions of
+ * the last message, and the arrow keys move from there to those of the others, so a long timeline
+ * is not a long way to the field.
  */
 export default function ChatTimeline({
-    timeline: { lines, earlier },
+    timeline: { lines, earlier, canReact, isHeldUp },
     roomName,
     ownId,
     profiles,
+    nameOf,
+    actions,
     onPageBack,
     onEndSeen,
-    onResend,
-    onDrop,
 }: PropTypes) {
     const scroller = useRef<HTMLDivElement>(null)
     const place = useRef<Place>({ isAtEnd: true, fromEnd: 0, firstLineId: undefined, lastLineId: undefined })
     const [openedAt] = useState(() => lines.findLast(line => line.kind !== 'TEXT' || !line.sending)?.sentAt ?? 0)
     const arrivedSinceOpened = (line: TimelineLine) => line.sentAt !== null && line.sentAt > openedAt
-
-    const nameOf = useCallback(({ id, name }: { id: string, name: string }) => {
-        const profile = profiles.get(id)
-        return profile ? `${profile.firstname} ${profile.lastname}` : name
-    }, [profiles])
 
     const seeEnd = useCallback(() => {
         if (place.current.isAtEnd && document.visibilityState === 'visible') onEndSeen()
@@ -94,6 +94,16 @@ export default function ChatTimeline({
     }, [])
 
     const rows = useMemo(() => rowsOf(lines), [lines])
+    const tabStop = lines.findLast(line => line.kind === 'TEXT' && !line.sending)?.id
+
+    const moveBetweenLines = (event: KeyboardEvent<HTMLOListElement>) => {
+        const actionsOfLines = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`[${LINE_ACTIONS}]`))
+        const at = actionsOfLines.findIndex(button => button === event.target)
+        const next = actionsOfLines[at + ({ ArrowUp: -1, ArrowDown: 1 }[event.key] ?? 0)]
+        if (at === -1 || !next || next === event.target) return
+        event.preventDefault()
+        next.focus()
+    }
     const arrived = lines.filter(line => arrivedSinceOpened(line) && line.senderId !== ownId).slice(-READ_OUT_AT_MOST)
     const unsent = lines.flatMap(line => (line.kind === 'TEXT' && line.sending !== 'SENDING' && line.sending ? [line] : []))
 
@@ -119,7 +129,7 @@ export default function ChatTimeline({
                         Fikk ikke hentet eldre meldinger. <Button variant="text" onClick={onPageBack}>Prøv igjen</Button>
                     </>}
                 </p>
-                <ol className="m-0 p-0 list-none">
+                <ol className="m-0 p-0 list-none" onKeyDown={moveBetweenLines}>
                     {rows.map(({ line, day }) => (
                         <Fragment key={line.id}>
                             {day && (
@@ -129,15 +139,14 @@ export default function ChatTimeline({
                             )}
                             {line.kind === 'TEXT' ? (
                                 <ChatMessageLine
-                                    id={line.id}
+                                    line={line}
                                     name={nameOf({ id: line.senderId, name: line.senderName })}
                                     image={profiles.get(line.senderId)?.image ?? null}
-                                    sentAt={line.sentAt}
-                                    text={line.text}
-                                    isReply={line.isReply}
-                                    sending={line.sending}
-                                    onResend={onResend}
-                                    onDrop={onDrop}
+                                    nameOf={nameOf}
+                                    canReact={canReact}
+                                    isHeldUp={isHeldUp}
+                                    isTabStop={line.id === tabStop}
+                                    actions={actions}
                                 />
                             ) : (
                                 <ChatNoteLine wording={wordingOfNote(line, nameOf)} sentAt={line.sentAt} />

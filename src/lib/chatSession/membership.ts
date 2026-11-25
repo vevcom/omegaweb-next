@@ -1,5 +1,6 @@
 import { directRoomWith, joinedRoom } from './rooms'
 import { loadedChatSdk } from './sdk'
+import { textMessage } from './timeline'
 import type { MatrixClient, Room } from 'matrix-js-sdk'
 
 // The direct messages that are being made, by whom they are with, and the last note of one in the user's account.
@@ -38,7 +39,7 @@ export async function startDirectMessage(client: MatrixClient, userId: string, t
     const made = directRoomWith(client, userId) ?? await (
         ofClient.get(userId) ?? remember(ofClient, userId, makeDirectRoom(client, userId))
     )
-    void client.sendTextMessage(made.roomId, text.trim()).catch(() => undefined)
+    void client.sendMessage(made.roomId, textMessage(text.trim())).catch(() => undefined)
     return made
 }
 
