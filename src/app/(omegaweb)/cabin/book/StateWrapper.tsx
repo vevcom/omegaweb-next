@@ -2,24 +2,25 @@
 import CabinCalendar from './CabinCalendar'
 import CabinPriceCalculator from './CabinPriceCalculator'
 import SelectBedProducts from './SelectBedProduct'
-import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
 import Checkbox from '@/components/UI/Checkbox'
 import Form from '@/components/Form/Form'
 import CountDown from '@/components/CountDown/CountDown'
+import SiteLink from '@/components/SiteLink/SiteLink'
 import CabinBookingPaymentModal from '@/components/Ledger/Modals/CabinBookingPaymentModal'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import { useSession } from '@/auth/session/useSession'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
+import { Require } from '@/auth/authorizer/Require'
+import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
+import { appHref } from '@/lib/sites/href'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { createActionError } from '@/services/actionError'
 import { configureAction } from '@/services/configureAction'
 import {
-    createBedBookingNoUserAction,
     createBedBookingUserAttachedAction,
-    createCabinBookingNoUserAction,
     createCabinBookingUserAttachedAction,
     releaseCabinBookingReservationAction,
 } from '@/services/cabin/booking/actions'
@@ -42,14 +43,13 @@ const bookingTypeOptions = [
 const sectionHeadingClassName = 'm-0 text-l'
 
 /**
- * Where a reservation is kept across page refreshes (e.g. mid-Stripe-confirmation), including for
- * guest bookings which have no session to resume from. Never stores anything but this booking's
- * own id/secret/price - the secret is what proves ownership without a login. It is kept in
+ * Where a reservation is kept across page refreshes (e.g. mid-Stripe-confirmation). Never stores
+ * anything but this booking's own id/secret/price. It is kept in
  * sessionStorage, which ends with the tab, under a key per user, so neither a later visitor of the
  * same browser nor another user logging in in the same tab gets the reservation or its secret.
  */
-function reservationStorageKey(userId: number | null) {
-    return `cabinBookingReservation:${userId ?? 'guest'}`
+function reservationStorageKey(userId: number) {
+    return `cabinBookingReservation:${userId}`
 }
 
 function readStoredReservation(storageKey: string): CabinBookingReservation | null {
@@ -102,8 +102,14 @@ export default function StateWrapper({
     availableBalance?: number,
     customerSessionClientSecret?: string,
 }) {
-    const canBookCabin = useAuthorizer({ authorizer: cabinBookingAuth.createCabinBookingNoUser }).authorized
-    const canBookBed = useAuthorizer({ authorizer: cabinBookingAuth.createBedBookingNoUser }).authorized
+    const session = useSession()
+    const user = session.loading ? null : session.session.user
+    const canBookCabin = useAuthorizer({
+        authorizer: user ? cabinBookingAuth.createCabinBookingUserAttached.data({ userId: user.id }) : Require.user(),
+    }).authorized
+    const canBookBed = useAuthorizer({
+        authorizer: user ? cabinBookingAuth.createBedBookingUserAttached.data({ userId: user.id }) : Require.user(),
+    }).authorized
     const cabinProduct = cabinProducts.find(product => product.type === 'CABIN')
     if (!cabinProduct) {
         throw new Error('Ingen produkt med type CABIN.')
@@ -125,13 +131,8 @@ export default function StateWrapper({
     const [numberOfMembers, setNumberOfMembers] = useState(0)
     const [numberOfNonMembers, setNumberOfNonMembers] = useState(0)
 
-    // Only editable for guest bookings. Logged in users are pre-filled and locked below.
     const [tenantNotes, setTenantNotes] = useState('')
     const [acceptedTerms, setAcceptedTerms] = useState(false)
-    const [firstname, setFirstname] = useState('')
-    const [lastname, setLastname] = useState('')
-    const [email, setEmail] = useState('')
-    const [mobile, setMobile] = useState('')
 
     // checked stays false until the effect below runs, so we don't briefly flash the booking
     // form before knowing (from sessionStorage, unavailable during SSR) whether a pending
@@ -147,8 +148,7 @@ export default function StateWrapper({
     // retrying invalidates it rather than paying for the old, no-longer-displayed booking.
     const reservationCache = useRef<{ reservation: CabinBookingReservation, inputsKey: string } | null>(null)
 
-    const session = useSession()
-    const storageKey = session.loading ? null : reservationStorageKey(session.session.user?.id ?? null)
+    const storageKey = user ? reservationStorageKey(user.id) : null
 
     useEffect(() => {
         if (!storageKey) return
@@ -202,9 +202,15 @@ export default function StateWrapper({
         }))
     }
 
-    if (session.loading || !reservationState.checked || !storageKey) {
-        return <>Laster inn...</>
+    if (session.loading) return <>Laster inn...</>
+
+    if (!user || !storageKey) {
+        return <SiteLink href={omegaAuthLinks.login({ callbackUrl: appHref('/cabin/book') })}>
+            Logg inn for å booke hytta
+        </SiteLink>
     }
+
+    if (!reservationState.checked) return <>Laster inn...</>
 
     if (!canBookCabin && !canBookBed) {
         return <>Du kan ikke booke hytta.</>
@@ -213,8 +219,6 @@ export default function StateWrapper({
     const { reservation } = reservationState
 
     const canChangeBookingType = canBookCabin && canBookBed
-
-    const user = session.session.user
 
     const summary = (bookingType === 'CABIN' ? 'Hele hytta' : 'Enkeltsenger') + (dateRange.start && dateRange.end
         ? ` · ${displayDate(dateRange.start, false)} – ${displayDate(dateRange.end, false)}`
@@ -251,24 +255,20 @@ export default function StateWrapper({
             acceptedTerms,
         }
 
-        const inputsKey = JSON.stringify(user
-            ? { bookingProducts, baseData, numberOfMembers, numberOfNonMembers }
-            : { bookingProducts, baseData, firstname, lastname, email, mobile })
+        const inputsKey = JSON.stringify({ bookingProducts, baseData, numberOfMembers, numberOfNonMembers })
 
         const cached = reservationCache.current
         if (cached?.inputsKey === inputsKey && cached.reservation.expiresAt.getTime() > Date.now()) {
             return { success: true, data: cached.reservation }
         }
 
-        const bookingResult = user
-            ? await (bookingType === 'CABIN' ? createCabinBookingUserAttachedAction : createBedBookingUserAttachedAction)(
-                { params: { userId: user.id, bookingProducts } },
-                { data: { ...baseData, numberOfMembers, numberOfNonMembers } },
-            )
-            : await (bookingType === 'CABIN' ? createCabinBookingNoUserAction : createBedBookingNoUserAction)(
-                { params: { bookingProducts } },
-                { data: { ...baseData, firstname, lastname, email, mobile } },
-            )
+        const createBooking = bookingType === 'CABIN'
+            ? createCabinBookingUserAttachedAction
+            : createBedBookingUserAttachedAction
+        const bookingResult = await createBooking(
+            { params: { userId: user.id, bookingProducts } },
+            { data: { ...baseData, numberOfMembers, numberOfNonMembers } },
+        )
         if (!bookingResult.success) return bookingResult
 
         if (bookingResult.data.transactionTimeout === null) {
@@ -294,9 +294,9 @@ export default function StateWrapper({
             </p>
             <CabinBookingPaymentModal
                 funds={reservation.totalPrice}
-                availablePaymentMethods={user ? ['STRIPE', 'MANUAL'] : ['STRIPE']}
-                availableBalance={user ? availableBalance : undefined}
-                customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
+                availablePaymentMethods={['STRIPE', 'MANUAL']}
+                availableBalance={availableBalance}
+                customerSessionClientSecret={customerSessionClientSecret}
                 getReservation={() => ({ success: true, data: reservation })}
                 triggerLabel="Fullfør betaling"
             >
@@ -363,7 +363,7 @@ export default function StateWrapper({
                     <h2 className={sectionHeadingClassName}>
                         {canChangeBookingType ? '3. ' : ''}{bookingType === 'BED' ? 'Hvor mange senger?' : 'Hvem blir med?'}
                     </h2>
-                    {(bookingType === 'CABIN' && user) && <div className="flex flex-wrap gap-4">
+                    {bookingType === 'CABIN' && <div className="flex flex-wrap gap-4">
                         <NumberInput
                             name="numberOfMembers"
                             label="Antall som er medlem i Omega"
@@ -404,56 +404,22 @@ export default function StateWrapper({
 
                 <section className={sectionClassName}>
                     <h2 className={sectionHeadingClassName}>{canChangeBookingType ? '4. ' : ''}Kontaktinfo</h2>
-                    {user ? <>
-                        <dl className="
-                            m-0 grid grid-cols-2 gap-x-6 gap-y-3
-                            max-mobile:grid-cols-1
-                        ">
-                            {[
-                                ['Navn', `${user.firstname} ${user.lastname}`],
-                                ['E-post', user.email],
-                                ['Telefon', user.mobile ?? 'Ikke oppgitt'],
-                            ].map(([term, value]) => (
-                                <div key={term}>
-                                    <dt className="text-s text-base-content/80">{term}</dt>
-                                    <dd className="m-0">{value}</dd>
-                                </div>
-                            ))}
-                        </dl>
-                        <p className="m-0 text-s text-base-content/80">Hentet fra profilen din.</p>
-                    </> : <div className="
-                        grid grid-cols-2 gap-4
+                    <dl className="
+                        m-0 grid grid-cols-2 gap-x-6 gap-y-3
                         max-mobile:grid-cols-1
                     ">
-                        <TextInput
-                            name="firstname"
-                            label="Fornavn"
-                            background="base100"
-                            value={firstname}
-                            onChange={e => setFirstname(e.target.value)}
-                        />
-                        <TextInput
-                            name="lastname"
-                            label="Etternavn"
-                            background="base100"
-                            value={lastname}
-                            onChange={e => setLastname(e.target.value)}
-                        />
-                        <TextInput
-                            name="email"
-                            label="E-post"
-                            background="base100"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                        />
-                        <TextInput
-                            name="mobile"
-                            label="Telefonnummer"
-                            background="base100"
-                            value={mobile}
-                            onChange={e => setMobile(e.target.value)}
-                        />
-                    </div>}
+                        {[
+                            ['Navn', `${user.firstname} ${user.lastname}`],
+                            ['E-post', user.email],
+                            ['Telefon', user.mobile ?? 'Ikke oppgitt'],
+                        ].map(([term, value]) => (
+                            <div key={term}>
+                                <dt className="text-s text-base-content/80">{term}</dt>
+                                <dd className="m-0">{value}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                    <p className="m-0 text-s text-base-content/80">Hentet fra profilen din.</p>
                     <Textarea
                         name="tenantNotes"
                         label="Beskjed til hyttestyret (valgfritt)"
@@ -482,9 +448,9 @@ export default function StateWrapper({
                 </Checkbox>
                 {acceptedTerms && totalPrice > 0 ? <CabinBookingPaymentModal
                     funds={totalPrice}
-                    availablePaymentMethods={user ? ['STRIPE', 'MANUAL'] : ['STRIPE']}
-                    availableBalance={user ? availableBalance : undefined}
-                    customerSessionClientSecret={user ? customerSessionClientSecret : undefined}
+                    availablePaymentMethods={['STRIPE', 'MANUAL']}
+                    availableBalance={availableBalance}
+                    customerSessionClientSecret={customerSessionClientSecret}
                     getReservation={getReservation}
                     onReservationCreated={createdReservation => storeReservation(storageKey, createdReservation)}
                     triggerLabel="Gå til betaling"

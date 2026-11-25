@@ -90,16 +90,12 @@ export async function findAvailabilityConflict(
     return overbooked ? 'Det er ikke nok ledige senger i den perioden.' : null
 }
 
-type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingNoUser>['bookingProducts']
-
-type Booker = { userId: number } | {
-    guest: { firstname: string, lastname: string, email: string, mobile: string },
-}
+type BookingProductParams = z.infer<typeof cabinBookingSchemas.params.createCabinBookingUserAttached>['bookingProducts']
 
 type Reservation = {
     bookingType: BookingType,
     bookingProducts: BookingProductParams,
-    booker: Booker,
+    userId: number,
     start: Date,
     end: Date,
     tenantNotes?: string,
@@ -114,27 +110,12 @@ const withUser = (
 ): Reservation => ({
     bookingType,
     bookingProducts: params.bookingProducts,
-    booker: { userId: params.userId },
+    userId: params.userId,
     start: data.start,
     end: data.end,
     tenantNotes: data.tenantNotes,
     numberOfMembers: data.numberOfMembers,
     numberOfNonMembers: data.numberOfNonMembers,
-})
-
-const asGuest = (
-    bookingType: BookingType,
-    params: { bookingProducts: BookingProductParams },
-    data: z.infer<typeof cabinBookingSchemas.data.createCabinBookingNoUser>,
-): Reservation => ({
-    bookingType,
-    bookingProducts: params.bookingProducts,
-    booker: { guest: { firstname: data.firstname, lastname: data.lastname, email: data.email, mobile: data.mobile } },
-    start: data.start,
-    end: data.end,
-    tenantNotes: data.tenantNotes,
-    numberOfMembers: 0,
-    numberOfNonMembers: 0,
 })
 
 /** The products of a booking in the order asked for, checked against its type and the stock. */
@@ -201,7 +182,7 @@ async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) 
  * the availability check and the insert of one never interleave with another's - two bookers
  * cannot both find the same dates free.
  */
-async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingProducts, booker, ...booking }: Reservation) {
+async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingProducts, userId, ...booking }: Reservation) {
     await takeAdvisoryLock(prisma, 'cabinBooking')
 
     const releasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
@@ -239,7 +220,7 @@ async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingP
             canceled: null,
             transactionTimeout: { gt: new Date() },
             ledgerTransactions: { none: validTransactionFilter },
-            ...('userId' in booker ? { userId: booker.userId } : { guestUser: { email: booker.guest.email } }),
+            userId,
         },
     })
     if (unpaidHolds >= maxUnpaidReservationsPerBooker) {
@@ -270,9 +251,7 @@ async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingP
             // calendar for others. Cleared once payment succeeds.
             transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
             BookingProduct: { create: bookingProducts },
-            ...('userId' in booker
-                ? { user: { connect: { id: booker.userId } } }
-                : { guestUser: { create: booker.guest } }),
+            user: { connect: { id: userId } },
         },
         select: { id: true, secret: true, totalPrice: true, transactionTimeout: true },
     })
@@ -293,22 +272,6 @@ export const cabinBookingOperations = {
         dataSchema: cabinBookingSchemas.data.createBedBookingUserAttached,
         transaction: 'RUNS_IN',
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('BED', params, data)),
-    }),
-
-    createCabinBookingNoUser: defineOperation({
-        paramsSchema: cabinBookingSchemas.params.createCabinBookingNoUser,
-        authorizer: () => cabinBookingAuth.createCabinBookingNoUser,
-        dataSchema: cabinBookingSchemas.data.createCabinBookingNoUser,
-        transaction: 'RUNS_IN',
-        operation: ({ prisma, params, data }) => reserve(prisma, asGuest('CABIN', params, data)),
-    }),
-
-    createBedBookingNoUser: defineOperation({
-        paramsSchema: cabinBookingSchemas.params.createBedBookingNoUser,
-        authorizer: () => cabinBookingAuth.createBedBookingNoUser,
-        dataSchema: cabinBookingSchemas.data.createBedBookingNoUser,
-        transaction: 'RUNS_IN',
-        operation: ({ prisma, params, data }) => reserve(prisma, asGuest('BED', params, data)),
     }),
 
     readAvailability: defineOperation({
