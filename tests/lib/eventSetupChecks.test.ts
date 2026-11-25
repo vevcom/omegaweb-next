@@ -1,4 +1,5 @@
 import { eventSetupChecks, hasNoTime, publishProblems, setupStatuses } from '@/services/events/publishProblems'
+import { activeMembersOf } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
@@ -19,7 +20,7 @@ const ready = {
     canBeViewedBy: 'ALL' as const,
     ledgerAccount: { id: 1 },
     variants: [variant],
-    adminVisibility: { requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId: 1 }] }] },
+    adminVisibility: { requirements: [{ conditions: [activeMembersOf(1)] }] },
 }
 
 // How a form with a tab for the rules and one for the rest might show the parts.

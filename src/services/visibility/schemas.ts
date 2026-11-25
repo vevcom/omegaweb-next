@@ -1,4 +1,3 @@
-import { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
 import { Zpn } from '@/lib/fields/zpn'
 import { z } from 'zod'
 
@@ -9,17 +8,12 @@ import { z } from 'zod'
 export const visibilityRequirementsSchema = z.array(
     z.object({
         conditions: z.array(
-            z.union([
-                z.object({
-                    type: z.literal(VisibilityRequirementGroupType.ORDER),
-                    order: z.number().min(0),
-                    groupId: z.number()
-                }),
-                z.object({
-                    type: z.literal(VisibilityRequirementGroupType.ACTIVE),
-                    groupId: z.number()
-                })
-            ])
+            z.object({
+                groupId: z.number().int(),
+                order: z.number().int().min(0).nullable(),
+                onlyActive: z.boolean(),
+                onlyAdmins: z.boolean(),
+            })
         )
     })
 )

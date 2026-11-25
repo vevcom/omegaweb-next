@@ -5,6 +5,7 @@ import type { AnySession, SessionMaybeUser } from '@/auth/session/Session'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { UserFiltered } from '@/services/users/types'
+import type { VisibilityCondition } from '@/services/visibility/types'
 
 /**
  * A session for a test, from parts that need not hang together the way a real session's do. A real
@@ -78,4 +79,9 @@ export async function waitUntil(condition: () => boolean, timeoutMs = 4000): Pro
         if (Date.now() > deadline) throw new Error('Waited for something that did not happen in time')
         await new Promise(resolve => setTimeout(resolve, 10))
     }
+}
+
+/** A condition of a visibility that lets in the active members of the group, of any order. */
+export function activeMembersOf(groupId: number): VisibilityCondition {
+    return { groupId, order: null, onlyActive: true, onlyAdmins: false }
 }

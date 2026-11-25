@@ -11,13 +11,13 @@ export const shopVisibility = implementDoubleLevelVisibilityComponents<{ shopId:
     regular: {
         verb: 'kan handle i butikken',
         everyone: 'Alle',
-        pickedGroupStartsAs: 'NEWEST_ORDER',
+        defaultMembershipRequirement: { order: 'CURRENT_GROUP_ORDER', onlyActive: false },
         update: implementationParams => configureAction(updateShopRegularLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => shopAuth.updateRegularLevel.data({ visibility }),
     },
     admin: {
         verb: 'kan administrere butikken',
-        pickedGroupStartsAs: 'ACTIVE',
+        defaultMembershipRequirement: { order: null, onlyActive: true },
         update: implementationParams => configureAction(updateShopAdminLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => shopAuth.updateAdminLevel.data({ visibility }),
     },

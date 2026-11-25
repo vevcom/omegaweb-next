@@ -1,4 +1,6 @@
 import { checkDoubleLevelVisibility, checkVisibility } from '@/auth/visibility/checkVisibility'
+import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
+import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
@@ -9,7 +11,7 @@ import { testSession } from 'tests/utils'
 import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals'
 import { z } from 'zod'
 import type { MembershipFiltered } from '@/services/groups/types'
-import type { DoubleLevelVisibilityMatrix, VisibilityMatrix } from '@/services/visibility/types'
+import type { DoubleLevelVisibilityMatrix, VisibilityCondition, VisibilityMatrix } from '@/services/visibility/types'
 
 /**
  * A standalone implementation of the double level visibility contract. It deliberately owns no
@@ -55,8 +57,22 @@ function sessionInGroups(...groupIds: number[]) {
     return testSession({ user: null, permissions: [], memberships })
 }
 
+function condition(
+    groupId: number,
+    { order = null, onlyActive = false, onlyAdmins = false }: Partial<Omit<VisibilityCondition, 'groupId'>> = {},
+): VisibilityCondition {
+    return { groupId, order, onlyActive, onlyAdmins }
+}
+
 function activeIn(groupId: number): VisibilityMatrix {
-    return { requirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] }
+    return { requirements: [{ conditions: [condition(groupId, { onlyActive: true })] }] }
+}
+
+/** The eight forms a condition on the group can take, at `order` where it names one. */
+function everyForm(groupId: number, order: number): VisibilityCondition[] {
+    return [null, order].flatMap(orderOrAny => [false, true].flatMap(onlyActive => [false, true].map(
+        onlyAdmins => condition(groupId, { order: orderOrAny, onlyActive, onlyAdmins })
+    )))
 }
 
 async function createManualGroup(shortName: string) {
@@ -78,11 +94,9 @@ async function readStoredMatrix(visibilityId: number): Promise<VisibilityMatrix>
     })
     return {
         requirements: visibility.requirements.map(requirement => ({
-            conditions: requirement.conditions.map(condition => (
-                condition.type === 'ORDER'
-                    ? { type: 'ORDER', groupId: condition.groupId, order: condition.order }
-                    : { type: 'ACTIVE', groupId: condition.groupId }
-            )),
+            conditions: requirement.conditions.map(({ groupId, order, onlyActive, onlyAdmins }) => ({
+                groupId, order, onlyActive, onlyAdmins,
+            })),
         })),
     }
 }
@@ -98,7 +112,7 @@ async function createVisibilityPair() {
 /** The group ids named by every condition of a matrix - enough to satisfy it in these tests. */
 function groupIdsOf(visibility: VisibilityMatrix): number[] {
     return visibility.requirements.flatMap(
-        requirement => requirement.conditions.map(condition => condition.groupId)
+        requirement => requirement.conditions.map(({ groupId }) => groupId)
     )
 }
 
@@ -158,10 +172,7 @@ describe('checkVisibility', () => {
     test('conditions within one requirement are ORed', () => {
         const visibility: VisibilityMatrix = {
             requirements: [{
-                conditions: [
-                    { type: 'ACTIVE', groupId: 1 },
-                    { type: 'ACTIVE', groupId: 2 },
-                ],
+                conditions: [condition(1, { onlyActive: true }), condition(2, { onlyActive: true })],
             }],
         }
 
@@ -172,8 +183,8 @@ describe('checkVisibility', () => {
     test('requirements are ANDed', () => {
         const visibility: VisibilityMatrix = {
             requirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: 1 }] },
-                { conditions: [{ type: 'ACTIVE', groupId: 2 }] },
+                { conditions: [condition(1, { onlyActive: true })] },
+                { conditions: [condition(2, { onlyActive: true })] },
             ],
         }
 
@@ -183,21 +194,113 @@ describe('checkVisibility', () => {
         )).toBe(true)
         expect(checkVisibility([membershipInGroup(1, true, 106)], visibility)).toBe(false)
     })
+})
 
-    test('an ACTIVE condition is not satisfied by an inactive membership', () => {
-        expect(checkVisibility(
-            [membershipInGroup(1, false, 106)],
-            activeIn(1),
-        )).toBe(false)
+describe('the eight forms of a condition, by checkVisibility and by both database filters', () => {
+    /**
+     * Who passes each form of a condition on one group, where the group's own order is `now` and
+     * `earlier` the order before it. One is in another group, one was an admin before the group
+     * migrated and is a plain member now, so each of their memberships must be judged on its own,
+     * and one has no memberships at all.
+     */
+    const people = {
+        activeAdminNow: [{ order: 'now', active: true, admin: true }],
+        activeMemberNow: [{ order: 'now', active: true, admin: false }],
+        formerAdmin: [{ order: 'earlier', active: false, admin: true }],
+        formerMember: [{ order: 'earlier', active: false, admin: false }],
+        activeMemberEarlier: [{ order: 'earlier', active: true, admin: false }],
+        activeAdminEarlier: [{ order: 'earlier', active: true, admin: true }],
+        inAnotherGroup: [{ order: 'now', active: true, admin: true }],
+        adminBeforeMigrating: [
+            { order: 'earlier', active: false, admin: true },
+            { order: 'now', active: true, admin: false },
+        ],
+        noMemberships: [],
+    } as const
+    type Person = keyof typeof people
+    type Form = Partial<Omit<VisibilityCondition, 'groupId' | 'order'>> & { earlier?: true }
+    const forms: { name: string, form: Form, whoPasses: Person[] }[] = [
+        { name: 'any order', form: {}, whoPasses: [
+            'activeAdminNow', 'activeMemberNow', 'formerAdmin', 'formerMember', 'activeMemberEarlier', 'activeAdminEarlier',
+            'adminBeforeMigrating',
+        ] },
+        { name: 'any order, only active', form: { onlyActive: true }, whoPasses: [
+            'activeAdminNow', 'activeMemberNow', 'activeMemberEarlier', 'activeAdminEarlier', 'adminBeforeMigrating',
+        ] },
+        { name: 'any order, only admins', form: { onlyAdmins: true }, whoPasses: [
+            'activeAdminNow', 'formerAdmin', 'activeAdminEarlier', 'adminBeforeMigrating',
+        ] },
+        { name: 'any order, only active admins', form: { onlyActive: true, onlyAdmins: true }, whoPasses: [
+            'activeAdminNow', 'activeAdminEarlier',
+        ] },
+        { name: 'earlier order', form: { earlier: true }, whoPasses: [
+            'formerAdmin', 'formerMember', 'activeMemberEarlier', 'activeAdminEarlier', 'adminBeforeMigrating',
+        ] },
+        { name: 'earlier order, only active', form: { earlier: true, onlyActive: true }, whoPasses: [
+            'activeMemberEarlier', 'activeAdminEarlier',
+        ] },
+        { name: 'earlier order, only admins', form: { earlier: true, onlyAdmins: true }, whoPasses: [
+            'formerAdmin', 'activeAdminEarlier', 'adminBeforeMigrating',
+        ] },
+        {
+            name: 'earlier order, only active admins',
+            form: { earlier: true, onlyActive: true, onlyAdmins: true },
+            whoPasses: ['activeAdminEarlier'],
+        },
+    ]
+
+    let groupId: number
+    const membershipsOf = {} as Record<Person, MembershipFiltered[]>
+    const userIdOf = {} as Record<Person, number>
+    const visibilityOf: Record<string, { matrix: VisibilityMatrix, id: number }> = {}
+
+    beforeAll(async () => {
+        groupId = await createManualGroup('visibility-test-eight-forms')
+        const otherGroupId = await createManualGroup('visibility-test-eight-forms-other')
+        const ofPerson = (person: Person) => people[person].map(({ order, active, admin }) => ({
+            groupId: person === 'inAnotherGroup' ? otherGroupId : groupId,
+            order: order === 'now' ? currentOrder : currentOrder - 1,
+            active,
+            admin,
+        }))
+        for (const person of Object.keys(people) as Person[]) {
+            const memberships = ofPerson(person)
+            const user = await prisma.user.create({
+                data: {
+                    username: `visibility-eight-forms-${person}`,
+                    email: `visibility-eight-forms-${person}@stud.ntnu.no`,
+                    bioParagraph: { create: {} },
+                    ledgerAccount: { create: { type: 'USER' } },
+                    memberships: { create: memberships },
+                },
+            })
+            userIdOf[person] = user.id
+            membershipsOf[person] = memberships
+        }
+        for (const { name, form: { earlier, ...form } } of forms) {
+            const order = earlier ? currentOrder - 1 : null
+            const matrix = { requirements: [{ conditions: [condition(groupId, { ...form, order })] }] }
+            const { id } = await visibilityOperations.createWithRequirements.internalCall({ data: matrix })
+            visibilityOf[name] = { matrix, id }
+        }
     })
 
-    test('an ORDER condition matches the exact order, active or not', () => {
-        const visibility: VisibilityMatrix = {
-            requirements: [{ conditions: [{ type: 'ORDER', groupId: 1, order: 105 }] }],
-        }
+    test.each(forms)('$name', async ({ name, whoPasses }) => {
+        const { matrix, id } = visibilityOf[name]
+        const everyone = Object.keys(people) as Person[]
 
-        expect(checkVisibility([membershipInGroup(1, false, 105)], visibility)).toBe(true)
-        expect(checkVisibility([membershipInGroup(1, true, 106)], visibility)).toBe(false)
+        expect(everyone.filter(person => checkVisibility(membershipsOf[person], matrix))).toEqual(whoPasses)
+
+        const passingUsers = await prisma.user.findMany({
+            where: { AND: [passesVisibilityWhere(matrix), { id: { in: Object.values(userIdOf) } }] },
+            select: { id: true },
+        })
+        expect(everyone.filter(person => passingUsers.some(user => user.id === userIdOf[person]))).toEqual(whoPasses)
+
+        const passed = await Promise.all(everyone.map(person => prisma.visibility.findMany({
+            where: { AND: [visibilityFilter(membershipsOf[person]), { id }] },
+        })))
+        expect(everyone.filter((person, personIndex) => passed[personIndex].length > 0)).toEqual(whoPasses)
     })
 })
 
@@ -240,44 +343,28 @@ describe('visibility operations', () => {
         expect(await readStoredMatrix(visibility.id)).toEqual({ requirements: [] })
     })
 
-    test('update writes the requirements, and ORDER conditions keep their order', async () => {
+    test('a group is kept in every form a list gives it, and a form given twice is kept once', async () => {
         const visibility = await visibilityOperations.create.internalCall({})
+        const forms = everyForm(groupOne, currentOrder - 1)
 
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
-            data: {
-                requirements: [{
-                    conditions: [
-                        { type: 'ACTIVE', groupId: groupOne },
-                        { type: 'ORDER', groupId: groupTwo, order: currentOrder - 1 },
-                    ],
-                }],
-            },
+            data: { requirements: [{ conditions: [...forms, ...forms] }] },
         })
 
         const stored = await readStoredMatrix(visibility.id)
-        expect(stored.requirements).toHaveLength(1)
-        expect(stored.requirements[0].conditions).toEqual(expect.arrayContaining([
-            { type: 'ACTIVE', groupId: groupOne },
-            { type: 'ORDER', groupId: groupTwo, order: currentOrder - 1 },
-        ]))
+        expect(stored.requirements[0].conditions).toHaveLength(forms.length)
+        expect(stored.requirements[0].conditions).toEqual(expect.arrayContaining(forms))
     })
 
-    test('a group is kept both as its active members and at the current order, which are not the same', async () => {
+    test('the database refuses two conditions of a requirement that say the same, also of any order', async () => {
         const visibility = await visibilityOperations.create.internalCall({})
-        const both = [
-            { type: 'ACTIVE' as const, groupId: groupOne },
-            { type: 'ORDER' as const, groupId: groupOne, order: currentOrder },
-        ]
-
-        await visibilityOperations.update.internalCall({
-            params: { visibilityId: visibility.id },
-            data: { requirements: [{ conditions: both }] },
+        const createTwice = (twice: VisibilityCondition) => prisma.visibilityRequirement.create({
+            data: { visibilityId: visibility.id, conditions: { create: [twice, twice] } },
         })
 
-        const stored = await readStoredMatrix(visibility.id)
-        expect(stored.requirements[0].conditions).toHaveLength(2)
-        expect(stored.requirements[0].conditions).toEqual(expect.arrayContaining(both))
+        await expect(createTwice(condition(groupOne, { onlyActive: true }))).rejects.toThrow()
+        await expect(createTwice(condition(groupOne, { order: currentOrder }))).rejects.toThrow()
     })
 
     test('update replaces the previous requirements instead of adding to them', async () => {
@@ -285,11 +372,11 @@ describe('visibility operations', () => {
 
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
-            data: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: groupOne }] }] },
+            data: activeIn(groupOne),
         })
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
-            data: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: groupTwo }] }] },
+            data: activeIn(groupTwo),
         })
 
         expect(await readStoredMatrix(visibility.id)).toEqual(activeIn(groupTwo))
@@ -300,7 +387,7 @@ describe('visibility operations', () => {
 
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
-            data: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: groupOne }] }] },
+            data: activeIn(groupOne),
         })
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
@@ -315,7 +402,7 @@ describe('visibility operations', () => {
         const visibility = await visibilityOperations.create.internalCall({})
         await visibilityOperations.update.internalCall({
             params: { visibilityId: visibility.id },
-            data: { requirements: [{ conditions: [{ type: 'ACTIVE', groupId: groupOne }] }] },
+            data: activeIn(groupOne),
         })
 
         await visibilityOperations.destroy.internalCall({ params: { visibilityId: visibility.id } })

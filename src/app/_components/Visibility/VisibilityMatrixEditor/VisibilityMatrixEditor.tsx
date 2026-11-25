@@ -1,18 +1,24 @@
 'use client'
 import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import Button from '@/components/UI/Button'
+import Checkbox from '@/components/UI/Checkbox'
 import ModeSwitch from '@/components/UI/ModeSwitch'
 import MultiSearchableDropdown from '@/components/UI/MultiSearchableDropdown'
 import { SelectNumber } from '@/components/UI/Select'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
-import { describeVisibility, listsContradict } from '@/components/Visibility/describeVisibility'
+import {
+    describeMemberships,
+    describeVisibility,
+    groupNameOf,
+    visibilityWarnings,
+} from '@/components/Visibility/describeVisibility'
 import { pickedGroupIds, withPickedGroups, withoutRepeats } from '@/components/Visibility/pickedGroups'
 import { findGroup, orderOptions } from '@/lib/groups/groupOptions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
-import type { PickedGroupStartsAs } from '@/components/Visibility/pickedGroups'
+import type { DefaultMembershipRequirement } from '@/components/Visibility/pickedGroups'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { VisibilityCondition, VisibilityRequirement } from '@/services/visibility/types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -22,7 +28,7 @@ type PropTypes = {
     verb: string,
     /** What no requirements means here. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
-    pickedGroupStartsAs: PickedGroupStartsAs,
+    defaultMembershipRequirement: DefaultMembershipRequirement,
 } & ({
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
@@ -42,7 +48,7 @@ const groupTypeNames: Record<GroupType, string> = {
     MANUAL_GROUP: 'Andre grupper',
     REVUE_SUB_GROUP: 'Revyundergruppe',
 }
-const ACTIVE_MEMBERS = -1
+const ANY_ORDER = -1
 
 const groupOptions = (groups: ExpandedGroup[]) => Object.entries(groupTypeNames).flatMap(([type, section]) => (
     groups
@@ -57,26 +63,23 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
     onChange: (condition: VisibilityCondition) => void,
     onRemove: () => void,
 }) {
-    const [choosingWhen, setChoosingWhen] = useState(false)
-    const group = findGroup(groups, condition.groupId)
-    const name = group?.name ?? `gruppe #${condition.groupId}`
+    const [choosing, setChoosing] = useState(false)
+    const name = groupNameOf(condition, groups)
 
     return <li className="flex flex-col gap-1 min-w-0">
         <span className={`
             inline-flex items-center self-start max-w-full rounded-round border bg-base-200 text-s
-            ${condition.type === 'ORDER' ? 'border-dashed border-base-content/80' : 'border-base-300'}
+            ${condition.order !== null ? 'border-dashed border-base-content/80' : 'border-base-300'}
         `}>
             <button
                 type="button"
-                title="Velg om dette gjelder de aktive eller en bestemt orden"
-                aria-expanded={choosingWhen}
-                onClick={() => setChoosingWhen(!choosingWhen)}
+                title="Velg orden, og om bare de aktive eller administratorene gjelder"
+                aria-expanded={choosing}
+                onClick={() => setChoosing(!choosing)}
                 className="py-1 pl-3 pr-1 border-none bg-transparent text-base-content text-left cursor-pointer"
             >
                 {name}
-                <span className="text-base-content/80">
-                    {' · '}{condition.type === 'ORDER' ? `${condition.order}. orden` : 'aktive'}
-                </span>
+                <span className="text-base-content/80">{' · '}{describeMemberships(condition)}</span>
             </button>
             <button
                 type="button"
@@ -91,33 +94,43 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
                 <FontAwesomeIcon icon={faXmark} />
             </button>
         </span>
-        {choosingWhen && <SelectNumber
-            label="Gjelder"
-            value={condition.type === 'ORDER' ? condition.order : ACTIVE_MEMBERS}
-            options={[
-                { value: ACTIVE_MEMBERS, label: 'Aktive', key: 'active' },
-                ...orderOptions(group).reverse().map(option => ({
-                    ...option,
-                    label: `De som var med i ${option.label}. orden`,
-                })),
-            ]}
-            onChange={value => onChange(value === ACTIVE_MEMBERS
-                ? { type: 'ACTIVE', groupId: condition.groupId }
-                : { type: 'ORDER', groupId: condition.groupId, order: value })}
-        />}
+        {choosing && <div className="flex flex-wrap items-center gap-x-3">
+            <SelectNumber
+                label="Orden"
+                value={condition.order ?? ANY_ORDER}
+                options={[
+                    { value: ANY_ORDER, label: 'Alle ordener', key: 'any' },
+                    ...orderOptions(findGroup(groups, condition.groupId)).reverse().map(option => ({
+                        ...option,
+                        label: `${option.label}. orden`,
+                    })),
+                ]}
+                onChange={value => onChange({ ...condition, order: value === ANY_ORDER ? null : value })}
+            />
+            <Checkbox
+                label="Bare aktive"
+                checked={condition.onlyActive}
+                onChange={event => onChange({ ...condition, onlyActive: event.target.checked })}
+            />
+            <Checkbox
+                label="Bare administratorer"
+                checked={condition.onlyAdmins}
+                onChange={event => onChange({ ...condition, onlyAdmins: event.target.checked })}
+            />
+        </div>}
     </li>
 }
 
 /**
  * An editor for a single visibility matrix, which says who gets in as a sentence. A list here is a
  * requirement, so someone must be in one group of every list, and a group picked in one starts as
- * `pickedGroupStartsAs` says. Given `name` it is a form field that posts the matrix as JSON. Given
+ * `defaultMembershipRequirement` says. Given `name` it is a form field that posts the matrix as JSON. Given
  * `requirements` and `onChange` it is controlled, for a form that needs the matrix as it is edited
  * and posts it itself. Its other inputs have no names, since they load late, which a form would
  * count as a change.
  */
 export default function VisibilityMatrixEditor(props: PropTypes) {
-    const { verb, everyone, pickedGroupStartsAs } = props
+    const { verb, everyone, defaultMembershipRequirement } = props
     const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
         'defaultValue' in props ? props.defaultValue ?? [] : [],
     )
@@ -203,21 +216,21 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     <MultiSearchableDropdown
                         label="Legg til gruppe"
                         options={groupOptions(groups)}
-                        values={pickedGroupIds(list.conditions, groups, pickedGroupStartsAs)}
+                        values={pickedGroupIds(list.conditions, groups, defaultMembershipRequirement)}
                         hideSelected
                         onChange={groupIds => setConditions(
                             listIndex,
-                            withPickedGroups(list.conditions, groupIds, groups, pickedGroupStartsAs),
+                            withPickedGroups(list.conditions, groupIds, groups, defaultMembershipRequirement),
                         )}
                         className="max-w-none! mt-0!"
                     />
                 </div>
             </div>)}
-            {listsContradict({ requirements: lists }, groups) && <p className="
+            {visibilityWarnings({ requirements: lists }, groups).map(warning => <p key={warning} className="
                 m-0 py-2 px-3 rounded-inner bg-warning/15 text-s
             ">
-                Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.
-            </p>}
+                {warning}
+            </p>)}
             <Button
                 type="button"
                 color="secondary"

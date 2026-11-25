@@ -1,14 +1,15 @@
 import type { visibilityOperations } from './operations'
 import type { ActionFromSubServiceOperation } from '@/services/actionTypes'
-import type { VisibilityRequirementGroupType } from '@/prisma-generated-pn-types'
 
+/**
+ * A membership of the group, of `order` or of any order when it is null, which is active when
+ * `onlyActive` and the group's admin when `onlyAdmins`.
+ */
 export type VisibilityCondition = {
-    type: Extract<VisibilityRequirementGroupType, 'ORDER'>
     groupId: number
-    order: number
-} | {
-    type: Extract<VisibilityRequirementGroupType, 'ACTIVE'>
-    groupId: number
+    order: number | null
+    onlyActive: boolean
+    onlyAdmins: boolean
 }
 
 export type VisibilityRequirement = {

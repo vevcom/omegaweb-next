@@ -5,11 +5,11 @@ import { implementVisibilityComponents } from '@/components/Visibility/Visibilit
 export const eventQuotaVisibility = implementVisibilityComponents({
     verb: 'kan melde seg på',
     everyone: 'Alle som er logget inn',
-    pickedGroupStartsAs: 'NEWEST_ORDER',
+    defaultMembershipRequirement: { order: 'CURRENT_GROUP_ORDER', onlyActive: false },
 })
 
 // Saved with the rest of the event's setup, so it has no update action of its own.
 export const eventAdminVisibility = implementVisibilityComponents({
     verb: 'kan administrere arrangementet',
-    pickedGroupStartsAs: 'ACTIVE',
+    defaultMembershipRequirement: { order: null, onlyActive: true },
 })

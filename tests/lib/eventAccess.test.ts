@@ -2,12 +2,13 @@ import { creatorHoldsDraft, eventAuth, visibilitiesShowingEvent } from '@/servic
 import { canRegisterSelf } from '@/services/events/registration/auth'
 import { Session } from '@/auth/session/Session'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
+import { activeMembersOf } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import type { SessionUser } from '@/auth/session/Session'
 import type { EventAccess } from '@/services/events/types'
 import type { VisibilityMatrix } from '@/services/visibility/types'
 
-const inGroup = (groupId: number): VisibilityMatrix => ({ requirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] })
+const inGroup = (groupId: number): VisibilityMatrix => ({ requirements: [{ conditions: [activeMembersOf(groupId)] }] })
 const everyone: VisibilityMatrix = { requirements: [] }
 const ARRKOM = 1
 const MEMBERS = 2

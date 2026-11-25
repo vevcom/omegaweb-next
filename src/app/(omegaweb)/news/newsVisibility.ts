@@ -11,13 +11,13 @@ export const newsVisibility = implementDoubleLevelVisibilityComponents<{ id: num
     regular: {
         verb: 'kan lese nyheten',
         everyone: 'Alle',
-        pickedGroupStartsAs: 'NEWEST_ORDER',
+        defaultMembershipRequirement: { order: 'CURRENT_GROUP_ORDER', onlyActive: false },
         update: implementationParams => configureAction(updateNewsRegularLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => newsAuth.updateRegularLevel.data({ visibility }),
     },
     admin: {
         verb: 'kan administrere nyheten',
-        pickedGroupStartsAs: 'ACTIVE',
+        defaultMembershipRequirement: { order: null, onlyActive: true },
         update: implementationParams => configureAction(updateNewsAdminLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => newsAuth.updateAdminLevel.data({ visibility }),
     },

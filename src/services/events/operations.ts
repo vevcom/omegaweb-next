@@ -764,7 +764,7 @@ async function hostCommitteeAdminRequirements(
         where: { id: committeeId },
         select: { groupId: true },
     })
-    return [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }]
+    return [{ conditions: [{ groupId, order: null, onlyActive: true, onlyAdmins: false }] }]
 }
 
 async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, eventId: number) {

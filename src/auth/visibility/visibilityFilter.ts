@@ -9,24 +9,12 @@ export function visibilityFilter(memberships: MembershipFiltered[]) {
             every: {
                 conditions: {
                     some: {
-                        OR: [
-                            {
-                                type: 'ACTIVE',
-                                groupId: {
-                                    in: memberships
-                                        .filter(membership => membership.active)
-                                        .map(membership => membership.groupId)
-                                }
-                            },
-                            {
-                                type: 'ORDER',
-                                OR: memberships
-                                    .map(membership => ({
-                                        groupId: membership.groupId,
-                                        order: membership.order
-                                    }))
-                            },
-                        ]
+                        OR: memberships.map(membership => ({
+                            groupId: membership.groupId,
+                            OR: [{ order: null }, { order: membership.order }],
+                            ...(membership.active ? {} : { onlyActive: false }),
+                            ...(membership.admin ? {} : { onlyAdmins: false }),
+                        })),
                     }
                 }
             }

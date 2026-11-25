@@ -11,7 +11,7 @@ const audience = implementVisibilityComponents({
     verb: 'får varselet',
     everyone: 'Alle abonnenter',
     // Sent at once, so to those in the group now.
-    pickedGroupStartsAs: 'ACTIVE',
+    defaultMembershipRequirement: { order: null, onlyActive: true },
 })
 
 export default function NotificationForm({

@@ -34,12 +34,14 @@ type Authorizers<
     ) => Awaitable<Authorizer>
 }
 
+// In the order they were saved in, which is the order the editor showed them in.
 export const visibilityIncluder = {
     requirements: {
+        orderBy: { id: 'asc' },
         include: {
-            conditions: true
-        }
-    }
+            conditions: { orderBy: { id: 'asc' } },
+        },
+    },
 } as const
 
 type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodType<unknown>> = (
@@ -276,16 +278,12 @@ export function implementDoubleLevelVisibilityOperations<
 export function toMatrix(visibility: Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>): VisibilityMatrix {
     return {
         requirements: visibility.requirements.map(requirement => ({
-            conditions: requirement.conditions.map(condition => (
-                condition.type === 'ORDER' ? {
-                    groupId: condition.groupId,
-                    type: condition.type,
-                    order: condition.order
-                } : {
-                    groupId: condition.groupId,
-                    type: condition.type,
-                }
-            ))
+            conditions: requirement.conditions.map(({ groupId, order, onlyActive, onlyAdmins }) => ({
+                groupId,
+                order,
+                onlyActive,
+                onlyAdmins,
+            }))
         }))
     }
 }

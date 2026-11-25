@@ -3,6 +3,7 @@ import { eventOperations } from '@/services/events/operations'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { userOperations } from '@/services/users/operations'
+import { activeMembersOf } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 
 const HOUR = 60 * 60 * 1000
@@ -20,7 +21,7 @@ async function setUp(key: string) {
             eventStart: new Date(Date.now() + 48 * HOUR),
             eventEnd: new Date(Date.now() + 50 * HOUR),
             takesRegistration: false,
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
         },
         bypassAuth: true,
     })

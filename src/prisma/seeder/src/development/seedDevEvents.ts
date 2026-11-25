@@ -34,7 +34,9 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         where: { omegaMembershipLevel: 'SYSKEN' },
         select: { groupId: true },
     })
-    const quotaVisibilityRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: memberGroupId }] }]
+    const quotaVisibilityRequirements = [{
+        conditions: [{ groupId: memberGroupId, order: null, onlyActive: true, onlyAdmins: false }],
+    }]
 
     // The dev committee administrates the seeded events, since an event no one administrates
     // cannot be published. Those with EVENT_ADMIN administrate them too, as they do every event.
@@ -42,7 +44,9 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         where: { shortName: DEV_COMMITTEE_SHORT_NAME },
         select: { groupId: true },
     })
-    const visibilityAdminRequirements = [{ conditions: [{ type: 'ACTIVE' as const, groupId: committeeGroupId }] }]
+    const visibilityAdminRequirements = [{
+        conditions: [{ groupId: committeeGroupId, order: null, onlyActive: true, onlyAdmins: false }],
+    }]
 
     const coverImage = await prisma.image.findUniqueOrThrow({
         where: {

@@ -1,4 +1,4 @@
-import { recordSentMail } from 'tests/utils'
+import { recordSentMail, activeMembersOf } from 'tests/utils'
 import { changeEventSetup } from 'tests/eventSetup'
 import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
@@ -100,10 +100,10 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
             hostedByCommitteeId: committeeId,
             tagIds: [],
             quotaVisibilityRequirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
+                { conditions: [activeMembersOf(membersGroupId)] },
             ],
             visibilityAdminRequirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
+                { conditions: [activeMembersOf(membersGroupId)] },
             ],
         },
         bypassAuth: true,

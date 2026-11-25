@@ -6,6 +6,7 @@ import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { userOperations } from '@/services/users/operations'
+import { activeMembersOf } from 'tests/utils'
 import { afterEach, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { UserFiltered } from '@/services/users/types'
@@ -94,11 +95,11 @@ async function createEvent({
             registrationEnd,
             tagIds: [],
             quotaVisibilityRequirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
+                { conditions: [activeMembersOf(membersGroupId)] },
             ],
             visibilityAdminRequirements: [
-                { conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] },
-                { conditions: [{ type: 'ACTIVE', groupId: organisersGroupId }] },
+                { conditions: [activeMembersOf(membersGroupId)] },
+                { conditions: [activeMembersOf(organisersGroupId)] },
             ],
         },
         bypassAuth: true,
@@ -178,8 +179,8 @@ async function createPaidEvent({ committeeId, ledgerAccountId }: { committeeId: 
             paymentStart: new Date(Date.now() - HOUR),
             paymentEnd: new Date(Date.now() + 24 * HOUR),
             tagIds: [],
-            quotaVisibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: membersGroupId }] }],
+            quotaVisibilityRequirements: [{ conditions: [activeMembersOf(membersGroupId)] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(membersGroupId)] }],
         },
         bypassAuth: true,
     })
