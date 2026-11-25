@@ -9,6 +9,10 @@ const dataFieldSchemas = z.object({
     tenantNotes: z.string().optional(),
     numberOfMembers: z.coerce.number().int().min(0),
     numberOfNonMembers: z.coerce.number().int().min(0),
+    firstname: z.string().trim().min(2),
+    lastname: z.string().trim().min(2),
+    email: z.string().trim().email(),
+    mobile: z.string().trim().regex(/^\+?\d{4,20}$/, { message: 'Skriv kun tall, uten mellomrom.' }),
     acceptedTerms: Zpn.checkboxOrBoolean({
         label: '',
         message: 'Du må godta vilkårene for å bruke siden.'
@@ -45,6 +49,10 @@ const bookingUserAttached = dataFieldSchemas.pick({
     acceptedTerms: true,
     numberOfMembers: true,
     numberOfNonMembers: true,
+    firstname: true,
+    lastname: true,
+    email: true,
+    mobile: true,
 }).refine(startsBeforeEndAndNotInThePast, datesMessage)
 
 const bookingUserAttachedParams = paramsFieldSchemas.pick({

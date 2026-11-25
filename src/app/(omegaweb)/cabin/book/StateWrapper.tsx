@@ -2,6 +2,7 @@
 import CabinCalendar from './CabinCalendar'
 import CabinPriceCalculator from './CabinPriceCalculator'
 import SelectBedProducts from './SelectBedProduct'
+import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
@@ -39,13 +40,22 @@ import type { DateRange } from './CabinCalendar'
 import type { BookingType, PricePeriod } from '@/prisma-generated-pn-types'
 import type { ActionReturn } from '@/services/actionTypes'
 
-const sectionClassName = 'bg-base-200 border border-base-300 rounded-round p-6 flex flex-col gap-4'
+const sectionClassName = 'bg-base-200 border border-base-300 rounded-round p-6 flex flex-col gap-2'
 
 const bookingTypeOptions = [
     { value: 'CABIN', label: 'Hele hytta', description: 'Hele Heutten for deg og følget ditt.' },
     { value: 'BED', label: 'Enkeltsenger', description: 'Del hytta med andre, og betal per seng.' },
 ] as const
 const sectionHeadingClassName = 'm-0 text-l'
+
+const contactFields = [
+    { name: 'firstname', label: 'Fornavn' },
+    { name: 'lastname', label: 'Etternavn' },
+    { name: 'email', label: 'E-post' },
+    { name: 'mobile', label: 'Telefonnummer' },
+] as const
+
+type Contact = Record<typeof contactFields[number]['name'], string>
 
 /**
  * Where a reservation is kept across page refreshes (e.g. mid-Stripe-confirmation). Never stores
@@ -138,6 +148,8 @@ export default function StateWrapper({
 
     const [tenantNotes, setTenantNotes] = useState('')
     const [acceptedTerms, setAcceptedTerms] = useState(false)
+    // Null until the booker changes it, so it follows the profile.
+    const [editedContact, setEditedContact] = useState<Contact | null>(null)
 
     // checked stays false until the effect below runs, so we don't briefly flash the booking
     // form before knowing (from sessionStorage, unavailable during SSR) whether a pending
@@ -229,6 +241,14 @@ export default function StateWrapper({
 
     const { reservation } = reservationState
 
+    // A profile without a phone number leaves it to be filled in here.
+    const contact = editedContact ?? {
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        mobile: user.mobile ?? '',
+    }
+
     const canChangeBookingType = canBookCabin && canBookBed
 
     const summary = (bookingType === 'CABIN' ? 'Hele hytta' : 'Enkeltsenger') + (dateRange.start && dateRange.end
@@ -264,6 +284,7 @@ export default function StateWrapper({
             end: dateRange.end,
             tenantNotes,
             acceptedTerms,
+            ...contact,
         }
 
         const inputsKey = JSON.stringify({ bookingProducts, baseData, numberOfMembers, numberOfNonMembers })
@@ -324,14 +345,14 @@ export default function StateWrapper({
         </>
     }
 
-    return <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap gap-6 items-start">
-            <div className="flex-[999_1_560px] min-w-0 flex flex-col gap-6">
+    return <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2 items-start">
+            <div className="flex-[999_1_560px] min-w-0 flex flex-col gap-2">
                 {canChangeBookingType &&
                     <section className={sectionClassName}>
                         <h2 className={sectionHeadingClassName}>1. Hva vil du booke?</h2>
                         <div className="
-                            grid grid-cols-2 gap-3
+                            grid grid-cols-2 gap-2
                             max-mobile:grid-cols-1
                         ">
                             {bookingTypeOptions.map(option => (
@@ -374,7 +395,7 @@ export default function StateWrapper({
                     <h2 className={sectionHeadingClassName}>
                         {canChangeBookingType ? '3. ' : ''}{bookingType === 'BED' ? 'Hvor mange senger?' : 'Hvem blir med?'}
                     </h2>
-                    {bookingType === 'CABIN' && <div className="flex flex-wrap gap-4">
+                    {bookingType === 'CABIN' && <div className="flex flex-wrap gap-2">
                         <NumberInput
                             name="numberOfMembers"
                             label="Antall som er medlem i Omega"
@@ -404,7 +425,7 @@ export default function StateWrapper({
                         </p>
                     </div>}
 
-                    {bookingType === 'BED' && <div className="flex flex-wrap gap-4">
+                    {bookingType === 'BED' && <div className="flex flex-wrap gap-2">
                         <SelectBedProducts
                             amounts={bedAmounts}
                             bedProducts={bedProducts}
@@ -415,22 +436,43 @@ export default function StateWrapper({
 
                 <section className={sectionClassName}>
                     <h2 className={sectionHeadingClassName}>{canChangeBookingType ? '4. ' : ''}Kontaktinfo</h2>
-                    <dl className="
-                        m-0 grid grid-cols-2 gap-x-6 gap-y-3
+                    {editedContact || !user.mobile ? <div className="
+                        grid grid-cols-2 gap-2
                         max-mobile:grid-cols-1
                     ">
-                        {[
-                            ['Navn', `${user.firstname} ${user.lastname}`],
-                            ['E-post', user.email],
-                            ['Telefon', user.mobile ?? 'Ikke oppgitt'],
-                        ].map(([term, value]) => (
-                            <div key={term}>
-                                <dt className="text-s text-base-content/80">{term}</dt>
-                                <dd className="m-0">{value}</dd>
-                            </div>
+                        {contactFields.map(field => (
+                            <TextInput
+                                key={field.name}
+                                name={field.name}
+                                label={field.label}
+                                background="base100"
+                                value={contact[field.name]}
+                                onChange={e => setEditedContact({ ...contact, [field.name]: e.target.value })}
+                            />
                         ))}
-                    </dl>
-                    <p className="m-0 text-s text-base-content/80">Hentet fra profilen din.</p>
+                    </div> : <>
+                        <dl className="
+                            m-0 grid grid-cols-2 gap-2
+                            max-mobile:grid-cols-1
+                        ">
+                            {[
+                                ['Navn', `${contact.firstname} ${contact.lastname}`],
+                                ['E-post', contact.email],
+                                ['Telefon', contact.mobile],
+                            ].map(([term, value]) => (
+                                <div key={term}>
+                                    <dt className="text-s text-base-content/80">{term}</dt>
+                                    <dd className="m-0">{value}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                        <p className="m-0 text-s text-base-content/80">
+                            Hentet fra profilen din.{' '}
+                            <Button variant="text" onClick={() => setEditedContact(contact)}>
+                                Endre for denne bookingen
+                            </Button>
+                        </p>
+                    </>}
                     <Textarea
                         name="tenantNotes"
                         label="Beskjed til hyttestyret (valgfritt)"
