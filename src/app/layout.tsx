@@ -28,8 +28,8 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     // Lets the page paint into the status bar and home indicator areas instead of
-    // being letterboxed between them. The safe-area insets on the wrapper grid in
-    // (omegaweb)/layout.tsx are what then keep the nav bars clear of the system UI.
+    // being letterboxed between them. Each site's shell then keeps its bars clear of the
+    // system UI with the safe-area insets.
     viewportFit: 'cover',
 }
 

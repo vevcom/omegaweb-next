@@ -46,7 +46,7 @@ const mobileItemClassName = `
  */
 export default function RevueNavBar({ username, hasAdminPages }: PropTypes) {
     return (
-        <header className="sticky top-0 z-3 bg-base-100 border-b border-accent/25">
+        <header className="sticky top-[env(safe-area-inset-top)] z-3 bg-base-100 border-b border-accent/25">
             <nav className={`
                 ${innerClassName}
                 h-16 flex items-center gap-6
