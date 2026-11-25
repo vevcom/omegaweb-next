@@ -8,7 +8,7 @@ import ChatRoomActions from '@/components/Chat/Membership/ChatRoomActions'
 import Button from '@/components/UI/Button'
 import { refusalOf } from '@/lib/chatSession/membership'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
-import { useCallback, useId, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { LineActions } from './ChatTimelineLine'
 import type { RoomOfSpace } from '@/components/Chat/Membership/ChatRoomActions'
 import type { Mentions, Person, RoomTimeline, TimelineLine } from '@/lib/chatSession/timeline'
@@ -35,7 +35,8 @@ type PropTypes = {
  * said in a line that is read out, and so is what was not, with why: the homeserver did not take
  * it, or the message no longer lets the user, in which case nothing was sent. A new text that
  * was not taken is offered back and never put in the field by itself, since the user may be
- * writing something else by then. The people of the room are shown as the app knows them, and as
+ * writing something else by then. It is offered until the user takes it, lets go of it or edits
+ * a message, whatever else is done meanwhile. The people of the room are shown as the app knows them, and as
  * the homeserver names them until it has answered and where it knows nobody.
  */
 export default function ChatRoom({ client, room, isConnectionLost, directWith, ofSpace }: PropTypes) {
@@ -44,7 +45,8 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
     const [members, setMembers] = useState<Person[]>([])
     const [answering, setAnswering] = useState<string | null>(null)
     const [editing, setEditing] = useState<Edit | null>(null)
-    const [said, setSaid] = useState<{ text: string, isRefusal: boolean, notSaved?: Edit } | null>(null)
+    const [said, setSaid] = useState<{ text: string, isRefusal: boolean } | null>(null)
+    const [notSaved, setNotSaved] = useState<Edit | null>(null)
     const fieldId = useId()
     const mentioned = editing?.mentioned
     const profiles = useChatProfiles(useMemo(
@@ -62,17 +64,24 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
     const named = (person: Person) => ({ id: person.id, name: nameOf(person) })
     const mentionable = useMemo(() => members.map(member => ({ id: member.id, name: nameOf(member) })), [members, nameOf])
 
-    const ask = useCallback((asked: Promise<void>, done: string | null, notDone: string, notSaved?: Edit) => {
+    // What is said is of what was asked last, so an answer that comes late takes nothing newer away.
+    const asks = useRef(0)
+    const ask = useCallback((asked: Promise<void>, done: string | null, notDone: string, unsaved?: Edit) => {
+        const asking = ++asks.current
+        const say = (toSay: typeof said) => {
+            if (asking === asks.current) setSaid(toSay)
+        }
         setSaid(null)
-        void asked.then(
-            () => setSaid(done === null ? null : { text: done, isRefusal: false }),
-            (error: unknown) => setSaid({
-                text: `${notDone} ${refusalWording[refusalOf(error)]}`,
-                isRefusal: true,
-                notSaved,
-            }),
-        )
+        void asked.then(() => say(done === null ? null : { text: done, isRefusal: false }), (error: unknown) => {
+            say({ text: `${notDone} ${refusalWording[refusalOf(error)]}`, isRefusal: true })
+            if (unsaved) setNotSaved(unsaved)
+        })
     }, [])
+    const edit = (toEdit: Edit) => {
+        setAnswering(null)
+        setNotSaved(null)
+        setEditing(toEdit)
+    }
 
     const actions = useMemo((): LineActions => ({
         onResend: watched.resend,
@@ -86,6 +95,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
             const line = watched.read().lines.find(ofTimeline => ofTimeline.id === id)
             if (line?.kind !== 'TEXT') return
             setAnswering(null)
+            setNotSaved(null)
             setEditing({ id, text: line.text, mentioned: watched.mentionedIn(id) })
         },
         onRemove: id => {
@@ -114,7 +124,13 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
             return false
         }
         setEditing(null)
-        if (saving !== 'UNCHANGED') ask(saving, 'Meldingen er endret.', 'Endringen ble ikke lagret.', { ...editing, text })
+        if (saving !== 'UNCHANGED') {
+            // Offered back with whom it mentioned, those picked for it too.
+            const mentionedNow = [...editing.mentioned, ...members].filter((person, index, all) => (
+                mentions.userIds.includes(person.id) && all.findIndex(({ id }) => id === person.id) === index
+            ))
+            ask(saving, 'Meldingen er endret.', 'Endringen ble ikke lagret.', { ...editing, text, mentioned: mentionedNow })
+        }
         return true
     }
 
@@ -137,21 +153,14 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
                 onPageBack={pageBack}
                 onEndSeen={watched.markRead}
             />
-            <div
-                role="status"
-                className={said?.isRefusal ? 'flex flex-row flex-wrap items-baseline gap-x-3 text-s' : 'sr-only'}
-            >
-                <span className="text-error">{said?.text}</span>
-                {said?.notSaved && (
-                    <Button variant="text" onClick={() => {
-                        setAnswering(null)
-                        setEditing(said.notSaved ?? null)
-                        setSaid(null)
-                    }}>
-                        Rediger på nytt
-                    </Button>
-                )}
-            </div>
+            <div role="status" className={said?.isRefusal ? 'text-s text-error' : 'sr-only'}>{said?.text}</div>
+            {notSaved && (
+                <div className="flex flex-row flex-wrap items-baseline gap-x-3 text-s">
+                    <span>Den nye teksten din er tatt vare på.</span>
+                    <Button variant="text" onClick={() => edit(notSaved)}>Rediger på nytt</Button>
+                    <Button variant="text" onClick={() => setNotSaved(null)}>Forkast teksten</Button>
+                </div>
+            )}
             <ChatComposer
                 roomName={name}
                 fieldId={fieldId}

@@ -511,6 +511,85 @@ describe('a message the user writes', () => {
     })
 })
 
+describe('a message the homeserver has taken that the sync does not bring back', () => {
+    const shown = (lines: () => TimelineLine[]) => lines().map(line => line.kind === 'TEXT' && [line.text, line.sending])
+
+    test('is no longer on its way after a sync that left a gap, and is one line when it is paged back', async () => {
+        const { fake, watched, lines, tellOf } = await inRoom([text('$1', OLA, 'Gammel')])
+        fake.answerUnder(SEND, taking)
+        watched.send('Tatt')
+        await settled()
+        expect(shown(lines)).toEqual([['Gammel', null], ['Tatt', 'SENDING']])
+
+        tellOf([text('$8', OLA, 'Åtte'), text('$9', OLA, 'Ni')], ROOM, { limited: true, prev_batch: 'before-8' })
+        await settled()
+        expect(shown(lines)).toEqual([['Åtte', null], ['Ni', null]])
+
+        fake.answer(MESSAGES, () => ({ body: { chunk: [text('$Tatt', KARI, 'Tatt'), text('$1', OLA, 'Gammel')] } }))
+        await watched.pageBack()
+        expect(shown(lines)).toEqual([['Gammel', null], ['Tatt', null], ['Åtte', null], ['Ni', null]])
+        expect(lines()[1]).toMatchObject({ id: '$Tatt', canEdit: true, canRemove: true })
+    })
+
+    test('is one line when it is paged back before anything else has let go of it', async () => {
+        const { fake, watched, lines, tellOf } = await inRoom([text('$1', OLA, 'Gammel')])
+        let taken: (answer: { body: object }) => void = () => undefined
+        fake.answerUnder(SEND, () => new Promise(resolve => {
+            taken = resolve
+        }))
+        watched.send('Tatt')
+        await settled()
+        tellOf([text('$9', OLA, 'Ni')], ROOM, { limited: true, prev_batch: 'before-9' })
+        await settled()
+        taken({ body: { event_id: '$Tatt' } })
+        await settled()
+        expect(shown(lines)).toEqual([['Ni', null], ['Tatt', 'SENDING']])
+
+        fake.answer(MESSAGES, () => ({ body: { chunk: [text('$Tatt', KARI, 'Tatt')] } }))
+        await watched.pageBack()
+        expect(shown(lines)).toEqual([['Tatt', null], ['Ni', null]])
+    })
+
+    test('is waited for through the sync that was on its way and the next, and no longer', async () => {
+        const { fake, watched, lines, tellOf } = await inRoom([])
+        fake.answerUnder(SEND, taking)
+        watched.send('Tatt')
+        await settled()
+
+        tellOf([text('$2', OLA, 'To')])
+        await settled()
+        expect(shown(lines)).toEqual([['To', null], ['Tatt', 'SENDING']])
+        tellOf([text('$3', OLA, 'Tre')])
+        await settled()
+        expect(shown(lines)).toEqual([['To', null], ['Tre', null]])
+    })
+
+    test('is one line that is sent when the sync that left the gap brings it', async () => {
+        const { fake, watched, lines, tellOf } = await inRoom([])
+        fake.answerUnder(SEND, taking)
+        watched.send('Tatt')
+        await settled()
+
+        tellOf([text('$9', OLA, 'Ni'), text('$Tatt', KARI, 'Tatt')], ROOM, { limited: true, prev_batch: 'before-9' })
+        await settled()
+        expect(shown(lines)).toEqual([['Ni', null], ['Tatt', null]])
+    })
+
+    test('is a line again when a later sync brings it after all', async () => {
+        const { fake, watched, lines, tellOf } = await inRoom([])
+        fake.answerUnder(SEND, taking)
+        watched.send('Tatt')
+        await settled()
+        tellOf([text('$9', OLA, 'Ni')], ROOM, { limited: true, prev_batch: 'before-9' })
+        await settled()
+        expect(shown(lines)).toEqual([['Ni', null]])
+
+        tellOf([text('$Tatt', KARI, 'Tatt')])
+        await settled()
+        expect(shown(lines)).toEqual([['Ni', null], ['Tatt', null]])
+    })
+})
+
 describe('a room that is read to its end', () => {
     test('is said to be read at the homeserver, up to its last message and once', async () => {
         const { fake, watched } = await inRoom([text('$1', OLA, 'Hei'), text('$2', OLA, 'Hallo')])
@@ -641,6 +720,10 @@ describe('an edit', () => {
         tellOf([removal('$5', OLA, '$4')])
         await settled()
         expect(texts(line => line.text).$1).toBe('Kl 19')
+        // Once it is removed nothing says it was an edit, here or from the homeserver, so it is a message that was removed.
+        expect(lines().map(line => [line.id, line.kind === 'NOTE' && line.what])).toEqual([
+            ['$1', false], ['$2', false], ['$4', 'REMOVED'],
+        ])
     })
 
     test('counts only from the one who wrote the message, of a text message and as one', async () => {

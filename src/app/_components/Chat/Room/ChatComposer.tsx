@@ -2,7 +2,7 @@
 import Button from '@/components/UI/Button'
 import { DropdownPanel, dropdownOptionId } from '@/components/UI/Dropdown'
 import Textarea from '@/components/UI/Textarea'
-import { ROOM_MENTION, mentionBefore, mentionsOf, stillMentioned } from '@/lib/chatSession/mentions'
+import { ROOM_MENTION, mentionBefore, mentionsOf, stillMentioned, withMention } from '@/lib/chatSession/mentions'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { DropdownOption } from '@/components/UI/Dropdown'
 import type { Mentions, Person } from '@/lib/chatSession/timeline'
@@ -70,11 +70,10 @@ export default function ChatComposer({
         const draft = edited?.draft ?? { text, picked }
         setEdited(editing ? { id: editing.id, draft } : null)
         setText(editing ? editing.text : draft.text)
-        setPicked(editing ? [] : draft.picked)
+        // Whom the message mentioned is mentioned by its new text while they stand in it, as one who is picked.
+        setPicked(editing ? [...editing.mentioned] : draft.picked)
         setCaret((editing ?? draft).text.length)
     }
-    // Whom the message mentioned is mentioned by its new text while they stand in it, as one who is picked.
-    const candidates = editing ? [...editing.mentioned, ...picked] : picked
 
     const mention = mentionBefore(text, caret)
     const suggested: DropdownOption<string>[] = mention && mention.start !== dismissedAt ? [
@@ -107,15 +106,15 @@ export default function ChatComposer({
     const pick = ({ value }: DropdownOption<string>) => {
         const person = mentionable.find(({ id }) => id === value)
         if (!mention || (!person && value !== ROOM_MENTION)) return
-        const written = `${person ? `@${person.name}` : ROOM_MENTION} `
-        caretToPlace.current = mention.start + written.length
-        setText(`${text.slice(0, mention.start)}${written}${text.slice(caret)}`)
-        setCaret(caretToPlace.current)
+        const placed = withMention(text, mention.start, caret, person ? `@${person.name}` : ROOM_MENTION)
+        caretToPlace.current = placed.caret
+        setText(placed.text)
+        setCaret(placed.caret)
         if (person) setPicked([...picked, person])
     }
 
     const send = () => {
-        if (isEmpty || onSend(text, mentionsOf(text, candidates)) === false || editing) return
+        if (isEmpty || onSend(text, mentionsOf(text, picked)) === false || editing) return
         setText('')
         setPicked([])
         // The button is no longer to be pressed once the field is empty, and the next message is written here.
@@ -126,7 +125,9 @@ export default function ChatComposer({
         // Enter also picks a word of an input method, which is no message to send.
         if (event.nativeEvent.isComposing) return
         const isEnter = event.key === 'Enter' && !event.shiftKey
-        if (suggested.length > 0 && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key) || isEnter) {
+        // Shift with Tab leaves the field, as it does everywhere.
+        const isTab = event.key === 'Tab' && !event.shiftKey
+        if (suggested.length > 0 && (['ArrowDown', 'ArrowUp', 'Escape'].includes(event.key) || isTab) || isEnter) {
             event.preventDefault()
         }
         if (suggested.length === 0) {
@@ -134,7 +135,7 @@ export default function ChatComposer({
             if (event.key === 'Escape' && about) onCancelAbout?.()
         } else if (event.key === 'ArrowDown') setActive((activeNow + 1) % suggested.length)
         else if (event.key === 'ArrowUp') setActive((activeNow - 1 + suggested.length) % suggested.length)
-        else if (isEnter || event.key === 'Tab') pick(suggested[activeNow])
+        else if (isEnter || isTab) pick(suggested[activeNow])
         else if (event.key === 'Escape') setDismissedAt(mention?.start ?? null)
     }
 

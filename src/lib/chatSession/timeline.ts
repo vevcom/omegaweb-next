@@ -1,6 +1,6 @@
 import { loadedChatSdk } from './sdk'
 import type { Watched } from './watch'
-import type { EventTimeline, MatrixClient, MatrixEvent, MsgType, Room, RoomState } from 'matrix-js-sdk'
+import type { EventTimeline, MatrixClient, MatrixEvent, MsgType, Room, RoomState, SyncState } from 'matrix-js-sdk'
 
 /** What a timeline says in place of what it does not show, which the component puts into words. */
 export type TimelineNote =
@@ -158,7 +158,7 @@ const oneEmoji = new RegExp(`^(?:${flagOrKeycap}|${pictograph}(?:\\u200D${pictog
  * what it shows has changed.
  */
 export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoomTimeline {
-    const { Direction, EventStatus, EventType, RelationType, RoomEvent } = loadedChatSdk()
+    const { ClientEvent, Direction, EventStatus, EventType, RelationType, RoomEvent, SyncState } = loadedChatSdk()
     const roomEvents = [
         RoomEvent.Timeline,
         RoomEvent.TimelineReset,
@@ -173,6 +173,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     let linesBefore = new Map<string, TimelineLine>()
     let fetching: 'FETCHING' | 'FAILED' | null = null
     let toldReadTo: string | null = null
+    let takenAtLastSync = new Set<MatrixEvent>()
 
     const changed = () => {
         shown = null
@@ -183,6 +184,23 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     const isHeldUp = () => unsent().some(event => !isAct(event))
     // The SDK counts a receipt as given from when it is sent, so what the homeserver has said is asked for.
     const hasReadTo = (eventId: string) => room.getEventReadUpTo(client.getSafeUserId(), true) === eventId
+    const taken = () => room.getPendingEvents().filter(event => event.status === EventStatus.SENT)
+    /**
+     * Lets go of what the homeserver has taken and the sync will not bring back, which the SDK
+     * would keep as on its way for good. It is then where the homeserver has it: before the gap,
+     * where paging back finds it. One the sync brings after all is put last by the SDK then.
+     */
+    const letGoOfTaken = (events: MatrixEvent[]) => {
+        events.forEach(event => room.removePendingEvent(event.getId() ?? ''))
+        if (events.length > 0) changed()
+    }
+    const onGap = () => letGoOfTaken(taken())
+    // The homeserver may take a message while a sync is on its way, so the one after that is the last to bring it.
+    const onSync = (state: SyncState) => {
+        if (state !== SyncState.Syncing) return
+        letGoOfTaken(taken().filter(event => takenAtLastSync.has(event)))
+        takenAtLastSync = new Set(taken())
+    }
 
     const read = (): RoomTimeline => {
         const lines = timelineLinesOf(readingOf(room, ownId, isHeldUp())).map(line => {
@@ -219,12 +237,19 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         subscribe: onChange => {
             if (watchers.size === 0) {
                 roomEvents.forEach(roomEvent => room.on(roomEvent, changed))
+                room.on(RoomEvent.TimelineReset, onGap)
+                // eslint-disable-next-line no-sync -- The event of the client's sync, and no synchronous call.
+                client.on(ClientEvent.Sync, onSync)
                 shown = null
             }
             watchers.add(onChange)
             return () => {
                 watchers.delete(onChange)
-                if (watchers.size === 0) roomEvents.forEach(roomEvent => room.off(roomEvent, changed))
+                if (watchers.size > 0) return
+                roomEvents.forEach(roomEvent => room.off(roomEvent, changed))
+                room.off(RoomEvent.TimelineReset, onGap)
+                // eslint-disable-next-line no-sync -- As above.
+                client.off(ClientEvent.Sync, onSync)
             }
         },
         read: shownNow,
@@ -354,13 +379,15 @@ type Reading = {
 }
 
 function readingOf(room: Room, ownId: string, isHeldUp: boolean): Reading {
-    const loaded = room.getLiveTimeline().getEvents()
+    const events = room.getLiveTimeline().getEvents()
+    const loaded = new Map(events.flatMap(event => {
+        const id = textOf(event.getId())
+        return id ? [[id, event] as const] : []
+    }))
     const reading: Reading = {
-        events: [...loaded, ...room.getPendingEvents()],
-        loaded: new Map(loaded.flatMap(event => {
-            const id = textOf(event.getId())
-            return id ? [[id, event]] : []
-        })),
+        // What is on its way and was paged back meanwhile is the homeserver's event alone.
+        events: [...events, ...room.getPendingEvents().filter(event => !loaded.has(event.getId() ?? ''))],
+        loaded,
         edits: new Map(),
         reactions: new Map(),
         ownId,
