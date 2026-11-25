@@ -9,6 +9,7 @@ import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { userPartitions } from '@/services/users/constants'
+import { userOperations } from '@/services/users/operations'
 import { chatClientOrigin } from '@/services/chat/constants'
 import { chatServer } from '@/lib/chatSync/constants'
 import { localpartOf, matrixUserIdOf } from '@/lib/chatSync/matrixUserId'
@@ -239,6 +240,42 @@ export const chatUserOperations = {
                 lastname: user.lastname,
                 image: chatPictureOf({ image, user })?.image ?? null,
             }] : []))
+        },
+    }),
+
+    /**
+     * A page of those the user may start a conversation with, as the user list reads its pages:
+     * the active students who have an account on the chat, each with their Matrix id, and not the
+     * one who asks. None without the server name.
+     */
+    readPage: defineOperation({
+        paramsSchema: chatUserSchemas.params.readPage,
+        authorizer: () => chatUserAuth.readPage,
+        operation: async ({ prisma, params, session }) => {
+            const { serverName } = chatServer
+            if (!serverName) return []
+            const users = await userOperations.readPageOf.internalCall({
+                prisma,
+                params,
+                operationImplementationFields: {
+                    where: {
+                        AND: [
+                            userPartitions.activeOmegaStudents,
+                            { chatUser: { deactivatedAt: null } },
+                            { id: { not: session.user?.id } },
+                        ],
+                    },
+                },
+            })
+            const chatUsers = await prisma.chatUser.findMany({
+                where: { userId: { in: users.map(user => user.id) } },
+                select: { userId: true, localpart: true },
+            })
+            const localparts = new Map(chatUsers.map(chatUser => [chatUser.userId, chatUser.localpart]))
+            return users.flatMap(user => {
+                const localpart = localparts.get(user.id)
+                return localpart ? [{ ...user, matrixUserId: matrixUserIdOf(localpart, serverName) }] : []
+            })
         },
     }),
 } as const

@@ -1,5 +1,6 @@
 import { MAX_CHAT_PROFILES_AT_ONCE } from './constants'
 import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
+import { userSchemas } from '@/services/users/schemas'
 import { z } from 'zod'
 
 const paramsFieldSchemas = z.object({
@@ -19,6 +20,7 @@ export const chatUserSchemas = {
         readSpaces: ofUser,
         readDirectMessage: ofUser,
         readProfiles: paramsFieldSchemas.pick({ matrixUserIds: true }),
+        readPage: userSchemas.params.readPage,
         readPicture: ofUser,
         updatePicture: ofUser,
         destroyPicture: ofUser,

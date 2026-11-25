@@ -2,6 +2,7 @@ import { authorizeChatPage } from '@/app/(omegaweb)/chat/authorizeChatPage'
 import ChatAccountNotice from '@/app/(omegaweb)/chat/ChatAccountNotice'
 import { chatLinks } from '@/app/(omegaweb)/chat/links'
 import { usernameOfPage } from '@/app/(omegaweb)/links'
+import StartDirectMessage from '@/components/Chat/Membership/StartDirectMessage'
 import OpenChatRoom from '@/components/Chat/Room/OpenChatRoom'
 import { chatSessionOperations } from '@/services/chat/session/operations'
 import { chatUserOperations } from '@/services/chat/users/operations'
@@ -30,16 +31,14 @@ const { page, generateMetadata } = serverPage({
     metadata: ({ recipient }) => ({ title: `Melding til ${recipient.firstname}` }),
     render: ({ data: { recipient, directMessage, hasChatAccount, signsIn } }) => {
         const name = `${recipient.firstname} ${recipient.lastname}`
-        const inChatClient = directMessage.url && (
-            <SiteLink href={externalHref(directMessage.url)} target="_blank">
-                Skriv til {recipient.firstname} i Element
-            </SiteLink>
-        )
         if (signsIn && directMessage.matrixUserId) {
             return (
                 <OpenChatRoom room={{ directWith: directMessage.matrixUserId, name }}>
-                    <p className="m-0">Du har ingen direktemelding med {recipient.firstname} ennå.</p>
-                    {inChatClient}
+                    <StartDirectMessage
+                        matrixUserId={directMessage.matrixUserId}
+                        name={name}
+                        firstname={recipient.firstname}
+                    />
                 </OpenChatRoom>
             )
         }
@@ -49,7 +48,11 @@ const { page, generateMetadata } = serverPage({
                 {directMessage.isOnChat ? <>
                     <p className="m-0">Direktemeldinger ligger bare på chatten, så de vises ikke her ennå.</p>
                     <ChatAccountNotice hasChatAccount={hasChatAccount} />
-                    {inChatClient}
+                    {directMessage.url && (
+                        <SiteLink href={externalHref(directMessage.url)} target="_blank">
+                            Skriv til {recipient.firstname} i Element
+                        </SiteLink>
+                    )}
                 </> : (
                     <p className="m-0">
                         {recipient.firstname} er ikke på chatten. En konto der får man første gang man logger inn på chatten.

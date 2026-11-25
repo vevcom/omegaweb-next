@@ -1,9 +1,12 @@
 'use client'
 import { chatLinks } from './links'
+import ChatInvitationAnswer from '@/components/Chat/Membership/ChatInvitationAnswer'
+import NewConversation from '@/components/Chat/Membership/NewConversation'
 import { useChatSession } from '@/components/Chat/Session/ChatSessionProvider'
 import ChatSessionStatus from '@/components/Chat/Session/ChatSessionStatus'
 import Tag from '@/components/Chat/SpaceAdmin/Tag'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import useSiteRouter from '@/hooks/useSiteRouter'
 import { watchStandaloneRooms } from '@/lib/chatSession/rooms'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { ChatSessionState } from '@/lib/chatSession/run'
@@ -32,16 +35,18 @@ export default function ChatRoomList({ roomIdsOfSpaces }: PropTypes) {
 }
 
 /**
- * A room the user is in opens, and says how much in it is unread. One they are only asked into does
- * not open, since nothing here answers an invitation yet.
+ * A room the user is in opens, and says how much in it is unread. One they are only asked into is
+ * answered here, and opens once it is accepted.
  */
 function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces }: PropTypes & {
     state: ChatSessionState & { status: 'RUNNING' },
 }) {
     const watched = useMemo(() => watchStandaloneRooms(client, roomIdsOfSpaces), [client, roomIdsOfSpaces])
     const rooms = useSyncExternalStore(watched.subscribe, watched.read)
+    const { push } = useSiteRouter()
 
     return <>
+        <NewConversation client={client} />
         {connection === 'LOST' && (
             <p className="m-0 text-base-content/80">Får ikke kontakt med chatten. Prøver igjen ...</p>
         )}
@@ -60,7 +65,18 @@ function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces 
                             </SiteLink>
                         )}
                     <Tag>{room.kind === 'DIRECT' ? 'Direktemelding' : 'Gruppe'}</Tag>
-                    {room.isInvitation && <Tag>Invitasjon</Tag>}
+                    {room.isInvitation && <>
+                        <Tag>Invitasjon</Tag>
+                        {room.kind === 'GROUP' && room.inviterName && (
+                            <span className="text-base-content/80">fra {room.inviterName}</span>
+                        )}
+                        <ChatInvitationAnswer
+                            client={client}
+                            roomId={room.id}
+                            roomName={room.name}
+                            onAccepted={() => push(chatLinks.room(room))}
+                        />
+                    </>}
                     {room.unread > 0 && <Tag>{`${room.unread} ${room.unread === 1 ? 'ulest' : 'uleste'}`}</Tag>}
                     {room.mentions > 0 && <Tag>{`${room.mentions} ${room.mentions === 1 ? 'omtale' : 'omtaler'}`}</Tag>}
                 </li>

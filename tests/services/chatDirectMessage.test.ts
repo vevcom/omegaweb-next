@@ -135,3 +135,54 @@ describe('who the accounts on the chat are', () => {
             .rejects.toMatchObject({ errorCode: 'BAD PARAMETERS' })
     })
 })
+
+describe('whom a conversation is started with', () => {
+    /** Makes the user an active student: in a class and admitted. */
+    async function admit(userId: number) {
+        const { order } = await loaded.prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        const groups = await Promise.all([
+            loaded.prisma.class.findUniqueOrThrow({ where: { level: 'ONE' }, select: { groupId: true } }),
+            loaded.prisma.omegaMembershipGroup.findUniqueOrThrow({
+                where: { omegaMembershipLevel: 'SYSKEN' },
+                select: { groupId: true },
+            }),
+        ])
+        await loaded.prisma.membership.createMany({
+            data: groups.map(({ groupId }) => ({ userId, groupId, order, active: true, admin: false })),
+        })
+    }
+    const firstPage = {
+        paging: { page: { page: 0 as const, pageSize: 50, cursor: null }, details: { partOfName: 'velg-', groups: [] } },
+    }
+
+    test('is the active students with an account on the chat, by their Matrix id, and not the one who asks', async () => {
+        const asker = await createUser('velg-meg', { localpart: 'velg-meg' })
+        const [kari, without, gone] = await Promise.all([
+            createUser('velg-kari', { localpart: 'velg-kari-2' }),
+            createUser('velg-uten'),
+            createUser('velg-borte', { localpart: 'velg-borte' }),
+            // A former student, who is in no class.
+            createUser('velg-tidligere', { localpart: 'velg-tidligere' }),
+        ])
+        await Promise.all([asker, kari, without, gone].map(user => admit(user.id)))
+        await loaded.prisma.chatUser.update({ where: { userId: gone.id }, data: { deactivatedAt: new Date() } })
+        const session = loaded.Session.fromJsObject({
+            user: { id: asker.id } as UserFiltered,
+            permissions: ['USERS_USE'],
+            memberships: [],
+        })
+
+        const page = await loaded.chatUserOperations.readPage({ params: firstPage, session })
+
+        expect(page).toMatchObject([{ id: kari.id, username: 'velg-kari', matrixUserId: '@velg-kari-2:chat.test' }])
+    })
+
+    test('is for the users who see the users', async () => {
+        const readAs = (session: SessionMaybeUser) => loaded.chatUserOperations.readPage({ params: firstPage, session })
+        await expect(readAs(loaded.Session.empty())).rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+        await expect(readAs(loaded.Session.fromJsObject({ user: viewer, permissions: [], memberships: [] })))
+            .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+        await expect(readAs(loaded.Session.fromJsObject({ user: null, permissions: ['USERS_USE'], memberships: [] })))
+            .rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+    })
+})

@@ -251,26 +251,28 @@ export function fakeChatBrowser() {
         },
         /**
          * Lets the test say what the homeserver tells of after the first sync: `tell` answers the
-         * sync that waits, or the next to come, with what has happened in the rooms.
+         * sync that waits, or the next to come, with what has happened in the rooms, and with what
+         * has been noted in the user's account.
          */
         tellingOfNews: () => {
             const news: object[] = []
-            let told = 0
+            let tellings = 0
             let waiting: ((answer: Answer) => void) | null = null
-            const answerWith = (rooms: object): Answer => ({ body: { next_batch: `news-${++told}`, rooms } })
+            const answerWith = (told: object): Answer => ({ body: { next_batch: `news-${++tellings}`, ...told } })
             answers.set('/_matrix/client/v3/sync', call => {
                 if (!call.url.searchParams.has('since')) return { body: { next_batch: 'first', rooms: chat.rooms } }
-                const rooms = news.shift()
-                return rooms ? answerWith(rooms) : new Promise<Answer>(resolve => {
+                const told = news.shift()
+                return told ? answerWith(told) : new Promise<Answer>(resolve => {
                     waiting = resolve
                 })
             })
             return {
-                tell: (rooms: object) => {
+                tell: (rooms: object, accountData: object[] = []) => {
+                    const told = { rooms, account_data: { events: accountData } }
                     const answerTheOneThatWaits = waiting
                     waiting = null
-                    if (answerTheOneThatWaits) answerTheOneThatWaits(answerWith(rooms))
-                    else news.push(rooms)
+                    if (answerTheOneThatWaits) answerTheOneThatWaits(answerWith(told))
+                    else news.push(told)
                 },
             }
         },

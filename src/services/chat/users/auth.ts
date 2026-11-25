@@ -15,4 +15,6 @@ export const chatUserAuth = {
     readDirectMessage: Require.user().permission('USERS_USE'),
     /** A user who sees the users sees who the ones on the chat are. */
     readProfiles: Require.user().permission('USERS_USE'),
+    /** A user who sees the users picks whom to write to among the ones on the chat. */
+    readPage: Require.user().permission('USERS_USE'),
 } as const
