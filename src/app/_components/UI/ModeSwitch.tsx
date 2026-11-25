@@ -9,6 +9,8 @@ type PropTypes<ValueType extends string> = {
     }[],
     value: ValueType,
     onChange: (newValue: ValueType) => void,
+    /** For a switch inside a field of a form, where the full size would outweigh what it switches. */
+    compact?: boolean,
 }
 
 /**
@@ -16,14 +18,22 @@ type PropTypes<ValueType extends string> = {
  * single shared element (framer-motion layoutId) that slides to its new position, rather
  * than a class swap on each button.
  */
-export default function ModeSwitch<ValueType extends string>({ options, value, onChange }: PropTypes<ValueType>) {
+export default function ModeSwitch<ValueType extends string>({
+    options,
+    value,
+    onChange,
+    compact = false,
+}: PropTypes<ValueType>) {
     const layoutId = useId()
 
     return (
-        <div className="
-            inline-flex items-center gap-1 p-1 bg-base-300 rounded-(--gap) h-14 mt-2
-            max-mobile:w-full
-        ">
+        <div className={`
+            inline-flex items-center gap-1 p-1 bg-base-300 rounded-(--gap)
+            ${compact ? 'self-start h-10' : `
+                h-14 mt-2
+                max-mobile:w-full
+            `}
+        `}>
             {options.map(option => {
                 const active = option.value === value
                 return (
@@ -31,9 +41,11 @@ export default function ModeSwitch<ValueType extends string>({ options, value, o
                         key={option.value}
                         type="button"
                         className={`
-                            h-full relative border-none bg-transparent m-0 py-2 px-4 text-m cursor-pointer
-                            transition-colors duration-300
-                            max-mobile:flex-1
+                            h-full relative border-none bg-transparent m-0 cursor-pointer transition-colors duration-300
+                            ${compact ? 'py-1 px-3 text-s' : `
+                                py-2 px-4 text-m
+                                max-mobile:flex-1
+                            `}
                             ${active ? 'text-primary-content' : `
                                 text-base-content
                                 hover:text-base-content/80

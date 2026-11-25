@@ -1,10 +1,16 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import VevenAdapter from './VevenAdapter'
 import { feideLoginMayLinkByEmail } from './feideEmailLinking'
 import { loginReachesArchivedUser } from './archivedUsers'
 import { compressJwt, decompressJwt } from './jwtCompression'
 import { permissionsMaxAge } from './constants'
-import { sessionTokenOf } from './sessionToken'
+import {
+    companySessionStillStands,
+    companySessionTokenOf,
+    refreshedCompanySessionToken,
+    sessionTokenOf,
+} from './sessionToken'
+import { COMPANY_CREDENTIALS_PROVIDER, authorizeCompanyCredentials } from './companyCredentials'
 import { decryptAndComparePassword } from '@/auth/passwordHash'
 import FeideProvider from '@/lib/feide/feideProvider'
 import { fetchStudyProgrammeRealmsFromFeide } from '@/lib/feide/api'
@@ -18,13 +24,21 @@ import { feideAccountOperations } from '@/services/auth/feideAccounts/operations
 import { userOperations } from '@/services/users/operations'
 import { userPartitions } from '@/services/users/constants'
 import logger from '@/lib/logger'
+import { Site } from '@/lib/sites/site'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { encode, decode } from 'next-auth/jwt'
 import type { AuthOptions } from 'next-auth'
+import type { Provider } from 'next-auth/providers/index'
+import type { DomainContext } from '@/lib/sites/context'
 
-export const authOptions: AuthOptions = {
-    providers: [
-        CredentialsProvider({
+/**
+ * The logins NextAuth has, and the domains each is offered on. A user signs in on the auth domain
+ * alone, and every other domain gets their session from the SSO callback. A company user signs in on
+ * a domain that serves the career site.
+ */
+const loginProviders: { provider: Provider, offeredOn: (context: DomainContext) => boolean }[] = [
+    {
+        provider: CredentialsProvider({
             name: 'Credentials',
             credentials: {
                 username: { label: 'Username', type: 'text' },
@@ -56,11 +70,31 @@ export const authOptions: AuthOptions = {
                 return { id: String(userCredentials.userId) }
             }
         }),
-        FeideProvider({
+        offeredOn: context => context.isAuthDomain(),
+    },
+    {
+        provider: CredentialsProvider({
+            id: COMPANY_CREDENTIALS_PROVIDER,
+            name: 'Company credentials',
+            credentials: {
+                email: { label: 'Email', type: 'text' },
+                password: { label: 'Password', type: 'password' },
+            },
+            authorize: authorizeCompanyCredentials,
+        }),
+        offeredOn: context => context.serves(Site.CAREERS),
+    },
+    {
+        provider: FeideProvider({
             clientId: process.env.FEIDE_CLIENT_ID ?? 'no_id',
             clientSecret: process.env.FEIDE_CLIENT_SECRET ?? 'no_secret',
-        })
-    ],
+        }),
+        offeredOn: context => context.isAuthDomain(),
+    },
+]
+
+export const authOptions: AuthOptions = {
+    providers: loginProviders.map(({ provider }) => provider),
     session: {
         strategy: 'jwt'
     },
@@ -79,6 +113,12 @@ export const authOptions: AuthOptions = {
 
             // iat = issued at (timestamp given in seconds since epoch)
             if (!token?.iat) return null
+
+            if (token.provider === COMPANY_CREDENTIALS_PROVIDER) {
+                return await companySessionStillStands(token) ? token : null
+            }
+            // Every other login is a user's.
+            if (!token.user) return null
 
             const user = await prisma.user.findUnique({
                 where: {
@@ -114,6 +154,9 @@ export const authOptions: AuthOptions = {
     },
     callbacks: {
         async signIn({ user, account, profile }) {
+            // A company user is no user: there is none to be archived, and no Feide account to link.
+            if (account?.provider === COMPANY_CREDENTIALS_PROVIDER) return true
+
             const isFeide = account?.provider === 'feide'
             const reachesArchivedUser = await loginReachesArchivedUser(prisma, isFeide
                 ? { feideAccountId: account.providerAccountId, email: profile?.email }
@@ -131,6 +174,7 @@ export const authOptions: AuthOptions = {
         },
         session({ session, token }) {
             session.user = token.user
+            session.companyUser = token.companyUser
             session.permissions = token.permissions
             session.memberships = token.memberships
             return session
@@ -139,6 +183,10 @@ export const authOptions: AuthOptions = {
             switch (trigger) {
                 case 'signUp':
                 case 'signIn': {
+                    if (account?.provider === COMPANY_CREDENTIALS_PROVIDER) {
+                        logger.info('Company log in', { companyUserId: user.id })
+                        return companySessionTokenOf(Number(user.id))
+                    }
                     if (account?.provider === 'feide') {
                         if (!account.access_token) {
                             // Should never happen.
@@ -152,7 +200,8 @@ export const authOptions: AuthOptions = {
                             })
                         }
 
-                        const userId = user ? Number(user.id) : token.user.id
+                        const userId = user ? Number(user.id) : token.user?.id
+                        if (userId === undefined) throw new Error('A Feide login names no user')
 
                         const studyProgrammes = await updateUserStudyProgrammes(userId, account.access_token)
                         await inferClassFromStudyProgrammes(userId, studyProgrammes)
@@ -163,6 +212,9 @@ export const authOptions: AuthOptions = {
                 }
                 // Trigger is undefined for subsequent calls
                 case undefined: {
+                    if (token.provider === COMPANY_CREDENTIALS_PROVIDER) return refreshedCompanySessionToken(token)
+                    if (!token.user) throw new Error('A session token of a user login names no user')
+
                     const dbUser = await userOperations.read({
                         params: { id: token.user.id },
                         bypassAuth: true,
@@ -192,7 +244,8 @@ export const authOptions: AuthOptions = {
             // The 'user' object will only be set when the trigger is 'signIn'.
             // We also have to type convert 'user.id' because the default next
             // auth type for it is different from our model.
-            const userId = user ? Number(user.id) : token?.user.id
+            const userId = user ? Number(user.id) : token.user?.id
+            if (userId === undefined) throw new Error('A session token of a user login names no user')
 
             // The account object will only be available during sign in/up.
             // For other cases we will already have a provider stored in the token
@@ -233,4 +286,8 @@ export const authOptions: AuthOptions = {
         // profile and the PKCE, state and nonce values of every sign-in - credentials and personal
         // data that would end up in the log files.
     }
+}
+
+export function loginProvidersOn(context: DomainContext): Provider[] {
+    return loginProviders.filter(({ offeredOn }) => offeredOn(context)).map(({ provider }) => provider)
 }

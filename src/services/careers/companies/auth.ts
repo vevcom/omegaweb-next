@@ -1,12 +1,19 @@
 import { Require } from '@/auth/authorizer/Require'
 
+export const companyLogosImagePanelAuth = Require.permission('COMPANY_ADMIN')
+
+/** Those who run the companies, or an admin of the company itself. Needs `{ companyId }`. */
+export const adminOrCompanyAdmin = Require.permission('COMPANY_ADMIN').or().companyAdmin()
+
 export const companyAuth = {
     readSponsors: Require.nothing(),
     create: Require.permission('COMPANY_ADMIN'),
+    read: Require.permission('COMPANY_USE').or().companyMember(),
     readPage: Require.permission('COMPANY_USE'),
     search: Require.permission('COMPANY_USE'),
-    update: Require.permission('COMPANY_ADMIN'),
+    update: adminOrCompanyAdmin,
+    updateName: Require.permission('COMPANY_ADMIN'),
     updateSponsorTier: Require.permission('COMPANY_ADMIN'),
-    updateCmsImageLogo: Require.permission('COMPANY_ADMIN'),
+    updateLogo: adminOrCompanyAdmin,
     destroy: Require.permission('COMPANY_ADMIN'),
 } as const

@@ -4,36 +4,41 @@ import { specialImagePanelOperations } from './operations'
 import { makeAction } from '@/services/serverAction'
 
 export const readFlairImagesCollectionAction =
-    makeAction(specialImagePanelOperations.flairImages.readCollection)
+    makeAction(specialImagePanelOperations.FLAIRIMAGES.readCollection)
 export const readImagesPageInFlairImagesCollectionAction =
-    makeAction(specialImagePanelOperations.flairImages.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.FLAIRIMAGES.readPageOfImagesInCollection)
 
 export const readOmbulCoversCollectionAction =
-    makeAction(specialImagePanelOperations.ombulCovers.readCollection)
+    makeAction(specialImagePanelOperations.OMBULCOVERS.readCollection)
 export const readImagesPageInOmbulCoversCollectionAction =
-    makeAction(specialImagePanelOperations.ombulCovers.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.OMBULCOVERS.readPageOfImagesInCollection)
 
 export const readCommitteeLogosCollectionAction =
-    makeAction(specialImagePanelOperations.committeeLogos.readCollection)
+    makeAction(specialImagePanelOperations.COMMITTEELOGOS.readCollection)
 export const readImagesPageInCommitteeLogosCollectionAction =
-    makeAction(specialImagePanelOperations.committeeLogos.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.COMMITTEELOGOS.readPageOfImagesInCollection)
 
 export const readProfileImagesCollectionAction =
-    makeAction(specialImagePanelOperations.profileImages.readCollection)
+    makeAction(specialImagePanelOperations.PROFILEIMAGES.readCollection)
 export const readImagesPageInProfileImagesCollectionAction =
-    makeAction(specialImagePanelOperations.profileImages.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.PROFILEIMAGES.readPageOfImagesInCollection)
 
 export const readStandardImagesCollectionAction =
-    makeAction(specialImagePanelOperations.standardImages.readCollection)
+    makeAction(specialImagePanelOperations.STANDARDIMAGES.readCollection)
 export const readImagesPageInStandardImagesCollectionAction =
-    makeAction(specialImagePanelOperations.standardImages.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.STANDARDIMAGES.readPageOfImagesInCollection)
 
 export const readPromoImagesCollectionAction =
-    makeAction(specialImagePanelOperations.promoImages.readCollection)
+    makeAction(specialImagePanelOperations.PROMOIMAGES.readCollection)
 export const readImagesPageInPromoImagesCollectionAction =
-    makeAction(specialImagePanelOperations.promoImages.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.PROMOIMAGES.readPageOfImagesInCollection)
 
 export const readCareerTeamImagesCollectionAction =
-    makeAction(specialImagePanelOperations.careerTeamImages.readCollection)
+    makeAction(specialImagePanelOperations.CAREERTEAMIMAGES.readCollection)
 export const readImagesPageInCareerTeamImagesCollectionAction =
-    makeAction(specialImagePanelOperations.careerTeamImages.readPageOfImagesInCollection)
+    makeAction(specialImagePanelOperations.CAREERTEAMIMAGES.readPageOfImagesInCollection)
+
+export const readCompanyLogosCollectionAction =
+    makeAction(specialImagePanelOperations.COMPANYLOGOS.readCollection)
+export const readImagesPageInCompanyLogosCollectionAction =
+    makeAction(specialImagePanelOperations.COMPANYLOGOS.readPageOfImagesInCollection)

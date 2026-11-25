@@ -1,14 +1,29 @@
+/// An address on one of our mail domains, which an alias or a user has. An address has one row, so
+/// it is one alias's or one user's and never both. The owner keeps the address in a column of its
+/// own that refers to the row, which follows when the address changes. See services/mail/address.
+model MailAddress {
+  id                     Int      @id @default(autoincrement())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  address                String   @unique
+  forwardsToPrivateEmail Boolean  @default(true)
+
+  alias MailAlias?
+  user  User?
+}
+
 model MailAlias {
-  id                Int        @id @default(autoincrement())
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  address           String     @unique
-  description       String     @default("")
-  ownerVisibility   Visibility @relation(name: "MailAliasOwnerVisibility", fields: [ownerVisibilityId], references: [id], onDelete: Restrict)
-  ownerVisibilityId Int        @unique
+  id                Int         @id @default(autoincrement())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  address           String      @unique
+  mailAddress       MailAddress @relation(fields: [address], references: [address], onDelete: Restrict, onUpdate: Cascade)
+  description       String      @default("")
+  ownerVisibility   Visibility  @relation(name: "MailAliasOwnerVisibility", fields: [ownerVisibilityId], references: [id], onDelete: Restrict)
+  ownerVisibilityId Int         @unique
   /// Whether the alias also keeps its mail in a shared mailbox on the mail server, which everyone who receives it may open.
   /// The id of that mailbox's group account on the mail server, once the sync has created it.
-  mailboxAccountId  String?    @unique
+  mailboxAccountId  String?     @unique
 
   mailingLists        MailAliasMailingList[]
   notificationChannel NotificationChannel[]

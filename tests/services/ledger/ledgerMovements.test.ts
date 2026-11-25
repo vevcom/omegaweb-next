@@ -1,4 +1,3 @@
-import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -7,7 +6,9 @@ import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { STRIPE_MINIMUM_PAYMENT_AMOUNT } from '@/services/ledger/payments/constants'
 import { userOperations } from '@/services/users/operations'
+import { testSession } from 'tests/utils'
 import { afterEach, beforeEach, describe, expect, jest, test } from '@jest/globals'
+import type { Session } from '@/auth/session/Session'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Permission } from '@/prisma-generated-pn-types'
 
@@ -15,7 +16,7 @@ const DEPOSIT = 100_00
 
 type SessionUser = NonNullable<Parameters<typeof Session.fromJsObject>[0]['user']>
 
-const sessionOf = (userId: number | null, permissions: Permission[], groupIds: number[] = []) => Session.fromJsObject({
+const sessionOf = (userId: number | null, permissions: Permission[], groupIds: number[] = []) => testSession({
     memberships: groupIds.map(groupId => ({ groupId, admin: false, active: true, order: 0 })),
     permissions,
     user: userId === null ? null : { id: userId } as SessionUser,

@@ -5,12 +5,9 @@ import { fileURLToPath } from 'url'
 import type { ImagesAvailablieForCms } from '@/seeder/src/standardContent/seedImages'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { Data } from '@/services/serviceOperation'
-import type { implementUpdateArticleOperations } from '@/services/cms/articles/implement'
-import type { z } from 'zod'
+import type { UpdateArticleOperations } from '@/services/cms/articles/implement'
 
 export const CMS_PARAGRAPHS_DIR = fileURLToPath(new URL('../cms_paragraphs/', import.meta.url))
-
-export type UpdateArticleOperationsReference = ReturnType<typeof implementUpdateArticleOperations<z.ZodTypeAny>>
 
 type SeedCmsImageConfig = { image: ImagesAvailablieForCms }
 
@@ -19,7 +16,7 @@ type SeedCmsParagraphConfig = {
 }
 
 type SeedCmsLinkConfig =
-    Required<Data<UpdateArticleOperationsReference['articleSections']['cmsLink']>>
+    Required<Data<UpdateArticleOperations['articleSections']['cmsLink']>>
 
 export type SeedArticleSectionConfig = {
     cmsParagraph?: SeedCmsParagraphConfig,
@@ -27,7 +24,7 @@ export type SeedArticleSectionConfig = {
     cmsLink?: SeedCmsLinkConfig,
 }
 
-export type SeedArticleConfig = Required<Data<UpdateArticleOperationsReference['update']>> & {
+export type SeedArticleConfig = Required<Data<UpdateArticleOperations['update']>> & {
     coverImage: SeedCmsImageConfig,
     articleSections: SeedArticleSectionConfig[],
 }
@@ -36,7 +33,7 @@ export type SeedArticleConfig = Required<Data<UpdateArticleOperationsReference['
  * Builds out an already-created (but still empty) article's content - name, cover image, and
  * sections - the same way the admin CMS editor would. Each domain (article categories, news, ...)
  * owns articles differently (a category groups them; a news article wraps one directly), so
- * rather than injecting a whole updateArticle operations object generically - which the type
+ * rather than injecting a whole article operations object generically - which the type
  * system can't verify calls against once its implementation params schema is still a naked
  * generic - the caller injects one already-bound function per operation, closing over its own
  * implementationParams/params.
@@ -53,25 +50,25 @@ export async function buildArticleFromConfig(
         prisma,
     }: {
         updateName: (
-            data: Data<UpdateArticleOperationsReference['update']>
+            data: Data<UpdateArticleOperations['update']>
         ) => Promise<unknown>,
         updateCoverImage: (
-            data: Data<UpdateArticleOperationsReference['coverImage']>
+            data: Data<UpdateArticleOperations['coverImage']>
         ) => Promise<unknown>,
         addSection: (
-            data: Data<UpdateArticleOperationsReference['addSection']>
-        ) => ReturnType<UpdateArticleOperationsReference['addSection']>,
+            data: Data<UpdateArticleOperations['addSection']>
+        ) => ReturnType<UpdateArticleOperations['addSection']>,
         updateSectionParagraph: (
             paragraphId: number,
-            data: Data<UpdateArticleOperationsReference['articleSections']['cmsParagraph']>
+            data: Data<UpdateArticleOperations['articleSections']['cmsParagraph']>
         ) => Promise<unknown>,
         updateSectionImage: (
             cmsImageId: number,
-            data: Data<UpdateArticleOperationsReference['articleSections']['cmsImage']>
+            data: Data<UpdateArticleOperations['articleSections']['cmsImage']>
         ) => Promise<unknown>,
         updateSectionLink: (
             linkId: number,
-            data: Data<UpdateArticleOperationsReference['articleSections']['cmsLink']>
+            data: Data<UpdateArticleOperations['articleSections']['cmsLink']>
         ) => Promise<unknown>,
         article: SeedArticleConfig,
         prisma: PrismaClient,

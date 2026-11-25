@@ -68,7 +68,8 @@ export class AuthResult<
 
     /** The status the result would have if it were not authorized: what to throw when it isn't. */
     public get failureStatus(): AuthFailureStatus {
-        if (this.authResult.session.user) return 'UNAUTHORIZED'
+        // A company user is signed in too: sending them to the login would not help.
+        if (this.authResult.session.user || this.authResult.session.companyUser) return 'UNAUTHORIZED'
         if (typeof this.authResult.session.apiKeyId === 'number') return 'UNAUTHORIZED'
         return 'UNAUTHENTICATED'
     }

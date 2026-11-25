@@ -1,5 +1,5 @@
 import logger from '@/lib/logger'
-import type { GroupWithDumbRelations, GroupWithRelations } from '@/services/groups/types'
+import type { GroupWithDumbRelations, GroupWithRelations, RevueSubGroupWithRevueGroup } from '@/services/groups/types'
 import type {
     Class, Committee, InterestGroup, ManualGroup, OmegaMembershipGroup, StudyProgramme
 } from '@/prisma-generated-pn-types'
@@ -11,6 +11,7 @@ export type ValidatedGroup<
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
     StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
     ExtraFields extends object,
 > = GroupWithRelations<
     CommitteeKeys,
@@ -18,8 +19,12 @@ export type ValidatedGroup<
     ClassKeys,
     InterestGroupKeys,
     OmegaMembershipGroupKeys,
-    StudyProgrammeKeys
-> & Omit<ExtraFields, 'committee' | 'manualGroup' | 'class' | 'interestGroup' | 'omegaMembershipGroup' | 'studyProgramme'>
+    StudyProgrammeKeys,
+    RevueSubGroupKeys
+> & Omit<
+    ExtraFields,
+    'committee' | 'manualGroup' | 'class' | 'interestGroup' | 'omegaMembershipGroup' | 'studyProgramme' | 'revueSubGroup'
+>
 
 export type GroupValidityCheck<
     CommitteeKeys extends keyof Committee,
@@ -28,13 +33,14 @@ export type GroupValidityCheck<
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
     StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
     ExtraFields extends object,
 > =
     | {
         valid: true,
         group: ValidatedGroup<
             CommitteeKeys, ManualGroupKeys, ClassKeys, InterestGroupKeys, OmegaMembershipGroupKeys,
-            StudyProgrammeKeys, ExtraFields
+            StudyProgrammeKeys, RevueSubGroupKeys, ExtraFields
         >,
     }
     | { valid: false }
@@ -55,6 +61,7 @@ export function checkGroupValidity<
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
     StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
     ExtraFields extends object,
 >(group: GroupWithDumbRelations<
     CommitteeKeys,
@@ -62,9 +69,11 @@ export function checkGroupValidity<
     ClassKeys,
     InterestGroupKeys,
     OmegaMembershipGroupKeys,
-    StudyProgrammeKeys
+    StudyProgrammeKeys,
+    RevueSubGroupKeys
 > & ExtraFields): GroupValidityCheck<
-    CommitteeKeys, ManualGroupKeys, ClassKeys, InterestGroupKeys, OmegaMembershipGroupKeys, StudyProgrammeKeys, ExtraFields
+    CommitteeKeys, ManualGroupKeys, ClassKeys, InterestGroupKeys, OmegaMembershipGroupKeys, StudyProgrammeKeys,
+    RevueSubGroupKeys, ExtraFields
 > {
     switch (group.groupType) {
         case 'COMMITTEE':
@@ -161,6 +170,22 @@ export function checkGroupValidity<
                     ...group,
                     groupType: 'STUDY_PROGRAMME',
                     studyProgramme: group.studyProgramme,
+                }
+            }
+        case 'REVUE_SUB_GROUP':
+            if (!group.revueSubGroup) {
+                logger.error(
+                    'Group with type revue sub group without revue sub group relation detected',
+                    group
+                )
+                return { valid: false }
+            }
+            return {
+                valid: true,
+                group: {
+                    ...group,
+                    groupType: 'REVUE_SUB_GROUP',
+                    revueSubGroup: group.revueSubGroup,
                 }
             }
         default:

@@ -67,3 +67,6 @@ next-env.d.ts
 
 # the domains of the sites, see sites.example.json
 /sites.json
+
+# the release notes the release workflow bakes into the image
+/versions

@@ -8,14 +8,16 @@ model Company {
   id          Int                @id @default(autoincrement())
   name        String             @unique
   description String
-  logo        CmsImage           @relation(fields: [logoId], references: [id])
-  logoId      Int                @unique
+  // An upload in the COMPANYLOGOS collection, owned by this company alone.
+  logoImage   Image?             @relation(fields: [logoImageId], references: [id], onDelete: SetNull)
+  logoImageId Int?               @unique
   website     String?
   sponsorTier CompanySponsorTier @default(NONE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   JobAd     JobAd[]
+  users     CompanyUser[]
 
   @@index([sponsorTier])
 }

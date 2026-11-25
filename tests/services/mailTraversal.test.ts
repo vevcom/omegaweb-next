@@ -5,6 +5,7 @@ import { mailingListOperations } from '@/services/mail/list/operations'
 import { mailAddressExternalOperations } from '@/services/mail/mailAddressExternal/operations'
 import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { userBasicSelection } from '@/services/users/constants'
+import { activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { MailingList } from '@/prisma-generated-pn-types'
 import type { MailFlowGroup, MailFlowPaths, MailListTypes, ViaType } from '@/services/mail/types'
@@ -75,7 +76,7 @@ async function createGraph() {
         data: {
             name: 'traversal-list-one',
             description: '',
-            ownerRequirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }],
+            ownerRequirements: [{ conditions: [activeMembersOf(groupId)] }],
         },
         bypassAuth: true,
     })).id

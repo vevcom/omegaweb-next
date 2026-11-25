@@ -1,5 +1,4 @@
-
-import SiteLink from '@/components/SiteLink/SiteLink'
+import RowLink from './RowLink'
 import type { ReactNode } from 'react'
 import type { AppHref } from '@/lib/sites/href'
 
@@ -15,22 +14,16 @@ export default function SimpleTable<T extends string[]>({
     /** Replaces the default table style. */
     className?: string,
 }) {
-    return <table className={`
-        ${className}
-        [&_a]:no-underline [&_a]:text-inherit
-    `}>
+    return <table className={className}>
         <thead>
             <tr>
                 {header.map((item, i) => <th key={i}>{item}</th>)}
             </tr>
         </thead>
         <tbody>
-            {body.map((row, i) => <tr key={i}>
+            {body.map((row, i) => <tr key={i} className={links ? 'relative' : undefined}>
                 {row.map((item, j) => <td key={j}>
-                    {/* A row cannot sit inside a link, so every cell links on its own and only the first is a tab stop. */}
-                    {links ? <SiteLink href={links[i]} tabIndex={j === 0 ? undefined : -1} className="block">
-                        {item}
-                    </SiteLink> : item}
+                    {links && j === 0 ? <RowLink href={links[i]}>{item}</RowLink> : item}
                 </td>)}
             </tr>)}
         </tbody>

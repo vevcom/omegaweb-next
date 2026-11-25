@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailTraversalSchemas } from './schemas'
 import {
     readAliasTraversal,

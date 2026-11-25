@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { readPemEnvBase64 } from './readPemEnvBase64'
 import { JWT_ISSUER, OmegaJWTAudienceAlgorithms } from '@/lib/jwt/constants'
 import { ServiceError } from '@/services/error'

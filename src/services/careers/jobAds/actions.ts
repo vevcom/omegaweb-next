@@ -8,32 +8,32 @@ export const readInactiveJobAdsPageAction = makeAction(jobAdOperations.readInact
 export const updateJobAdAction = makeAction(jobAdOperations.update)
 
 export const updateJobAdArticleAction = makeAction(
-    jobAdOperations.updateArticle.update
+    jobAdOperations.article.update
 )
 export const updateJobAdArticleAddSectionAction = makeAction(
-    jobAdOperations.updateArticle.addSection
+    jobAdOperations.article.addSection
 )
 export const updateJobAdArticleReorderSectionsAction = makeAction(
-    jobAdOperations.updateArticle.reorderSections
+    jobAdOperations.article.reorderSections
 )
 export const updateJobAdArticleCoverImageAction = makeAction(
-    jobAdOperations.updateArticle.coverImage
+    jobAdOperations.article.coverImage
 )
 export const updateJobAdArticleSectionAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.update
+    jobAdOperations.article.articleSections.update
 )
 export const updateJobAdArticleSectionsAddPartAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.addPart
+    jobAdOperations.article.articleSections.addPart
 )
 export const updateJobAdArticleSectionsRemovePartAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.removePart
+    jobAdOperations.article.articleSections.removePart
 )
 export const updateJobAdArticleCmsImageAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.cmsImage
+    jobAdOperations.article.articleSections.cmsImage
 )
 export const updateJobAdArticleCmsParagraphAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.cmsParagraph
+    jobAdOperations.article.articleSections.cmsParagraph
 )
 export const updateJobAdArticleCmsLinkAction = makeAction(
-    jobAdOperations.updateArticle.articleSections.cmsLink
+    jobAdOperations.article.articleSections.cmsLink
 )

@@ -1,4 +1,4 @@
-import { GroupType } from '@/prisma-generated-pn/client'
+import { GroupType } from '@/prisma-generated-pn-types'
 
 /**
  * Which group types follow omega's order without a human in the loop. When omega increments, every
@@ -16,6 +16,7 @@ export const MigratedStraightAwayOnIncrement = {
     MANUAL_GROUP: false,
     OMEGA_MEMBERSHIP_GROUP: true,
     STUDY_PROGRAMME: true,
+    REVUE_SUB_GROUP: false,
 } as const satisfies Record<GroupType, boolean>
 
 export const groupTypesMigratedStraightAway = Object.values(GroupType)

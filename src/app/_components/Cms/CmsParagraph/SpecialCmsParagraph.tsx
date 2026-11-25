@@ -1,31 +1,24 @@
 import CmsParagraph from './CmsParagraph'
-import { configureAction } from '@/services/configureAction'
+import { readSpecialCmsPart } from '@/cms/readSpecialCmsPart'
 import type { PropTypes as PropTypesCmsParapraph } from './CmsParagraph'
 import type { SpecialCmsParagraph as SpecialCmsParagraphT } from '@/prisma-generated-pn-types'
-import type { ReadSpecialCmsParagraphAction } from '@/cms/paragraphs/types'
+import type { ReadSpecialCmsParagraph } from '@/cms/paragraphs/types'
 
 type PropTypes = Omit<PropTypesCmsParapraph, 'cmsParagraph'> & {
     special: SpecialCmsParagraphT,
-    readSpecialCmsParagraphAction: ReadSpecialCmsParagraphAction
+    readSpecialCmsParagraph: ReadSpecialCmsParagraph
 }
 
 /**
- * WARNING: This component should only be rendered server side, on client fetch the
- * paragraph using readSpecialCmsParagraphAction
- *
- * then render it using CmsParagraph.
- * A component that reads a special type of paragraph using readSpecialCmsParagraphAction
- * then renders it using standard CmsParagraph
- * @param special - the special type of the paragraph to read
- * @param readSpecialCmsParagraphAction - the action to read the special paragraph - this should be the specific
- * implementation of the readSpecial service.
- * @returns
+ * Reads a special paragraph and renders it with the standard CmsParagraph. A server component.
+ * @param special - the special paragraph to read
+ * @param readSpecialCmsParagraph - the read operation of the service that owns the paragraph
  */
-export default async function SpecialCmsParagraph({ special, readSpecialCmsParagraphAction, ...props }: PropTypes) {
-    const res = await configureAction(readSpecialCmsParagraphAction, { params: { special } })()
-    if (!res.success) return <i>Feil: {res.error?.[0].message}</i>
+export default async function SpecialCmsParagraph({ special, readSpecialCmsParagraph, ...props }: PropTypes) {
+    const res = await readSpecialCmsPart(() => readSpecialCmsParagraph({ params: { special } }))
+    if (!res.success) return <i>Feil: {res.message}</i>
 
     return (
-        <CmsParagraph cmsParagraph={res.data} {...props} />
+        <CmsParagraph cmsParagraph={res.part} {...props} />
     )
 }

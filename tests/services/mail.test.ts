@@ -8,6 +8,7 @@ import { mailAddressExternalOperations } from '@/services/mail/mailAddressExtern
 import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
+import { activeMembersOf } from 'tests/utils'
 import { afterEach, describe, expect, test } from '@jest/globals'
 
 // NOTE: This test doesn't check auth, since I think this should be testing in a separate file -Theodor
@@ -26,6 +27,7 @@ afterEach(async () => {
     testGroupIds.length = 0
     // Only delete aliases/lists/externals created by tests (not seeded data)
     await prisma.mailAlias.deleteMany({ where: { address: { startsWith: 'test-' } } })
+    await prisma.mailAddress.deleteMany({ where: { address: { startsWith: 'test-' } } })
     await prisma.mailingList.deleteMany({ where: { name: { startsWith: 'test-' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { endsWith: '@gmail.com' } } })
     await prisma.mailAddressExternal.deleteMany({ where: { address: { startsWith: 'test-' } } })
@@ -54,7 +56,7 @@ describe('the owners of aliases and mailing lists', () => {
             },
         })
         testGroupIds.push(group.id)
-        const owners = (groupId: number) => ({ requirements: [{ conditions: [{ type: 'ACTIVE' as const, groupId }] }] })
+        const owners = (groupId: number) => ({ requirements: [{ conditions: [activeMembersOf(groupId)] }] })
 
         const list = await mailingListOperations.create({
             data: { name: 'test-owned', description: '', ownerRequirements: owners(group.id).requirements },

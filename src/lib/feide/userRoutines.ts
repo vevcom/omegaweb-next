@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { fetchStudyProgrammesFromFeide } from './api'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { classOperations } from '@/services/groups/classes/operations'

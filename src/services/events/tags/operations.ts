@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { eventTagAuth } from './auth'
 import { specialEventTags } from './constants'
 import { eventTagSchemas } from './schemas'

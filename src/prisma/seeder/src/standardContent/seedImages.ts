@@ -1,16 +1,10 @@
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
-import { generateStandardImagesCollectionFromConfig } from '@/services/images/standard/standardImageCollection'
+import { specialImagePanelOperations } from '@/services/images/specialPanels/operations'
 import { StandardImage } from '@/prisma-generated-pn/enums'
 import { dynamicImageOperations } from '@/services/images/dynamic/operations'
 import { standardStoreFiles } from '@/lib/standardStore/files'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
-import { generateOmbulCoversCollectionFromConfig } from '@/services/ombul/ombulCoverCollection'
-import { generateCommitteeLogosCollectionFromConfig } from '@/services/groups/committees/committeeLogoCollection'
-import { generateProfileImagesCollectionFromConfig } from '@/services/users/profileImageCollection'
-import { generateFlairImagesCollectionFromConfig } from '@/services/flairs/flairImageCollection'
-import { generatePromoImagesCollectionFromConfig } from '@/services/promo/promoImageCollection'
-import { generateCareerTeamImagesCollectionFromConfig } from '@/services/careers/team/persons/careerTeamImageCollection'
 import type { PrismaClient } from '@/prisma-generated-pn-client'
 import type { StandardStoreFile } from '@/lib/standardStore/files'
 
@@ -24,16 +18,6 @@ export const seedDynamicImagesForCms = [
         standardStoreFile: standardStoreFiles.kappemann,
         name: 'kappemann',
         alt: 'En kappemann',
-    },
-    {
-        standardStoreFile: standardStoreFiles.kongsberg,
-        name: 'kongsberg',
-        alt: 'Kongsberg',
-    },
-    {
-        standardStoreFile: standardStoreFiles.nordic,
-        name: 'nordic',
-        alt: 'Nordic',
     },
     {
         standardStoreFile: standardStoreFiles.ohma,
@@ -72,15 +56,9 @@ const SEEDED_CMS_IMAGES_COLLECTION_NAME = 'seeded cms images'
  * which is seeded later on. The collection and its images are likewise only created if missing.
  */
 export const seedImages = defineSeedOperation(async (prisma: PrismaClient) => {
-    await Promise.all([
-        generateStandardImagesCollectionFromConfig.internalCall({}),
-        generateOmbulCoversCollectionFromConfig.internalCall({}),
-        generateCommitteeLogosCollectionFromConfig.internalCall({}),
-        generateProfileImagesCollectionFromConfig.internalCall({}),
-        generateFlairImagesCollectionFromConfig.internalCall({}),
-        generatePromoImagesCollectionFromConfig.internalCall({}),
-        generateCareerTeamImagesCollectionFromConfig.internalCall({}),
-    ])
+    await Promise.all(Object.values(specialImagePanelOperations).map(
+        collection => collection.internal.generateFromConfig.internalCall({})
+    ))
 
     await Promise.all(
         Object.values(StandardImage).map(standardImage => upsertStandardImage(prisma, standardImage))

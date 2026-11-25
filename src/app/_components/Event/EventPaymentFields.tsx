@@ -1,0 +1,103 @@
+'use client'
+import AdminSection from './AdminSection'
+import { useEventVariantsField } from './EventVariantsField'
+import DateInput from '@/components/UI/DateInput'
+import NumberInput from '@/components/UI/NumberInput'
+import { SelectNumberPossibleNULL } from '@/components/UI/Select'
+import Slider from '@/components/UI/Slider'
+import type { LedgerAccount } from '@/prisma-generated-pn-types'
+
+type Account = Pick<LedgerAccount, 'id' | 'name'>
+
+const accountName = (account: Account) => account.name ?? `Konto ${account.id}`
+
+/**
+ * What each variant costs, edited in the `EventVariantsField` around the form, and the account the
+ * event is paid into, which is a field of its own.
+ */
+export default function EventPaymentFields({ ledgerAccount, ledgerAccounts }: {
+    /** The account the event is linked to now, if any. */
+    ledgerAccount: Account | null,
+    /** The group accounts the session may link the event to. */
+    ledgerAccounts: Account[],
+}) {
+    const { variants, changeVariant } = useEventVariantsField()
+    if (variants.length === 0) {
+        return <p className="m-0 text-base-content/80">
+            Arrangementet har ikke påmelding, så det er ingenting å betale for.
+        </p>
+    }
+
+    return <div className="flex flex-col gap-4 min-w-0 pb-4">
+        {variants.map(variant => <AdminSection key={variant.key}>
+            <Slider
+                label={variants.length > 1 ? `${variant.name} koster penger` : 'Påmeldingen koster penger'}
+                checked={variant.takesPayment}
+                onChange={event => changeVariant(variant.key, {
+                    takesPayment: event.target.checked,
+                    paymentStart: variant.paymentStart ?? variant.registrationStart,
+                    paymentEnd: variant.paymentEnd ?? variant.registrationEnd,
+                })}
+            />
+            {variant.takesPayment && <div className="
+                grid grid-cols-2 gap-x-4
+                max-mobile:grid-cols-1
+            ">
+                <NumberInput
+                    label="Pris i kroner"
+                    min={0}
+                    step={0.01}
+                    value={variant.price ?? ''}
+                    onChange={event => changeVariant(variant.key, {
+                        price: event.target.value === '' ? undefined : Number(event.target.value),
+                    })}
+                    className="col-span-full"
+                />
+                <DateInput
+                    label="Betaling åpner"
+                    includeTime
+                    required
+                    defaultValue={variant.paymentStart ?? undefined}
+                    onChange={event => {
+                        changeVariant(variant.key, {
+                            paymentStart: event.target.value ? new Date(event.target.value) : null,
+                        })
+                    }}
+                />
+                <DateInput
+                    label="Betalingsfrist"
+                    includeTime
+                    required
+                    defaultValue={variant.paymentEnd ?? undefined}
+                    onChange={event => {
+                        changeVariant(variant.key, {
+                            paymentEnd: event.target.value ? new Date(event.target.value) : null,
+                        })
+                    }}
+                />
+                <Slider
+                    label="Flytt ubetalte bakerst på ventelisten"
+                    checked={variant.requeueUnpaidRegistrations}
+                    onChange={event => changeVariant(variant.key, { requeueUnpaidRegistrations: event.target.checked })}
+                    className="col-span-full"
+                />
+            </div>}
+        </AdminSection>)}
+
+        {variants.some(variant => variant.takesPayment) && (ledgerAccounts.length > 0
+            ? <SelectNumberPossibleNULL
+                label="Konto pengene går til"
+                name="ledgerAccountSelection"
+                options={[
+                    { value: 'NULL', label: 'Velg konto' },
+                    ...ledgerAccounts.map(account => ({ value: account.id, label: accountName(account) })),
+                ]}
+                defaultValue={ledgerAccount?.id ?? 'NULL'}
+            />
+            : <p className="m-0 text-base-content/80">
+                {ledgerAccount
+                    ? `Betalingene går til kontoen ${accountName(ledgerAccount)}.`
+                    : 'Du har ingen gruppekontoer å knytte arrangementet til.'}
+            </p>)}
+    </div>
+}

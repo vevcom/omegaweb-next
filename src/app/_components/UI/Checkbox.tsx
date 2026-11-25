@@ -18,7 +18,8 @@ const inputClassName = `
 type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name' | 'id'> & {
     label?: string,
     children?: ReactNode
-    name: string
+    /** Left out for a checkbox that is part of a larger field, which posts the value itself. */
+    name?: string
     id?: string
 }
 
@@ -52,7 +53,7 @@ function Checkbox({ label, children, id, ...props }: PropTypes) {
                     </>
                 )
             }
-            <CheckboxFieldPresent name={props.name} />
+            {props.name && <CheckboxFieldPresent name={props.name} />}
         </div>
     )
 }

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import { ombulStore } from '@/services/ombul/store'
 import { storeBackends, StoreUnavailableError } from '@/services/store/locations'

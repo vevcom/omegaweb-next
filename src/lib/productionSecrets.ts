@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { readFileSync } from 'fs'
 import { parseEnv } from 'util'
 
@@ -13,10 +13,12 @@ const secretNames = [
 ] as const
 
 /**
- * Secrets that may be left unset, since mail is optional, but must not be the development values
- * when set: anyone holding this one can rewrite Omega's mailing lists.
+ * Secrets that may be left unset, since mail and chat are optional, but must not be the development
+ * values when set: anyone holding the first can rewrite Omega's mailing lists, anyone holding the
+ * next two can act as any user of the chat, and anyone holding the last can tell the app of
+ * messages nobody wrote, which it would notify of.
  */
-const optionalSecretNames = ['EMAIL_ADMIN_PASSWORD'] as const
+const optionalSecretNames = ['EMAIL_ADMIN_PASSWORD', 'CHAT_AS_TOKEN', 'CHAT_MAS_CLIENT_SECRET', 'CHAT_HS_TOKEN'] as const
 
 const secretsWithMinimumLength = ['NEXTAUTH_SECRET', 'JWT_SECRET'] as const
 const minimumSecretLength = 32

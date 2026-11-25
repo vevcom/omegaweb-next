@@ -1,10 +1,12 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionCookieChunks, sessionCookieNamesAmong, sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
+import { COMPANY_CREDENTIALS_PROVIDER } from '@/auth/nextAuth/companyCredentials'
 import { Session } from '@/auth/session/Session'
 import { getToken } from 'next-auth/jwt'
-import type { LoginProvider } from '@/auth/nextAuth/sessionToken'
+import type { AnySession } from '@/auth/session/Session'
+import type { UserLoginProvider } from '@/auth/nextAuth/sessionToken'
 import type { JWT } from 'next-auth/jwt'
 import type { NextRequest, NextResponse } from 'next/server'
 
@@ -38,11 +40,24 @@ export function readSessionToken(request: NextRequest): Promise<JWT | null> {
     return token
 }
 
+type UserSessionToken = JWT & { user: NonNullable<JWT['user']>, provider: UserLoginProvider }
+
+/**
+ * The session of {@link readSessionToken} when it is a user's. A company user's session is for the
+ * career site alone and is never handed on, so where a sign in starts, a company user counts as not
+ * signed in.
+ */
+export async function readUserSessionToken(request: NextRequest): Promise<UserSessionToken | null> {
+    const token = await readSessionToken(request)
+    if (!token?.user || token.provider === COMPANY_CREDENTIALS_PROVIDER) return null
+    return { ...token, user: token.user, provider: token.provider }
+}
+
 /** The session of {@link readSessionToken} as the service operations take it, empty for a visitor not signed in. */
-export async function sessionFromCookie(request: NextRequest): Promise<Session<'HAS_USER'> | Session<'NO_USER'>> {
+export async function sessionFromCookie(request: NextRequest): Promise<AnySession> {
     const token = await readSessionToken(request)
     if (!token) return Session.empty()
-    return Session.fromJsObject({ user: token.user, permissions: token.permissions, memberships: token.memberships })
+    return Session.fromToken(token)
 }
 
 /**
@@ -76,7 +91,7 @@ export async function startSession(
     response: NextResponse,
     request: Request,
     userId: number,
-    provider: LoginProvider,
+    provider: UserLoginProvider,
 ): Promise<void> {
     const encode = authOptions.jwt?.encode
     if (!encode) throw new Error('authOptions has no jwt encoder')

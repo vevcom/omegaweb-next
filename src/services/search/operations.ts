@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { searchSchemas } from './schemas'
 import { defaultSearchResultLimit, singleCategorySearchResultLimit } from './constants'
 import { defineSubOperation } from '@/services/serviceOperation'

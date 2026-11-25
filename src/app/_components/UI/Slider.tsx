@@ -1,7 +1,8 @@
 import CheckboxFieldPresent from './CheckboxFieldPresent'
+import { useId } from 'react'
 import type { PropTypes as TextInputPropTypes } from './TextInput'
 
-type PropTypes = Omit<TextInputPropTypes, 'type'> & { name: string }
+type PropTypes = Omit<TextInputPropTypes, 'type'>
 
 const checkedColorClassNames = {
     base: 'peer-checked:bg-base-content',
@@ -13,10 +14,12 @@ const checkedColorClassNames = {
 /**
  * This is really a regular checkbox styled as a slider
  * @param label - The label for the slider
- * @param name - The name of the slider
+ * @param name - The name of the slider. Without one it posts nothing, for a slider that is part of a larger field.
  * @returns
  */
 export default function Slider({ label, name, color = 'primary', ...props }: PropTypes) {
+    const domId = useId()
+
     return (
         <label
             className="
@@ -29,7 +32,7 @@ export default function Slider({ label, name, color = 'primary', ...props }: Pro
                 type="checkbox"
                 name={name}
                 {...props}
-                id={props.id ?? `id_for_${name}`}
+                id={props.id ?? (name ? `id_for_${name}` : domId)}
                 className={`
                     peer
                     ${props.className ?? ''}
@@ -42,7 +45,7 @@ export default function Slider({ label, name, color = 'primary', ...props }: Pro
                 peer-checked:before:translate-x-[26px]
                 ${checkedColorClassNames[color]}
             `} />
-            <CheckboxFieldPresent name={name} />
+            {name && <CheckboxFieldPresent name={name} />}
         </label>
     )
 }

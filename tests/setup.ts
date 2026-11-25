@@ -9,3 +9,6 @@ jest.mock('@react-email/render', () => ({
 }))
 
 DomainContext.configure(testDomainConfig)
+
+// A test that is about a notification being made lifts this for as long as it needs.
+process.env.NOTIFICATIONS_OFF = 'true'

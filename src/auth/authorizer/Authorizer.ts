@@ -1,5 +1,5 @@
 import type { AuthResult } from './AuthResult'
-import type { SessionMaybeUser } from '@/auth/session/Session'
+import type { SessionMaybeUser, UserGuaranteeOption } from '@/auth/session/Session'
 
 export type UserRequiredOutOpt = 'USER_NOT_REQUIRED_FOR_AUTHORIZED' | 'USER_REQUIRED_FOR_AUTHORIZED'
 
@@ -13,8 +13,8 @@ export type Authorizer<
     PrismaWhereFilter extends object | undefined = undefined
 > = {
     auth: (session: SessionMaybeUser) => UserRequiredOut extends 'USER_REQUIRED_FOR_AUTHORIZED'
-    ? (AuthResult<'HAS_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>)
-    : (AuthResult<'HAS_USER' | 'NO_USER', true, PrismaWhereFilter> | AuthResult<'HAS_USER' | 'NO_USER', false, undefined>),
+    ? (AuthResult<'HAS_USER', true, PrismaWhereFilter> | AuthResult<UserGuaranteeOption, false, undefined>)
+    : (AuthResult<UserGuaranteeOption, true, PrismaWhereFilter> | AuthResult<UserGuaranteeOption, false, undefined>),
     /** Rejects a `Require` chain that has not been given all its data via `.data()`. */
     readonly missingData?: never,
 }

@@ -1,11 +1,16 @@
 import { Require } from '@/auth/authorizer/Require'
 
-
 export const frontpageAuth = {
-    readSpecialCmsParagraphSection: Require.nothing(),
-    updateSpecialCmsParagraphContentSection: Require.permission('FRONTPAGE_ADMIN'),
-    readSpecialCmsImage: Require.nothing(),
-    updateSpecialCmsImage: Require.permission('FRONTPAGE_ADMIN'),
-    readSpecialCmsLink: Require.nothing(),
-    updateSpecialCmsLink: Require.permission('FRONTPAGE_ADMIN'),
+    cmsParagraphs: {
+        read: Require.nothing(),
+        updateContent: Require.permission('FRONTPAGE_ADMIN'),
+    },
+    cmsImages: {
+        read: Require.nothing(),
+        update: Require.permission('FRONTPAGE_ADMIN'),
+    },
+    cmsLinks: {
+        read: Require.nothing(),
+        update: Require.permission('FRONTPAGE_ADMIN'),
+    },
 } as const

@@ -14,8 +14,8 @@ const { page } = serverPage({
     }),
     capabilities: () => ({
         canEditFrontpage: Require.anyOf(
-            frontpageAuth.updateSpecialCmsParagraphContentSection,
-            frontpageAuth.updateSpecialCmsImage,
+            frontpageAuth.cmsParagraphs.updateContent,
+            frontpageAuth.cmsImages.update,
         ),
     }),
     render: ({ data: { frontpageVersion }, capabilities, session }) => {

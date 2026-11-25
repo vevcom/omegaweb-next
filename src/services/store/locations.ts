@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { storeS3Config } from './constants'
 import { fileSystemBackend } from './backends/fileSystem'
 import { createS3Backend } from './backends/s3'

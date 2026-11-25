@@ -1,4 +1,4 @@
-import VerifyEmail from '@/pageKits/auth/components/VerifyEmail'
+import { VerifyEmail } from '@/pageKits/auth/components/userAccountFlowComponents'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
 import { notFound } from 'next/navigation'

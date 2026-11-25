@@ -170,14 +170,14 @@ export const navDef = defineNavDef([
         name: 'Omegarevyen',
         href: revueLinks.frontpage(),
         icon: faMasksTheater,
-        authorizers: () => [revueFrontpageAuth.readMainRevueInfo],
+        authorizers: () => [revueFrontpageAuth.mainRevueInfo.read],
     },
     {
         key: 'career',
         name: 'Karriere',
         href: careerLinks.frontpage(), //purposly notredirectToMainDomain - keeping current domain
         icon: faSuitcase,
-        authorizers: () => [careersFrontpageAuth.readSpecialCmsParagraph],
+        authorizers: () => [careersFrontpageAuth.cmsParagraphs.read],
         audience: 'loggedIn',
     },
     {

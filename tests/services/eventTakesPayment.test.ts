@@ -1,6 +1,6 @@
+import { changeEventSetup } from 'tests/eventSetup'
 import { prisma } from '@/prisma/client'
 import { eventOperations } from '@/services/events/operations'
-import { eventVariantOperations } from '@/services/events/variants/operations'
 import { describe, expect, test } from '@jest/globals'
 
 const dayMs = 24 * 60 * 60 * 1000
@@ -43,28 +43,27 @@ describe('variants taking payment', () => {
 
         const event = await eventOperations.create({ data: eventData({}), bypassAuth: true })
         const variant = await variantOf(event.id)
-        await expect(eventVariantOperations.update({
-            params: { id: variant.id }, data: { takesPayment: true }, bypassAuth: true,
+        await expect(changeEventSetup(event.id, ([draft]) => {
+            draft.takesPayment = true
         })).rejects.toThrow()
+        await expect(variantOf(event.id)).resolves.toMatchObject({ id: variant.id, takesPayment: false })
     })
 
     test('payment is turned on with its price, and turning it off clears the price and the period', async () => {
         const event = await eventOperations.create({ data: eventData({}), bypassAuth: true })
-        const variant = await variantOf(event.id)
 
-        await eventVariantOperations.update({
-            params: { id: variant.id },
-            data: {
-                takesPayment: true,
-                price: 100,
-                paymentStart: new Date(Date.now() - dayMs),
-                paymentEnd: new Date(Date.now() + dayMs),
-            },
-            bypassAuth: true,
+        // In kroner, as the form holds it.
+        await changeEventSetup(event.id, ([draft]) => {
+            draft.takesPayment = true
+            draft.price = 100
+            draft.paymentStart = new Date(Date.now() - dayMs)
+            draft.paymentEnd = new Date(Date.now() + dayMs)
         })
         await expect(variantOf(event.id)).resolves.toMatchObject({ takesPayment: true, price: 10000 })
 
-        await eventVariantOperations.update({ params: { id: variant.id }, data: { takesPayment: false }, bypassAuth: true })
+        await changeEventSetup(event.id, ([draft]) => {
+            draft.takesPayment = false
+        })
 
         await expect(variantOf(event.id)).resolves.toMatchObject({
             takesPayment: false, price: null, paymentStart: null, paymentEnd: null,

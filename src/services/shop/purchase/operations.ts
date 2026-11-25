@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { purchaseAuth } from './auth'
 import { purchaseSchemas } from './schemas'
 import { ServiceError } from '@/services/error'
@@ -129,7 +129,10 @@ const createOnBehalf = createPurchase.implement({
     authorizer: async ({ params, data, prisma }) => {
         const [membershipsOfUser, visibility] = await Promise.all([
             groupOperations.readMembershipsOfUserOfAllTypes.internalCall({ params: { userId: params.userId } }),
-            shopOperations.visibility.readDoubleLevelMatrixInternal({ params: { shopId: data.shopId }, prisma }),
+            shopOperations.visibility.internal.readDoubleLevelMatrix.internalCall({
+                params: { shopId: data.shopId },
+                prisma,
+            }),
         ])
         return purchaseAuth.createOnBehalf.data({ membershipsOfUser, visibility })
     },
@@ -143,7 +146,7 @@ export const purchaseOperations = {
     create: createPurchase.implement({
         authorizer: async ({ params, data, prisma }) => purchaseAuth.create.data({
             userId: params.userId,
-            visibility: await shopOperations.visibility.readDoubleLevelMatrixInternal({
+            visibility: await shopOperations.visibility.internal.readDoubleLevelMatrix.internalCall({
                 params: { shopId: data.shopId },
                 prisma,
             }),

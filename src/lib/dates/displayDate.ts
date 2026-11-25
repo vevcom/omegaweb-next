@@ -3,7 +3,7 @@
  * @param date - The date to display
  * @returns
  */
-export function displayDate(date: Date, includeTime = true): string {
+export function displayDate(date: Date, includeTime = true, includeSeconds = true): string {
     if (!includeTime) {
         return date.toLocaleString('nb-NO', {
             year: 'numeric',
@@ -19,7 +19,7 @@ export function displayDate(date: Date, includeTime = true): string {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
+        ...(includeSeconds ? { second: '2-digit' } : {}),
         hour12: false,
         timeZone: 'Europe/Oslo'
     })

@@ -1,4 +1,4 @@
-import { Session } from '@/auth/session/Session'
+import { createAdministrators } from 'tests/eventSetup'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { userOperations } from '@/services/users/operations'
@@ -6,6 +6,7 @@ import { userPrivateSelection } from '@/services/users/constants'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { REGISTRATION_READER_TYPE } from '@/services/events/registration/constants'
+import { testSession } from 'tests/utils'
 import { afterAll, beforeAll, describe, expect, test } from '@jest/globals'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
@@ -17,7 +18,7 @@ let viewer: UserFiltered
 let eventId: number
 
 function sessionOf(user: UserFiltered | null, permissions: Permission[]) {
-    return Session.fromJsObject({ memberships: [], permissions, user })
+    return testSession({ memberships: [], permissions, user })
 }
 
 function expectNoPrivateFields(user: object | null) {
@@ -69,13 +70,13 @@ beforeAll(async () => {
             name: 'Exposure test',
             location: 'Here',
             eventStart: new Date(),
-            eventEnd: new Date(),
+            eventEnd: new Date(Date.now() + 60 * 60 * 1000),
             canBeViewedBy: 'ALL',
             takesRegistration: true,
             places: 10,
             waitingList: false,
             tagIds: [],
-            visibilityAdminRequirements: [{ conditions: [] }],
+            visibilityAdminRequirements: await createAdministrators('exposure-admins'),
         },
         bypassAuth: true,
     })

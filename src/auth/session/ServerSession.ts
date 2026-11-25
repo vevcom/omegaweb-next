@@ -1,4 +1,4 @@
-import { Session, type UserGuaranteeOption } from './Session'
+import { Session, type AnySession, type UserGuaranteeOption } from './Session'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { apiKeyDecryptAndCompare } from '@/services/apiKeys/hashEncryptKey'
@@ -8,7 +8,7 @@ import { permissionOperations } from '@/services/permissions/operations'
 import { getServerSession as getSessionNextAuth } from 'next-auth'
 
 export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Session<UserGuarantee> {
-    public static async fromNextAuth(): Promise<Session<'NO_USER'> | Session<'HAS_USER'>> {
+    public static async fromNextAuth(): Promise<AnySession> {
         const session = await getSessionNextAuth(authOptions)
 
         if (!session) {
@@ -16,11 +16,7 @@ export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Se
             return ServerSession.fromDefaultPermissions(defaultPermissions)
         }
 
-        return Session.fromJsObject({
-            user: session.user,
-            permissions: session.permissions,
-            memberships: session.memberships,
-        })
+        return Session.fromToken(session)
     }
 
     /**

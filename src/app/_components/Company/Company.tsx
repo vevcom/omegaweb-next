@@ -1,19 +1,13 @@
 'use client'
 import SelectCompany from './SelectCompany'
 import SponsorBadge from './SponsorBadge'
-import CompanySponsorTierForm from './CompanySponsorTierForm'
+import CompanySettings from './CompanySettings'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import TextInput from '@/UI/TextInput'
-import CmsImage from '@/cms/CmsImage/CmsImage'
-import Form from '@/components/Form/Form'
+import Image from '@/components/Image/Image'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { careerLinks } from '@/app/(careers)/links'
 import useAuthorizer from '@/hooks/useAuthorizer'
 import { companyAuth } from '@/services/careers/companies/auth'
-import {
-    destroyCompanyAction,
-    updateCompanyAction,
-    updateCompanyCmsLogoAction
-} from '@/services/careers/companies/actions'
-import { configureAction } from '@/services/configureAction'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { CompanyExpanded } from '@/services/careers/companies/types'
 
@@ -54,16 +48,12 @@ export default function Company({
     logoWidth = 300,
     squareLogo = true,
 }: PropTypes) {
-    const canUpdate = useAuthorizer({ authorizer: companyAuth.update })
+    const canUpdate = useAuthorizer({ authorizer: companyAuth.update.data({ companyId: company.id }) })
     const canUpdateSponsorTier = useAuthorizer({ authorizer: companyAuth.updateSponsorTier })
     const canDestroy = useAuthorizer({ authorizer: companyAuth.destroy })
-    const canEditCmsImageLogo = useAuthorizer({ authorizer: companyAuth.updateCmsImageLogo })
-    const updateCmsImageAction = configureAction(
-        updateCompanyCmsLogoAction,
-        { implementationParams: { companyId: company.id } }
-    )
+    const canUpdateLogo = useAuthorizer({ authorizer: companyAuth.updateLogo.data({ companyId: company.id }) })
     const showSettings = !disableEdit && (
-        canUpdate.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
+        canUpdate.authorized || canUpdateLogo.authorized || canUpdateSponsorTier.authorized || canDestroy.authorized
     )
     return (
         <div className={`
@@ -71,22 +61,28 @@ export default function Company({
             ${sponsorTierClass[company.sponsorTier]}
         `}>
             <div className="relative mb-2">
-                <CmsImage
-                    capabilities={{ canEdit: canEditCmsImageLogo }}
-                    disableEditor={disableEdit}
-                    className={`
-                        overflow-hidden flex items-center bg-base-100 rounded-inner
-                        tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
-                        ${squareLogo ? `
-                            aspect-square
-                            [&_div]:size-full
-                            [&_img]:size-full [&_img]:object-contain
-                        ` : ''}
-                    `}
-                    cmsImage={company.logo}
-                    width={logoWidth}
-                    updateCmsImageAction={updateCmsImageAction}
-                />
+                <div className={`
+                    overflow-hidden flex items-center justify-center bg-base-100 rounded-inner [--image-width:100%]
+                    tone-light:[&_img]:invert tone-light:[&_img]:hue-rotate-180
+                    ${squareLogo ? `
+                        aspect-square
+                        [&_div]:size-full
+                        [&_img]:size-full [&_img]:object-contain
+                    ` : ''}
+                `}>
+                    {company.logoImage ? (
+                        <Image
+                            image={company.logoImage}
+                            alt={company.name}
+                            width={logoWidth}
+                            hideCredit
+                            hideCopyRight
+                            disableLinkingToLicense
+                        />
+                    ) : (
+                        <span className="p-4 text-l font-medium text-center text-base-content/80">{company.name}</span>
+                    )}
+                </div>
                 <SponsorBadge sponsorTier={company.sponsorTier} iconOnly className="
                     absolute top-2 left-2 max-w-[calc(100%-4*var(--gap))] z-1
                 " />
@@ -97,7 +93,11 @@ export default function Company({
                 [&_p]:text-base-content/80
                 ${showSettings ? 'pr-10' : ''}
             `}>
-                <h2>{company.name}</h2>
+                <h2>
+                    <SiteLink href={careerLinks.company(company)} className="relative z-1 text-inherit">
+                        {company.name}
+                    </SiteLink>
+                </h2>
                 <p>{company.description}</p>
                 {
                     showSettings ? (
@@ -105,47 +105,7 @@ export default function Company({
                             showButtonClass="text-base-content absolute top-0 right-0 z-2"
                             popUpKey={`Edit ${company.id}`}
                         >
-                            {
-                                canUpdate.authorized && <Form
-                                    title="Rediger bedrift"
-                                    action={configureAction(updateCompanyAction, { params: { id: company.id } })}
-                                    refreshOnSuccess
-                                    closePopUpOnSuccess={`Edit ${company.id}`}
-                                    submitText="Lagre"
-                                >
-                                    <TextInput name="name" label="Navn" defaultValue={company.name} />
-                                    <TextInput
-                                        name="description"
-                                        label="Beskrivelse"
-                                        defaultValue={company.description}
-                                    />
-                                    <TextInput
-                                        name="website"
-                                        label="Nettside"
-                                        defaultValue={company.website ?? ''}
-                                    />
-                                </Form>
-                            }
-                            {
-                                canUpdateSponsorTier.authorized && <CompanySponsorTierForm
-                                    companyId={company.id}
-                                    sponsorTier={company.sponsorTier}
-                                    closePopUpOnSuccess={`Edit ${company.id}`}
-                                />
-                            }
-                            {
-                                canDestroy.authorized && <Form
-                                    action={configureAction(destroyCompanyAction, { params: { id: company.id } })}
-                                    refreshOnSuccess
-                                    closePopUpOnSuccess={`Edit ${company.id}`}
-                                    submitText="Slett"
-                                    submitColor="red"
-                                    confirmation={{
-                                        confirm: true,
-                                        text: 'Er du sikker på at du vil slette denne bedriften?'
-                                    }}
-                                />
-                            }
+                            <CompanySettings company={company} closePopUpOnSuccess={`Edit ${company.id}`} />
                         </SettingsHeaderItemPopUp>
                     ) : <></>
                 }

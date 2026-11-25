@@ -11,6 +11,12 @@ export const canRegister = Require.anyOf(
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
 
+/**
+ * Registering yourself, asked of a session without naming its user, as a page asks it. A visitor
+ * who is not logged in is sent to the login. Needs `EventAccess` via `.data()`.
+ */
+export const canRegisterSelf = Require.allOf(canRegister, Require.user())
+
 const eventAdminAsUser = Require.allOf(eventAdminLevel, Require.userId())
 const userIdOrEventAdmin = Require.permission('EVENT_ADMIN').or().userId()
 

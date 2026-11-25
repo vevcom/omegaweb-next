@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { classAuth } from './auth'
 import { classSchemas } from './schemas'
 import { implementGroupType, implementStraightAwayMigration } from '@/services/groups/implementGroupType'

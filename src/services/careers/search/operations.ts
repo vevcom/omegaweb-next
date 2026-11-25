@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { careersSearchAuth } from './auth'
 import { searchOperations } from '@/services/search/operations'
 import { companyOperations } from '@/services/careers/companies/operations'

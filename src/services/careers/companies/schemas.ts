@@ -1,3 +1,4 @@
+import { imageDataFieldSchemas } from '@/services/images/subservice/schemas'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
@@ -27,7 +28,6 @@ const dataFieldSchemas = z.object({
 
 const paramsFieldSchemas = z.object({
     id: z.number(),
-    companyId: z.number(),
     name: z.string().max(100).optional(),
 })
 
@@ -42,15 +42,21 @@ export const companySchemas = {
             description: true,
         }),
         update: dataFieldSchemas.partial().pick({
-            name: true,
             description: true,
             website: true,
+        }),
+        updateName: dataFieldSchemas.pick({
+            name: true,
         }),
         updateSponsorTier: dataFieldSchemas.pick({
             sponsorTier: true,
         }),
+        updateLogo: imageDataFieldSchemas.pick({
+            imageFile: true,
+        }),
     },
     params: {
+        read: id,
         readPage: readPageInputSchemaObject(
             id,
             paramsFieldSchemas.pick({
@@ -58,10 +64,9 @@ export const companySchemas = {
             }),
         ),
         update: id,
+        updateName: id,
         updateSponsorTier: id,
-        updateCmsImageLogo: paramsFieldSchemas.pick({
-            companyId: true,
-        }),
+        updateLogo: id,
         destroy: id,
     },
 }

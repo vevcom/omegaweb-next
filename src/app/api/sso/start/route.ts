@@ -1,7 +1,7 @@
 import { domainContextOf, redirectUrlFor } from '@/app/domainContextOfRequest'
 import { SSO_SCOPE } from '@/auth/sso/constants'
 import { ssoStartHref } from '@/auth/sso/links'
-import { readSessionToken } from '@/auth/sso/session'
+import { readUserSessionToken } from '@/auth/sso/session'
 import { codeChallengeOf, newSsoState, setSsoStateCookie } from '@/auth/sso/stateCookie'
 import { sessionCookieOf } from '@/auth/nextAuth/sessionCookie'
 import { SSO_CALLBACK_PATH, oidcPaths, oidcProtocol } from '@/services/auth/oidc/constants'
@@ -19,7 +19,8 @@ import type { NextRequest } from 'next/server'
  * Where a site sends a visitor to sign in, see ssoStartHref. On a site's domain it remembers where
  * the visitor was going, in a cookie, and sends the browser to the authorize endpoint on the auth
  * domain, which sends it back to the callback with a code. On the auth domain itself there is no
- * code to fetch: a visitor with a session goes on, one without goes to the login form. A domain set
+ * code to fetch: a user with a session goes on, anyone else goes to the login form. A company user's
+ * session is no user's, so here it counts as none, as it does at the authorize endpoint. A domain set
  * apart for signing in serves no page, so from there the visitor is sent to the start route of the
  * domain their page is on, whose session is the one that matters.
  */
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     if (context.isDedicatedAuthDomain() && !isAppWidePath(callbackUrl)) {
         return NextResponse.redirect(`${DomainContext.originOfSite(site)}${ssoStartHref(callbackUrl)}`)
     }
-    if (await readSessionToken(request)) return onward()
+    if (await readUserSessionToken(request)) return onward()
     if (context.isAuthDomain()) {
         return NextResponse.redirect(DomainContext.authDomainUrl(authLinks(authPagesOf(site)).loginForm({ callbackUrl })))
     }

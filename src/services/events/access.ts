@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { ServiceError } from '@/services/error'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
@@ -13,6 +13,7 @@ export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, 
         select: {
             published: true,
             canBeViewedBy: true,
+            createdById: true,
             visibilityAdmin: { include: visibilityIncluder },
             variants: { select: { quotas: { select: { visibility: { include: visibilityIncluder } } } } },
         },
@@ -21,6 +22,7 @@ export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, 
         published: event.published,
         canBeViewedBy: event.canBeViewedBy,
         adminVisibility: toMatrix(event.visibilityAdmin),
+        creatorId: event.createdById,
         quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => toMatrix(quota.visibility))),
     }
 }

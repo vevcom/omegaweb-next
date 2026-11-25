@@ -42,7 +42,7 @@ function itemsOf({ id, event, jobAd }: ExpandedCareerFrontpageHighlight): Item[]
             kind: 'Jobbannonse',
             title: jobAd.articleName,
             detail: jobAd.company.name,
-            image: jobAd.company.logo.image,
+            image: jobAd.company.logoImage,
             imageClassName: '[&_img]:object-contain',
         }]
     }

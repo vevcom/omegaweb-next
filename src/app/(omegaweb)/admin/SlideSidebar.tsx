@@ -32,13 +32,15 @@ export default function SlideSidebar({ navigation }: PropTypes) {
 
     return <div
         className="
-            p-2 min-w-[250px] rounded-round max-h-[calc(100dvh-56px-26px)] overflow-y-scroll
-            max-mobile:p-0 max-mobile:m-0 max-mobile:min-w-0 max-mobile:max-h-none max-mobile:overflow-visible
+            p-2 min-w-[250px] min-h-0 rounded-round overflow-y-scroll
+            max-mobile:p-0 max-mobile:m-0 max-mobile:min-w-0 max-mobile:overflow-visible
         "
     >
         <div
             className={`
-                hidden fixed inset-0 z-4 bg-black/50 transition-[opacity,visibility] duration-300 ease-[ease]
+                hidden
+                max-mobile:block
+                fixed inset-0 z-4 bg-black/50 transition-[opacity,visibility] duration-300 ease-[ease]
                 ${open ? 'opacity-100 visible' : 'opacity-0 invisible'}
             `}
         />
@@ -49,10 +51,11 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                 className="
                     hidden
                     max-mobile:flex
-                    items-center justify-center fixed top-4 right-6 z-6 size-[44px] border-none rounded-full bg-base-200
-                    text-base-content cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.25)]
+                    items-center justify-center fixed z-6 size-[44px] border-none rounded-full bg-base-100
+                    top-[calc(var(--gap)+6px+env(safe-area-inset-top))]
+                    right-[calc(2*var(--gap)+env(safe-area-inset-right))] text-base-content cursor-pointer
                 "
-                aria-label={open ? 'Lukk meny' : 'Åpne meny'}
+                aria-label={open ? 'Lukk adminmenyen' : 'Åpne adminmenyen'}
                 aria-expanded={open}
                 onClick={() => setOpen(previousOpen => !previousOpen)}
             >
@@ -61,10 +64,11 @@ export default function SlideSidebar({ navigation }: PropTypes) {
             <aside
                 className={`
                     flex flex-col gap-1 overflow-y-auto h-full text-base-content
-                    max-mobile:fixed max-mobile:top-[calc(56px+2*var(--gap))] max-mobile:left-0
-                    max-mobile:w-[min(85vw,320px)] max-mobile:h-[calc(100dvh-120px-4*var(--gap))] max-mobile:m-0
-                    max-mobile:p-2 max-mobile:bg-base-100 max-mobile:rounded-r-round max-mobile:z-5
-                    max-mobile:transition-transform max-mobile:duration-300 max-mobile:ease-[ease]
+                    max-mobile:fixed max-mobile:left-0 max-mobile:w-[min(85vw,320px)] max-mobile:h-auto max-mobile:m-0
+                    max-mobile:top-[calc(56px+2*var(--gap)+env(safe-area-inset-top))]
+                    max-mobile:bottom-[calc(64px+2*var(--gap)+env(safe-area-inset-bottom))] max-mobile:p-2
+                    max-mobile:bg-base-100 max-mobile:rounded-r-round max-mobile:z-5 max-mobile:transition-transform
+                    max-mobile:duration-300 max-mobile:ease-[ease]
                     ${open ? 'max-mobile:translate-x-0' : 'max-mobile:-translate-x-full'}
                 `}
             >
@@ -87,6 +91,7 @@ export default function SlideSidebar({ navigation }: PropTypes) {
                                     <SiteLink
                                         key={link.key}
                                         href={link.href}
+                                        onClick={() => setOpen(false)}
                                         className={`
                                             no-underline py-3 px-4 ml-6 transition-colors duration-300
                                             hover:text-primary

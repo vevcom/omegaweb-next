@@ -9,7 +9,7 @@ import type {
     OmegaMembershipGroup,
     StudyProgramme,
 } from '@/prisma-generated-pn-types'
-import type { GroupWithDumbRelations } from '@/services/groups/types'
+import type { GroupWithDumbRelations, RevueSubGroupWithRevueGroup } from '@/services/groups/types'
 
 /**
  * Throwing convenience wrapper around `checkGroupValidity` (from `@/lib/groups/checkGroupValidity`)
@@ -26,6 +26,7 @@ export function assertGroupValidity<
     InterestGroupKeys extends keyof InterestGroup,
     OmegaMembershipGroupKeys extends keyof OmegaMembershipGroup,
     StudyProgrammeKeys extends keyof StudyProgramme,
+    RevueSubGroupKeys extends keyof RevueSubGroupWithRevueGroup,
     ExtraFields extends object,
 >(group: GroupWithDumbRelations<
     CommitteeKeys,
@@ -33,9 +34,11 @@ export function assertGroupValidity<
     ClassKeys,
     InterestGroupKeys,
     OmegaMembershipGroupKeys,
-    StudyProgrammeKeys
+    StudyProgrammeKeys,
+    RevueSubGroupKeys
 > & ExtraFields): ValidatedGroup<
-    CommitteeKeys, ManualGroupKeys, ClassKeys, InterestGroupKeys, OmegaMembershipGroupKeys, StudyProgrammeKeys, ExtraFields
+    CommitteeKeys, ManualGroupKeys, ClassKeys, InterestGroupKeys, OmegaMembershipGroupKeys, StudyProgrammeKeys,
+    RevueSubGroupKeys, ExtraFields
 > {
     const result = checkGroupValidity(group)
     if (!result.valid) {

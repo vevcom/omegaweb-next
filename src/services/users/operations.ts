@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userSchemas } from './schemas'
 import { userAuth } from './auth'
 import {
@@ -10,7 +10,8 @@ import {
     userPrivateSelection,
     userProfileSelection
 } from './constants'
-import { userProfileImageOperations } from './profileImageCollection'
+import { profileImageCollection } from './profileImageCollection'
+import { vevenMailAddressOperations } from './vevenMailAddress'
 import { implementSearchOperation } from '@/services/search/implement'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { Site } from '@/lib/sites/site'
@@ -22,7 +23,7 @@ import { sendVerifyEmail } from '@/lib/email/systemMail/verifyEmail'
 import { sendEmailChangedMail } from '@/lib/email/systemMail/emailChanged'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { sendUserInvitationEmail } from '@/lib/email/systemMail/userInvitation'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { invalidateOneUserSessionData } from '@/services/auth/invalidateSession'
 import { getMembershipFilter } from '@/auth/getMembershipFilter'
@@ -31,8 +32,9 @@ import { decryptAndComparePassword, hashAndEncryptPassword } from '@/auth/passwo
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
+import logger from '@/lib/logger'
 import crypto from 'node:crypto'
-import type { UserPagingReturn, UserPartition } from './types'
+import type { UserPagingReturn } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
@@ -68,6 +70,13 @@ export const userOperations = {
                     },
                 },
                 select: userPrivateSelection
+            })
+
+            // The user exists either way: one left without an address is given it by the mail worker.
+            await vevenMailAddressOperations.internal.createDefault.internalCall({
+                params: { id: user.id },
+            }).catch((error: unknown) => {
+                logger.warn(`Could not give the new user ${user.username} a mail address: ${error}`)
             })
 
             // Not awaited: the user exists either way, and the response must not wait on the mail
@@ -221,7 +230,7 @@ export const userOperations = {
     readPage: defineOperation({
         paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'activeOmegaStudents'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.activeOmegaStudents),
     }),
 
     /**
@@ -231,7 +240,17 @@ export const userOperations = {
     readUnarchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readUnarchivedPage,
         authorizer: () => userAuth.readUnarchivedPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'unarchived'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.unarchived),
+    }),
+
+    /**
+     * A page of the user list as readPage, covering the users the implementing service says, for a
+     * service whose own rule decides who may be picked from it. Archived users are never among them.
+     */
+    readPageOf: defineSubOperation({
+        paramsSchema: () => userSchemas.params.readPageOf,
+        operation: ({ where }: { where: Prisma.UserWhereInput }) => ({ prisma, params }) =>
+            readUserPage(prisma, params, { AND: [userPartitions.unarchived, where] }),
     }),
 
     /**
@@ -240,7 +259,7 @@ export const userOperations = {
     readArchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readArchivedPage,
         authorizer: () => userAuth.readArchivedPage,
-        operation: ({ prisma, params }) => readUserPage(prisma, params, 'archived'),
+        operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.archived),
     }),
 
     /**
@@ -250,8 +269,6 @@ export const userOperations = {
     search: implementSearchOperation({
         authorizer: () => userAuth.search,
         find: async ({ prisma, query, take }) => {
-            const words = query.split(/\s+/).filter(Boolean)
-
             const users = await prisma.user.findMany({
                 take,
                 select: {
@@ -262,13 +279,7 @@ export const userOperations = {
                     image: { include: expandedImageIncluder },
                 },
                 where: {
-                    AND: [userPartitions.activeOmegaStudents, ...words.map((word): Prisma.UserWhereInput => ({
-                        OR: [
-                            { firstname: { contains: word, mode: 'insensitive' } },
-                            { lastname: { contains: word, mode: 'insensitive' } },
-                            { username: { contains: word, mode: 'insensitive' } },
-                        ],
-                    }))],
+                    AND: [userPartitions.activeOmegaStudents, ...everyWordInSomeNamePart(query)],
                 },
                 orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
             })
@@ -594,7 +605,8 @@ export const userOperations = {
 
     //TODO: Make soft delete?
     /**
-     * Deletes a user from the database, together with the bio paragraph only they owned.
+     * Deletes a user from the database, together with the bio paragraph and the mail address only
+     * they owned. The mail server sync then destroys their mailbox.
      */
     destroy: defineOperation({
         paramsSchema: userSchemas.params.destroy,
@@ -605,12 +617,18 @@ export const userOperations = {
                 where: {
                     id: params.id,
                 },
-                select: { bioParagraphId: true },
+                select: { bioParagraphId: true, mailAddress: { select: { id: true } } },
             })
             await cmsParagraphOperations.destroy.internalCall({
                 prisma,
                 params: { paragraphId: user.bioParagraphId },
             })
+            if (user.mailAddress) {
+                await vevenMailAddressOperations.internal.destroy.internalCall({
+                    prisma,
+                    params: { mailAddressId: user.mailAddress.id },
+                })
+            }
         }
     }),
 
@@ -655,7 +673,7 @@ export const userOperations = {
                     where: { username: params.username },
                 })
 
-                const uploadedImage = await userProfileImageOperations.uploadImage.internalCall({
+                const uploadedImage = await profileImageCollection.internal.uploadImage.internalCall({
                     prisma: tx,
                     data: {
                         imageFile: data.imageFile,
@@ -676,7 +694,7 @@ export const userOperations = {
                 // A previous imageId is always an upload owned 1:1 by this user (never the shared
                 // default, since that's only ever resolved at read time) - safe to destroy.
                 if (existingUser.imageId) {
-                    await userProfileImageOperations.destroyImage.internalCall({
+                    await profileImageCollection.internal.destroyImage.internalCall({
                         prisma: tx,
                         params: { imageId: existingUser.imageId }
                     })
@@ -689,15 +707,24 @@ export const userOperations = {
     }),
 } as const
 
+function everyWordInSomeNamePart(search: string): Prisma.UserWhereInput[] {
+    return search.split(/\s+/).filter(Boolean).map(word => ({
+        OR: [
+            { firstname: { contains: word, mode: 'insensitive' } },
+            { lastname: { contains: word, mode: 'insensitive' } },
+            { username: { contains: word, mode: 'insensitive' } },
+        ],
+    }))
+}
+
 type ReadUserPageParams = z.infer<typeof userSchemas.params.readPage>
 
 async function readUserPage(
     prisma: Prisma.TransactionClient,
     params: ReadUserPageParams,
-    partition: UserPartition,
+    usersCovered: Prisma.UserWhereInput,
 ): Promise<UserPagingReturn[]> {
     const { page, details } = params.paging
-    const words = details.partOfName.split(' ')
     const sortDirection = details.sort?.direction ?? 'asc'
     // The username is always included as the final tiebreaker so the
     // ordering stays fully deterministic for cursor-based pagination.
@@ -758,20 +785,8 @@ async function readUserPage(
         },
         where: {
             AND: [
-                userPartitions[partition],
-                ...words.map((word, index) => {
-                    const condition = {
-                        [index === words.length - 1 ? 'contains' : 'equals']: word,
-                        mode: 'insensitive'
-                    } as const
-                    return {
-                        OR: [
-                            { firstname: condition },
-                            { lastname: condition },
-                            { username: condition },
-                        ],
-                    }
-                }),
+                usersCovered,
+                ...everyWordInSomeNamePart(details.partOfName),
                 ...groups.map(group => ({
                     memberships: {
                         some: {

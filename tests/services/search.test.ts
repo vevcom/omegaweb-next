@@ -1,4 +1,4 @@
-import { Session } from '@/auth/session/Session'
+import { createAdministrators } from 'tests/eventSetup'
 import { prisma } from '@/prisma-pn-client-instance'
 import { Smorekopp } from '@/services/error'
 import { omegawebSearchOperations } from '@/services/omegawebSearch/operations'
@@ -14,7 +14,9 @@ import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
+import type { Session } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
@@ -26,17 +28,17 @@ let memberGroup: number
 let jobAdId: number
 
 const sessionOf = (permissions: Parameters<typeof Session.fromJsObject>[0]['permissions']) =>
-    Session.fromJsObject({ user: null, permissions, memberships: [] })
+    testSession({ user: null, permissions, memberships: [] })
 
 /** An active member of `memberGroup`, holding no permissions at all. */
 const sessionInMemberGroup = () => {
     const memberships: MembershipFiltered[] = [{ groupId: memberGroup, order: currentOrder, active: true, admin: false }]
-    return Session.fromJsObject({ user: null, permissions: [], memberships })
+    return testSession({ user: null, permissions: [], memberships })
 }
 
 beforeAll(async () => {
     const [company] = await Promise.all([COMPANY_NAME, OTHER_COMPANY_NAME].map(name => prisma.company.create({
-        data: { name, description: 'En bedrift å søke etter.', logo: { create: {} } },
+        data: { name, description: 'En bedrift å søke etter.' },
     })))
     const jobAd = await jobAdOperations.create({
         data: {
@@ -145,7 +147,7 @@ describe('global search', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
@@ -192,7 +194,7 @@ describe('global search', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds,
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
@@ -241,8 +243,8 @@ describe('search respects a provider\'s own visibility filter', () => {
             data: {
                 name: 'Søketest Nyhet',
                 description: 'En nyhet bare noen kan se.',
-                visibilityRegularRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
-                visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityRegularRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
             },
             bypassAuth: true,
         })
@@ -279,27 +281,25 @@ describe('search respects a provider\'s own visibility filter', () => {
                 takesRegistration: false,
                 waitingList: false,
                 tagIds: [],
-                visibilityAdminRequirements: [{ conditions: [] }],
+                visibilityAdminRequirements: await createAdministrators('search-admins'),
             },
             bypassAuth: true,
         })
-        const variant = await eventVariantOperations.create({
+        const variant = await eventVariantOperations.internal.create.internalCall({
             params: { eventId: event.id },
             data: {
                 name: 'Påmelding',
                 registrationStart: new Date(Date.now() - HOUR),
                 registrationEnd: new Date(Date.now() + 24 * HOUR),
             },
-            bypassAuth: true,
         })
-        await eventQuotaOperations.create({
+        await eventQuotaOperations.internal.create.internalCall({
             params: { variantId: variant.id },
             data: {
                 name: 'Medlemmer',
                 places: 10,
-                visibilityRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: memberGroup }] }],
+                visibilityRequirements: [{ conditions: [activeMembersOf(memberGroup)] }],
             },
-            bypassAuth: true,
         })
         await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
 
