@@ -1,4 +1,4 @@
-import { loadChatSdk } from './sdk'
+import { loadChatCryptoSdk, loadChatSdk } from './sdk'
 import { cryptoStoreNameOf } from './storage'
 import type { ChatSessionBrowser } from './browser'
 import type { StoredChatSession } from './storage'
@@ -33,7 +33,7 @@ export async function startEncryption(
         return false
     })
     if (!isStarted) return
-    const { RoomEvent } = await loadChatSdk()
+    const [{ RoomEvent }] = await Promise.all([loadChatSdk(), loadChatCryptoSdk()])
     // The SDK tells of a message of the user's own each time it has come further on its way, and
     // the first time after it is encrypted is before it is sent.
     client.on(RoomEvent.LocalEchoUpdated, sayMentionsInTheClear)

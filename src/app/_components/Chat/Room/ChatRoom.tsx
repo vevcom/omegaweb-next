@@ -6,6 +6,7 @@ import { wordingOfTooLarge } from './timelineWording'
 import useChatProfiles from './useChatProfiles'
 import { refusalWording } from '@/components/Chat/Membership/chatAction'
 import ChatRoomActions from '@/components/Chat/Membership/ChatRoomActions'
+import ChatRecoveryNotice from '@/components/Chat/Recovery/ChatRecoveryNotice'
 import Button from '@/components/UI/Button'
 import { refusalOf } from '@/lib/chatSession/membership'
 import { FileTooLarge, isStopped, isTooLarge } from '@/lib/chatSession/media'
@@ -177,11 +178,12 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
                 <h2 className="m-0 wrap-anywhere">{directWith ? headingOfDirectMessage(directWith) : name}</h2>
                 <ChatRoomActions client={client} room={room} ofSpace={ofSpace} />
             </div>
-            {timeline.isEncrypted && (
+            {timeline.isEncrypted && <>
                 <p className="m-0 text-s text-base-content/80">
                     Samtalen er kryptert: det som skrives her, lagres ikke lesbart på serveren.
                 </p>
-            )}
+                <ChatRecoveryNotice client={client} />
+            </>}
             {isConnectionLost && (
                 <p className="m-0 text-base-content/80">Får ikke kontakt med chatten. Prøver igjen ...</p>
             )}

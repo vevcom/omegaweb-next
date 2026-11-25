@@ -1,10 +1,12 @@
 import ChatPictureSetting from './ChatPictureSetting'
 import { authorizeChatPage } from '@/app/(omegaweb)/chat/authorizeChatPage'
+import { chatSessionOperations } from '@/services/chat/session/operations'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOff } from '@/services/notifications/constants'
 import { chatNotificationChannel } from '@/services/chat/chatNotificationChannel'
 import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
+import ChatRecovery from '@/components/Chat/Recovery/ChatRecovery'
 import UpdateNotificationSubscription from '@/components/Notifications/UpdateNotificationSubscription'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -13,8 +15,9 @@ import type { SubscribableChannel } from '@/components/Notifications/UpdateNotif
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
         const userId = authorizeChatPage(session).id
-        const [chatUser, spaces, chatChannel, directAndGroupChannel] = await Promise.all([
+        const [chatUser, chatSession, spaces, chatChannel, directAndGroupChannel] = await Promise.all([
             withFallback(chatUserOperations.read({ params: { userId } }), null, ['NOT FOUND']),
+            withFallback(chatSessionOperations.read({ params: { userId } }), null, ['NOT FOUND']),
             chatUserOperations.readSpaces({ params: { userId } }),
             chatNotificationChannel.read({}),
             chatDirectAndGroupNotificationChannel.read({}),
@@ -33,6 +36,7 @@ const { page, generateMetadata } = serverPage({
         return {
             userId,
             hasChatAccount: chatUser !== null,
+            hasChatSignIn: chatSession !== null,
             picture,
             spaces,
             subscriptions,
@@ -42,7 +46,7 @@ const { page, generateMetadata } = serverPage({
     },
     metadata: () => ({ title: 'Innstillinger for chatten' }),
     render: ({ data }) => {
-        const { userId, hasChatAccount, picture, spaces, subscriptions } = data
+        const { userId, hasChatAccount, hasChatSignIn, picture, spaces, subscriptions } = data
         const subscriptionTo = (
             channel: SubscribableChannel,
             { shownAs = channel.name, hasChildren = false, depth = 0 }: {
@@ -78,6 +82,8 @@ const { page, generateMetadata } = serverPage({
                         )
                     }
                 </div>
+
+                {hasChatSignIn && <ChatRecovery />}
 
                 <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col">
                     <h2 className="m-0">Varsler</h2>

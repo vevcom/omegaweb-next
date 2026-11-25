@@ -1,4 +1,5 @@
 import { loadChatSdk, oauthOf } from './sdk'
+import { recoveryCallbacks } from './recovery'
 import { roomNameIn } from './rooms'
 import { startEncryption } from './encryption'
 import { deleteChatStores, forgetSession, readStoredSession, storeSession, syncStoreNameOf } from './storage'
@@ -35,6 +36,7 @@ export async function chatClientOf(
         fetchFn: browser.fetch,
         store,
         disableVoip: true,
+        cryptoCallbacks: recoveryCallbacks(),
         roomNameGenerator: roomNameIn(RoomNameType),
         onTokenRefresh: tokens => {
             const kept = readStoredSession(browser)
