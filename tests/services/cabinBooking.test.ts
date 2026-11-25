@@ -30,13 +30,18 @@ const createUser = () => {
     })
 }
 
+const contact = { firstname: 'Kari', lastname: 'Kontakt', email: 'kari@example.com', mobile: '12345678' }
+
 const userSession = (booker: UserFiltered) =>
     Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user: booker })
 
 const reserveAs = (booker: UserFiltered, start: number, end: number, quantity = 1) =>
     cabinBookingOperations.createCabinBookingUserAttached({
         params: { userId: booker.id, bookingProducts: [{ cabinProductId, quantity }] },
-        data: { start: date(start), end: date(end), acceptedTerms: true, numberOfMembers: 2, numberOfNonMembers: 0 },
+        data: {
+            start: date(start), end: date(end), acceptedTerms: true, ...contact,
+            numberOfMembers: 2, numberOfNonMembers: 0,
+        },
         session: userSession(booker),
     })
 
@@ -81,10 +86,23 @@ describe('reserving the cabin', () => {
         await expect(reserveAs(hoarder, 30, 31)).rejects.toThrow(Smorekopp)
     })
 
+    test('the contact given is kept with the booking and not taken from the profile', async () => {
+        const reservation = await reserveAsNewUser(44, 45)
+
+        const booking = await prisma.booking.findUniqueOrThrow({
+            where: { id: reservation.id },
+            include: { guestUser: true },
+        })
+        expect(booking.guestUser).toMatchObject(contact)
+    })
+
     test('the number of members and non-members must be whole numbers', async () => {
         await expect(cabinBookingOperations.createCabinBookingUserAttached({
             params: { userId: user.id, bookingProducts: [{ cabinProductId, quantity: 1 }] },
-            data: { start: date(36), end: date(37), acceptedTerms: true, numberOfMembers: 0.5, numberOfNonMembers: 1 },
+            data: {
+                start: date(36), end: date(37), acceptedTerms: true, ...contact,
+                numberOfMembers: 0.5, numberOfNonMembers: 1,
+            },
             session: userSession(user),
         })).rejects.toThrow(Smorekopp)
     })
@@ -106,7 +124,10 @@ describe('reserving beds', () => {
         const booker = await createUser()
         return cabinBookingOperations.createBedBookingUserAttached({
             params: { userId: booker.id, bookingProducts: [{ cabinProductId: bed.id, quantity }] },
-            data: { start: date(start), end: date(end), acceptedTerms: true, numberOfMembers: 0, numberOfNonMembers: 0 },
+            data: {
+                start: date(start), end: date(end), acceptedTerms: true, ...contact,
+                numberOfMembers: 0, numberOfNonMembers: 0,
+            },
             session: userSession(booker),
         })
     }

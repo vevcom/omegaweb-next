@@ -96,6 +96,8 @@ type Reservation = {
     bookingType: BookingType,
     bookingProducts: BookingProductParams,
     userId: number,
+    // Who the cabin team reaches about the stay, which the booker may set apart from their profile.
+    contact: { firstname: string, lastname: string, email: string, mobile: string },
     start: Date,
     end: Date,
     tenantNotes?: string,
@@ -111,6 +113,7 @@ const withUser = (
     bookingType,
     bookingProducts: params.bookingProducts,
     userId: params.userId,
+    contact: { firstname: data.firstname, lastname: data.lastname, email: data.email, mobile: data.mobile },
     start: data.start,
     end: data.end,
     tenantNotes: data.tenantNotes,
@@ -182,7 +185,10 @@ async function readDestinationLedgerAccountId(prisma: Prisma.TransactionClient) 
  * the availability check and the insert of one never interleave with another's - two bookers
  * cannot both find the same dates free.
  */
-async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingProducts, userId, ...booking }: Reservation) {
+async function reserve(
+    prisma: Prisma.TransactionClient,
+    { bookingType, bookingProducts, userId, contact, ...booking }: Reservation,
+) {
     await takeAdvisoryLock(prisma, 'cabinBooking')
 
     const releasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
@@ -252,6 +258,7 @@ async function reserve(prisma: Prisma.TransactionClient, { bookingType, bookingP
             transactionTimeout: new Date(Date.now() + cabinReservationWindowMs),
             BookingProduct: { create: bookingProducts },
             user: { connect: { id: userId } },
+            guestUser: { create: contact },
         },
         select: { id: true, secret: true, totalPrice: true, transactionTimeout: true },
     })

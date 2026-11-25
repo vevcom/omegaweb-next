@@ -11,13 +11,13 @@ type Recipient = { email: string, firstname: string } | null
 
 /**
  * Sent once payment succeeds, not at reservation time - a reservation may still expire unpaid.
- * The booker is a user or a guest; a booking with neither (an event blocking the cabin) confirms
- * nothing.
+ * It goes to the contact given with the booking, and to the user where an older booking has none. A
+ * booking with neither, an event blocking the cabin, confirms nothing.
  */
 export async function sendBookingConfirmation(
     booking: ConfirmedBooking & { user: Recipient, guestUser: Recipient }
 ) {
-    const recipient = booking.user ?? booking.guestUser
+    const recipient = booking.guestUser ?? booking.user
     if (!recipient) return
 
     await sendCabinBookingConfirmationMail(recipient, booking)
