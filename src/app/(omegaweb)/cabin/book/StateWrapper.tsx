@@ -12,13 +12,18 @@ import Form from '@/components/Form/Form'
 import CountDown from '@/components/CountDown/CountDown'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import CabinBookingPaymentModal from '@/components/Ledger/Modals/CabinBookingPaymentModal'
-import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
+import {
+    calculateCabinBookingPrice,
+    calculateTotalCabinBookingPrice,
+    hasPriceOn,
+} from '@/services/cabin/booking/cabinPriceCalculator'
 import { useSession } from '@/auth/session/useSession'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 import { appHref } from '@/lib/sites/href'
 import useAuthorizer from '@/hooks/useAuthorizer'
+import { Smorekopp } from '@/services/error'
 import { createActionError } from '@/services/actionError'
 import { configureAction } from '@/services/configureAction'
 import {
@@ -182,8 +187,9 @@ export default function StateWrapper({
             defaultDateRange={dateRange}
             intervalChangeCallback={setDateRange}
             bookings={blockingBookings}
+            isBookable={night => hasPriceOn(night, selectedProducts, pricePeriods)}
         />
-    ), [bookingType, blockingBookings, releaseUntil, dateRange])
+    ), [bookingType, blockingBookings, releaseUntil, dateRange, selectedProducts, pricePeriods])
 
     const productAmounts = useMemo(
         () => (bookingType === 'BED' ? bedAmounts : [1]),
@@ -204,15 +210,20 @@ export default function StateWrapper({
 
     let totalPrice = 0
     if (dateRange.start && dateRange.end) {
-        totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
-            pricePeriods,
-            products: selectedProducts,
-            productAmounts,
-            startDate: dateRange.start,
-            endDate: dateRange.end,
-            numberOfMembers,
-            numberOfNonMembers,
-        }))
+        try {
+            totalPrice = calculateTotalCabinBookingPrice(calculateCabinBookingPrice({
+                pricePeriods,
+                products: selectedProducts,
+                productAmounts,
+                startDate: dateRange.start,
+                endDate: dateRange.end,
+                numberOfMembers,
+                numberOfNonMembers,
+            }))
+        } catch (error) {
+            // A price rule this stay does not meet, which CabinPriceCalculator shows.
+            if (!(error instanceof Smorekopp)) throw error
+        }
     }
 
     if (session.loading) return <>Laster inn...</>

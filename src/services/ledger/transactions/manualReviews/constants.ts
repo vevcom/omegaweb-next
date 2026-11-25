@@ -7,6 +7,7 @@ export const manualReviewProblemDescriptions = {
     COMPLETION_HOOK_FAILED: 'Fullføringshook feilet etter vellykket betaling.',
     CABIN_DOUBLE_BOOKING: 'Hytta ble dobbeltbooket mens betalingen pågikk og gjesten(e) har ingen konto for '
         + 'automatisk refusjon.',
+    CABIN_GUEST_REFUND: 'En gjestebooking ble avbestilt med refusjon. Refunder betalingen i Stripe.',
     STALE_PENDING: 'Tidsavbrutt transaksjon kunne ikke kanselleres automatisk.',
     UNCLAIMED_PAYMENT: 'Betaling gikk gjennom, men ble ikke brukt og kunne ikke tilbakebetales automatisk.',
     UNBALANCED: 'Transaksjon markert som vellykket summerer ikke til null.',

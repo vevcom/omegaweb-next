@@ -35,4 +35,11 @@ describe('the cabin calendar', () => {
         expect(pickDate({ start: date(18) }, date(20), calendarWindow)).toEqual({ start: date(18), end: date(20) })
         expect(pickDate({}, date(20), calendarWindow)).toBeNull()
     })
+
+    test('a night that cannot be booked cannot be stayed over, but can be checked out on', () => {
+        const withUnbookable = { ...calendarWindow, isBookable: (night: Date) => night.getUTCDate() !== 5 }
+        expect(nightOf(date(5), withUnbookable)).toBe('unavailable')
+        expect(pickDate({ start: date(3) }, date(5), withUnbookable)).toEqual({ start: date(3), end: date(5) })
+        expect(pickDate({ start: date(3) }, date(7), withUnbookable)).toEqual({ start: date(7) })
+    })
 })

@@ -15,24 +15,26 @@ export type DateRange = {
     end?: Date,
 }
 
-export type Night = 'free' | 'past' | 'booked' | 'closed'
+export type Night = 'free' | 'past' | 'booked' | 'closed' | 'unavailable'
 
 export type CalendarWindow = {
     today: Date,
     bookingUntil: Date,
     bookings: BookingFiltered[],
+    isBookable?: (night: Date) => boolean,
 }
 
 const addDays = (date: Date, days: number) =>
     new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days))
 
 /** What the night starting on `date` is. Dates are whole days at UTC midnight. */
-export function nightOf(date: Date, { today, bookingUntil, bookings }: CalendarWindow): Night {
+export function nightOf(date: Date, { today, bookingUntil, bookings, isBookable }: CalendarWindow): Night {
     if (dateLessThan(date, today)) return 'past'
     if (!dateLessThan(date, bookingUntil)) return 'closed'
     const booked = bookings.some(booking =>
         dateLessThanOrEqualTo(booking.start, date) && dateLessThan(date, booking.end))
-    return booked ? 'booked' : 'free'
+    if (booked) return 'booked'
+    return isBookable && !isBookable(date) ? 'unavailable' : 'free'
 }
 
 /**
@@ -64,6 +66,7 @@ const nightClassNames: Record<Night, string> = {
         bg-[repeating-linear-gradient(135deg,var(--stripe)_0_4px,transparent_4px_10px)]
     `,
     closed: 'bg-base-300 border-transparent text-base-content/60',
+    unavailable: 'bg-transparent border-base-300 border-dashed text-base-content/50 line-through',
 }
 
 const nightLabels: Record<Night, string> = {
@@ -71,6 +74,7 @@ const nightLabels: Record<Night, string> = {
     past: 'passert',
     booked: 'opptatt',
     closed: 'ikke åpnet ennå',
+    unavailable: 'kan ikke bookes',
 }
 
 const selectedClassName = 'bg-primary border-primary text-primary-content cursor-pointer'
@@ -85,11 +89,13 @@ export default function CabinCalendar({
     intervalChangeCallback,
     defaultDateRange,
     bookings,
+    isBookable,
 }: {
     bookingUntil: Date,
     intervalChangeCallback?: (dateRange: DateRange) => void,
     defaultDateRange?: DateRange,
     bookings?: BookingFiltered[],
+    isBookable?: (night: Date) => boolean,
 }) {
     // The calendar works in whole dates, and today is the date in Oslo.
     const today = new Date(osloDateTime(new Date()).toISODate() ?? '')
@@ -99,7 +105,7 @@ export default function CabinCalendar({
         return new Date(Date.UTC(shown.getUTCFullYear(), shown.getUTCMonth(), 1))
     })
 
-    const calendarWindow = { today, bookingUntil, bookings: bookings ?? [] }
+    const calendarWindow = { today, bookingUntil, bookings: bookings ?? [], isBookable }
     const nightAt = (date: Date) => nightOf(date, calendarWindow)
 
     const pick = (date: Date) => {
@@ -179,7 +185,7 @@ export default function CabinCalendar({
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-s">
-            {(['free', 'booked', 'closed'] as const).map(night => (
+            {(['free', 'booked', 'closed', 'unavailable'] as const).map(night => (
                 <span key={night} className="flex items-center gap-2">
                     <span className={`
                         size-4 rounded-sm border

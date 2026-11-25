@@ -1,3 +1,4 @@
+import { Smorekopp } from '@/services/error'
 import { displayAmount } from '@/lib/currency/convert'
 import { calculateCabinBookingPrice, calculateTotalCabinBookingPrice } from '@/services/cabin/booking/cabinPriceCalculator'
 import type { CabinProductExtended } from '@/services/cabin/product/types'
@@ -29,15 +30,20 @@ export default function CabinPriceCalculator({
     let totalPrice = 0
 
     if (startDate && endDate) {
-        priceData = calculateCabinBookingPrice({
-            pricePeriods,
-            products,
-            productAmounts,
-            startDate,
-            endDate,
-            numberOfMembers,
-            numberOfNonMembers
-        })
+        try {
+            priceData = calculateCabinBookingPrice({
+                pricePeriods,
+                products,
+                productAmounts,
+                startDate,
+                endDate,
+                numberOfMembers,
+                numberOfNonMembers
+            })
+        } catch (error) {
+            if (!(error instanceof Smorekopp)) throw error
+            return <p className="m-0 text-error">{error.errors[0]?.message ?? 'Prisen kunne ikke regnes ut.'}</p>
+        }
         totalPrice = calculateTotalCabinBookingPrice(priceData)
     }
 

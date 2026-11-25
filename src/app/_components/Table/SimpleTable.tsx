@@ -6,12 +6,15 @@ export default function SimpleTable<T extends string[]>({
     header,
     body,
     links,
+    className = 'ohma-table',
 }: {
     header: T,
     body: { [K in keyof T]: ReactNode }[],
     links?: AppHref[],
+    /** Replaces the default table style. */
+    className?: string,
 }) {
-    return <table className="ohma-table">
+    return <table className={className}>
         <thead>
             <tr>
                 {header.map((item, i) => <th key={i}>{item}</th>)}

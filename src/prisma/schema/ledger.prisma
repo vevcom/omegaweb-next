@@ -162,6 +162,8 @@ enum ManualReviewProblem {
   STRIPE_REFUND
   COMPLETION_HOOK_FAILED
   CABIN_DOUBLE_BOOKING
+  // A guest's booking was canceled with a refund, which only Stripe can pay back.
+  CABIN_GUEST_REFUND
   // Found by the ledger sweeper, see services/ledger/sweeper.ts.
   STALE_PENDING
   UNCLAIMED_PAYMENT

@@ -2,7 +2,15 @@
 import ReleasePeriodForm from './ReleasePeriodForm'
 import PricePeriodForm from './PricePeriodForm'
 import PopUp from '@/app/_components/PopUp/PopUp'
-import { displayDate } from '@/lib/dates/displayDate'
+import { AddHeaderItemPopUp } from '@/app/_components/HeaderItems/HeaderItemPopUp'
+import { osloDateTime } from '@/lib/dates/oslo'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { appHref } from '@/lib/sites/href'
+import {
+    cabinAdminBadgeClassName,
+    cabinAdminCardClassName,
+    cabinAdminTableClassName,
+} from '@/app/(omegaweb)/admin/cabinAdminStyles'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
 import Form from '@/app/_components/Form/Form'
 import useAuthorizer from '@/hooks/useAuthorizer'
@@ -13,6 +21,8 @@ import { destroyReleasePeriodAction } from '@/services/cabin/releasePeriod/actio
 import { configureAction } from '@/services/configureAction'
 import type { PricePeriod, ReleasePeriod } from '@/prisma-generated-pn-types'
 
+
+const osloDay = (date: Date) => osloDateTime(date).setLocale('nb').toFormat('d. MMMM yyyy')
 
 export default function PageStateWrapper({
     releasePeriods,
@@ -34,94 +44,130 @@ export default function PageStateWrapper({
             .some(period => period.releaseUntil > pricePeriod.validFrom)
     }
 
-    return <>
+    const now = new Date()
 
-        {canCreateReleasePeriod &&
-            <PopUp
-                popUpKey="CreateNewReleasePeriod"
-                showButtonContent="Nytt slipp"
-                showButtonClass="btn-primary"
-            >
-                <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
-            </PopUp>
-        }
+    return <div className="flex flex-col gap-6 max-w-5xl">
+        <section className={cabinAdminCardClassName}>
+            <div className="flex flex-wrap justify-between items-center gap-3">
+                <div>
+                    <h2 className="m-0 text-l">Slipp</h2>
+                    <p className="m-0 text-s text-base-content/80">Når nye datoer åpner for booking, og hvor langt fram.</p>
+                </div>
+                {canCreateReleasePeriod &&
+                    <AddHeaderItemPopUp popUpKey="CreateNewReleasePeriod" label="Nytt slipp">
+                        <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
+                    </AddHeaderItemPopUp>
+                }
+            </div>
+            <div className="overflow-x-auto">
+                <SimpleTable
+                    className={cabinAdminTableClassName}
+                    header={['Slippes', 'Åpner fram til', 'Status', '']}
+                    body={releasePeriods.map(period => {
+                        const published = period.releaseTime < now
+                        return [
+                            osloDateTime(period.releaseTime).setLocale('nb').toFormat('d. MMMM yyyy \'kl.\' HH:mm'),
+                            osloDay(period.releaseUntil),
+                            <PublishedBadge key="status" published={published} />,
+                            !published && (canUpdateReleasePeriod || canDestroyReleasePeriod) &&
+                                <PopUp
+                                    key="actions"
+                                    popUpKey={`UpdateReleasePeriod${period.id}`}
+                                    showButtonContent="Endre"
+                                    showButtonClass="btn-neutral m-0!"
+                                >
+                                    {canUpdateReleasePeriod &&
+                                        <ReleasePeriodForm
+                                            period={period}
+                                            closePopUpOnSuccess={`UpdateReleasePeriod${period.id}`}
+                                        />
+                                    }
+                                    {canDestroyReleasePeriod &&
+                                        <Form
+                                            action={configureAction(destroyReleasePeriodAction, {
+                                                params: { id: period.id },
+                                            })}
+                                            submitText="Slett slippet"
+                                            submitColor="red"
+                                            confirmation={{
+                                                confirm: true,
+                                                text: 'Er du sikker på at du vil slette dette slippet?'
+                                            }}
+                                        />
+                                    }
+                                </PopUp>,
+                        ]
+                    })}
+                />
+            </div>
+        </section>
 
-        <SimpleTable
-            header={[
-                'Slipptidspunkt',
-                'Slipper fram til',
-                'Endre',
-                'Slett',
-            ]}
-            body={releasePeriods.map(period => [
-                displayDate(period.releaseTime, false),
-                displayDate(period.releaseUntil, false),
-                !canUpdateReleasePeriod || period.releaseTime < new Date() ? '' :
-                    <PopUp
-                        key={period.id}
-                        popUpKey={`UpdateReleasePeriod${period.id}`}
-                        showButtonContent="Endre"
-                    >
-                        <ReleasePeriodForm period={period} closePopUpOnSuccess={`UpdateReleasePeriod${period.id}`} />
-                    </PopUp>,
-                period.releaseTime < new Date() ? 'Slippet er publisert.' : canDestroyReleasePeriod &&
-                    <Form
-                        key={period.id}
-                        action={configureAction(destroyReleasePeriodAction, {
-                            params: { id: period.id },
-                        })}
-                        submitText="Slett"
-                        submitColor="red"
-                        confirmation={{
-                            confirm: true,
-                            text: 'Er du sikker på at du vil slette dette slippet?'
-                        }}
-                    />
-            ])}
-        />
+        <section className={cabinAdminCardClassName}>
+            <div className="flex flex-wrap justify-between items-center gap-3">
+                <div>
+                    <h2 className="m-0 text-l">Prisperioder</h2>
+                    <p className="m-0 text-s text-base-content/80">
+                        Prisene settes per produkt under{' '}
+                        <SiteLink href={appHref('/admin/cabin-product')}>Heutteprodukter</SiteLink>.
+                        En periode kan ikke endres når datoene den gjelder for er sluppet.
+                    </p>
+                </div>
+                {canCreatePricePeriod &&
+                    <AddHeaderItemPopUp popUpKey="CreateNewPricePeriod" label="Ny prisperiode">
+                        <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
+                    </AddHeaderItemPopUp>
+                }
+            </div>
+            <div className="overflow-x-auto">
+                <SimpleTable
+                    className={cabinAdminTableClassName}
+                    header={['Gjelder fra', 'Status', '']}
+                    body={pricePeriods.map(period => {
+                        const published = isPricePeriodReleased(period)
+                        return [
+                            osloDay(period.validFrom),
+                            <PublishedBadge key="status" published={published} />,
+                            !published && (canUpdatePricePeriod || canDestroyPricePeriod) &&
+                                <PopUp
+                                    key="actions"
+                                    popUpKey={`UpdatePricePeriod${period.id}`}
+                                    showButtonContent="Endre"
+                                    showButtonClass="btn-neutral m-0!"
+                                >
+                                    {canUpdatePricePeriod &&
+                                        <PricePeriodForm
+                                            period={period}
+                                            closePopUpOnSuccess={`UpdatePricePeriod${period.id}`}
+                                        />
+                                    }
+                                    {canDestroyPricePeriod &&
+                                        <Form
+                                            action={configureAction(destroyPricePeriodAction, {
+                                                params: { id: period.id },
+                                            })}
+                                            submitText="Slett perioden"
+                                            submitColor="red"
+                                            confirmation={{
+                                                confirm: true,
+                                                text: 'Er du sikker på at du vil slette denne prisperioden? '
+                                                    + 'Dette sletter alle priser knyttet til perioden.'
+                                            }}
+                                        />
+                                    }
+                                </PopUp>,
+                        ]
+                    })}
+                />
+            </div>
+        </section>
+    </div>
+}
 
-        {canCreatePricePeriod &&
-            <PopUp
-                popUpKey="CreateNewPricePeriod"
-                showButtonContent="Ny prisperiode"
-                showButtonClass="btn-primary"
-            >
-                <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
-            </PopUp>
-        }
-
-        <SimpleTable
-            header={[
-                'Startdato',
-                'Endre',
-                'Slett'
-            ]}
-            body={pricePeriods.map(period => [
-                displayDate(period.validFrom, false),
-                !canUpdatePricePeriod || isPricePeriodReleased(period) ? '' :
-                    <PopUp
-                        key={period.id}
-                        popUpKey={`UpdatePricePeriod${period.id}`}
-                        showButtonContent="Endre"
-                    >
-                        <PricePeriodForm period={period} closePopUpOnSuccess={`UpdatePricePeriod${period.id}`} />
-                    </PopUp>,
-                isPricePeriodReleased(period) ? 'Prisperioden er publisert.' : canDestroyPricePeriod &&
-                    <Form
-                        key={period.id}
-                        action={configureAction(destroyPricePeriodAction, {
-                            params: { id: period.id },
-                        })}
-                        submitText="Slett"
-                        submitColor="red"
-                        confirmation={{
-                            confirm: true,
-                            text: 'Er du sikker på at du vil slette denne prisperioden? '
-                                + 'Dette sletter alle priser knyttet til perioden.'
-                        }}
-                    />
-            ])}
-        />
-
-    </>
+function PublishedBadge({ published }: { published: boolean }) {
+    return <span className={`
+        ${cabinAdminBadgeClassName}
+        ${published ? 'bg-success text-success-content' : 'bg-info text-info-content'}
+    `}>
+        {published ? 'Publisert' : 'Planlagt'}
+    </span>
 }
