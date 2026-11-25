@@ -38,7 +38,7 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: ({ booking }) => ({ title: `Booking #${booking.id}` }),
     render: ({ data: { booking, status }, capabilities }) => {
-        const person = booking.user ?? booking.guestUser
+        const person = booking.guestUser ?? booking.user
         const refunded = booking.ledgerTransactions.some(transaction => transaction.refundOf !== null)
 
         return <PageWrapper>
@@ -84,7 +84,7 @@ const { page, generateMetadata } = serverPage({
                                 {booking.user.firstname} {booking.user.lastname}
                             </SiteLink>
                         </Field>}
-                        {booking.guestUser && <Field label="Gjest">
+                        {booking.guestUser && <Field label={booking.user ? 'Kontaktperson' : 'Gjest'}>
                             {booking.guestUser.firstname} {booking.guestUser.lastname}
                         </Field>}
                         {booking.event && <Field label="Arrangement">

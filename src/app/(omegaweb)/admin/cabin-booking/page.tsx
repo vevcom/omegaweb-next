@@ -52,7 +52,7 @@ const { page, generateMetadata } = serverPage({
             .filter(booking => {
                 if (!search) return true
                 const needle = search.toLowerCase()
-                const email = booking.user?.email ?? booking.guestUser?.email ?? ''
+                const email = booking.guestUser?.email ?? booking.user?.email ?? ''
                 return `#${booking.id} ${bookerName(booking)} ${email}`.toLowerCase().includes(needle)
             })
         if (tab === 'past' || tab === 'canceled') bookings.reverse()
