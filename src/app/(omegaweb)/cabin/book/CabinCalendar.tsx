@@ -1,381 +1,203 @@
 'use client'
-import { dateInInterval, dateLessThan, datesEqual, getWeekNumber } from '@/lib/dates/comparison'
-import React, { useState } from 'react'
+import { dateLessThan, dateLessThanOrEqualTo, datesEqual } from '@/lib/dates/comparison'
+import { osloDateTime } from '@/lib/dates/oslo'
+import { useState } from 'react'
 import type { BookingFiltered } from '@/services/cabin/booking/types'
-import type { ReactNode } from 'react'
 
 const WEEKDAYS = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn']
 const MONTHS = [
-    'Januar',
-    'Februar',
-    'Mars',
-    'April',
-    'Mai',
-    'Juni',
-    'Juli',
-    'August',
-    'September',
-    'Oktober',
-    'November',
-    'Desember'
+    'Januar', 'Februar', 'Mars', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Desember',
 ]
-
-enum Selection {
-    'START',
-    'END',
-    'INRANGE'
-}
-
-const weekClassName = 'w-full flex flex-row flex-nowrap'
-const dayClassName = 'relative min-h-[2.3rem]'
-
-const selectionClassNames: Record<Selection, string> = {
-    [Selection.START]: `
-        before:absolute before:top-0 before:right-0 before:size-full before:bg-primary before:rounded-l-[10px]
-    `,
-    [Selection.END]: `
-        before:absolute before:top-0 before:left-0 before:size-full before:bg-primary before:rounded-r-[10px]
-    `,
-    [Selection.INRANGE]: 'bg-[color-mix(in_srgb,var(--color-primary),white_30%)]',
-}
-
-const bookingSelectionClassNames: Record<Selection, string> = {
-    [Selection.START]: '[&>:last-child]:bg-error',
-    [Selection.END]: '[&>:first-child]:bg-error',
-    [Selection.INRANGE]: '[&>*]:bg-error',
-}
-
-type Day = {
-    date: Date,
-    selection?: Selection,
-    bookingSelection?: Selection,
-}
-
-type Week = {
-    days: (Day | null)[],
-    number: number,
-}
 
 export type DateRange = {
     start?: Date,
     end?: Date,
 }
 
-function createNullArray(num: number): null[] {
-    return Array.from({ length: num }).map(() => null)
+export type Night = 'free' | 'past' | 'booked' | 'closed'
+
+export type CalendarWindow = {
+    today: Date,
+    bookingUntil: Date,
+    bookings: BookingFiltered[],
+}
+
+const addDays = (date: Date, days: number) =>
+    new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + days))
+
+/** What the night starting on `date` is. Dates are whole days at UTC midnight. */
+export function nightOf(date: Date, { today, bookingUntil, bookings }: CalendarWindow): Night {
+    if (dateLessThan(date, today)) return 'past'
+    if (!dateLessThan(date, bookingUntil)) return 'closed'
+    const booked = bookings.some(booking =>
+        dateLessThanOrEqualTo(booking.start, date) && dateLessThan(date, booking.end))
+    return booked ? 'booked' : 'free'
 }
 
 /**
- * Generate data in teh calendar.
- * This includes generating a n array of weeks,
- * Where the week contains all the days in the week, and the state of that day
- * The state of the day can be beginning, end or middle of a range.
- * And a range can have different types
+ * The stay after picking `date`: it ends a started stay when every night up to it is free, and
+ * otherwise starts a new one on a free night. Null when the pick changes nothing.
  */
-function generateCalendarData(
-    startDate: Date,
-    endDate: Date,
-    dateRange: DateRange,
-    bookings: BookingFiltered[]
-): (Week | string)[] {
-    const bookingsAdjusted = bookings ?? []
-
-    // This will mark everything outside the booking period as booked
-    bookingsAdjusted.push({
-        type: 'CABIN',
-        start: endDate,
-        end: new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, endDate.getUTCDate()))
-    })
-    const earliesBookableDay = dateLessThan(new Date(), startDate) ? startDate : new Date()
-    bookingsAdjusted.push({
-        type: 'CABIN',
-        start: new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() - 1, startDate.getUTCDate())),
-        end: earliesBookableDay,
-    })
-    const firstDayOfMonth = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1))
-
-    const stopAtMonth = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, 1))
-
-
-    const firstDayOfFirstWeek = new Date(firstDayOfMonth)
-
-    // This will change Sunday to 6, and Monday to 0
-    const dayOfWeek = firstDayOfMonth.getUTCDay() === 0 ? 6 : firstDayOfMonth.getUTCDay() - 1
-
-    const firstDayOfFirstWeekOffset = firstDayOfMonth.getUTCDate() - dayOfWeek
-    firstDayOfFirstWeek.setUTCDate(firstDayOfFirstWeekOffset)
-
-    const ret: (Week | string)[] = []
-
-    let lastMonth = firstDayOfMonth.getUTCMonth() - 1
-
-    for (let i = 0; i < 100; i++) {
-        const mondayDate = new Date(firstDayOfFirstWeek)
-        mondayDate.setUTCDate(mondayDate.getUTCDate() + 7 * i)
-
-        let days: (Day | null)[] = []
-
-        for (let j = 0; j < 7; j++) {
-            const thisDate = new Date(firstDayOfFirstWeek)
-            thisDate.setUTCDate(thisDate.getUTCDate() + i * 7 + j)
-
-            let selection: undefined | Selection = undefined
-
-            if (datesEqual(thisDate, dateRange.start)) {
-                selection = Selection.START
-            } else if (datesEqual(thisDate, dateRange.end)) {
-                selection = Selection.END
-            } else if (dateRange.start && dateRange.end) {
-                const inRange = dateRange && dateLessThan(dateRange.start, thisDate) && dateLessThan(thisDate, dateRange.end)
-
-                if (inRange) {
-                    selection = Selection.INRANGE
-                }
-            }
-
-            let bookingSelection: undefined | Selection
-
-            bookingsAdjusted.forEach(booking => {
-                if (datesEqual(thisDate, booking.start)) {
-                    if (bookingSelection === undefined) {
-                        bookingSelection = Selection.START
-                    } else if (bookingSelection === Selection.END) {
-                        bookingSelection = Selection.INRANGE
-                    }
-                } else if (datesEqual(thisDate, booking.end)) {
-                    if (bookingSelection === undefined) {
-                        bookingSelection = Selection.END
-                    } else if (bookingSelection === Selection.START) {
-                        bookingSelection = Selection.INRANGE
-                    }
-                } else {
-                    const inRange = dateLessThan(booking.start, thisDate) && dateLessThan(thisDate, booking.end)
-
-                    if (inRange) {
-                        bookingSelection = Selection.INRANGE
-                    }
-                }
-            })
-
-            if (lastMonth !== thisDate.getUTCMonth()) {
-                lastMonth = thisDate.getUTCMonth()
-                if (!dateLessThan(thisDate, stopAtMonth)) {
-                    i = 100
-                    break
-                }
-
-                if (days.length > 0) {
-                    ret.push({
-                        number: getWeekNumber(mondayDate),
-                        days: [...days, ...createNullArray(7 - days.length)]
-                    })
-                }
-
-                ret.push(MONTHS[thisDate.getUTCMonth()])
-
-                days = createNullArray(days.length)
-            }
-
-            days.push({
-                date: thisDate,
-                selection,
-                bookingSelection,
-            })
-        }
-
-
-        if (i === 0 && dateLessThan(mondayDate, firstDayOfMonth)) {
-            // This will only happen the first week
-            ret.splice(0, 1)
-        }
-
-        ret.push({
-            number: getWeekNumber(mondayDate),
-            days
-        })
+export function pickDate(dateRange: DateRange, date: Date, calendarWindow: CalendarWindow): DateRange | null {
+    const { start, end } = dateRange
+    if (start && !end && dateLessThan(start, date)) {
+        let night = start
+        while (dateLessThan(night, date) && nightOf(night, calendarWindow) === 'free') night = addDays(night, 1)
+        if (datesEqual(night, date)) return { start, end: date }
     }
-
-
-    return ret
+    return nightOf(date, calendarWindow) === 'free' ? { start: date } : null
 }
 
-function dateInBooking(date: Date, bookings: BookingFiltered[], dateIsStart: boolean) {
-    for (const booking of bookings) {
-        if (dateInInterval(date, booking.start, booking.end, dateIsStart, !dateIsStart)) {
-            return true
-        }
-    }
-    return false
+const dayClassName = 'min-h-12 w-full rounded-inner border text-m flex flex-col items-center justify-center'
+
+const nightClassNames: Record<Night, string> = {
+    free: `
+        bg-base-100 border-base-300
+        hover:bg-base-200
+        cursor-pointer
+    `,
+    past: 'bg-transparent border-transparent text-base-content/40',
+    booked: `
+        border-warning/60 text-base-content font-semibold
+        [--stripe:color-mix(in_srgb,var(--color-warning)_35%,transparent)]
+        bg-[repeating-linear-gradient(135deg,var(--stripe)_0_4px,transparent_4px_10px)]
+    `,
+    closed: 'bg-base-300 border-transparent text-base-content/60',
 }
 
-function bookingCollides(dateRange: DateRange, bookings: BookingFiltered[]) {
-    if (!dateRange.start || !dateRange.end) return false
-
-    const startDate = dateRange.start
-    const endDate = dateRange.end
-    return bookings.some(booking => dateLessThan(booking.start, endDate) && dateLessThan(startDate, booking.end))
+const nightLabels: Record<Night, string> = {
+    free: 'ledig',
+    past: 'passert',
+    booked: 'opptatt',
+    closed: 'ikke åpnet ennå',
 }
 
-function preventBookingCollision(dateRange: DateRange, bookings: BookingFiltered[], lastChangeWasStart: boolean) {
-    if (!dateRange.start || !dateRange.end) return dateRange
+const selectedClassName = 'bg-primary border-primary text-primary-content cursor-pointer'
+const inRangeClassName = 'bg-primary/30 border-primary/50 cursor-pointer'
 
-    if (!dateLessThan(dateRange.start, dateRange.end)) {
-        return {
-            start: lastChangeWasStart ? dateRange.start : undefined,
-            end: lastChangeWasStart ? undefined : dateRange.end,
-        }
-    }
-
-    // lastChangeWasStart => we can change the end date => end downwards
-
-    if (lastChangeWasStart) {
-        if (bookingCollides(dateRange, bookings)) {
-            const newEnd = new Date(dateRange.end)
-            newEnd.setUTCDate(newEnd.getUTCDate() - 1)
-            return preventBookingCollision({
-                start: dateRange.start,
-                end: newEnd
-            }, bookings, lastChangeWasStart)
-        }
-        return dateRange
-    }
-
-    if (bookingCollides(dateRange, bookings)) {
-        const newStart = new Date(dateRange.start)
-        newStart.setUTCDate(newStart.getUTCDate() + 1)
-        return preventBookingCollision({
-            start: newStart,
-            end: dateRange.end
-        }, bookings, lastChangeWasStart)
-    }
-
-    return dateRange
-}
-
+/**
+ * Picks a stay one month at a time. A day stands for the night that starts on it, and the day a
+ * booked night starts can still be picked as the day to check out.
+ */
 export default function CabinCalendar({
-    startDate,
     bookingUntil,
     intervalChangeCallback,
     defaultDateRange,
     bookings,
 }: {
-    startDate: Date,
     bookingUntil: Date,
     intervalChangeCallback?: (dateRange: DateRange) => void,
     defaultDateRange?: DateRange,
     bookings?: BookingFiltered[],
 }) {
+    // The calendar works in whole dates, and today is the date in Oslo.
+    const today = new Date(osloDateTime(new Date()).toISODate() ?? '')
     const [dateRange, setDateRange] = useState<DateRange>(defaultDateRange ?? {})
-    const [lastChangeWasStart, setLastChangeWasStart] = useState(false)
-    const [weeks, setWeeks] = useState(generateCalendarData(startDate, bookingUntil, dateRange, bookings ?? []))
+    const [month, setMonth] = useState(() => {
+        const shown = dateRange.start ?? today
+        return new Date(Date.UTC(shown.getUTCFullYear(), shown.getUTCMonth(), 1))
+    })
 
-    function callback(day: Day) {
-        if (datesEqual(day.date, dateRange.start) || datesEqual(day.date, dateRange.end)) return
+    const calendarWindow = { today, bookingUntil, bookings: bookings ?? [] }
+    const nightAt = (date: Date) => nightOf(date, calendarWindow)
 
-
-        let newDateRange: DateRange = {}
-        let shouldChangeStart = !lastChangeWasStart
-        if (dateRange.start && day.date < dateRange.start) shouldChangeStart = true
-        if (dateRange.end && day.date > dateRange.end) shouldChangeStart = false
-
-        if (dateInBooking(day.date, bookings ?? [], shouldChangeStart)) return
-
-        if (shouldChangeStart) {
-            newDateRange = {
-                start: day.date,
-                end: dateRange.end
-            }
-        } else {
-            newDateRange = {
-                start: dateRange.start,
-                end: day.date,
-            }
-        }
-
-        newDateRange = preventBookingCollision(newDateRange, bookings ?? [], shouldChangeStart)
-
+    const pick = (date: Date) => {
+        const newDateRange = pickDate(dateRange, date, calendarWindow)
+        if (!newDateRange) return
         setDateRange(newDateRange)
-        if (intervalChangeCallback) intervalChangeCallback(newDateRange)
-        setLastChangeWasStart(shouldChangeStart)
-        setWeeks(generateCalendarData(startDate, bookingUntil, newDateRange, bookings ?? []))
+        intervalChangeCallback?.(newDateRange)
     }
 
-    return <div
-        className="
-            w-full max-w-[30rem] max-h-[30rem] overflow-y-auto mt-[1rem] px-[5px] border-2 border-base-300 rounded-round
-        "
-    >
-        <div className={`
-            ${weekClassName}
-            bg-base-100 sticky top-0 z-2 py-[0.2rem]
-        `}>
-            <div className="w-[2.5rem]">Uke</div>
-            <div className="grid grid-cols-7 flex-1 text-center">
-                {WEEKDAYS.map(day => <div key={day}>{day}</div>)}
-            </div>
+    const firstMonth = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1))
+    const lastMonth = new Date(Date.UTC(bookingUntil.getUTCFullYear(), bookingUntil.getUTCMonth(), 1))
+    const showMonth = (offset: number) =>
+        setMonth(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + offset, 1)))
+
+    const daysInMonth = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate()
+    const leadingBlanks = (month.getUTCDay() + 6) % 7
+    const days = Array.from({ length: daysInMonth }, (nothing, index) => addDays(month, index))
+
+    const navButtonClassName = `
+        size-11 rounded-inner border border-base-300 bg-base-100 text-l
+        hover:bg-base-200
+        disabled:opacity-40
+        disabled:hover:bg-base-100
+    `
+
+    return <div className="flex flex-col gap-3 w-full max-w-[40rem]">
+        <div className="flex items-center justify-between gap-2">
+            <button
+                type="button"
+                aria-label="Forrige måned"
+                className={navButtonClassName}
+                disabled={!dateLessThan(firstMonth, month)}
+                onClick={() => showMonth(-1)}
+            >‹</button>
+            <h3 className="m-0 text-l" aria-live="polite">{MONTHS[month.getUTCMonth()]} {month.getUTCFullYear()}</h3>
+            <button
+                type="button"
+                aria-label="Neste måned"
+                className={navButtonClassName}
+                disabled={!dateLessThan(month, lastMonth)}
+                onClick={() => showMonth(1)}
+            >›</button>
         </div>
 
-        {weeks.map((week, index) => {
-            if (typeof week === 'string') {
-                return <MonthHeader key={index}>{week}</MonthHeader>
-            }
-            return <CalendarWeek week={week} key={index} callback={callback} />
-        })}
-    </div>
-}
+        <div className="grid grid-cols-7 gap-1 text-center text-s font-semibold text-base-content/80">
+            {WEEKDAYS.map(weekday => <div key={weekday}>{weekday}</div>)}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: leadingBlanks }, (nothing, index) => <div key={`blank-${index}`} />)}
+            {days.map(date => {
+                const dayNight = nightAt(date)
+                const monthName = MONTHS[date.getUTCMonth()].toLowerCase()
+                const isEnd = datesEqual(date, dateRange.start) || datesEqual(date, dateRange.end)
+                const inRange = dateRange.start && dateRange.end
+                    && dateLessThan(dateRange.start, date) && dateLessThan(date, dateRange.end)
+                const canCheckOut = dayNight !== 'free' && dayNight !== 'past' && nightAt(addDays(date, -1)) === 'free'
+                let className = nightClassNames[dayNight]
+                if (isEnd) className = selectedClassName
+                else if (inRange) className = inRangeClassName
+                else if (canCheckOut) className = `${className} cursor-pointer`
 
-function MonthHeader({
-    children
-}: {
-    children: ReactNode
-}) {
-    return <h2 className="relative z-1 text-center">{children}</h2>
-}
-
-function CalendarWeek({
-    week,
-    callback
-}: {
-    week: Week,
-    callback: (day: Day) => void
-}) {
-    return <div className={weekClassName} >
-        <div className="w-[2.5rem]">{week.number}</div>
-        <div className="grid grid-cols-7 flex-1 text-center">
-            {week.days.map((day, weekdayIndex) => {
-                if (day) return <CalendarDay day={day} key={weekdayIndex} callback={callback} />
-                return <div key={weekdayIndex} className={dayClassName}></div>
+                return <button
+                    key={date.getTime()}
+                    type="button"
+                    aria-label={`${date.getUTCDate()}. ${monthName}, ${nightLabels[dayNight]}`}
+                    aria-pressed={Boolean(isEnd || inRange)}
+                    disabled={dayNight !== 'free' && !canCheckOut}
+                    className={`
+                        ${dayClassName}
+                        ${className}
+                    `}
+                    onClick={() => pick(date)}
+                >
+                    {date.getUTCDate()}
+                </button>
             })}
         </div>
-    </div>
-}
 
-function CalendarDay({
-    day,
-    callback
-}: {
-    day: Day,
-    callback: (sourceDay: Day) => void
-}) {
-    return <div className={`
-        ${dayClassName}
-        hover:bg-base-300
-    `}>
-        <div
-            className={`
-                absolute size-full z-1
-                ${day.selection !== undefined ? selectionClassNames[day.selection] : ''}
-            `}
-            onMouseDown={() => callback(day)}
-        >
-            <div className="relative p-[4px] text-[1.3rem]">{day.date.getDate()}</div>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-s">
+            {(['free', 'booked', 'closed'] as const).map(night => (
+                <span key={night} className="flex items-center gap-2">
+                    <span className={`
+                        size-4 rounded-sm border
+                        ${nightClassNames[night]}
+                    `} />
+                    {nightLabels[night].charAt(0).toUpperCase() + nightLabels[night].slice(1)}
+                </span>
+            ))}
+            <span className="flex items-center gap-2">
+                <span className={`
+                    size-4 rounded-sm border
+                    ${selectedClassName}
+                `} />
+                Ditt valg
+            </span>
         </div>
-        <div className={`
-            absolute size-full z-0 bg-success
-            ${day.bookingSelection === undefined ? '' : bookingSelectionClassNames[day.bookingSelection]}
-        `}>
-            <div className="w-1/2 h-full float-left" />
-            <div className="w-1/2 h-full float-right" />
-        </div>
+        <p className="m-0 text-s text-base-content/80">
+            Velg dagen du kommer, og så dagen du drar. Du kan også bruke Tab og Enter.
+        </p>
     </div>
 }

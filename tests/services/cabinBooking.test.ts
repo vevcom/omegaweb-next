@@ -12,41 +12,47 @@ const day = 24 * 60 * 60 * 1000
 const date = (daysFromNow: number) => new Date(new Date(Date.now() + daysFromNow * day).toISOString().slice(0, 10))
 
 let user: UserFiltered
+let nextUserNumber = 0
 let cabinProductId: number
 
 const guestSession = Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user: null })
 
-const reserveAsUser = (start: number, end: number) => cabinBookingOperations.createCabinBookingUserAttached({
-    params: { userId: user.id, bookingProducts: [{ cabinProductId, quantity: 1 }] },
-    data: { start: date(start), end: date(end), acceptedTerms: true, numberOfMembers: 2, numberOfNonMembers: 0 },
-    session: Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user }),
-})
-
-const reserveAsGuest = (email: string, start: number, end: number, quantity = 1) =>
-    cabinBookingOperations.createCabinBookingNoUser({
-        params: { bookingProducts: [{ cabinProductId, quantity }] },
+const createUser = () => {
+    const username = `cabin-booking-test-${nextUserNumber++}`
+    return prisma.user.create({
         data: {
-            start: date(start),
-            end: date(end),
-            acceptedTerms: true,
-            firstname: 'Gjest',
-            lastname: 'Gjestesen',
-            email,
-            mobile: '12345678',
-        },
-        session: guestSession,
-    })
-
-beforeAll(async () => {
-    user = await prisma.user.create({
-        data: {
-            username: 'cabin-booking-test',
-            email: 'cabin-booking-test@omega.ntnu.no',
+            username,
+            email: `${username}@omega.ntnu.no`,
             bioParagraph: { create: {} },
             ledgerAccount: { create: { type: 'USER' } },
         },
         select: userPrivateSelection,
     })
+}
+
+const contact = { firstname: 'Kari', lastname: 'Kontakt', email: 'kari@example.com', mobile: '12345678' }
+
+const userSession = (booker: UserFiltered) =>
+    Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user: booker })
+
+const reserveAs = (booker: UserFiltered, start: number, end: number, quantity = 1) =>
+    cabinBookingOperations.createCabinBookingUserAttached({
+        params: { userId: booker.id, bookingProducts: [{ cabinProductId, quantity }] },
+        data: {
+            start: date(start), end: date(end), acceptedTerms: true, ...contact,
+            numberOfMembers: 2, numberOfNonMembers: 0,
+        },
+        session: userSession(booker),
+    })
+
+const reserveAsUser = (start: number, end: number) => reserveAs(user, start, end)
+
+/** Reserves as a booker of their own, so the cap on unpaid reservations does not get in the way. */
+const reserveAsNewUser = async (start: number, end: number, quantity = 1) =>
+    reserveAs(await createUser(), start, end, quantity)
+
+beforeAll(async () => {
+    user = await createUser()
     cabinProductId = (await prisma.cabinProduct.findFirstOrThrow({ where: { type: 'CABIN' }, select: { id: true } })).id
     // Reserving is refused until the cabin has an account to pay the bookings into.
     await prisma.ledgerAccount.create({ data: { type: 'GROUP', name: 'Hyttekonto', special: 'CABIN' } })
@@ -54,7 +60,7 @@ beforeAll(async () => {
 
 describe('reserving the cabin', () => {
     test('two bookers of the same nights cannot both reserve them', async () => {
-        const outcomes = await Promise.allSettled([reserveAsUser(2, 4), reserveAsGuest('race@example.com', 2, 4)])
+        const outcomes = await Promise.allSettled([reserveAsUser(2, 4), reserveAsNewUser(2, 4)])
         const fulfilled = outcomes.filter(outcome => outcome.status === 'fulfilled')
         const rejected = outcomes.filter(outcome => outcome.status === 'rejected')
         expect(fulfilled).toHaveLength(1)
@@ -63,8 +69,8 @@ describe('reserving the cabin', () => {
     })
 
     test('the availability shows bookings that follow each other as one span', async () => {
-        await reserveAsGuest('first@example.com', 6, 8)
-        await reserveAsGuest('second@example.com', 8, 10)
+        await reserveAsNewUser(6, 8)
+        await reserveAsNewUser(8, 10)
 
         const spans = await cabinBookingOperations.readAvailability({ session: guestSession })
         expect(spans.some(span => span.start.getTime() === date(6).getTime() && span.end.getTime() === date(10).getTime()))
@@ -73,24 +79,37 @@ describe('reserving the cabin', () => {
     })
 
     test('a booker may only hold so many reservations unpaid', async () => {
-        const email = 'hoarder@example.com'
+        const hoarder = await createUser()
         await Promise.all(Array.from({ length: maxUnpaidReservationsPerBooker }).map((_, index) =>
-            reserveAsGuest(email, 12 + 2 * index, 13 + 2 * index)
+            reserveAs(hoarder, 12 + 2 * index, 13 + 2 * index)
         ))
-        await expect(reserveAsGuest(email, 30, 31)).rejects.toThrow(Smorekopp)
+        await expect(reserveAs(hoarder, 30, 31)).rejects.toThrow(Smorekopp)
+    })
+
+    test('the contact given is kept with the booking and not taken from the profile', async () => {
+        const reservation = await reserveAsNewUser(44, 45)
+
+        const booking = await prisma.booking.findUniqueOrThrow({
+            where: { id: reservation.id },
+            include: { guestUser: true },
+        })
+        expect(booking.guestUser).toMatchObject(contact)
     })
 
     test('the number of members and non-members must be whole numbers', async () => {
         await expect(cabinBookingOperations.createCabinBookingUserAttached({
             params: { userId: user.id, bookingProducts: [{ cabinProductId, quantity: 1 }] },
-            data: { start: date(36), end: date(37), acceptedTerms: true, numberOfMembers: 0.5, numberOfNonMembers: 1 },
-            session: Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user }),
+            data: {
+                start: date(36), end: date(37), acceptedTerms: true, ...contact,
+                numberOfMembers: 0.5, numberOfNonMembers: 1,
+            },
+            session: userSession(user),
         })).rejects.toThrow(Smorekopp)
     })
 
     test('a stay is capped, and a cabin booking is exactly one cabin', async () => {
-        await expect(reserveAsGuest('long@example.com', 32, 33 + maxCabinBookingNights)).rejects.toThrow(Smorekopp)
-        await expect(reserveAsGuest('double@example.com', 34, 35, 2)).rejects.toThrow(Smorekopp)
+        await expect(reserveAsNewUser(32, 33 + maxCabinBookingNights)).rejects.toThrow(Smorekopp)
+        await expect(reserveAsNewUser(34, 35, 2)).rejects.toThrow(Smorekopp)
     })
 })
 
@@ -101,35 +120,30 @@ describe('reserving beds', () => {
         bed = await prisma.cabinProduct.findFirstOrThrow({ where: { type: 'BED' }, select: { id: true, amount: true } })
     })
 
-    const reserveBeds = (email: string, start: number, end: number, quantity: number) =>
-        cabinBookingOperations.createBedBookingNoUser({
-            params: { bookingProducts: [{ cabinProductId: bed.id, quantity }] },
+    const reserveBeds = async (start: number, end: number, quantity: number) => {
+        const booker = await createUser()
+        return cabinBookingOperations.createBedBookingUserAttached({
+            params: { userId: booker.id, bookingProducts: [{ cabinProductId: bed.id, quantity }] },
             data: {
-                start: date(start),
-                end: date(end),
-                acceptedTerms: true,
-                firstname: 'Gjest',
-                lastname: 'Gjestesen',
-                email,
-                mobile: '12345678',
+                start: date(start), end: date(end), acceptedTerms: true, ...contact,
+                numberOfMembers: 0, numberOfNonMembers: 0,
             },
-            session: guestSession,
+            session: userSession(booker),
         })
+    }
 
     test('bed bookings share the nights until the beds run out', async () => {
-        await reserveBeds('bed-one@example.com', 36, 38, 1)
-        await expect(reserveBeds('bed-two@example.com', 37, 39, bed.amount - 1)).resolves.toBeDefined()
-        await expect(reserveBeds('bed-three@example.com', 37, 38, 1)).rejects.toThrow(Smorekopp)
+        await reserveBeds(36, 38, 1)
+        await expect(reserveBeds(37, 39, bed.amount - 1)).resolves.toBeDefined()
+        await expect(reserveBeds(37, 38, 1)).rejects.toThrow(Smorekopp)
     })
 
     test('the whole cabin cannot be booked over booked beds', async () => {
-        await expect(reserveAsGuest('cabin-over-beds@example.com', 36, 37)).rejects.toThrow(Smorekopp)
+        await expect(reserveAsNewUser(36, 37)).rejects.toThrow(Smorekopp)
     })
 })
 
 describe('canceling a paid booking', () => {
-    const userSession = () => Session.fromJsObject({ memberships: [], permissions: ['CABIN_USE'], user })
-
     /** A booking whose payment has SUCCEEDED and been confirmed, paid for through Stripe. */
     async function createPaidBooking(start: number, end: number) {
         const cabinAccount = await prisma.ledgerAccount.findUniqueOrThrow({ where: { special: 'CABIN' } })
@@ -158,7 +172,7 @@ describe('canceling a paid booking', () => {
     test('more than three weeks ahead, the price goes back to the user\'s account', async () => {
         const booking = await createPaidBooking(60, 62)
 
-        await cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession() })
+        await cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession(user) })
 
         const userAccount = await prisma.user.findUniqueOrThrow({
             where: { id: user.id },
@@ -173,7 +187,7 @@ describe('canceling a paid booking', () => {
         ]))
         const bookings = await cabinBookingOperations.readManyOfUser({
             params: { userId: user.id },
-            session: userSession(),
+            session: userSession(user),
         })
         expect(bookings.find(listed => listed.id === booking.id)?.canceled).not.toBeNull()
     })
@@ -181,7 +195,7 @@ describe('canceling a paid booking', () => {
     test('less than three weeks ahead, the booking stays', async () => {
         const booking = await createPaidBooking(19, 20)
 
-        await expect(cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession() }))
+        await expect(cabinBookingOperations.cancel({ params: { bookingId: booking.id }, session: userSession(user) }))
             .rejects.toMatchObject({ errors: [{ message: expect.stringContaining('dager før innsjekk') }] })
         await expect(prisma.booking.findUniqueOrThrow({ where: { id: booking.id } }))
             .resolves.toMatchObject({ canceled: null })
@@ -199,7 +213,7 @@ describe('canceling a paid booking', () => {
 
         const bookings = await cabinBookingOperations.readManyOfUser({
             params: { userId: user.id },
-            session: userSession(),
+            session: userSession(user),
         })
         expect(bookings.map(listed => listed.id)).not.toContain(reservation.id)
     })

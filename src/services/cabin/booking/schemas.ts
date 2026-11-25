@@ -9,10 +9,10 @@ const dataFieldSchemas = z.object({
     tenantNotes: z.string().optional(),
     numberOfMembers: z.coerce.number().int().min(0),
     numberOfNonMembers: z.coerce.number().int().min(0),
-    firstname: z.string().min(2),
-    lastname: z.string().min(2),
-    email: z.string().email(),
-    mobile: z.string().regex(/^\+?\d{4,20}$/, { message: 'Skriv kun tall, uten mellomrom.' }),
+    firstname: z.string().trim().min(2),
+    lastname: z.string().trim().min(2),
+    email: z.string().trim().email(),
+    mobile: z.string().trim().regex(/^\+?\d{4,20}$/, { message: 'Skriv kun tall, uten mellomrom.' }),
     acceptedTerms: Zpn.checkboxOrBoolean({
         label: '',
         message: 'Du må godta vilkårene for å bruke siden.'
@@ -48,13 +48,6 @@ const bookingUserAttached = dataFieldSchemas.pick({
     acceptedTerms: true,
     numberOfMembers: true,
     numberOfNonMembers: true,
-}).refine(startsBeforeEndAndNotInThePast, datesMessage)
-
-const bookingNoUser = dataFieldSchemas.pick({
-    start: true,
-    end: true,
-    tenantNotes: true,
-    acceptedTerms: true,
     firstname: true,
     lastname: true,
     email: true,
@@ -63,10 +56,6 @@ const bookingNoUser = dataFieldSchemas.pick({
 
 const bookingUserAttachedParams = paramsFieldSchemas.pick({
     userId: true,
-    bookingProducts: true,
-})
-
-const bookingNoUserParams = paramsFieldSchemas.pick({
     bookingProducts: true,
 })
 
@@ -79,8 +68,6 @@ export const cabinBookingSchemas = {
     data: {
         createCabinBookingUserAttached: bookingUserAttached,
         createBedBookingUserAttached: bookingUserAttached,
-        createCabinBookingNoUser: bookingNoUser,
-        createBedBookingNoUser: bookingNoUser,
         connectToLedgerAccount: dataFieldSchemas.pick({
             ledgerAccountId: true,
         }),
@@ -88,8 +75,6 @@ export const cabinBookingSchemas = {
     params: {
         createCabinBookingUserAttached: bookingUserAttachedParams,
         createBedBookingUserAttached: bookingUserAttachedParams,
-        createCabinBookingNoUser: bookingNoUserParams,
-        createBedBookingNoUser: bookingNoUserParams,
         read: paramsFieldSchemas.pick({
             id: true,
         }),

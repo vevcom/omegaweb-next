@@ -5,11 +5,7 @@ import { Require } from '@/auth/authorizer/Require'
 export const cabinBookingAuth = {
     createCabinBookingUserAttached: Require.userId().permission('CABIN_USE'),
 
-    createCabinBookingNoUser: Require.permission('CABIN_USE'),
-
     createBedBookingUserAttached: Require.userId().permission('CABIN_USE'),
-
-    createBedBookingNoUser: Require.permission('CABIN_USE'),
 
     readAvailability: Require.permission('CABIN_USE'),
 
