@@ -7,10 +7,12 @@ import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { omegaMembershipGroupAuth } from '@/services/groups/omegaMembershipGroups/auth'
 import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
+import { revueGroupAuth } from '@/services/revue/groups/auth'
 import { manualChatSpaceAuth } from '@/services/manualChat/auth'
 import { permissionsAuth } from '@/services/permissions/auth'
 import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { omegaMailServerLinks } from '@/app/(omegaweb)/admin/mail/links'
+import { revueAdminLinks } from '@/app/(revue)/revue/(static-theme)/admin/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
 import { dotAuth } from '@/services/dots/auth'
@@ -144,6 +146,12 @@ export const adminNavDef = defineGroupedNavDef([
                     manualGroupAuth.create,
                     manualGroupAuth.update,
                 ],
+            },
+            {
+                key: 'revue-sub-groups',
+                name: 'Revyundergrupper',
+                href: revueAdminLinks.groups(),
+                authorizers: () => [revueGroupAuth.readMany],
             },
             {
                 key: 'chat-spaces',

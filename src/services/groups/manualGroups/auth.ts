@@ -15,6 +15,7 @@ export const manualGroupAuth = {
     pension: Require.permission('MANUAL_GROUP_ADMIN'),
     addMembers: adminOrGroupAdmin,
     removeMembers: adminOrGroupAdmin,
+    destroyMembership: adminOrGroupAdmin,
     setMemberAdmin: adminOrGroupAdmin,
     setMemberTitle: adminOrGroupAdmin,
     migrateGroup: adminOrGroupAdmin,

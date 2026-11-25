@@ -34,6 +34,7 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
         removeMembers: ({ groupId }) => interestGroupAuth.removeMembers.data({ groupId }),
         setMemberAdmin: ({ groupId }) => interestGroupAuth.setMemberAdmin.data({ groupId }),
         setMemberTitle: ({ groupId }) => interestGroupAuth.setMemberTitle.data({ groupId }),
+        destroyMembership: ({ groupId }) => interestGroupAuth.destroyMembership.data({ groupId }),
     },
 })
 
@@ -78,6 +79,7 @@ export const interestGroupOperations = {
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
+    destroyMembership: memberManagement.destroyMembership,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
     create: defineOperation({

@@ -11,6 +11,7 @@ export const removeCommitteeMembersAction = makeAction(committeeOperations.remov
 export const setCommitteeMemberAdminAction = makeAction(committeeOperations.setMemberAdmin)
 export const setCommitteeMemberTitleAction = makeAction(committeeOperations.setMemberTitle)
 export const reorderCommitteeMembersAction = makeAction(committeeOperations.reorderMembers)
+export const destroyCommitteeMembershipAction = makeAction(committeeOperations.destroyMembership)
 export const migrateCommitteeAction = makeAction(committeeOperations.migrateGroup)
 export const pensionCommitteeAction = makeAction(committeeOperations.pension)
 export const updateCommitteeParagraphAction = makeAction(committeeOperations.updateParagraphContent)

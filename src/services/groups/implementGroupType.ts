@@ -57,9 +57,9 @@ export function implementGroupType({ type, auth }: {
 
 /**
  * Opt-in member management for the group types that let members simply be added and removed
- * (committees, interest groups and manual groups). Types whose membership is decided elsewhere - a
- * class through the class change/bump system, an omega membership group through admission - must not
- * implement this.
+ * (committees, interest groups, manual groups, study programmes and revue sub groups). Types whose
+ * membership is decided elsewhere - a class through the class change/bump system, an omega membership
+ * group through admission - must not implement this.
  */
 export function implementSimpleAddRemoveMembersOperation({ type, auth }: {
     type: GroupType,
@@ -68,6 +68,7 @@ export function implementSimpleAddRemoveMembersOperation({ type, auth }: {
         removeMembers: GroupAuthorizerOfGroup,
         setMemberAdmin: GroupAuthorizerOfGroup,
         setMemberTitle: GroupAuthorizerOfGroup,
+        destroyMembership: GroupAuthorizerOfGroup,
     },
 }) {
     return {
@@ -88,6 +89,11 @@ export function implementSimpleAddRemoveMembersOperation({ type, auth }: {
         }),
         setMemberTitle: groupOperations.setMemberTitle.implement({
             authorizer: ({ params }) => auth.setMemberTitle({ groupId: params.groupId }),
+            ownershipCheck: ownershipCheckOfType(type),
+            beforeRun: ({ prisma, params }) => assertGroupNotPensioned(prisma, params.groupId),
+        }),
+        destroyMembership: groupOperations.destroyMembership.implement({
+            authorizer: ({ params }) => auth.destroyMembership({ groupId: params.groupId }),
             ownershipCheck: ownershipCheckOfType(type),
             beforeRun: ({ prisma, params }) => assertGroupNotPensioned(prisma, params.groupId),
         }),

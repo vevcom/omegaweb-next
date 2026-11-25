@@ -16,6 +16,7 @@ export const MigratedStraightAwayOnIncrement = {
     MANUAL_GROUP: false,
     OMEGA_MEMBERSHIP_GROUP: true,
     STUDY_PROGRAMME: true,
+    REVUE_SUB_GROUP: false,
 } as const satisfies Record<GroupType, boolean>
 
 export const groupTypesMigratedStraightAway = Object.values(GroupType)

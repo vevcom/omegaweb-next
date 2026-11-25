@@ -115,9 +115,11 @@ function reachedVia<Node extends object>(node: Node, via: ViaType): Node & MailF
     return { ...node, direct: false, via: [via] }
 }
 
-type GroupWithNameRelations = GroupWithDumbRelations<'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name'>
+type GroupWithNameRelations = GroupWithDumbRelations<
+    'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name', 'revueGroup'
+>
 const groupTypeRelations = [
-    'committee', 'manualGroup', 'class', 'interestGroup', 'omegaMembershipGroup', 'studyProgramme',
+    'committee', 'manualGroup', 'class', 'interestGroup', 'omegaMembershipGroup', 'studyProgramme', 'revueSubGroup',
 ] as const
 
 /**
