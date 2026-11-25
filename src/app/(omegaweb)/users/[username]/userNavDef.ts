@@ -14,6 +14,7 @@ import { revueSubGroupAuth } from '@/services/groups/revueSubGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
+import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { chatUserAuth } from '@/services/chat/users/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
@@ -75,7 +76,10 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             name: 'Påmeldinger',
             href: appHref(`/users/${username}/registrations`),
             icon: faCalendarCheck,
-            authorizers: () => [eventRegistrationAuth.readUpcomingOfUser.data({ userId })],
+            authorizers: () => [
+                eventRegistrationAuth.readUpcomingOfUser.data({ userId }),
+                cabinBookingAuth.readManyOfUser.data({ userId }),
+            ],
         },
         {
             key: 'mail',

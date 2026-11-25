@@ -102,5 +102,11 @@ export const cabinBookingSchemas = {
             description: true,
         }),
         releaseReservation: bookingAccess,
+        readManyOfUser: paramsFieldSchemas.pick({
+            userId: true,
+        }),
+        cancel: paramsFieldSchemas.pick({
+            bookingId: true,
+        }),
     },
 }
