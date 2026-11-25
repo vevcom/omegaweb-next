@@ -1,4 +1,5 @@
 import { findGroup } from '@/lib/groups/groupOptions'
+import { MigratedStraightAwayOnIncrement } from '@/services/omegaOrder/constants'
 import type { VisibilityCondition, VisibilityMatrix } from '@/services/visibility/types'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -11,6 +12,10 @@ const heldOneAtATime: Partial<Record<GroupType, { perOrder: boolean, warning: st
     CLASS: {
         perOrder: true,
         warning: 'Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.',
+    },
+    OMEGA_MEMBERSHIP_GROUP: {
+        perOrder: false,
+        warning: 'Ingen har to medlemskap i Omega samtidig. Skal begge med, legg dem i samme liste.',
     },
 }
 
@@ -52,7 +57,10 @@ export function groupNameOf(condition: VisibilityCondition, groups: ExpandedGrou
 
 /** What the editor warns of a visibility that lets no one in, though it can still be saved. */
 export function visibilityWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): string[] {
-    return contradictingListsWarnings(visibility, groups)
+    return Array.from(new Set([
+        ...contradictingListsWarnings(visibility, groups),
+        ...noActiveMembersWarnings(visibility, groups),
+    ]))
 }
 
 function listNames(names: string[]) {
@@ -61,7 +69,8 @@ function listNames(names: string[]) {
 
 /**
  * Someone holds one class at a time, so lists of nothing but classes must share a class to all pass.
- * That holds for lists of the active members, and for lists of one and the same order.
+ * That holds for lists of the active members, and for lists of one and the same order. The same goes
+ * for the active members of Omega's membership groups.
  */
 function contradictingListsWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null) {
     const listsBySlot = new Map<string, { warning: string, lists: VisibilityCondition[][] }>()
@@ -72,10 +81,9 @@ function contradictingListsWarnings(visibility: VisibilityMatrix, groups: Expand
         const entry = listsBySlot.get(slot.key) ?? { warning: slot.warning, lists: [] }
         listsBySlot.set(slot.key, { ...entry, lists: [...entry.lists, conditions] })
     })
-    const warnings = Array.from(listsBySlot.values()).filter(({ lists }) => lists.length > 1 && !lists[0].some(
+    return Array.from(listsBySlot.values()).filter(({ lists }) => lists.length > 1 && !lists[0].some(
         ({ groupId }) => lists.every(conditions => conditions.some(condition => condition.groupId === groupId))
     )).map(({ warning }) => warning)
-    return Array.from(new Set(warnings))
 }
 
 /** The one group of a type someone can be in at a time that a condition asks for, if it asks for one. */
@@ -86,4 +94,19 @@ function slotOf(condition: VisibilityCondition, groups: ExpandedGroup[] | null) 
     if (condition.onlyActive) return { key: `${groupType}-active`, warning: rule.warning }
     if (condition.order !== null && rule.perOrder) return { key: `${groupType}-${condition.order}`, warning: rule.warning }
     return null
+}
+
+/** A group migrated by hand holds active memberships only of its own current order. */
+function noActiveMembersWarnings(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null) {
+    return visibility.requirements.flatMap(({ conditions }) => conditions).flatMap(condition => {
+        const group = findGroup(groups, condition.groupId)
+        if (
+            !group || !condition.onlyActive || condition.order === null || condition.order === group.order
+            || MigratedStraightAwayOnIncrement[group.groupType]
+        ) return []
+        return [
+            `Ingen i ${group.name} er aktive i ${condition.order}. orden, siden bare de i gruppens nåværende orden, `
+            + `${group.order}., er aktive. Velg ${group.order}. orden eller ta bort «Bare aktive».`
+        ]
+    })
 }

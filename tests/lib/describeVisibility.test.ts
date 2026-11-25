@@ -78,6 +78,7 @@ describe('visibilityWarnings', () => {
         groups,
     )
     const classes = 'Ingen går i to klasser samtidig. Skal begge klassene med, legg dem i samme liste.'
+    const memberships = 'Ingen har to medlemskap i Omega samtidig. Skal begge med, legg dem i samme liste.'
 
     test('two lists of only active classes cannot both pass', () => {
         expect(warningsOf([active(1)], [active(2)])).toEqual([classes])
@@ -105,5 +106,30 @@ describe('visibilityWarnings', () => {
 
     test('a class of an earlier year can go with the one someone is in now', () => {
         expect(warningsOf([condition(1, 104)], [active(2)])).toEqual([])
+    })
+
+    test('two lists of only active omega membership groups cannot both pass, of one order they can', () => {
+        expect(warningsOf([active(3)], [active(4)])).toEqual([memberships])
+        expect(warningsOf([condition(3, 108)], [condition(4, 108)])).toEqual([])
+    })
+
+    test('a group migrated by hand has no active members of another order than its own', () => {
+        expect(warningsOf([condition(5, 107, true)])).toEqual([
+            'Ingen i Styret er aktive i 107. orden, siden bare de i gruppens nåværende orden, 108., er aktive. '
+            + 'Velg 108. orden eller ta bort «Bare aktive».',
+        ])
+        expect(warningsOf([condition(5, 108, true)])).toEqual([])
+        expect(warningsOf([condition(5, 107)])).toEqual([])
+        expect(warningsOf([condition(5, null, true)])).toEqual([])
+    })
+
+    test('says a warning once, however many conditions give it', () => {
+        expect(warningsOf([condition(5, 107, true)], [condition(5, 107, true, true)])).toHaveLength(1)
+        expect(warningsOf([active(1)], [active(2)], [condition(1, 108)], [condition(2, 108)])).toHaveLength(1)
+    })
+
+    test('a group that follows Omega keeps active members of the order they got them in', () => {
+        expect(warningsOf([condition(6, 104, true)])).toEqual([])
+        expect(warningsOf([condition(1, 104, true)])).toEqual([])
     })
 })
