@@ -4,8 +4,6 @@ import { makeAction } from '@/services/serverAction'
 
 export const createCabinBookingUserAttachedAction = makeAction(cabinBookingOperations.createCabinBookingUserAttached)
 export const createBedBookingUserAttachedAction = makeAction(cabinBookingOperations.createBedBookingUserAttached)
-export const createCabinBookingNoUserAction = makeAction(cabinBookingOperations.createCabinBookingNoUser)
-export const createBedBookingNoUserAction = makeAction(cabinBookingOperations.createBedBookingNoUser)
 export const createCabinBookingPaymentAction = makeAction(cabinBookingOperations.createPayment)
 
 export const updateSpecialCmsParagraphCabinContractAction = makeAction(cabinBookingOperations.contract.updateContent)
