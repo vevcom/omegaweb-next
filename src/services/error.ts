@@ -154,3 +154,10 @@ export function getHttpErrorCode(errorType: ErrorCode): number {
     }
     return 500
 }
+
+export function getDefaultErrorMessage(errorType: ErrorCode): string {
+    for (const error of errorCodes) {
+        if (error.name === errorType) return error.defaultMessage
+    }
+    return 'En ukjent feil har oppstått'
+}

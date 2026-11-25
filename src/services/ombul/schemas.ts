@@ -1,10 +1,12 @@
-import { maxOmbulFileSize } from './constants'
+import { maxOmbulFileSize, ombulFileSizeMb } from './constants'
 import { imageFileSchema, imageSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
 import { File } from 'node:buffer'
 
 const dataFieldSchemas = z.object({
-    ombulFile: z.instanceof(File).refine(file => file.size < maxOmbulFileSize, 'Filen må være mindre enn 10 MB'),
+    ombulFile: z.instanceof(File).refine(
+        file => file.size < maxOmbulFileSize, `Filen må være mindre enn ${ombulFileSizeMb} MB`
+    ),
     ombulCoverImage: imageFileSchema,
     year: z.coerce.number().int().refine(val =>
         (val === undefined) || (val >= 1919 && val <= (new Date()).getUTCFullYear()),

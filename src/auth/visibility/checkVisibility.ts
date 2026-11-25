@@ -1,23 +1,16 @@
 import type { MembershipFiltered } from '@/services/groups/types'
-import type { DoubleLevel, DoubleLevelVisibilityMatrix, VisibilityMatrix } from '@/services/visibility/types'
+import type {
+    DoubleLevel,
+    DoubleLevelVisibilityMatrix,
+    VisibilityCondition,
+    VisibilityMatrix,
+} from '@/services/visibility/types'
 
 
 export function checkVisibility(memberships: MembershipFiltered[], visibility: VisibilityMatrix): boolean {
     return visibility.requirements.every(
         requirement => requirement.conditions.some(
-            condition => {
-                if (condition.type === 'ACTIVE') {
-                    return memberships.some(
-                        membership => membership.groupId === condition.groupId && membership.active
-                    )
-                }
-                if (condition.type === 'ORDER') {
-                    return memberships.some(
-                        membership => membership.groupId === condition.groupId && membership.order === condition.order
-                    )
-                }
-                return false
-            }
+            condition => memberships.some(membership => passesCondition(membership, condition))
         )
     )
 }
@@ -31,4 +24,11 @@ export function checkDoubleLevelVisibility(
 ): boolean {
     if (checkVisibility(memberships, visibility.adminLevel)) return true
     return level === 'REGULAR' && checkVisibility(memberships, visibility.regularLevel)
+}
+
+function passesCondition(membership: MembershipFiltered, condition: VisibilityCondition) {
+    return membership.groupId === condition.groupId
+        && (condition.order === null || membership.order === condition.order)
+        && (!condition.onlyActive || membership.active)
+        && (!condition.onlyAdmins || membership.admin)
 }

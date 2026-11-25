@@ -67,7 +67,7 @@ export default function EditJobAd({ jobAd, config, children }: PropTypes) {
                 ">
                     <Form
                         action={updateAction}
-                        navigateOnSuccess={data => (data ? links.jobAd(data) : links.list())}
+                        navigateOnSuccess={data => links.jobAd(data)}
                         submitText="Oppdater"
                     >
                         <Textarea

@@ -18,6 +18,10 @@ import type { ChangeEvent } from 'react'
 export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options' | 'defaultValue' | 'value' | 'onChange'> & {
     options: SearchableDropdownOption<ValueType>[],
     defaultValues?: ValueType[],
+    /** Makes the picked options controlled by the caller, who is told of each change through `onChange`. */
+    values?: ValueType[],
+    /** Leaves showing the picked options to the caller. */
+    hideSelected?: boolean,
     onChange?: (values: ValueType[]) => void,
 }
 
@@ -30,6 +34,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     name,
     label,
     defaultValues = [],
+    values: controlledValues,
+    hideSelected = false,
     options,
     onChange,
     color = 'base',
@@ -38,7 +44,8 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
     disabled,
 }: PropTypes<ValueType>) {
     const [searchTerm, setSearchTerm] = useState('')
-    const [values, setValues] = useState<ValueType[]>(defaultValues)
+    const [uncontrolledValues, setValues] = useState<ValueType[]>(defaultValues)
+    const values = controlledValues ?? uncontrolledValues
 
     const filteredOptions = options.filter(option =>
         (option.label ?? String(option.value)).toLowerCase().includes(searchTerm.toLowerCase())
@@ -89,9 +96,10 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     id={domId}
                     type="text"
                     className={`
-                        w-full border-2 border-transparent rounded-inner outline-0 text-m
-                        leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2 pl-4 transition-[border-color,background-color]
-                        duration-300
+                        w-full border border-base-300
+                        focus:ring-3 focus:ring-primary/25
+                        rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
+                        transition-[border-color,background-color,box-shadow] duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
                         ${dropdownBorderClassNames[color]}
@@ -131,7 +139,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     )
                 }
             </div>
-            {selectedOptions.length > 0 && (
+            {!hideSelected && selectedOptions.length > 0 && (
                 <ul className="flex flex-wrap gap-1 mt-2 list-none p-0">
                     {selectedOptions.map(option => (
                         <li
@@ -156,7 +164,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                     ))}
                 </ul>
             )}
-            {values.map(value => <input key={value} type="hidden" name={name} value={value} readOnly />)}
+            {name && values.map(value => <input key={value} type="hidden" name={name} value={value} readOnly />)}
         </div>
     )
 }

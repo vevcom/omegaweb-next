@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { fetchExtendedUserInfoFromFeide } from './api'
 import { feideScope } from './constants'
 import type { OAuthConfig, OAuthUserConfig } from 'next-auth/providers/index'

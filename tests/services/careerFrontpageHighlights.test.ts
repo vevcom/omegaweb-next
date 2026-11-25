@@ -5,18 +5,20 @@ import { careerFrontpageHighlightOperations } from '@/services/careers/frontpage
 import { isHighlightShowable } from '@/services/careers/frontpage/highlights/constants'
 import { eventOperations } from '@/services/events/operations'
 import { jobAdOperations } from '@/services/careers/jobAds/operations'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { afterEach, beforeAll, describe, expect, test } from '@jest/globals'
+import type { AnySession } from '@/auth/session/Session'
 
 const HOUR = 60 * 60 * 1000
 
 const hoursFromNow = (hours: number) => new Date(Date.now() + hours * HOUR)
 
-const admin = Session.fromJsObject({
+const admin = testSession({
     memberships: [],
     permissions: ['CAREER_FRONTPAGE_HIGHLIGHT_ADMIN'],
     user: null,
 })
-const jobAdReader = Session.fromJsObject({ memberships: [], permissions: ['JOBAD_USE'], user: null })
+const jobAdReader = testSession({ memberships: [], permissions: ['JOBAD_USE'], user: null })
 
 let companyPresentationTagId: number
 let companyId: number
@@ -35,7 +37,7 @@ async function createEvent({ tagged = true, published = true, startsIn = 10, end
             takesRegistration: false,
             waitingList: false,
             tagIds: tagged ? [companyPresentationTagId] : [],
-            visibilityAdminRequirements: [{ conditions: [{ type: 'ACTIVE', groupId: adminGroupId }] }],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(adminGroupId)] }],
         },
         bypassAuth: true,
     })
@@ -67,7 +69,7 @@ const createHighlight = (
     session: admin,
 })
 
-const readCurrentIds = async (session: Session<'NO_USER'> | Session<'HAS_USER'> = Session.empty()) => (
+const readCurrentIds = async (session: AnySession = Session.empty()) => (
     await careerFrontpageHighlightOperations.readCurrent({ session })
 ).map(highlight => highlight.id)
 
@@ -75,7 +77,7 @@ beforeAll(async () => {
     const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
     companyPresentationTagId = tag.id
     const company = await prisma.company.create({
-        data: { name: 'Vevcom Highlight AS', description: 'Bakeri', logo: { create: {} } },
+        data: { name: 'Vevcom Highlight AS', description: 'Bakeri' },
     })
     companyId = company.id
     adminGroupId = (await prisma.group.findFirstOrThrow()).id
@@ -183,7 +185,7 @@ describe('career frontpage highlights', () => {
         await prisma.event.update({ where: { id: restricted.id }, data: { canBeViewedBy: 'CAN_REGISTER' } })
         expect(await readCurrentIds()).toEqual([])
 
-        const eventAdministrator = Session.fromJsObject({
+        const eventAdministrator = testSession({
             memberships: [{ groupId: adminGroupId, order: 1, active: true, admin: false }],
             permissions: [],
             user: null,

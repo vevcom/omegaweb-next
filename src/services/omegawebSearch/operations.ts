@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegawebSearchAuth } from './auth'
 import { searchOperations } from '@/services/search/operations'
 import { userOperations } from '@/services/users/operations'

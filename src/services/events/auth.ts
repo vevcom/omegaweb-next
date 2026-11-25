@@ -3,12 +3,40 @@ import { visibilityFilter } from '@/auth/visibility/visibilityFilter'
 import { ledgerAccountAccess } from '@/services/ledger/accounts/ownership'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
+import type { VisibilityMatrix } from '@/services/visibility/types'
+import type { EventAccess } from './types'
+
+/**
+ * Whether no one administrates an event but those with EVENT_ADMIN: it has no requirements, or one
+ * without conditions, which passes no one.
+ */
+export function hasNoAdministrators(adminVisibility: VisibilityMatrix) {
+    return adminVisibility.requirements.length === 0
+        || adminVisibility.requirements.some(requirement => requirement.conditions.length === 0)
+}
+
+/** Whether the event is a draft its creator holds, which is one no one administrates. */
+export function creatorHoldsDraft(
+    { published, creatorId, adminVisibility }: Pick<EventAccess, 'published' | 'creatorId' | 'adminVisibility'>,
+) {
+    return !published && creatorId !== null && hasNoAdministrators(adminVisibility)
+}
 
 /**
  * The admin visibility of an event decides who may change it, its quotas and its registrations.
- * EVENT_ADMIN bypasses it for every event. Needs `{ adminVisibility }` supplied via `.data()`.
+ * EVENT_ADMIN bypasses it for every event. The creator holds a draft while no one administrates it,
+ * as with one made from just a name, and a host chosen later takes over at once. Needs
+ * `{ adminVisibility, published, creatorId }` supplied via `.data()`.
  */
-export const eventAdminLevel = Require.permission('EVENT_ADMIN').or().visibility({ key: 'adminVisibility' })
+const isCreatorOfDraft = Require.custom<{ published: boolean, creatorId: number | null, adminVisibility: VisibilityMatrix }>(
+    ({ session, ...draft }) => creatorHoldsDraft(draft) && session.user?.id === draft.creatorId
+)
+
+export const eventAdminLevel = Require.anyOf(
+    Require.permission('EVENT_ADMIN'),
+    Require.visibility({ key: 'adminVisibility' }),
+    isCreatorOfDraft,
+)
 
 /**
  * Passes when the event's `published` flag, supplied via `.data()`, is `expected`. It fails
@@ -39,12 +67,29 @@ export const canSeeEvent = Require.anyOf(
     isPublished(true).anyVisibility({ key: 'quotaVisibilities' }),
 )
 
+/**
+ * The same rule as `canSeeEvent`, as the visibilities that show the event, any one of which is
+ * enough. Those with EVENT_ADMIN see it besides, and so does the creator while `creatorHoldsDraft`.
+ */
+export function visibilitiesShowingEvent(
+    { published, canBeViewedBy, adminVisibility, quotaVisibilities }: EventAccess,
+): VisibilityMatrix[] {
+    if (published && canBeViewedBy === 'ALL') return [{ requirements: [] }]
+    return [adminVisibility, ...(published ? quotaVisibilities : [])]
+}
+
+/** `hasNoAdministrators` as a where clause on a visibility. */
+const noAdministrators: Prisma.VisibilityWhereInput = {
+    OR: [{ requirements: { none: {} } }, { requirements: { some: { conditions: { none: {} } } } }],
+}
+
 /** The same rule as `canSeeEvent`, as a where clause on events. */
 export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput {
     const passes = visibilityFilter(session.memberships)
     return {
         OR: [
             { visibilityAdmin: passes },
+            ...(session.user ? [{ published: false, createdById: session.user.id, visibilityAdmin: noAdministrators }] : []),
             { published: true, canBeViewedBy: 'ALL' },
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
         ],
@@ -60,14 +105,15 @@ export const eventAuth = {
     create: Require.permission('EVENT_ADMIN').or().permission('EVENT_CREATE'),
 
     readAdminVisibility: canSeeEvent,
-    updateAdminVisibility: eventAdminLevel,
 
     read: canSeeEvent,
+    readStatistics: eventAdminLevel,
     readManyCurrent: visibleEvents,
     readManyArchivedPage: visibleEvents,
     search: visibleEvents,
 
     update: eventAdminLevel,
+    saveSetup: eventAdminLevel,
     connectToLedgerAccount: Require.allOf(eventAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: eventAdminLevel,
     updateCmsCoverImage: eventAdminLevel,

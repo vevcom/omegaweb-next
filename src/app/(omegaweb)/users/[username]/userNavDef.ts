@@ -10,10 +10,12 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
+import { revueSubGroupAuth } from '@/services/groups/revueSubGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
+import { chatUserAuth } from '@/services/chat/users/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -21,6 +23,7 @@ import { appHref } from '@/lib/sites/href'
 import {
     faCalendarCheck,
     faCircleDot,
+    faComments,
     faEnvelope,
     faHatWizard,
     faHouse,
@@ -85,11 +88,19 @@ export function userNavDef({ username, userId }: UserNavSubject) {
         },
         {
             key: 'mail',
-            // The aliases you receive mail on, and the mailboxes among them: yours alone, as the mail is.
+            // Your address and the aliases you receive mail on: yours alone, as the mail is. A user
+            // admin gets in to change the address, and sees no aliases.
             name: 'E-post',
             href: appHref(`/users/${username}/mail`),
             icon: faEnvelope,
-            authorizers: () => [mailAliasAuth.readReceived.data({ userId })],
+            authorizers: () => [mailAliasAuth.readReceived.data({ userId }), userAuth.updateVevenMailAddress],
+        },
+        {
+            key: 'chat',
+            name: 'Chat',
+            href: appHref(`/users/${username}/chat`),
+            icon: faComments,
+            authorizers: () => [chatUserAuth.readSpaces.data({ userId })],
         },
         {
             key: 'account',
@@ -126,6 +137,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
                 committeeAuth.readMembershipsOfUser.data({ userId }),
                 interestGroupAuth.readMembershipsOfUser.data({ userId }),
                 manualGroupAuth.readMembershipsOfUser.data({ userId }),
+                revueSubGroupAuth.readMembershipsOfUser.data({ userId }),
             ],
         },
         {

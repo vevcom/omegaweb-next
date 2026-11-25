@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegaMembershipGroupAuth } from './auth'
 import { omegaMembershipGroupSchemas } from './schemas'
 import { implementGroupType, implementStraightAwayMigration } from '@/services/groups/implementGroupType'

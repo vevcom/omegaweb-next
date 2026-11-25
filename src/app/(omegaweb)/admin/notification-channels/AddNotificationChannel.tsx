@@ -37,10 +37,8 @@ export default function AddNotificationChannel({ channels }: PropTypes) {
                 availableMethods,
             }
         })}
-        successCallback={(data?: ExpandedNotificationChannel) => {
-            if (data) {
-                push(appHref(`/admin/notification-channels/${data.id}`))
-            }
+        successCallback={(data: ExpandedNotificationChannel) => {
+            push(appHref(`/admin/notification-channels/${data.id}`))
         }}
     >
         <TextInput name="name" label="Navn" />

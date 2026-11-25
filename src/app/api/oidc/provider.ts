@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { domainContextOf } from '@/app/domainContextOfRequest'
 import { Session } from '@/auth/session/Session'
 import { NextResponse } from 'next/server'

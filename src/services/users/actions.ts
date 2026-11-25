@@ -1,6 +1,7 @@
 'use server'
 import { makeAction } from '@/services/serverAction'
 import { userOperations } from '@/services/users/operations'
+import { vevenMailAddressOperations } from '@/services/users/vevenMailAddress'
 
 /**
  * A action that creates a user by the given data. It will also hash the password
@@ -28,6 +29,8 @@ export const updateUserProfileAction = makeAction(userOperations.updateProfile)
 export const updateUserProfileImageAction = makeAction(userOperations.updateProfileImage)
 export const updateUserThemeAction = makeAction(userOperations.updateTheme)
 export const updateUserBioParagraphContentAction = makeAction(userOperations.updateBioParagraphContent)
+export const updateVevenMailAddressAction = makeAction(vevenMailAddressOperations.update)
+export const updateVevenMailAddressForwardingAction = makeAction(vevenMailAddressOperations.updateForwarding)
 
 export const registerNewEmailAction = makeAction(userOperations.registerNewEmail)
 export const registerUserAction = makeAction(userOperations.register)

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { productAuth } from './auth'
 import { productSchemas } from './schemas'
 import { productImageIncluder } from './constants'
@@ -142,7 +142,7 @@ async function soleShopVisibility(
     })
     if (sellers.length !== 1) return EMPTY_VISIBILITY
 
-    return shopOperations.visibility.readDoubleLevelMatrixInternal({
+    return shopOperations.visibility.internal.readDoubleLevelMatrix.internalCall({
         params: { shopId: sellers[0].shopId },
         prisma,
     })

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { lockerReservationIncluder } from './constants'
 import { lockersSchemas } from './schemas'
 import { lockerAuth } from './auth'

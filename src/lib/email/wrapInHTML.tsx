@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { DefaultEmailTemplate } from './templates/default'
 import { markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { render } from '@react-email/render'

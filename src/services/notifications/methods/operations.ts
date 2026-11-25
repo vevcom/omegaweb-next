@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { sendNotificationEmails } from './dispatch'
 import { sendNotificationPushes } from './dispatchPush'
 import { pushRecipientIncluder } from './constants'

@@ -1,5 +1,5 @@
 import CareersWordmark from './CareersWordmark'
-import { CareersAccountMenu, CareersMobileMenu } from './CareersNavMenus'
+import { CareersMobileMenu, CareersNavDropdown } from './CareersNavMenus'
 import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
 import { careerLinks } from '@/app/(careers)/links'
@@ -11,12 +11,15 @@ import { CareersSearchButton } from '@/app/(careers)/GlobalSearch'
 import LoginLink from '@/pageKits/auth/components/LoginLink'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import type { NavLink } from '@/lib/navDef/navDef'
+import type { AppHref } from '@/lib/sites/href'
 
 type PropTypes = {
     links: NavLink[],
     /** What belongs to the logged in user, kept apart from the pages of the site. */
     accountLinks: NavLink[],
     loggedIn: boolean,
+    /** The page of the company a company user acts for, null for everyone else. */
+    companyLink: { name: string, href: AppHref } | null,
     /** Whether the visitor has a place on Omega's own site: a member of Omega, not den gemene hob. */
     showOmegaLink: boolean,
 }
@@ -26,12 +29,7 @@ const linkClassName = `
     hover:text-careers-accent hover:no-underline
 `
 
-const quietLinkClassName = `
-    text-s font-medium text-careers-navy/60 whitespace-nowrap transition-colors
-    hover:text-careers-navy hover:no-underline
-`
-
-const accountItemClassName = `
+const dropdownItemClassName = `
     px-3 py-2.5 text-s font-medium text-careers-navy transition-colors
     hover:bg-base-100 hover:text-careers-accent hover:no-underline
 `
@@ -41,7 +39,7 @@ const mobileItemClassName = `
     hover:bg-careers-accent/5 hover:text-careers-accent hover:no-underline
 `
 
-const loginButtonClassName = `
+const ownPageButtonClassName = `
     inline-flex items-center h-10 px-3.5 border border-careers-navy/15 text-s font-medium text-careers-navy
     whitespace-nowrap transition-colors
     hover:bg-careers-navy/5 hover:no-underline
@@ -54,15 +52,21 @@ const contactClassName = `
 
 /**
  * The career site's navigation: the wordmark and the pages of the site with the way to get in touch,
- * then what belongs to the visitor, which on wide screens is a dropdown once they are logged in. On
- * narrow screens it all goes in a menu. The edit mode switch is there for those who may edit the CMS
- * content of the pages, and renders nothing for everyone else.
+ * then what belongs to the visitor, which on wide screens is a dropdown: their own pages once they are
+ * logged in, and the logins of a student and of a company before. On narrow screens it all goes in a
+ * menu, with the visitor's own page or the login beside it while there is room for it. The edit mode
+ * switch is there for those who may edit the CMS content of the pages, and renders nothing for
+ * everyone else.
  */
-export default function CareersNavBar({ links, accountLinks, loggedIn, showOmegaLink }: PropTypes) {
-    const profile = accountLinks.find(link => link.key === 'profile')
+export default function CareersNavBar({ links, accountLinks, loggedIn, companyLink, showOmegaLink }: PropTypes) {
+    // What the narrow navigation shows beside the menu: the visitor's own page on the site.
+    const ownPage = accountLinks.find(link => link.key === 'profile') ?? companyLink
 
     const accountItems = (itemClassName: string) => (
         <>
+            {companyLink && (
+                <SiteLink href={companyLink.href} className={itemClassName}>{companyLink.name}</SiteLink>
+            )}
             {accountLinks.map(link => (
                 <SiteLink key={link.key} href={link.href} className={itemClassName}>{link.name}</SiteLink>
             ))}
@@ -72,6 +76,13 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
                 </SiteLink>
             )}
         </>
+    )
+
+    const loginDropdown = (
+        <CareersNavDropdown label="Logg inn">
+            <LoginLink config={careersAuthPages} className={dropdownItemClassName}>Som student</LoginLink>
+            <SiteLink href={careerLinks.companyLogin()} className={dropdownItemClassName}>Som bedrift</SiteLink>
+        </CareersNavDropdown>
     )
 
     return (
@@ -105,15 +116,13 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
                     </nav>
                     <div className="flex items-center gap-5 ml-5 pl-5 border-l border-careers-navy/10">
                         {loggedIn ? (
-                            <CareersAccountMenu>
-                                {accountItems(accountItemClassName)}
-                                <SiteLink href={careersAuthLinks.logout()} className={accountItemClassName}>
+                            <CareersNavDropdown label="Min side">
+                                {accountItems(dropdownItemClassName)}
+                                <SiteLink href={careersAuthLinks.logout()} className={dropdownItemClassName}>
                                     Logg ut
                                 </SiteLink>
-                            </CareersAccountMenu>
-                        ) : (
-                            <LoginLink config={careersAuthPages} className={quietLinkClassName} />
-                        )}
+                            </CareersNavDropdown>
+                        ) : loginDropdown}
                         <CareersSearchButton className="size-10 text-careers-navy" />
                         <div className="
                             size-10
@@ -128,18 +137,15 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
                     flex items-center gap-2
                     min-[1180px]:hidden
                 ">
-                    {loggedIn && profile ? (
-                        <SiteLink href={profile.href} className={`
-                            ${loginButtonClassName}
+                    {loggedIn ? ownPage && (
+                        <SiteLink href={ownPage.href} className={`
+                            ${ownPageButtonClassName}
                             max-[480px]:hidden
                         `}>
-                            {profile.name}
+                            {ownPage.name}
                         </SiteLink>
                     ) : (
-                        <LoginLink config={careersAuthPages} className={`
-                            ${loginButtonClassName}
-                            max-[380px]:hidden
-                        `} />
+                        <div className="max-[480px]:hidden">{loginDropdown}</div>
                     )}
                     <CareersSearchButton className="size-10 text-careers-navy" />
                     <div className="
@@ -156,7 +162,20 @@ export default function CareersNavBar({ links, accountLinks, loggedIn, showOmega
                         {loggedIn ? (
                             <SiteLink href={careersAuthLinks.logout()} className={mobileItemClassName}>Logg ut</SiteLink>
                         ) : (
-                            <LoginLink config={careersAuthPages} className={mobileItemClassName} />
+                            <>
+                                <LoginLink config={careersAuthPages} className={`
+                                    ${mobileItemClassName}
+                                    min-[480px]:hidden
+                                `}>
+                                    Logg inn som student
+                                </LoginLink>
+                                <SiteLink href={careerLinks.companyLogin()} className={`
+                                    ${mobileItemClassName}
+                                    min-[480px]:hidden
+                                `}>
+                                    Logg inn som bedrift
+                                </SiteLink>
+                            </>
                         )}
                         <SiteLink href={CAREERS_CONTACT_HREF} className={`
                             ${contactClassName}

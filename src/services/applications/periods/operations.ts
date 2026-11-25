@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { applicationPeriodAuth } from './auth'
 import { applicationPeriodSchemas, periodDatesInOrder, periodDatesMessage } from './schemas'
 import { committeesParticipatingIncluder } from './constants'

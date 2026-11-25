@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import ServiceErrorView from '@/components/ServiceErrorView/ServiceErrorView'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
@@ -12,7 +12,7 @@ import { notFound, unstable_rethrow as unstableRethrow } from 'next/navigation'
 import { cache } from 'react'
 import type { ErrorCode } from '@/services/error'
 import type { Capabilities, CapabilityAuthorizers, CapabilityKey } from '@/auth/authorizer/capabilities'
-import type { Session } from '@/auth/session/Session'
+import type { AnySession } from '@/auth/session/Session'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import type { Awaitable } from '@/lib/awaitable'
@@ -20,7 +20,7 @@ import type { ServedOn } from '@/lib/sites/context'
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
-export type ServerPageSession = Session<'HAS_USER'> | Session<'NO_USER'>
+export type ServerPageSession = AnySession
 
 /**
  * The arguments a serverPage operation receives. Pages with route params annotate their
@@ -215,7 +215,7 @@ export function serverPage<
     const generateMetadata = async (props: PageProps<Params>): Promise<Metadata> => {
         if (!metadata) return {}
         try {
-            const loaded = await load(await serializeProps(props))
+            const loaded = await load(await serializeProps({ ...props, params: props.params.then(encodedAsPageParams) }))
             return metadata(loaded.data)
         } catch (error) {
             await handleServiceError(error)
@@ -224,6 +224,19 @@ export function serverPage<
     }
 
     return { page, generateMetadata }
+}
+
+/**
+ * Next hands a page its params percent-encoded but generateMetadata the same params decoded. They
+ * are encoded here as the page gets them, so the operation sees one form and runs once.
+ */
+function encodedAsPageParams<Params extends object>(params: Params): Params {
+    const encoded = (value: unknown) => {
+        if (typeof value === 'string') return encodeURIComponent(value)
+        if (Array.isArray(value)) return value.map(part => encodeURIComponent(String(part)))
+        return value
+    }
+    return Object.fromEntries(Object.entries(params).map(([name, value]) => [name, encoded(value)])) as Params
 }
 
 /**

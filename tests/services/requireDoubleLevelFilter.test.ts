@@ -1,6 +1,6 @@
 import { Require } from '@/auth/authorizer/Require'
-import { Session } from '@/auth/session/Session'
 import { doubleLevelVisibilityFilter, visibilityFilter } from '@/auth/visibility/visibilityFilter'
+import { testSession } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { Permission } from '@/prisma-generated-pn-types'
@@ -8,7 +8,7 @@ import type { Permission } from '@/prisma-generated-pn-types'
 const memberships: MembershipFiltered[] = [{ groupId: 1, order: 1, active: true, admin: false }]
 const expectedFilter = doubleLevelVisibilityFilter(memberships, 'REGULAR')
 
-const sessionWith = (permissions: Permission[]) => Session.fromJsObject({ user: null, permissions, memberships })
+const sessionWith = (permissions: Permission[]) => testSession({ user: null, permissions, memberships })
 const visitor = sessionWith([])
 const admin = sessionWith(['EVENT_ADMIN'])
 

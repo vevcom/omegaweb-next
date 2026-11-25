@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { Authorizer, UserRequiredOutOpt } from '@/auth/authorizer/Authorizer'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -81,7 +81,8 @@ export function defineNavDef<const Item extends NavItem>(items: readonly Item[])
 
         /** The items the session may open and is the audience of, in order. */
         async visible(session: SessionMaybeUser): Promise<NavLink<Item>[]> {
-            const loggedIn = session.user !== null
+            // A company user is signed in too, so they are not worded to as a visitor.
+            const loggedIn = session.user !== null || Boolean(session.companyUser)
             const ofAudience = items
                 .filter(item => item.audience === undefined || (item.audience === 'loggedIn') === loggedIn)
             const opened = await Promise.all(ofAudience.map(item => opens(item, session)))

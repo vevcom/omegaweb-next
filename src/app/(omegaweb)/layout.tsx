@@ -1,8 +1,10 @@
 import MobileNavBar from '@/components/NavBar/MobileNavBar'
 import DesktopSideBar from '@/components/NavBar/DesktopSideBar'
+import { sideBarExpandedCookie } from '@/components/NavBar/sideBarExpandedCookie'
 import NavBar from '@/components/NavBar/NavBar'
 import { navDef } from '@/components/NavBar/navDef'
 import { adminNavDef } from '@/app/(omegaweb)/admin/adminNavDef'
+import CompanyUserBand from '@/components/CompanyUserBand/CompanyUserBand'
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
 import NavMenuProvider from '@/contexts/NavMenu'
@@ -12,6 +14,7 @@ import { searchableCategories } from '@/services/search/constants'
 import { omegawebSearchCategories } from '@/services/omegawebSearch/constants'
 import { withFallback, withPageSession } from '@/app/ServerPage'
 import { Theme, themes } from '@/lib/theme'
+import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 
 type PropTypes = {
@@ -46,6 +49,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
     const searchCategories = searchableCategories(omegawebSearchCategories, serverSession)
     // Anyone not logged in gets the default theme, which globals.scss already holds.
     const theme = serverSession.user?.theme ?? Theme.STANDARD
+    const sideBarExpanded = (await cookies()).get(sideBarExpandedCookie)?.value === 'true'
 
     return (
         <div className="min-h-dvh text-base-content bg-base-200">
@@ -74,10 +78,11 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
                             [grid-area:sideBar] h-full w-full z-3
                             max-mobile:hidden
                         ">
-                            <DesktopSideBar navItems={navItems} />
+                            <DesktopSideBar navItems={navItems} initiallyExpanded={sideBarExpanded} />
                         </aside>
                         <main className="[grid-area:content] min-h-0 overflow-hidden rounded-round">
                             <ScrollArea className="h-full" scrollerClassName="flex flex-col">
+                                <CompanyUserBand companyUser={serverSession.companyUser} />
                                 {children}
                             </ScrollArea>
                         </main>

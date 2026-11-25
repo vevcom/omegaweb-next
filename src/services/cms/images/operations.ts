@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { cmsImageAuth } from './auth'
 import { cmsImageSchemas } from './schemas'
 import { cmsImageIncluder } from './constants'
@@ -54,8 +54,8 @@ const create = defineSubOperation({
     })
 })
 
-const generateSpecialCmsImageFromConfig = defineSubOperation({
-    paramsSchema: () => cmsImageSchemas.params.generateSpecialCmsImageFromConfig,
+const createSpecial = defineSubOperation({
+    paramsSchema: () => cmsImageSchemas.params.createSpecial,
     operation: () => async ({ params }) => create.internalCall({
         data: {
             name: params.special,
@@ -66,7 +66,7 @@ const generateSpecialCmsImageFromConfig = defineSubOperation({
 
 export const cmsImageOperations = {
     create,
-    generateSpecialCmsImageFromConfig,
+    createSpecial,
 
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.readSpecial,
@@ -79,7 +79,7 @@ export const cmsImageOperations = {
             })
             if (image) return image
             logger.error(`Could not find special cms image with special ${params.special} - creating it!`)
-            return generateSpecialCmsImageFromConfig.internalCall({ params: { special: params.special } })
+            return createSpecial.internalCall({ params: { special: params.special } })
         }
     }),
 

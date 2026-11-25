@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { manualGroupAuth } from './auth'
 import { manualGroupSchemas } from './schemas'
 import { assertGroupNotPensioned } from '@/services/groups/groupChecks'
@@ -29,6 +29,7 @@ const memberManagement = implementSimpleAddRemoveMembersOperation({
         removeMembers: ({ groupId }) => manualGroupAuth.removeMembers.data({ groupId }),
         setMemberAdmin: ({ groupId }) => manualGroupAuth.setMemberAdmin.data({ groupId }),
         setMemberTitle: ({ groupId }) => manualGroupAuth.setMemberTitle.data({ groupId }),
+        destroyMembership: ({ groupId }) => manualGroupAuth.destroyMembership.data({ groupId }),
     },
 })
 
@@ -123,6 +124,7 @@ export const manualGroupOperations = {
     removeMembers: memberManagement.removeMembers,
     setMemberAdmin: memberManagement.setMemberAdmin,
     setMemberTitle: memberManagement.setMemberTitle,
+    destroyMembership: memberManagement.destroyMembership,
     migrateGroup: migration.migrateGroup,
     pension: migration.pension,
 } as const

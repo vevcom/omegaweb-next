@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(base);
 
-@custom-variant tone-light ([data-tone="light"] &);
+/* The nearest data-tone decides, over three levels: <html>, a site's wrapper and an element in a theme of its own. */
+@custom-variant tone-light (&:is([data-tone="light"] *):where(:not([data-tone="light"] [data-tone="dark"] *), [data-tone="light"] [data-tone="dark"] [data-tone="light"] *));
 
 /* The Mørk theme as a fallback. SiteTheme sets a theme's values on :root, so these stay variables. */
 @theme static {
@@ -230,10 +231,14 @@
         padding: calc(1.5 * var(--gap)) calc(2 * var(--gap));
     }
 
-    & th {
+    & thead th {
         background-color: var(--color-primary);
         color: var(--color-primary-content);
         font-weight: 500;
+    }
+
+    & tbody th {
+        font-weight: 600;
     }
 
     & tbody tr {
@@ -321,6 +326,10 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        &.list-row-thumb-contain img {
+            object-fit: contain;
         }
     }
 

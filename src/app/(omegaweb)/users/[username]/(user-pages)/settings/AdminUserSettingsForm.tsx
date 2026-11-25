@@ -24,7 +24,7 @@ export default function AdminUserSettingsForm({ user }: PropTypes) {
             action={updateUser}
             refreshOnSuccess
             // The page lives under the username, so a new one moves it.
-            navigateOnSuccess={data => (data ? appHref(`/users/${data.username}/settings`) : null)}
+            navigateOnSuccess={data => appHref(`/users/${data.username}/settings`)}
         >
             <TextInput label="Fornavn" name="firstname" defaultValue={user.firstname} />
             <TextInput label="Etternavn" name="lastname" defaultValue={user.lastname} />

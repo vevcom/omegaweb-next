@@ -41,6 +41,20 @@ An overlay includes `base` and fills in what it leaves open:
   is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
   through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings
   for this are documented in mail-infrastructure.
+- **The chat.** `CHAT_AUTH_URL` is the origin of the chat's sign in, MAS, whose host is the
+  client id it signs users in through the provider with. Left unset, the provider knows no chat.
+  The chat's own settings for this are documented in chat-infrastructure. `CHAT_CLIENT_URL` is the
+  origin of the chat client, which a user's chat page links to. Left unset, nothing links to it.
+- **Hearing from the chat.** `CHAT_HS_TOKEN` is the token the homeserver signs what it sends the
+  app with, a secret the chat has too. The homeserver is told where the app is in its own config,
+  as the app's address inside the cluster followed by `/api/chat/appservice`: the app answers there
+  for any host, as it does the healthcheck. Left unset, the app takes nothing from the homeserver
+  and no notification is made for the chat.
+- **The chat sync.** `CHAT_HOMESERVER_URL` is Synapse and `CHAT_MAS_URL` MAS's admin api, both as
+  the worker reaches them inside the cluster, and `CHAT_SERVER_NAME` is the server name of the
+  homeserver. `CHAT_AS_TOKEN` and `CHAT_MAS_CLIENT_SECRET` are secrets the chat has too. With all
+  five set, the worker keeps the homeserver's accounts and spaces in step with the database. Left
+  unset, nothing is synced.
 - **The store.** Uploaded images and ombul pdfs are on the store volume, which base mounts at
   `store/` in the app, the worker and the migrate job, and in an S3 bucket when
   `STORE_S3_BUCKET` is set, with `STORE_S3_ENDPOINT`, `STORE_S3_ACCESS_KEY_ID` and
@@ -110,3 +124,32 @@ Publishing a GitHub release runs `.github/workflows/release.yml`, which builds t
 pushes them to GHCR under the release tag. What happens next is the installation's: for ours,
 the workflow opens a pull request on vivat that points prod at the release, and vivat's README
 says how a deploy and a rollback work from there.
+
+### Versions
+
+The site shows the version it runs in its footer and lists every release with its notes at
+`/versions`. These come from `versions/` at the app's root, which is never in git. The release
+workflow fills it before it builds the prod image, with every published release that is no
+pre-release and the release being built. The prod image copies it, and a build without it shows
+no versions.
+
+To fill it outside Docker, give a token that can read the repository's releases and the tag to
+show as current:
+
+```bash
+GH_TOKEN=$(gh auth token) npm run versions:bake -- vevcom/omegaweb-next https://github.com v26.5.1
+```
+
+The development stack mounts only `src/` and a few files, so the app there never sees that
+directory. Fill it inside the running app container instead, then restart the container, since
+the app reads `versions/` once:
+
+```bash
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml \
+    exec -e GH_TOKEN="$(gh auth token)" omegaweb-next \
+    npm run versions:bake -- vevcom/omegaweb-next https://github.com v26.5.1
+docker compose --env-file .env --env-file deploy/base/postgres.env -f docker-compose.dev.yml \
+    restart omegaweb-next
+```
+
+It lives in the container, so it is gone once `npm run docker:dev` starts the stack again.

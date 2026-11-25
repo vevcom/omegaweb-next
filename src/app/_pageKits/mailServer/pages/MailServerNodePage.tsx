@@ -7,7 +7,7 @@ import EditGroup from '@/pageKits/mailServer/components/EditGroup'
 import MailServerTabs from '@/pageKits/mailServer/components/MailServerTabs'
 import { mailServerPartArray } from '@/pageKits/mailServer/links'
 import { mailOperations, mailTraversalReadOfType } from '@/services/mail/operations'
-import { aliasOperations } from '@/services/mail/alias/operations'
+import { aliasMailAddressOperations, aliasOperations } from '@/services/mail/alias/operations'
 import { mailingListOperations } from '@/services/mail/list/operations'
 import { MailListTypeArray, validMailAddressDomains } from '@/services/mail/constants'
 import { mailboxesAreAvailable } from '@/lib/mailServerSync/constants'
@@ -66,23 +66,24 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
             notFound()
         }
 
-        const [results, mailOptions, allGroupTypes, owners] = await Promise.all([
+        const [results, mailOptions, allGroupTypes, owners, mailAddress] = await Promise.all([
             mailTraversalReadOfType[filter]({ params: { id, markOwnedByUserId: session.user?.id } }),
             mailOperations.readMailOptions({}),
             readExpandedOfAllTypes({}),
             readOwners(filter, id),
+            filter === 'alias' ? aliasMailAddressOperations.read({ params: { id } }) : null,
         ])
 
         const groups = flattenExpandedGroups(allGroupTypes)
         const domains = filter === 'alias' ? validMailAddressDomains() : []
 
-        return { filter, id, results, mailOptions, groups, domains, owners }
+        return { filter, id, results, mailOptions, groups, domains, owners, mailAddress }
     },
     metadata: ({ filter, id, results }) => ({
         title: focusedLabel(filter, id, results) ?? typeDisplayNames[filter],
     }),
     render: ({ data }) => {
-        const { filter, id, results, mailOptions, groups, domains, owners } = data
+        const { filter, id, results, mailOptions, groups, domains, owners, mailAddress } = data
 
         return <PageWrapper>
             <div className="p-4 flex flex-col gap-4">
@@ -111,10 +112,11 @@ export const mailServerNodePage = (config: MailServerPagesConfig) => serverPage(
                             />
                         </UserPagingProvider>
                     </UserSelectionProvider>}
-                    {filter === 'alias' && <EditMailAlias
+                    {filter === 'alias' && mailAddress && <EditMailAlias
                         config={config}
                         id={id}
                         data={results}
+                        mailAddress={mailAddress}
                         mailingLists={mailOptions.mailingList}
                         domains={domains}
                         owners={owners}

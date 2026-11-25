@@ -32,7 +32,7 @@ export const cmsParagraphSchemas = {
         }),
     },
     params: {
-        generateSpecialCmsParagraphFromConfig: special,
+        createSpecial: special,
         destroy: paragraphId,
         readSpecial: special,
         update: paragraphId,

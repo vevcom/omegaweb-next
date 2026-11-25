@@ -20,6 +20,7 @@ export const committeeAuth = {
     setMemberAdmin: adminOrGroupAdmin,
     setMemberTitle: adminOrGroupAdmin,
     reorderMembers: adminOrGroupAdmin,
+    destroyMembership: adminOrGroupAdmin,
     migrateGroup: adminOrGroupAdmin,
     readArticle: Require.permission('COMMITTEE_USE'),
     readParagraph: Require.permission('COMMITTEE_USE'),
@@ -28,4 +29,9 @@ export const committeeAuth = {
     updateParagraphContent: adminOrGroupAdmin,
     updateLogo: adminOrGroupAdmin,
     updateArticle: adminOrGroupAdmin,
+    readChatSpace: adminOrGroupAdmin,
+    createChatSpace: adminOrGroupAdmin,
+    destroyChatSpace: adminOrGroupAdmin,
+    setChatSpaceMembers: adminOrGroupAdmin,
+    setChatSpaceRooms: adminOrGroupAdmin,
 } as const

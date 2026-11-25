@@ -1,4 +1,5 @@
 import {
+    destroyInterestGroupMembershipAction,
     addInterestGroupMembersAction,
     migrateInterestGroupAction,
     removeInterestGroupMembersAction,
@@ -50,6 +51,9 @@ const { page, generateMetadata } = serverPage({
         }),
         canPension: interestGroupAuth.pension,
         canRemoveMembers: interestGroupAuth.removeMembers.data({
+            groupId: data.interestGroup.groupId,
+        }),
+        canDestroyMembership: interestGroupAuth.destroyMembership.data({
             groupId: data.interestGroup.groupId,
         }),
     }),
@@ -110,6 +114,11 @@ const { page, generateMetadata } = serverPage({
                             removeMembersAction={
                                 capabilities.canRemoveMembers.authorized
                                     ? removeInterestGroupMembersAction
+                                    : undefined
+                            }
+                            destroyMembershipAction={
+                                capabilities.canDestroyMembership.authorized
+                                    ? destroyInterestGroupMembershipAction
                                     : undefined
                             }
                         />

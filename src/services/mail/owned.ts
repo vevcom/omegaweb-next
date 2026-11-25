@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import { groupOperations } from '@/services/groups/operations'

@@ -28,9 +28,6 @@ beforeAll(async () => {
         data: {
             name: 'Vevcom AS',
             description: 'Vevcom AS er verdensledende innenfor webutvikling og kakebaking.',
-            logo: {
-                create: {}
-            },
         },
     })
 })

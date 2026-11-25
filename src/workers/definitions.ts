@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { processNextImage } from '@/services/images/subservice/processingQueue'
 import {
     dispatchNextEmailNotification,
@@ -17,6 +17,9 @@ import {
 import { runNextPaymentCompletionHook } from '@/services/ledger/transactions/paymentCompletionHooks'
 import { syncMailServer } from '@/lib/mailServerSync/sync'
 import { mailServerIsManaged } from '@/lib/mailServerSync/constants'
+import { giveMissingVevenMailAddresses } from '@/services/users/missingVevenMailAddresses'
+import { syncChat } from '@/lib/chatSync/sync'
+import { chatIsManaged } from '@/lib/chatSync/constants'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import logger from '@/lib/logger'
 import type { Worker } from './types'
@@ -28,6 +31,10 @@ if (!pushIsConfigured) {
 if (!mailServerIsManaged) {
     logger.warn('Mail server sync will not run, since EMAIL_ADMIN_URL, EMAIL_ADMIN_USER and EMAIL_ADMIN_PASSWORD '
         + 'are not all set')
+}
+if (!chatIsManaged) {
+    logger.warn('Chat sync will not run, since CHAT_HOMESERVER_URL, CHAT_SERVER_NAME, CHAT_AS_TOKEN, CHAT_MAS_URL and '
+        + 'CHAT_MAS_CLIENT_SECRET are not all set')
 }
 
 /**
@@ -126,16 +133,34 @@ export const workers = {
     },
 
     /**
-     * Keeps the mail server's domains, mailing lists and mailboxes in step with the aliases
-     * here, see lib/mailServerSync/sync.ts. Does nothing while the server is not managed.
+     * Keeps the mail server's domains, mailing lists and mailboxes in step with the addresses
+     * of the aliases and the users here, see lib/mailServerSync/sync.ts. Does nothing while the
+     * server is not managed.
      */
     mail: {
         name: 'Mail server sync',
-        // How long a changed alias or membership takes to reach the mail server, at most.
+        // How long a changed address, alias or membership takes to reach the mail server, at most.
         intervalMs: 60 * 1000,
-        tick: () => {
+        // The users without an address are given theirs first, so the server has a mailbox for each.
+        tick: async () => {
             if (!mailServerIsManaged) return false
+            await giveMissingVevenMailAddresses()
             return syncMailServer()
+        },
+    },
+
+    /**
+     * Keeps the accounts and the spaces of the chat's homeserver in step with the users and the
+     * chat spaces here, see lib/chatSync/sync.ts. Does nothing while the homeserver is not managed.
+     */
+    chat: {
+        name: 'Chat sync',
+        // How long a changed name, space or membership takes to reach the chat, at most.
+        intervalMs: 15 * 1000,
+        tick: async () => {
+            if (!chatIsManaged) return false
+            await syncChat()
+            return false
         },
     },
 } as const satisfies Record<string, Worker>

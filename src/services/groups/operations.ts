@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { assertGroupValidity } from './assertGroupValidity'
 import { isGroupPensioned } from './groupChecks'
 import { groupSchemas } from './schemas'
@@ -182,6 +182,28 @@ export const groupOperations = {
             })
 
             await invalidateManyUserSessionData(prisma, data.userIds)
+        },
+    }),
+
+    /**
+     * Deletes a user's membership of the given order, or of the group's current order when none is given, for
+     * good. Removing a member keeps the membership as the group's history, so this is for one that should never
+     * have been there, at any order.
+     */
+    destroyMembership: defineSubOperation({
+        paramsSchema: () => groupSchemas.params.destroyMembership,
+        dataSchema: () => groupSchemas.data.destroyMembership,
+        // Its write and the session invalidation have to land together.
+        transaction: 'RUNS_IN',
+        operation: () => async ({ prisma, params, data }) => {
+            const group = await readGroupOrderAndType(prisma, params.groupId)
+            const order = resolveMembershipOrder(group, params.order)
+
+            await prisma.membership.delete({
+                where: { userId_groupId_order: { groupId: params.groupId, userId: data.userId, order } },
+            })
+
+            await invalidateOneUserSessionData(prisma, data.userId)
         },
     }),
 

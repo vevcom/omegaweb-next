@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ParseError, ServiceError, Smorekopp } from './error'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'

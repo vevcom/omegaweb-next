@@ -1,7 +1,7 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { visibilityOperations } from './operations'
 import { ServiceError } from '@/services/error'
-import { defineOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, type PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
@@ -34,12 +34,14 @@ type Authorizers<
     ) => Awaitable<Authorizer>
 }
 
+// In the order they were saved in, which is the order the editor showed them in.
 export const visibilityIncluder = {
     requirements: {
+        orderBy: { id: 'asc' },
         include: {
-            conditions: true
-        }
-    }
+            conditions: { orderBy: { id: 'asc' } },
+        },
+    },
 } as const
 
 type ReadVisibilityDoubleLevel<ImplementationParamsSchema extends z.ZodType<unknown>> = (
@@ -72,11 +74,67 @@ type ReadVisibility<ImplementationParamsSchema extends z.ZodType<unknown>> = (ar
     implementationParams: z.infer<ImplementationParamsSchema>,
 }) => Promise<Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>>
 
+function matrixReader<ImplementationParamsSchema extends z.ZodType<unknown>>(
+    readVisibility: ReadVisibility<ImplementationParamsSchema>,
+) {
+    return async ({ prisma, params }: {
+        prisma: PrismaPossibleTransaction<false>,
+        params: z.infer<ImplementationParamsSchema>,
+    }): Promise<VisibilityMatrix> => toMatrix(await readVisibility({
+        prisma,
+        implementationParams: params,
+        include: visibilityIncluder,
+    }))
+}
+
 /**
- * The operations of one visibility an owning service holds, such as who administrates an event or
- * who may register through a quota. `emptyMeans` says what an update to no requirements at all is:
- * 'EVERYONE' lets it through, 'REFUSED' rejects it, for a visibility where that would hand the
- * resource to everyone. `afterUpdate` runs once a change is saved, for what follows from it.
+ * Reading one visibility an owning service holds, such as who may register through a quota. For
+ * an owner that changes the visibility itself, along with what it guards, and so has no use for
+ * an update of its own.
+ *
+ * The owner creates the visibility with `internal.create` in the transaction that creates its own
+ * row, changes it with `internal.update`, and destroys it with `internal.destroy` once that row is gone.
+ */
+export function implementVisibilityRead<
+    const ImplementationParamsSchema extends z.ZodType<unknown>
+>({
+    implementationParamsSchema,
+    authorizer,
+    readVisibility,
+}: {
+    implementationParamsSchema: ImplementationParamsSchema,
+    authorizer: SingleAuthorizers<ImplementationParamsSchema>['readMatrix'],
+    readVisibility: ReadVisibility<ImplementationParamsSchema>,
+}) {
+    const matrixOf = matrixReader(readVisibility)
+
+    return {
+        internal: {
+            readMatrix: defineSubOperation({
+                paramsSchema: () => implementationParamsSchema,
+                operation: () => ({ prisma, params }) => matrixOf({ prisma, params }),
+            }),
+            create: visibilityOperations.createWithRequirements,
+            update: visibilityOperations.update,
+            destroy: visibilityOperations.destroy,
+        },
+
+        readMatrix: defineOperation({
+            paramsSchema: implementationParamsSchema,
+            authorizer: async ({ params, prisma }) => authorizer({
+                prisma,
+                params,
+                matrix: await matrixOf({ params, prisma }),
+            }),
+            operation: ({ params, prisma }) => matrixOf({ params, prisma }),
+        }),
+    } as const
+}
+
+/**
+ * The operations of one visibility an owning service holds, such as who owns a mailing list.
+ * `emptyMeans` says what an update to no requirements at all is: 'EVERYONE' lets it through,
+ * 'REFUSED' rejects it, for a visibility where that would hand the resource to everyone.
  */
 export function implementVisibilityOperations<
     const ImplementationParamsSchema extends z.ZodType<unknown>
@@ -85,44 +143,27 @@ export function implementVisibilityOperations<
     authorizers,
     readVisibility,
     emptyMeans,
-    afterUpdate,
 }: {
     implementationParamsSchema: ImplementationParamsSchema,
     authorizers: SingleAuthorizers<ImplementationParamsSchema>,
     readVisibility: ReadVisibility<ImplementationParamsSchema>,
     emptyMeans: 'EVERYONE' | 'REFUSED',
-    afterUpdate?: (args: {
-        /** The full client, since the update opens its own transaction and so runs outside any. */
-        prisma: PrismaPossibleTransaction<true>,
-        implementationParams: z.infer<ImplementationParamsSchema>,
-    }) => Awaitable<void>,
 }) {
-    const readMatrixInternal = async ({ prisma, params }: {
-        prisma: PrismaPossibleTransaction<false>,
-        params: z.infer<ImplementationParamsSchema>,
-    }): Promise<VisibilityMatrix> => toMatrix(await readVisibility({
-        prisma,
-        implementationParams: params,
-        include: visibilityIncluder,
-    }))
+    const read = implementVisibilityRead({
+        implementationParamsSchema,
+        authorizer: authorizers.readMatrix,
+        readVisibility,
+    })
+    const matrixOf = matrixReader(readVisibility)
 
     return {
-        readMatrixInternal,
-        readMatrix: defineOperation({
-            paramsSchema: implementationParamsSchema,
-            authorizer: async ({ params, prisma }) => authorizers.readMatrix({
-                prisma,
-                params,
-                matrix: await readMatrixInternal({ params, prisma }),
-            }),
-            operation: ({ params, prisma }) => readMatrixInternal({ params, prisma }),
-        }),
+        ...read,
         update: visibilityOperations.update.implement<ImplementationParamsSchema>({
             implementationParamsSchema,
             authorizer: async ({ implementationParams, prisma }) => authorizers.update({
                 prisma,
                 implementationParams,
-                matrix: await readMatrixInternal({ params: implementationParams, prisma }),
+                matrix: await matrixOf({ params: implementationParams, prisma }),
             }),
             ownershipCheck: async ({ params, prisma, implementationParams }) => (await readVisibility({
                 include: visibilityIncluder,
@@ -134,11 +175,14 @@ export function implementVisibilityOperations<
                     throw new ServiceError('BAD DATA', 'Du må velge hvem som kan administrere')
                 }
             },
-            afterRun: ({ prisma, implementationParams }) => afterUpdate?.({ prisma, implementationParams }),
         }),
     } as const
 }
 
+/**
+ * The operations of the two visibilities an owning service holds as its regular and admin levels.
+ * `internal.create` and `internal.destroy` take one level at a time.
+ */
 export function implementDoubleLevelVisibilityOperations<
     const ImplementationParamsSchema extends z.ZodType<unknown>
 >({
@@ -150,38 +194,43 @@ export function implementDoubleLevelVisibilityOperations<
     authorizers: Authorizers<ImplementationParamsSchema>,
     readDoubleLevel: ReadVisibilityDoubleLevel<ImplementationParamsSchema>,
 }) {
-    const readDoubleLevelMatrixInternal = async ({
-        prisma,
-        params
-    } : {
+    const doubleLevelMatrixOf = async ({ prisma, params }: {
         prisma: PrismaPossibleTransaction<false>,
-        params: z.infer<ImplementationParamsSchema>
+        params: z.infer<ImplementationParamsSchema>,
     }): Promise<DoubleLevelVisibilityMatrix> => {
-        const visibilties = await readDoubleLevel({
+        const visibilities = await readDoubleLevel({
             prisma,
             implementationParams: params,
-            include: visibilityIncluder
+            include: visibilityIncluder,
         })
 
         return {
-            regularLevel: toMatrix(visibilties.regularLevel),
-            adminLevel: toMatrix(visibilties.adminLevel)
+            regularLevel: toMatrix(visibilities.regularLevel),
+            adminLevel: toMatrix(visibilities.adminLevel),
         }
     }
 
     return {
-        readDoubleLevelMatrixInternal,
+        internal: {
+            readDoubleLevelMatrix: defineSubOperation({
+                paramsSchema: () => implementationParamsSchema,
+                operation: () => ({ prisma, params }) => doubleLevelMatrixOf({ prisma, params }),
+            }),
+            create: visibilityOperations.createWithRequirements,
+            destroy: visibilityOperations.destroy,
+        },
+
         readDoubleLevelMatrix: defineOperation({
             paramsSchema: implementationParamsSchema,
             authorizer: async (args) =>
                 authorizers.readDoubleLevelMatrix({
                     prisma: args.prisma,
                     params: args.params,
-                    doubleLevelMatrix: await readDoubleLevelMatrixInternal({
+                    doubleLevelMatrix: await doubleLevelMatrixOf({
                         params: args.params, prisma: args.prisma
                     })
                 }),
-            operation: async args => readDoubleLevelMatrixInternal({
+            operation: async args => doubleLevelMatrixOf({
                 params: args.params,
                 prisma: args.prisma
             })
@@ -192,7 +241,7 @@ export function implementDoubleLevelVisibilityOperations<
                 authorizers.updateRegularLevel({
                     prisma: args.prisma,
                     implementationParams: args.implementationParams,
-                    doubleLevelMatrix: await readDoubleLevelMatrixInternal({
+                    doubleLevelMatrix: await doubleLevelMatrixOf({
                         params: args.implementationParams, prisma: args.prisma
                     })
                 }),
@@ -208,7 +257,7 @@ export function implementDoubleLevelVisibilityOperations<
                 authorizers.updateAdminLevel({
                     prisma: args.prisma,
                     implementationParams: args.implementationParams,
-                    doubleLevelMatrix: await readDoubleLevelMatrixInternal({
+                    doubleLevelMatrix: await doubleLevelMatrixOf({
                         params: args.implementationParams, prisma: args.prisma
                     })
                 }),
@@ -229,16 +278,12 @@ export function implementDoubleLevelVisibilityOperations<
 export function toMatrix(visibility: Prisma.VisibilityGetPayload<{ include: typeof visibilityIncluder }>): VisibilityMatrix {
     return {
         requirements: visibility.requirements.map(requirement => ({
-            conditions: requirement.conditions.map(condition => (
-                condition.type === 'ORDER' ? {
-                    groupId: condition.groupId,
-                    type: condition.type,
-                    order: condition.order
-                } : {
-                    groupId: condition.groupId,
-                    type: condition.type,
-                }
-            ))
+            conditions: requirement.conditions.map(({ groupId, order, onlyActive, onlyAdmins }) => ({
+                groupId,
+                order,
+                onlyActive,
+                onlyAdmins,
+            }))
         }))
     }
 }

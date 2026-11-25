@@ -6,6 +6,7 @@ import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
 import { userOperations } from '@/services/users/operations'
 import { productOperations } from '@/services/shop/product/operations'
+import { activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 
 const STARTING_BALANCE = 100_00
@@ -42,7 +43,7 @@ beforeAll(async () => {
             visibilityRegular: {
                 create: {
                     requirements: {
-                        create: { conditions: { create: { type: 'ACTIVE' as const, groupId: shoppersGroupId, order } } },
+                        create: { conditions: { create: activeMembersOf(shoppersGroupId) } },
                     },
                 },
             },

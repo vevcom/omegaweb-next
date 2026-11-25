@@ -4,7 +4,9 @@ import { karla, sora } from './_lib/careersFonts'
 import { careersTheme } from './_lib/careersTheme'
 import { careerAccountNavDef, careerNavDef } from './_lib/careerNavDef'
 import { innerClassName } from './_lib/careersClassNames'
+import { careerLinks } from './links'
 import SiteTheme from '@/components/SiteTheme/SiteTheme'
+import StatusBarStrip from '@/components/StatusBarStrip/StatusBarStrip'
 import { CareersGlobalSearch, CareersGlobalSearchProvider } from '@/app/(careers)/GlobalSearch'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
@@ -42,7 +44,11 @@ export default serverLayout({
             )
             : null
         return {
-            loggedIn: session.user !== null,
+            loggedIn: session.user !== null || session.companyUser !== null,
+            // A company user's own place on the site is the page of their company.
+            companyLink: session.companyUser
+                ? { name: session.companyUser.company.name, href: careerLinks.company(session.companyUser.company) }
+                : null,
             omegaMember: level !== null && level.level !== 'DEN_GEMENE_HOB',
             navLinks: await careerNavDef.visible(session),
             accountLinks: await careerAccountNavDef.visible(session),
@@ -51,12 +57,13 @@ export default serverLayout({
         }
     },
     capabilities: () => ({
-        canEditSpecialCmsLink: careersFrontpageAuth.updateSpecialCmsLink,
+        canEditSpecialCmsLink: careersFrontpageAuth.cmsLinks.update,
     }),
     render: ({ data, capabilities, children }) => (
         <div
             className={`
-                min-h-dvh flex flex-col bg-base-100 text-base-content font-careers-sans [--careers-max-width:1320px]
+                min-h-dvh flex flex-col pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] bg-base-100
+                text-base-content font-careers-sans [--careers-max-width:1320px]
                 [--careers-page-padding:clamp(1.5rem,5vw,4rem)]
                 [&_*]:font-careers-sans
                 [&_:is(h1,h2,h3,h4)]:font-careers-heading [&_:is(h1,h2,h3,h4)]:tracking-[-0.01em]
@@ -72,11 +79,13 @@ export default serverLayout({
                     adminNavItems={data.adminNavLinks}
                     categories={data.searchCategories}
                 />
+                <StatusBarStrip />
                 <WorkInProgressBanner siteName="Contactor" currentSiteHref={externalHref('https://contactor.no')} />
                 <CareersNavBar
                     links={data.navLinks}
                     accountLinks={data.accountLinks}
                     loggedIn={data.loggedIn}
+                    companyLink={data.companyLink}
                     showOmegaLink={data.omegaMember}
                 />
                 <main className={`
@@ -85,7 +94,11 @@ export default serverLayout({
                 `}>
                     {children}
                 </main>
-                <CareersFooter capabilities={capabilities} showOmegaLink={data.omegaMember} />
+                <CareersFooter
+                    capabilities={capabilities}
+                    showOmegaLink={data.omegaMember}
+                    showCompanyLogin={!data.loggedIn}
+                />
             </CareersGlobalSearchProvider>
         </div>
     ),

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailServerAdmin } from './constants'
 
 /** The objects of the management API the sync works with, named as its methods name them. */
@@ -30,6 +30,14 @@ export type MailServerPasswordCredentials = {
     0: { '@type': 'Password', secret: string },
 }
 
+/** Another address of an account, which its mail also arrives at and its user may sign in by. */
+export type MailServerAccountAlias = {
+    name: string,
+    domainId: string,
+    enable?: boolean,
+    description?: string | null,
+}
+
 export type MailServerAccount = {
     id: string,
     '@type': string,
@@ -37,6 +45,8 @@ export type MailServerAccount = {
     domainId: string,
     description?: string,
     emailAddress?: string,
+    /** The aliases of an account, as a list the server keys by position: `{ "0": ..., "1": ... }`. */
+    aliases?: Record<string, MailServerAccountAlias>,
     credentials?: MailServerPasswordCredentials,
     roles?: { '@type': string },
     /** The groups an account is a member of, as a set: the group's id as key and true as value. */
@@ -66,9 +76,21 @@ export type MailServerSetArgs<Name extends MailServerObjectName> = {
     destroy?: string[],
 }
 
+/** An object on the server as a refusal names it. */
+type MailServerObjectReference = {
+    object: string,
+    id: string,
+}
+
 type MailServerSetError = {
     type: string,
     description?: string,
+    /** What of the object was refused, such as `email` for an address that is taken. */
+    properties?: string[],
+    /** The object that stands in the way: the one that holds the address, or the one that is linked. */
+    objectId?: MailServerObjectReference,
+    /** The objects that link to one the server will not destroy. */
+    linkedObjects?: MailServerObjectReference[],
 }
 
 /** A set as the server answers it. */
@@ -87,7 +109,10 @@ export type MailServerSetOutcome = {
     updated: number,
     /** How many of the destructions were applied. */
     destroyed: number,
-    /** What the server refused, one line each, such as `create MailingList styret-0 (primaryKeyViolation)`. */
+    /**
+     * What the server refused, one line each, with what the server says stands in the way, such as
+     * `create Account styret-0 (primaryKeyViolation: email is held by MailingList b)`.
+     */
     refused: string[],
 }
 
@@ -131,13 +156,22 @@ const JMAP_CAPABILITIES = ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap', 'ur
  * The most the server takes at once, which it says in its session as `maxCallsInRequest`,
  * `maxObjectsInGet` and `maxObjectsInSet`: it refuses a request with more method calls, and a get
  * or a set of more objects, whole. These are Stalwart's defaults, and the client splits its work
- * to stay within them.
+ * to stay within them. A query is different: the server answers one for more ids than it gives at
+ * once with the first of them, 5000 by default, and no error, see {@link MailServerClient.listAll}.
  */
 const MAX_CALLS_PER_REQUEST = 16
 const MAX_OBJECTS_PER_CALL = 500
 
 /** How long the server gets to answer, so one that takes the connection and then says nothing does not hold the worker. */
 const REQUEST_TIMEOUT_MS = 30 * 1000
+
+/**
+ * The id a creation is sent under and reported back by. JMAP ids allow only letters, digits, _ and
+ * -, so an address is made safe, with its index so two addresses cannot end up alike.
+ */
+export function creationId(address: string, index: number): string {
+    return `${address.replace(/[^A-Za-z0-9_-]/g, '_')}-${index}`
+}
 
 function chunksOf<Item>(items: Item[], size: number): Item[][] {
     const count = Math.ceil(items.length / size)
@@ -218,12 +252,36 @@ export class MailServerClient {
         return methodResponses
     }
 
-    /** Every object of a kind on the server: a query for all ids, and gets of as many at a time as the server takes. */
+    /**
+     * The ids of every object of a kind. The server gives a query's ids a page at a time, however
+     * many are asked for, so the query is asked again from where the last page ended until the
+     * server has given as many as it counts.
+     *
+     * @throws when the server gave fewer ids than it counts, since a caller that took a part of
+     * the objects for all of them would create the rest anew and be refused each one.
+     */
+    private async queryAllIds(object: MailServerObjectName): Promise<string[]> {
+        const method = `x:${object}/query`
+        const ids = new Set<string>()
+        let total: number | undefined = undefined
+        for (;;) {
+            const [[, queried]] = await this.send([[method, { position: ids.size, calculateTotal: true }, 'query']])
+            const page = ((queried.ids as string[] | undefined) ?? []).filter(id => !ids.has(id))
+            page.forEach(id => ids.add(id))
+            total = typeof queried.total === 'number' ? queried.total : undefined
+            // A page with nothing new also ends it, so a server that goes on giving the same page cannot hold the worker.
+            if (page.length === 0 || (total !== undefined && ids.size >= total)) break
+        }
+        if (total !== undefined && ids.size < total) {
+            throw new Error(`Mail server gave ${ids.size} of the ${total} ids it counts for ${method}`)
+        }
+        return Array.from(ids)
+    }
+
+    /** Every object of a kind on the server: queries for all ids, and gets of as many at a time as the server takes. */
     async listAll<Name extends MailServerObjectName>(object: Name): Promise<MailServerObjects[Name][]> {
-        const queryMethod = `x:${object}/query`
         const getMethod = `x:${object}/get`
-        const [[, queried]] = await this.send([[queryMethod, {}, 'query']])
-        const ids = (queried.ids as string[] | undefined) ?? []
+        const ids = await this.queryAllIds(object)
 
         const objects: MailServerObjects[Name][] = []
         for (const chunk of chunksOf(ids, MAX_OBJECTS_PER_CALL)) {
@@ -327,6 +385,23 @@ export class MailServerClient {
         }
     }
 
+    /**
+     * Stops an account's active Sieve script, so that it runs none, which is the only way the
+     * active one can be destroyed without another taking its place.
+     *
+     * @throws MailServerRefusal when the server refuses.
+     */
+    async deactivateSieveScript(accountId: string): Promise<void> {
+        const [[, result]] = await this.send([
+            ['SieveScript/set', { accountId, onSuccessDeactivateScript: true }, 'deactivate'],
+        ])
+        const { notCreated, notUpdated, notDestroyed } = result as MailServerSetResponse
+        const refused = describeRefusals('deactivate', { ...notCreated, ...notUpdated, ...notDestroyed })
+        if (refused.length > 0) {
+            throw new MailServerRefusal(`${refused.join('; ')} the Sieve script of account ${accountId}`)
+        }
+    }
+
     /** Uploads a blob to an account and returns its id, for a method that takes its content by reference. */
     private async upload(accountId: string, content: string, contentType: string): Promise<string> {
         const url = `${this.uploadEndpoint}/${encodeURIComponent(accountId)}/`
@@ -342,8 +417,22 @@ export class MailServerClient {
     }
 }
 
+const nameOf = ({ object, id }: MailServerObjectReference) => `${object} ${id}`
+
+/**
+ * A refusal with all the server says of it. An address that is taken names the object that holds
+ * it, which is the only way to tell what the sync did not recognise as its own.
+ */
 function describeError(error: MailServerSetError): string {
-    return error.description ? `${error.type}: ${error.description}` : `${error.type}`
+    const details: string[] = []
+    if (error.description) details.push(error.description)
+    if (error.type === 'primaryKeyViolation' && error.objectId) {
+        details.push(`${error.properties?.join(', ') || 'it'} is held by ${nameOf(error.objectId)}`)
+    }
+    if (error.linkedObjects && error.linkedObjects.length > 0) {
+        details.push(`linked from ${error.linkedObjects.map(nameOf).join(', ')}`)
+    }
+    return details.length > 0 ? `${error.type}: ${details.join(', ')}` : error.type
 }
 
 function describeRefusals(verb: string, refusals: Record<string, MailServerSetError> | undefined): string[] {

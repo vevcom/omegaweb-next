@@ -1,4 +1,5 @@
 'use client'
+import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import CollectionAdminUpload from './CollectionAdminUpload'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -8,8 +9,7 @@ import {
     UploadHeaderItemPopUp,
     VisibilityHeaderItemPopUp,
 } from '@/components/HeaderItems/HeaderItemPopUp'
-import VisibilityAdmin from '@/components/Visibility/VisibilityAdmin/VisibilityAdmin'
-import useEditMode from '@/hooks/useEditMode'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import Button from '@/components/UI/Button'
 import { configureAction } from '@/services/configureAction'
@@ -18,8 +18,6 @@ import {
     updateDynamicImageCollectionAction,
     destroyDynamicImageCollectionAction,
     uploadImageToDynamicCollectionAction,
-    updateDynamicImageCollectionRegularLevelVisibilityAction,
-    updateDynamicImageCollectionAdminLevelVisibilityAction,
 } from '@/services/images/dynamic/actions'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { appHref } from '@/lib/sites/href'
@@ -38,26 +36,27 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
     const router = useSiteRouter()
     const doubleLevelMatrix = doubleLevelVisibility ?? EMPTY_VISIBILITY
 
-    const canUploadOne = useEditMode({
+    const canUploadOne = useAuthorizer({
         authorizer: dynamicImageAuth.uploadImage.data({ visibility: doubleLevelMatrix })
-    })
-    const canUploadMany = useEditMode({
+    }).authorized
+    const canUploadMany = useAuthorizer({
         authorizer: dynamicImageAuth.uploadManyImages.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateCollection = useEditMode({
+    }).authorized
+    const canUpdateCollection = useAuthorizer({
         authorizer: dynamicImageAuth.updateCollection.data({ visibility: doubleLevelMatrix })
-    })
-    const canDestroyCollection = useEditMode({
+    }).authorized
+    const canDestroyCollection = useAuthorizer({
         authorizer: dynamicImageAuth.destroyCollection.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateRegularVisibility = useEditMode({
+    }).authorized
+    const canUpdateRegularVisibility = useAuthorizer({
         authorizer: dynamicImageAuth.updateRegularLevel.data({ visibility: doubleLevelMatrix })
-    })
-    const canUpdateAdminVisibility = useEditMode({
+    }).authorized
+    const canUpdateAdminVisibility = useAuthorizer({
         authorizer: dynamicImageAuth.updateAdminLevel.data({ visibility: doubleLevelMatrix })
-    })
+    }).authorized
 
-    const [uploadOption, setUploadOption] = useState<'MANY' | 'ONE'>(canUploadMany ? 'MANY' : 'ONE')
+    const [chosenUploadOption, setUploadOption] = useState<'MANY' | 'ONE' | null>(null)
+    const uploadOption = chosenUploadOption ?? (canUploadMany ? 'MANY' : 'ONE')
 
     const canUpload = canUploadOne || canUploadMany
     const canOpenEditPopUp = canUpdateCollection || canDestroyCollection
@@ -165,37 +164,15 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
             {
                 doubleLevelVisibility && canOpenVisibilityPopUp && (
                     <VisibilityHeaderItemPopUp popUpKey="Visibility">
-                        <div>
-                            {
-                                canUpdateRegularVisibility && (
-                                    <div>
-                                        <h3>Vanlig visning</h3>
-                                        <VisibilityAdmin
-                                            visibility={doubleLevelVisibility.regularLevel}
-                                            visibilityId={collection.visibilityRegularId}
-                                            updateVisibilityAction={configureAction(
-                                                updateDynamicImageCollectionRegularLevelVisibilityAction,
-                                                { implementationParams: { collectionId } }
-                                            )}
-                                        />
-                                    </div>
-                                )
-                            }
-                            {
-                                canUpdateAdminVisibility && (
-                                    <div>
-                                        <h3>Adminvisning</h3>
-                                        <VisibilityAdmin
-                                            visibility={doubleLevelVisibility.adminLevel}
-                                            visibilityId={collection.visibilityAdminId}
-                                            updateVisibilityAction={configureAction(
-                                                updateDynamicImageCollectionAdminLevelVisibilityAction,
-                                                { implementationParams: { collectionId } }
-                                            )}
-                                        />
-                                    </div>
-                                )
-                            }
+                        <div className="flex flex-col gap-4">
+                            <imageCollectionVisibility.Forms
+                                doubleLevelVisibility={doubleLevelVisibility}
+                                visibilityIds={{
+                                    regular: collection.visibilityRegularId,
+                                    admin: collection.visibilityAdminId,
+                                }}
+                                params={{ collectionId }}
+                            />
                         </div>
                     </VisibilityHeaderItemPopUp>
                 )

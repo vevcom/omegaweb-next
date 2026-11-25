@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { paymentAuth } from './auth'
 import { paymentSchemas } from './schemas'
 import { paymentIncluder } from './constants'

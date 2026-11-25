@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { mailAuth } from './auth'
 import { mailSchemas } from './schemas'
 import { aliasOperations } from './alias/operations'
@@ -22,11 +22,11 @@ export const mailOperations = {
     createAliasMailingListRelation: defineOperation({
         dataSchema: mailSchemas.data.createAliasMailingListRelation,
         authorizer: async ({ data, prisma }) => mailAuth.createAliasMailingListRelation.data({
-            aliasVisibility: await aliasOperations.visibility.readMatrixInternal({
+            aliasVisibility: await aliasOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailAliasId },
             }),
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -43,7 +43,7 @@ export const mailOperations = {
     createMailingListExternalRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListExternalRelation,
         authorizer: async ({ data, prisma }) => mailAuth.createMailingListExternalRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -60,7 +60,7 @@ export const mailOperations = {
     createMailingListUserRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListUserRelation,
         authorizer: async ({ data, prisma }) => mailAuth.createMailingListUserRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -78,7 +78,7 @@ export const mailOperations = {
     createMailingListGroupRelation: defineOperation({
         dataSchema: mailSchemas.data.createMailingListGroupRelation,
         authorizer: async ({ data, prisma }) => mailAuth.createMailingListGroupRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -96,11 +96,11 @@ export const mailOperations = {
     destroyAliasMailingListRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyAliasMailingListRelation,
         authorizer: async ({ data, prisma }) => mailAuth.destroyAliasMailingListRelation.data({
-            aliasVisibility: await aliasOperations.visibility.readMatrixInternal({
+            aliasVisibility: await aliasOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailAliasId },
             }),
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -116,7 +116,7 @@ export const mailOperations = {
     destroyMailingListExternalRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListExternalRelation,
         authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListExternalRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -132,7 +132,7 @@ export const mailOperations = {
     destroyMailingListUserRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListUserRelation,
         authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListUserRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),
@@ -149,7 +149,7 @@ export const mailOperations = {
     destroyMailingListGroupRelation: defineOperation({
         dataSchema: mailSchemas.data.destroyMailingListGroupRelation,
         authorizer: async ({ data, prisma }) => mailAuth.destroyMailingListGroupRelation.data({
-            listVisibility: await mailingListOperations.visibility.readMatrixInternal({
+            listVisibility: await mailingListOperations.visibility.internal.readMatrix.internalCall({
                 prisma,
                 params: { id: data.mailingListId },
             }),

@@ -4,7 +4,6 @@ import SpecialCmsParagraph from '@/app/_components/Cms/CmsParagraph/SpecialCmsPa
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import {
-    readSpecialCmsParagraphCabinContractAction,
     updateSpecialCmsParagraphCabinContractAction
 } from '@/services/cabin/booking/actions'
 import { cabinBookingOperations } from '@/services/cabin/booking/operations'
@@ -99,7 +98,7 @@ const { page, generateMetadata } = serverPage({
         canReadOwnBookings: session.user
             ? cabinBookingAuth.readManyOfUser.data({ userId: session.user.id })
             : Require.user(),
-        canEditSpecialCmsParagraphContract: cabinBookingAuth.updateSpecialCmsParagraphContentCabinContract,
+        canEditSpecialCmsParagraphContract: cabinBookingAuth.contract.updateContent,
         canConnectToLedgerAccount: cabinBookingAuth.connectToLedgerAccount.data({
             accounts: data.ledgerAccounts.map(account => account.ownership),
         }),
@@ -166,7 +165,7 @@ const { page, generateMetadata } = serverPage({
                 <SpecialCmsParagraph
                     capabilities={{ canEdit: capabilities.canEditSpecialCmsParagraphContract }}
                     special="CABIN_CONTRACT"
-                    readSpecialCmsParagraphAction={readSpecialCmsParagraphCabinContractAction}
+                    readSpecialCmsParagraph={cabinBookingOperations.contract.read}
                     updateCmsParagraphAction={updateSpecialCmsParagraphCabinContractAction}
                 />
             </div>

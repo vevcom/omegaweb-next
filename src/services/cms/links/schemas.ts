@@ -34,7 +34,7 @@ export const cmsLinkSchemas = {
         }).partial(),
     },
     params: {
-        generateSpecialCmsLinkFromConfig: special,
+        createSpecial: special,
         destroy: linkId,
         update: linkId,
         readSpecial: special,

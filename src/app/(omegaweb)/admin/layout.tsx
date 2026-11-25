@@ -7,21 +7,15 @@ import type { LayoutOperationArgs } from '@/app/ServerPage'
 export default serverLayout({
     operation: ({ session }: LayoutOperationArgs) => adminNavDef.visible(session),
     render: ({ data: navigation, children }) => (
-        <div className="
-            max-w-full flex flex-row relative p-0
-            max-mobile:h-[calc(100dvh-60px)]
-        ">
+        <div className="max-w-full grow min-h-0 flex flex-row relative p-0">
             <PageTitleSetter title={'Administrasjon'} />
-            <div className="
-                bg-base-100 text-base-content rounded-round self-start sticky
-                max-mobile:static
-            ">
+            <div className="bg-base-100 text-base-content rounded-round flex flex-col">
                 <SlideSidebar navigation={navigation} />
             </div>
             <div
                 className="
-                    bg-base-100 grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto h-[calc(100dvh-56px-26px)]
-                    max-mobile:m-0 max-mobile:h-[calc(100dvh-120px)]
+                    bg-base-100 grow min-w-0 ml-2 p-2 rounded-round overflow-y-auto
+                    max-mobile:m-0
                 "
             >
                 { children }

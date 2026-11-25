@@ -13,13 +13,16 @@ export const interestGroupAuth = {
     readMembershipsOfUser: requireReadMembershipsOfUser('INTEREST_GROUP_USE'),
     addMembers: groupAdminOrInterestGroupAdmin,
     removeMembers: groupAdminOrInterestGroupAdmin,
+    destroyMembership: groupAdminOrInterestGroupAdmin,
     setMemberAdmin: groupAdminOrInterestGroupAdmin,
     setMemberTitle: groupAdminOrInterestGroupAdmin,
     migrateGroup: groupAdminOrInterestGroupAdmin,
     update: groupAdminOrInterestGroupAdmin,
     destroy: Require.permission('INTEREST_GROUP_ADMIN'),
     pension: Require.permission('INTEREST_GROUP_ADMIN'),
-    readSpecialCmsParagraphGeneralInfo: Require.permission('INTEREST_GROUP_USE'),
-    updateSpecialCmsParagraphContentGeneralInfo: Require.permission('INTEREST_GROUP_ADMIN'),
+    generalInfo: {
+        read: Require.permission('INTEREST_GROUP_USE'),
+        updateContent: Require.permission('INTEREST_GROUP_ADMIN'),
+    },
     updateArticleSection: groupAdminOrInterestGroupAdmin,
 } as const

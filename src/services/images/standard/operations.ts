@@ -1,8 +1,8 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { standardImageConfig } from './constants'
 import { standardImageCollectionSchemas } from './schemas'
 import { standardImageCollectionAuth } from './auth'
-import { standardImagesImagePanelOperations } from './standardImageCollection'
+import { standardImageCollection } from './standardImageCollection'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
@@ -36,7 +36,7 @@ const generateStandardImageFromConfig = defineSubOperation({
                 alt: config.alt
             }),
             params: {
-                collectionId: (await standardImagesImagePanelOperations.readCollection({})).id,
+                collectionId: (await standardImageCollection.internal.read.internalCall({})).id,
             },
             operationImplementationFields: {
                 uploadAsStandardImage: params.standardImage,
@@ -101,7 +101,7 @@ const readStandardImage = defineOperation({
         })
 
         const standardCollection =
-            await standardImagesImagePanelOperations.readCollection({})
+            await standardImageCollection.internal.read.internalCall({})
         const standardImageIsPartOfStandardCollection = standardCollection.id === image?.collectionId
 
         if (image && standardImageIsPartOfStandardCollection) return image
@@ -130,8 +130,8 @@ const readStandardImage = defineOperation({
 
 /**
  * Reads every standard image in two queries rather than one pair per member. The root layout awaits
- * this on every request, so resolving each of the fourteen images individually - each re-reading the
- * same standard collection - is the difference between two round trips and twenty-eight.
+ * this on every request, so resolving each image individually - each re-reading the same standard
+ * collection - is the difference between two round trips and two per image.
  *
  * Anything missing, or sitting outside the standard collection, is regenerated from static config by
  * readStandardImage, which also logs the anomaly. That is done up front and in parallel so the record
@@ -144,7 +144,7 @@ const readStandardImage = defineOperation({
 const readAllStandardImages = defineOperation({
     authorizer: () => standardImageCollectionAuth.readAllStandardImages,
     operation: async ({ prisma }): Promise<Record<StandardImage, ExpandedImage>> => {
-        const standardCollection = await standardImagesImagePanelOperations.readCollection({})
+        const standardCollection = await standardImageCollection.internal.read.internalCall({})
         const imagesInCollection = await prisma.image.findMany({
             where: {
                 standardImage: { not: null },
@@ -185,6 +185,7 @@ const readAllStandardImages = defineOperation({
             REALFAGSBYGGET: imageFor(StandardImage.REALFAGSBYGGET),
             FAIR: imageFor(StandardImage.FAIR),
             PWA: imageFor(StandardImage.PWA),
+            REVUE_LOGO: imageFor(StandardImage.REVUE_LOGO),
         }
     }
 })

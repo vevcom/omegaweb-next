@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { admissionSchemas } from './schemas'
 import { admissionAuth } from './auth'
 import { userBasicSelection } from '@/services/users/constants'

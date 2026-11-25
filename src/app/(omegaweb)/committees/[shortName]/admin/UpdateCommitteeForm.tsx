@@ -20,9 +20,7 @@ export default function UpdateCommitteeForm({ id, name, shortName }: PropTypes) 
             submitText="Lagre"
             refreshOnSuccess
             // The page lives under the short name, so a new one moves it.
-            navigateOnSuccess={committee => (
-                committee ? appHref(`/committees/${encodeURIComponent(committee.shortName)}/admin`) : null
-            )}
+            navigateOnSuccess={committee => appHref(`/committees/${encodeURIComponent(committee.shortName)}/admin`)}
         >
             <TextInput name="name" label="Navn" defaultValue={name} />
             <TextInput name="shortName" label="Kortnavn" defaultValue={shortName} />

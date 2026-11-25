@@ -4,7 +4,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 export const seedDevImages = defineSeedOperation(async (prisma: PrismaClient) => {
     const { group: memberGroup } = await prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: { omegaMembershipLevel: 'SYSKEN' },
-        select: { group: { select: { id: true, order: true } } },
+        select: { group: { select: { id: true } } },
     })
 
     await Promise.all(
@@ -15,7 +15,7 @@ export const seedDevImages = defineSeedOperation(async (prisma: PrismaClient) =>
 async function upsertTestImageCollection(
     prisma: PrismaClient,
     index: number,
-    memberGroup: { id: number, order: number },
+    memberGroup: { id: number },
 ) {
     return prisma.imageCollection.upsert({
         where: {
@@ -32,9 +32,8 @@ async function upsertTestImageCollection(
                 create: {
                     requirements: {
                         create: [{
-                            // ACTIVE conditions are stored pinned to the current order, as visibilityOperations does.
                             conditions: {
-                                create: [{ type: 'ACTIVE', groupId: memberGroup.id, order: memberGroup.order }]
+                                create: [{ groupId: memberGroup.id, order: null, onlyActive: true, onlyAdmins: false }]
                             }
                         }]
                     }

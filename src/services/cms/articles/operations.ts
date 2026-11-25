@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { articleRelationsIncluder, maxSections } from './constants'
 import { articleSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
@@ -35,8 +35,8 @@ const create = defineSubOperation({
     })
 })
 
-const generateSpecialArticleFromConfig = defineSubOperation({
-    paramsSchema: () => articleSchemas.params.generateSpecialArticleFromConfig,
+const createSpecial = defineSubOperation({
+    paramsSchema: () => articleSchemas.params.createSpecial,
     operation: () => async ({ params }) => create.internalCall({
         data: { name: `Regenerert spesiell ${params.special}` },
         dataSchemaImplementationFields: { maxNameLength: 100 },
@@ -46,7 +46,7 @@ const generateSpecialArticleFromConfig = defineSubOperation({
 
 export const articleOperations = {
     create,
-    generateSpecialArticleFromConfig,
+    createSpecial,
     destroy: defineSubOperation({
         paramsSchema: () => articleSchemas.params.destroy,
         operation: () => async ({ prisma, params }) => {
@@ -69,7 +69,7 @@ export const articleOperations = {
             })
             if (article) return article
             logger.error(`Special article ${params.special} not found - creating it!`)
-            return generateSpecialArticleFromConfig.internalCall({ params: { special: params.special } })
+            return createSpecial.internalCall({ params: { special: params.special } })
         }
     }),
     /**

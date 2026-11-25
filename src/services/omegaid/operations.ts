@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegaIdAuth } from './auth'
 import { omegaIdSchemas } from './schemas'
 import { JWT_PUBLIC_KEY, OmegaIdExpiryTime } from './constants'

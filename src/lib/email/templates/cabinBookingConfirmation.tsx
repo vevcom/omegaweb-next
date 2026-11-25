@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 import { displayDate } from '@/lib/dates/displayDate'
 import { displayAmount } from '@/lib/currency/convert'

@@ -1,4 +1,4 @@
-export const bandClassName = 'w-screen ml-[calc(50%-50vw)]'
+export const bandClassName = 'w-screen ml-[calc(50%-50vw)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]'
 
 export const innerClassName = 'w-full max-w-(--careers-max-width) mx-auto px-(--careers-page-padding)'
 

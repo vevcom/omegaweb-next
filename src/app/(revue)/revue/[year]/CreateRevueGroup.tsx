@@ -38,8 +38,9 @@ export default function CreateRevueGroup({ revue }: PropTypes) {
                 action={createGroup}
                 submitText="Legg til"
                 closePopUpOnSuccess={popUpKey}
-                navigateOnSuccess={group => (group ? revueLinks.revueGroup(revue, group) : null)}
+                navigateOnSuccess={group => revueLinks.revueGroup(revue, group)}
             >
+                <input type="hidden" name="type" value="REVUE_SUB_GROUP" />
                 <TextInput name="name" label="Navn" />
             </Form>
         </PopUp>
