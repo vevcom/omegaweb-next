@@ -47,5 +47,5 @@ model VisibilityRequirementGroup {
   omegaOrder              OmegaOrder                     @relation(fields: [order], references: [order], onDelete: Restrict)
   order                   Int
 
-  @@unique([visibilityRequirementId, groupId, order])
+  @@unique([visibilityRequirementId, groupId, order, type])
 }

@@ -30,15 +30,24 @@ export function describeVisibility(
         .join(' som også er i ')
 }
 
-/** Someone is only in one class at a time, so lists of nothing but classes must share a class to all pass. */
+/**
+ * Someone is only in one class at a time, so lists of nothing but classes must share a class to all
+ * pass. That holds for lists of the active members, and for lists of one and the same order.
+ */
 export function listsContradict(visibility: VisibilityMatrix, groups: ExpandedGroup[] | null): boolean {
-    const classLists = visibility.requirements.filter(({ conditions }) => (
+    const classLists = visibility.requirements.map(({ conditions }) => conditions).filter(conditions => (
         conditions.length > 0 && conditions.every(condition => (
-            condition.type === 'ACTIVE' && findGroup(groups, condition.groupId)?.groupType === 'CLASS'
+            findGroup(groups, condition.groupId)?.groupType === 'CLASS' && timeOf(condition) === timeOf(conditions[0])
         ))
     ))
-    if (classLists.length < 2) return false
-    return !classLists[0].conditions.some(({ groupId }) => classLists.every(
-        ({ conditions }) => conditions.some(condition => condition.groupId === groupId)
-    ))
+    return classLists.some(first => {
+        const sameTime = classLists.filter(conditions => timeOf(conditions[0]) === timeOf(first[0]))
+        return sameTime.length > 1 && !first.some(({ groupId }) => sameTime.every(
+            conditions => conditions.some(condition => condition.groupId === groupId)
+        ))
+    })
+}
+
+function timeOf(condition: VisibilityCondition) {
+    return condition.type === 'ACTIVE' ? 'ACTIVE' : condition.order
 }

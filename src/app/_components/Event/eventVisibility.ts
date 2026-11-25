@@ -5,7 +5,11 @@ import { implementVisibilityComponents } from '@/components/Visibility/Visibilit
 export const eventQuotaVisibility = implementVisibilityComponents({
     verb: 'kan melde seg på',
     everyone: 'Alle som er logget inn',
+    pickedGroupStartsAs: 'NEWEST_ORDER',
 })
 
 // Saved with the rest of the event's setup, so it has no update action of its own.
-export const eventAdminVisibility = implementVisibilityComponents({ verb: 'kan administrere arrangementet' })
+export const eventAdminVisibility = implementVisibilityComponents({
+    verb: 'kan administrere arrangementet',
+    pickedGroupStartsAs: 'ACTIVE',
+})

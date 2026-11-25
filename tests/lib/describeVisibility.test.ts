@@ -78,6 +78,15 @@ describe('listsContradict', () => {
         expect(contradicts([1, 3], [2])).toBe(false)
     })
 
+    test('lists of classes of one and the same order cannot both pass', () => {
+        const in108 = (groupId: number) => ({ type: 'ORDER' as const, groupId, order: 108 })
+        expect(listsContradict({ requirements: [{ conditions: [in108(1)] }, { conditions: [in108(2)] }] }, groups))
+            .toBe(true)
+        expect(listsContradict({
+            requirements: [{ conditions: [in108(1)] }, { conditions: [{ type: 'ORDER', groupId: 2, order: 107 }] }],
+        }, groups)).toBe(false)
+    })
+
     test('a class of an earlier year can go with the one someone is in now', () => {
         const earlier = { type: 'ORDER' as const, groupId: 1, order: 104 }
         const requirements = [{ conditions: [earlier] }, { conditions: [active(2)] }]

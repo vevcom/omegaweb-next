@@ -18,12 +18,9 @@ type VisibilityConditionRow = {
 
 /**
  * Drops conditions that are identical in every field, so that a requirement listing the same group
- * twice does not collide on @@unique([visibilityRequirementId, groupId, order]).
- *
- * Note this cannot remove every possible collision: an ACTIVE and an ORDER condition on the same
- * group resolve to the same (groupId, order) row when the order is the current one, yet mean
- * different things to checkVisibility. Those still hit the unique index and roll the transaction
- * back, which is the safe outcome.
+ * twice does not collide on the unique index of a requirement's conditions. An ACTIVE and an ORDER
+ * condition on the same group are two, also when the order is the current one, which an ACTIVE one
+ * is stored with: they mean different things to checkVisibility.
  */
 function dedupeConditions(conditions: VisibilityConditionRow[]): VisibilityConditionRow[] {
     const seen = new Map<string, VisibilityConditionRow>()

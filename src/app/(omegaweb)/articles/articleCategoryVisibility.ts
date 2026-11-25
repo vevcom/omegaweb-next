@@ -11,6 +11,7 @@ export const articleCategoryVisibility = implementDoubleLevelVisibilityComponent
     regular: {
         verb: 'kan lese artiklene',
         everyone: 'Alle',
+        pickedGroupStartsAs: 'NEWEST_ORDER',
         update: implementationParams => configureAction(
             updateArticleCategoryRegularLevelVisibilityAction,
             { implementationParams },
@@ -19,6 +20,7 @@ export const articleCategoryVisibility = implementDoubleLevelVisibilityComponent
     },
     admin: {
         verb: 'kan redigere artiklene',
+        pickedGroupStartsAs: 'ACTIVE',
         update: implementationParams => configureAction(
             updateArticleCategoryAdminLevelVisibilityAction,
             { implementationParams },

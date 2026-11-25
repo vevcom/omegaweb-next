@@ -11,6 +11,7 @@ export const imageCollectionVisibility = implementDoubleLevelVisibilityComponent
     regular: {
         verb: 'kan se albumet',
         everyone: 'Alle',
+        pickedGroupStartsAs: 'NEWEST_ORDER',
         update: implementationParams => configureAction(
             updateDynamicImageCollectionRegularLevelVisibilityAction,
             { implementationParams },
@@ -19,6 +20,7 @@ export const imageCollectionVisibility = implementDoubleLevelVisibilityComponent
     },
     admin: {
         verb: 'kan administrere albumet',
+        pickedGroupStartsAs: 'ACTIVE',
         update: implementationParams => configureAction(
             updateDynamicImageCollectionAdminLevelVisibilityAction,
             { implementationParams },

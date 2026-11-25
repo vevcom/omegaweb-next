@@ -7,7 +7,12 @@ import { configureAction } from '@/services/configureAction'
 import { useState } from 'react'
 import type { ExpandedNotificationChannel } from '@/services/notifications/types'
 
-const audience = implementVisibilityComponents({ verb: 'får varselet', everyone: 'Alle abonnenter' })
+const audience = implementVisibilityComponents({
+    verb: 'får varselet',
+    everyone: 'Alle abonnenter',
+    // Sent at once, so to those in the group now.
+    pickedGroupStartsAs: 'ACTIVE',
+})
 
 export default function NotificationForm({
     channels,

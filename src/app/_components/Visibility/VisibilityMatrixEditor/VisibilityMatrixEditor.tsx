@@ -7,10 +7,12 @@ import { SelectNumber } from '@/components/UI/Select'
 import { useGroups } from '@/contexts/ClientData'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { describeVisibility, listsContradict } from '@/components/Visibility/describeVisibility'
+import { pickedGroupIds, withPickedGroups, withoutRepeats } from '@/components/Visibility/pickedGroups'
 import { findGroup, orderOptions } from '@/lib/groups/groupOptions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
+import type { PickedGroupStartsAs } from '@/components/Visibility/pickedGroups'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { VisibilityCondition, VisibilityRequirement } from '@/services/visibility/types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -20,6 +22,7 @@ type PropTypes = {
     verb: string,
     /** What no requirements means here. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
+    pickedGroupStartsAs: PickedGroupStartsAs,
 } & ({
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
@@ -40,15 +43,6 @@ const groupTypeNames: Record<GroupType, string> = {
     REVUE_SUB_GROUP: 'Revyundergruppe',
 }
 const ACTIVE_MEMBERS = -1
-
-const conditionKey = (condition: VisibilityCondition) => (
-    condition.type === 'ORDER' ? `${condition.groupId}-${condition.order}` : `${condition.groupId}`
-)
-
-/** A chip changed into what another already says leaves one of them. */
-const withoutRepeats = (conditions: VisibilityCondition[]) => Array.from(
-    new Map(conditions.map(condition => [conditionKey(condition), condition])).values()
-)
 
 const groupOptions = (groups: ExpandedGroup[]) => Object.entries(groupTypeNames).flatMap(([type, section]) => (
     groups
@@ -116,13 +110,14 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
 
 /**
  * An editor for a single visibility matrix, which says who gets in as a sentence. A list here is a
- * requirement, so someone must be in one group of every list. Given `name` it is a form field that
- * posts the matrix as JSON. Given `requirements` and `onChange` it is controlled, for a form that
- * needs the matrix as it is edited and posts it itself. Its other inputs have no names, since they
- * load late, which a form would count as a change.
+ * requirement, so someone must be in one group of every list, and a group picked in one starts as
+ * `pickedGroupStartsAs` says. Given `name` it is a form field that posts the matrix as JSON. Given
+ * `requirements` and `onChange` it is controlled, for a form that needs the matrix as it is edited
+ * and posts it itself. Its other inputs have no names, since they load late, which a form would
+ * count as a change.
  */
 export default function VisibilityMatrixEditor(props: PropTypes) {
-    const { verb, everyone } = props
+    const { verb, everyone, pickedGroupStartsAs } = props
     const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
         'defaultValue' in props ? props.defaultValue ?? [] : [],
     )
@@ -208,18 +203,12 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     <MultiSearchableDropdown
                         label="Legg til gruppe"
                         options={groupOptions(groups)}
-                        values={list.conditions.flatMap(({ type, groupId }) => (type === 'ACTIVE' ? [groupId] : []))}
+                        values={pickedGroupIds(list.conditions, groups, pickedGroupStartsAs)}
                         hideSelected
-                        onChange={groupIds => setConditions(listIndex, [
-                            ...list.conditions.filter(condition => (
-                                condition.type === 'ORDER' || groupIds.includes(condition.groupId)
-                            )),
-                            ...groupIds
-                                .filter(groupId => !list.conditions.some(condition => (
-                                    condition.type === 'ACTIVE' && condition.groupId === groupId
-                                )))
-                                .map(groupId => ({ type: 'ACTIVE' as const, groupId })),
-                        ])}
+                        onChange={groupIds => setConditions(
+                            listIndex,
+                            withPickedGroups(list.conditions, groupIds, groups, pickedGroupStartsAs),
+                        )}
                         className="max-w-none! mt-0!"
                     />
                 </div>

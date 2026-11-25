@@ -263,6 +263,23 @@ describe('visibility operations', () => {
         ]))
     })
 
+    test('a group is kept both as its active members and at the current order, which are not the same', async () => {
+        const visibility = await visibilityOperations.create.internalCall({})
+        const both = [
+            { type: 'ACTIVE' as const, groupId: groupOne },
+            { type: 'ORDER' as const, groupId: groupOne, order: currentOrder },
+        ]
+
+        await visibilityOperations.update.internalCall({
+            params: { visibilityId: visibility.id },
+            data: { requirements: [{ conditions: both }] },
+        })
+
+        const stored = await readStoredMatrix(visibility.id)
+        expect(stored.requirements[0].conditions).toHaveLength(2)
+        expect(stored.requirements[0].conditions).toEqual(expect.arrayContaining(both))
+    })
+
     test('update replaces the previous requirements instead of adding to them', async () => {
         const visibility = await visibilityOperations.create.internalCall({})
 
