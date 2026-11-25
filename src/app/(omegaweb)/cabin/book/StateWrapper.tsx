@@ -7,6 +7,7 @@ import Textarea from '@/components/UI/Textarea'
 import Button from '@/components/UI/Button'
 import NumberInput from '@/components/UI/NumberInput'
 import Checkbox from '@/components/UI/Checkbox'
+import OptionCards from '@/components/UI/OptionCards'
 import Form from '@/components/Form/Form'
 import CountDown from '@/components/CountDown/CountDown'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -43,9 +44,9 @@ import type { ActionReturn } from '@/services/actionTypes'
 const sectionClassName = 'bg-base-200 border border-base-300 rounded-round p-6 flex flex-col gap-2'
 
 const bookingTypeOptions = [
-    { value: 'CABIN', label: 'Hele hytta', description: 'Hele Heutten for deg og følget ditt.' },
-    { value: 'BED', label: 'Enkeltsenger', description: 'Del hytta med andre, og betal per seng.' },
-] as const
+    { value: 'CABIN' as BookingType, title: 'Hele hytta', hint: 'Hele Heutten for deg og følget ditt.' },
+    { value: 'BED' as BookingType, title: 'Enkeltsenger', hint: 'Del hytta med andre, og betal per seng.' },
+]
 const sectionHeadingClassName = 'm-0 text-l'
 
 const contactFields = [
@@ -351,38 +352,7 @@ export default function StateWrapper({
                 {canChangeBookingType &&
                     <section className={sectionClassName}>
                         <h2 className={sectionHeadingClassName}>1. Hva vil du booke?</h2>
-                        <div className="
-                            grid grid-cols-2 gap-2
-                            max-mobile:grid-cols-1
-                        ">
-                            {bookingTypeOptions.map(option => (
-                                <label
-                                    key={option.value}
-                                    className={`
-                                        flex gap-3 items-start p-4 rounded-inner border-2 cursor-pointer
-                                        ${bookingType === option.value
-                                    ? 'border-primary bg-primary/10'
-                                    : `
-                                        border-base-300 bg-base-100
-                                        hover:bg-base-300
-                                    `}
-                                    `}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="bookingType"
-                                        value={option.value}
-                                        checked={bookingType === option.value}
-                                        onChange={() => setBookingType(option.value)}
-                                        className="mt-1 size-5 accent-primary"
-                                    />
-                                    <span className="flex flex-col gap-1">
-                                        <b>{option.label}</b>
-                                        <span className="text-s text-base-content/80">{option.description}</span>
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
+                        <OptionCards options={bookingTypeOptions} value={bookingType} onChange={setBookingType} />
                     </section>
                 }
 
