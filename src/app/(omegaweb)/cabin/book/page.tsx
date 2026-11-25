@@ -122,7 +122,7 @@ const { page, generateMetadata } = serverPage({
             )}
         >
             {capabilities.canReadOwnBookings.authorized &&
-                <SiteLink href={appHref('/users/me/cabin-bookings')}>Mine hyttebookinger</SiteLink>
+                <SiteLink href={appHref('/users/me/registrations')}>Mine hyttebookinger</SiteLink>
             }
             {nextReleasePeriod &&
                 <p>
