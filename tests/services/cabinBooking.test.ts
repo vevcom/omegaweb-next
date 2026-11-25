@@ -238,6 +238,6 @@ describe('canceling a paid booking', () => {
     test('only the cabin team cancels as admin', async () => {
         const booking = await createPaidBooking(27, 28)
 
-        await expect(cancelAsAdmin(booking.id, true, userSession())).rejects.toThrow(Smorekopp)
+        await expect(cancelAsAdmin(booking.id, true, userSession(user))).rejects.toThrow(Smorekopp)
     })
 })
