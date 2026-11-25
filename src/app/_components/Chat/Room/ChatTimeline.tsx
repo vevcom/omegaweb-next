@@ -1,6 +1,6 @@
 'use client'
 import { ChatMessageLine, ChatNoteLine, LINE_ACTIONS } from './ChatTimelineLine'
-import { wordingOfNote } from './timelineWording'
+import { wordingOfMessage, wordingOfNote } from './timelineWording'
 import Button from '@/components/UI/Button'
 import ScrollIndicator from '@/components/ScrollIndicator/ScrollIndicator'
 import { osloDateTime } from '@/lib/dates/oslo'
@@ -49,7 +49,7 @@ export default function ChatTimeline({
 }: PropTypes) {
     const scroller = useRef<HTMLDivElement>(null)
     const place = useRef<Place>({ isAtEnd: true, fromEnd: 0, firstLineId: undefined, lastLineId: undefined })
-    const [openedAt] = useState(() => lines.findLast(line => line.kind !== 'TEXT' || !line.sending)?.sentAt ?? 0)
+    const [openedAt] = useState(() => lines.findLast(line => line.kind !== 'MESSAGE' || !line.sending)?.sentAt ?? 0)
     const arrivedSinceOpened = (line: TimelineLine) => line.sentAt !== null && line.sentAt > openedAt
 
     const seeEnd = useCallback(() => {
@@ -94,7 +94,7 @@ export default function ChatTimeline({
     }, [])
 
     const rows = useMemo(() => rowsOf(lines), [lines])
-    const tabStop = lines.findLast(line => line.kind === 'TEXT' && !line.sending)?.id
+    const tabStop = lines.findLast(line => line.kind === 'MESSAGE' && !line.sending)?.id
 
     const moveBetweenLines = (event: KeyboardEvent<HTMLOListElement>) => {
         const actionsOfLines = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(`[${LINE_ACTIONS}]`))
@@ -105,7 +105,9 @@ export default function ChatTimeline({
         next.focus()
     }
     const arrived = lines.filter(line => arrivedSinceOpened(line) && line.senderId !== ownId).slice(-READ_OUT_AT_MOST)
-    const unsent = lines.flatMap(line => (line.kind === 'TEXT' && line.sending !== 'SENDING' && line.sending ? [line] : []))
+    const unsent = lines.flatMap(line => (
+        line.kind === 'MESSAGE' && line.sending !== 'SENDING' && line.sending ? [line] : []
+    ))
 
     return (
         <div className="relative flex-1 min-h-0">
@@ -137,7 +139,7 @@ export default function ChatTimeline({
                                     <h3 className="m-0 text-s font-medium text-base-content/80">{day}</h3>
                                 </li>
                             )}
-                            {line.kind === 'TEXT' ? (
+                            {line.kind === 'MESSAGE' ? (
                                 <ChatMessageLine
                                     line={line}
                                     name={nameOf({ id: line.senderId, name: line.senderName })}
@@ -159,9 +161,7 @@ export default function ChatTimeline({
             <div role="log" aria-label={`Nytt i ${roomName}`} className="sr-only">
                 {arrived.map(line => (
                     <p key={line.id}>
-                        {line.kind === 'TEXT'
-                            ? `${nameOf({ id: line.senderId, name: line.senderName })}: ${line.text}`
-                            : wordingOfNote(line, nameOf)}
+                        {line.kind === 'MESSAGE' ? wordingOfMessage(line, nameOf) : wordingOfNote(line, nameOf)}
                     </p>
                 ))}
                 {unsent.map(line => (

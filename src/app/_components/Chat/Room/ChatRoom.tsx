@@ -2,16 +2,18 @@
 import ChatComposer from './ChatComposer'
 import ChatTimeline from './ChatTimeline'
 import { lineDomId } from './ChatTimelineLine'
+import { wordingOfTooLarge } from './timelineWording'
 import useChatProfiles from './useChatProfiles'
 import { refusalWording } from '@/components/Chat/Membership/chatAction'
 import ChatRoomActions from '@/components/Chat/Membership/ChatRoomActions'
 import Button from '@/components/UI/Button'
 import { refusalOf } from '@/lib/chatSession/membership'
+import { FileTooLarge, isStopped, isTooLarge } from '@/lib/chatSession/media'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
-import { useCallback, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { LineActions } from './ChatTimelineLine'
 import type { RoomOfSpace } from '@/components/Chat/Membership/ChatRoomActions'
-import type { Mentions, Person, RoomTimeline, TimelineLine } from '@/lib/chatSession/timeline'
+import type { FileToSend, Mentions, Person, RoomTimeline, TimelineLine } from '@/lib/chatSession/timeline'
 import type { MatrixClient, Room } from 'matrix-js-sdk'
 
 type PropTypes = {
@@ -31,7 +33,9 @@ type PropTypes = {
  * A room that is open: its timeline, and where a message to it is written. What is written goes
  * from the browser straight to the homeserver, and so does the word that the room is read, and
  * what the user does with a message: answering it, reacting to it, giving it a new text and
- * removing it. An answer and a new text are written where every message is. What was done is
+ * removing it. A file or a picture is attached where a message is written, uploaded from the
+ * browser to the homeserver and sent as a message, and one of a message is fetched from there
+ * by the browser. An answer and a new text are written where every message is. What was done is
  * said in a line that is read out, and so is what was not, with why: the homeserver did not take
  * it, or the message no longer lets the user, in which case nothing was sent. A new text that
  * was not taken is offered back and never put in the field by itself, since the user may be
@@ -47,6 +51,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
     const [editing, setEditing] = useState<Edit | null>(null)
     const [said, setSaid] = useState<{ text: string, isRefusal: boolean } | null>(null)
     const [notSaved, setNotSaved] = useState<Edit | null>(null)
+    const [uploadLimit, setUploadLimit] = useState<number | null>(null)
     const fieldId = useId()
     const mentioned = editing?.mentioned
     const profiles = useChatProfiles(useMemo(
@@ -56,6 +61,16 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
     const pageBack = useCallback(() => void watched.pageBack(), [watched])
     const bringMembers = useCallback(() => void watched.members().then(setMembers), [watched])
     const name = directWith ?? timeline.name
+
+    useEffect(() => {
+        let isOfThisRoom = true
+        void watched.uploadLimit().then(limit => {
+            if (isOfThisRoom) setUploadLimit(limit)
+        })
+        return () => {
+            isOfThisRoom = false
+        }
+    }, [watched])
 
     const nameOf = useCallback((person: Person) => {
         const profile = profiles.get(person.id)
@@ -93,7 +108,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
         },
         onEdit: id => {
             const line = watched.read().lines.find(ofTimeline => ofTimeline.id === id)
-            if (line?.kind !== 'TEXT') return
+            if (line?.kind !== 'MESSAGE') return
             setAnswering(null)
             setNotSaved(null)
             setEditing({ id, text: line.text, mentioned: watched.mentionedIn(id) })
@@ -106,9 +121,10 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
         },
         onReact: (id, emoji) => ask(watched.react(id, emoji), null, 'Reaksjonen din ble ikke endret.'),
         onShow: showLine,
+        fetchFile: watched.fetchFile,
     }), [watched, fieldId, ask])
 
-    const answered = timeline.lines.flatMap(line => (line.kind === 'TEXT' && line.id === answering ? [line] : [])).at(0)
+    const answered = timeline.lines.flatMap(line => (line.kind === 'MESSAGE' && line.id === answering ? [line] : [])).at(0)
     const send = (text: string, mentions: Mentions) => {
         if (!editing) {
             watched.send(text, { mentions, replyTo: answered?.id })
@@ -116,7 +132,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
             return true
         }
         const edited = timeline.lines.find(line => line.id === editing.id)
-        const isUnchanged = edited?.kind === 'TEXT' && edited.text === text.trim()
+        const isUnchanged = edited?.kind === 'MESSAGE' && edited.text === text.trim()
         const saving = isUnchanged ? 'UNCHANGED' : watched.edit(editing.id, text, mentions)
         // What is not sent stays in the field, which is still the new text of that message.
         if (!saving) {
@@ -132,6 +148,27 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
             ask(saving, 'Meldingen er endret.', 'Endringen ble ikke lagret.', { ...editing, text, mentioned: mentionedNow })
         }
         return true
+    }
+
+    // A file that was not sent is kept where it was attached, with what was written.
+    const sendFile = async (toSend: FileToSend, text: string, mentions: Mentions, signal: AbortSignal) => {
+        const asking = ++asks.current
+        const replyTo = answered?.id
+        setSaid(null)
+        const notSent: unknown = await watched.sendFile(toSend, { text, mentions, replyTo, signal })
+            .then(() => null, (error: unknown) => error ?? 'NOT_SENT')
+        if (notSent === null) {
+            // An answer that was started meanwhile is another, and stays.
+            setAnswering(now => (now === replyTo ? null : now))
+            return true
+        }
+        const why = isTooLarge(notSent)
+            ? wordingOfTooLarge(notSent instanceof FileTooLarge ? notSent.limit : uploadLimit)
+            : refusalWording[refusalOf(notSent)]
+        if (!isStopped(notSent) && asking === asks.current) {
+            setSaid({ text: `Filen ble ikke sendt. ${why}`, isRefusal: true })
+        }
+        return false
     }
 
     return (
@@ -167,7 +204,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
                 about={editing ? { kind: 'EDIT', ...editing, mentioned: editing.mentioned.map(named) } : answered && {
                     kind: 'REPLY',
                     name: nameOf({ id: answered.senderId, name: answered.senderName }),
-                    text: answered.text,
+                    text: answered.text || answered.file?.name || '',
                 }}
                 onCancelAbout={() => {
                     setAnswering(null)
@@ -177,6 +214,8 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith, o
                 canMentionRoom={timeline.canMentionRoom}
                 onMentioning={bringMembers}
                 onSend={send}
+                uploadLimit={uploadLimit}
+                onSendFile={sendFile}
             />
         </div>
     )
@@ -191,7 +230,7 @@ export function headingOfDirectMessage(name: string): string {
 
 /** Why a message does not let the user edit or remove it now, so that nothing was sent. */
 function whyNotOf({ lines, isHeldUp }: RoomTimeline, id: string): string {
-    if (!lines.some(line => line.id === id && line.kind === 'TEXT')) return 'Den er ikke lenger blant meldingene her.'
+    if (!lines.some(line => line.id === id && line.kind === 'MESSAGE')) return 'Den er ikke lenger blant meldingene her.'
     return isHeldUp ? 'Send eller forkast først meldingen som ikke ble sendt.' : 'Du kan ikke gjøre det med den nå.'
 }
 
@@ -209,7 +248,7 @@ function peopleOf(lines: readonly TimelineLine[], members: readonly Person[]): s
         ...lines.flatMap(line => [
             line.senderId,
             ...(line.kind === 'NOTE' && line.about ? [line.about.id] : []),
-            ...(line.kind === 'TEXT' ? line.reactions.flatMap(({ by }) => by.map(person => person.id)) : []),
+            ...(line.kind === 'MESSAGE' ? line.reactions.flatMap(({ by }) => by.map(person => person.id)) : []),
         ]),
         ...members.map(member => member.id),
     ]))
