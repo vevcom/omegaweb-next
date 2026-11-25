@@ -6,11 +6,13 @@ import { apiKeyAuth } from '@/services/apiKeys/auth'
 import { serverPage } from '@/app/ServerPage'
 import Date from '@/components/Date/Date'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
-import SiteLink from '@/components/SiteLink/SiteLink'
+import RowLink from '@/components/Table/RowLink'
 import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const popUpKey = 'createApiKey'
+const activeKeyClass = 'bg-[color-mix(in_srgb,var(--color-success),white_50%)] text-success'
+const inactiveKeyClass = 'bg-[color-mix(in_srgb,var(--color-error),white_50%)] text-error'
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ session }: PageOperationArgs) => {
@@ -40,24 +42,19 @@ const { page, generateMetadata } = serverPage({
                     </thead>
                     <tbody>
                         {apiKeys.map(apiKey => (
-                            <SiteLink
-                                href={appHref(`/admin/api-keys/${apiKey.name}`)}
+                            <tr
                                 key={apiKey.id}
-                                passHref
-                                className="contents no-underline text-inherit"
+                                className={`
+                                    relative
+                                    ${apiKey.active ? activeKeyClass : inactiveKeyClass}
+                                `}
                             >
-                                <tr
-                                    className={apiKey.active
-                                        ? 'bg-[color-mix(in_srgb,var(--color-success),white_50%)] text-success'
-                                        : 'bg-[color-mix(in_srgb,var(--color-error),white_50%)] text-error'}
-                                >
-                                    <td>{apiKey.name}</td>
-                                    <td><Date date={apiKey.createdAt} /></td>
-                                    <td><Date date={apiKey.updatedAt} /></td>
-                                    <td>{apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'Ikke satt'}</td>
-                                    <td>{apiKey.active ? 'AKTIV' : 'INAKTIV'}</td>
-                                </tr>
-                            </SiteLink>
+                                <td><RowLink href={appHref(`/admin/api-keys/${apiKey.name}`)}>{apiKey.name}</RowLink></td>
+                                <td><Date date={apiKey.createdAt} /></td>
+                                <td><Date date={apiKey.updatedAt} /></td>
+                                <td>{apiKey.expiresAt ? <Date date={apiKey.expiresAt} /> : 'Ikke satt'}</td>
+                                <td>{apiKey.active ? 'AKTIV' : 'INAKTIV'}</td>
+                            </tr>
                         ))}
                     </tbody>
                 </table>

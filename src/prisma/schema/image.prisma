@@ -13,6 +13,7 @@ enum StandardImage {
   MACHINE
   FAIR
   PWA
+  REVUE_LOGO
 }
 
 enum ImageType {
@@ -53,6 +54,7 @@ model Image {
   ombul                   Ombul?
   promo                   Promo?
   careerTeamPerson        CareerTeamPerson?
+  company                 Company?
 
   @@index([collectionId])
 }
@@ -110,6 +112,7 @@ enum SpecialCollection {
   FLAIRIMAGES
   PROMOIMAGES
   CAREERTEAMIMAGES
+  COMPANYLOGOS
 }
 
 model ImageCollection {

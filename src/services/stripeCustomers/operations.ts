@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { stripeCustomerAuth } from './auth'
 import { stripeCustomerSchemas } from './schemas'
 import { ServiceError } from '@/services/error'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 import { DomainContext } from '@/lib/sites/context'
 import { Site } from '@/lib/sites/site'

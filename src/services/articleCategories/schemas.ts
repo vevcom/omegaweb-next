@@ -55,7 +55,7 @@ export const articleCategorySchemas = {
         update: categoryId,
         addArticleToCategory: categoryId,
         removeArticleFromCategory: articleCategoryId,
-        updateArticle: articleCategoryId,
+        article: articleCategoryId,
         read: paramsFieldSchemas.pick({
             name: true,
         }),

@@ -1,9 +1,9 @@
 'use client'
+import { newsVisibility } from './newsVisibility'
 import Textarea from '@/components/UI/Textarea'
 import { createNewsAction } from '@/services/news/actions'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
 import { EditModeContext } from '@/contexts/EditMode'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import useSiteRouter from '@/hooks/useSiteRouter'
@@ -15,9 +15,9 @@ export default function AddNews() {
     const { push } = useSiteRouter()
     const editModeCtx = useContext(EditModeContext)
 
-    const handleCreate = (data?: ExpandedNewsArticle) => {
+    const handleCreate = (data: ExpandedNewsArticle) => {
         editModeCtx?.setEditMode(true)
-        push(appHref(`/news/${data ? formatVevenUri(data.articleName, data.id) : ''}`))
+        push(appHref(`/news/${formatVevenUri(data.articleName, data.id)}`))
     }
 
     return (
@@ -34,10 +34,10 @@ export default function AddNews() {
                   * with an empty admin level would be administrable by anyone until it was narrowed.
                   */}
                 <div className="flex flex-col gap-[0.5rem]">
-                    <h3>Hvem kan administrere nyheten?</h3>
-                    <VisibilityMatrixEditor name="visibilityAdminRequirements" />
-                    <h3>Hvem kan lese nyheten? (tomt betyr alle)</h3>
-                    <VisibilityMatrixEditor name="visibilityRegularRequirements" />
+                    <h3>{newsVisibility.admin.heading}</h3>
+                    <newsVisibility.admin.Field name="visibilityAdminRequirements" />
+                    <h3>{newsVisibility.regular.heading}</h3>
+                    <newsVisibility.regular.Field name="visibilityRegularRequirements" />
                 </div>
             </Form>
         </div>

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'

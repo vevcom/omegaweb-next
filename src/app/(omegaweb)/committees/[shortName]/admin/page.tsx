@@ -9,6 +9,7 @@ import { groupMembersByOrder } from '@/components/Group/groupMembersByOrder'
 import { configureAction } from '@/services/configureAction'
 import {
     addCommitteeMembersAction,
+    destroyCommitteeMembershipAction,
     migrateCommitteeAction,
     removeCommitteeMembersAction,
     reorderCommitteeMembersAction,
@@ -53,6 +54,7 @@ const { page, generateMetadata } = serverPage({
         canSetMemberTitle: committeeAuth.setMemberTitle.data({ groupId: data.committee.groupId }),
         canReorderMembers: committeeAuth.reorderMembers.data({ groupId: data.committee.groupId }),
         canRemoveMembers: committeeAuth.removeMembers.data({ groupId: data.committee.groupId }),
+        canDestroyMembership: committeeAuth.destroyMembership.data({ groupId: data.committee.groupId }),
         canPension: committeeAuth.pension,
     }),
     metadata: (data) => ({ title: `Administrer ${data.committee.name}` }),
@@ -146,6 +148,9 @@ const { page, generateMetadata } = serverPage({
                             }
                             reorderMembersAction={
                                 capabilities.canReorderMembers.authorized ? reorderCommitteeMembersAction : undefined
+                            }
+                            destroyMembershipAction={
+                                capabilities.canDestroyMembership.authorized ? destroyCommitteeMembershipAction : undefined
                             }
                         />
                     </section>

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { feideRealmsLinkableByEmail } from '@/lib/feide/constants'
 import { userPartitions } from '@/services/users/constants'
 import type { PrismaClient } from '@/prisma-generated-pn-client'

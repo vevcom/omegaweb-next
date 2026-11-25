@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { ServiceError } from '@/services/error'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -27,10 +27,17 @@ async function readPensionableGroup(prisma: PrismaPossibleTransaction<false>, gr
     const select = { select: { name: true } } as const
     const group = await prisma.group.findUnique({
         where: { id: groupId },
-        select: { pensioned: true, committee: select, interestGroup: select, manualGroup: select },
+        select: {
+            pensioned: true,
+            committee: select,
+            interestGroup: select,
+            manualGroup: select,
+            revueSubGroup: { select: { revueGroup: select } },
+        },
     })
     if (!group) return null
-    const name = (group.committee ?? group.interestGroup ?? group.manualGroup)?.name ?? 'Gruppen'
+    const name = (group.committee ?? group.interestGroup ?? group.manualGroup ?? group.revueSubGroup?.revueGroup)?.name
+        ?? 'Gruppen'
     return { name, pensioned: group.pensioned }
 }
 

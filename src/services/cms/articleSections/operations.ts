@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { articleSectionSchemas } from './schemas'
 import { articleSectionParts, articleSectionsRelationsIncluder } from './constants'
 import { createArticleSectionPart } from './createPart'

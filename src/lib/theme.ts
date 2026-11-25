@@ -1,4 +1,5 @@
 import { Theme } from '@/prisma-generated-pn-types'
+import type { CSSProperties } from 'react'
 
 export { Theme }
 
@@ -247,6 +248,15 @@ export const themes: Record<Theme, ThemeColors> = {
         '--color-error': 'oklch(65% 0.24 25)',
         '--color-error-content': 'oklch(97% 0.013 17)',
     },
+}
+
+/**
+ * The theme scoped to one element and what is inside it, such as a card in its own colours: its
+ * variables and colour scheme as the element's style, and its tone for the tone-light variant.
+ */
+export function scopedThemeProps(colors: ThemeColors): { style: CSSProperties, 'data-tone': ThemeColors['color-scheme'] } {
+    const { 'color-scheme': colorScheme, ...variables } = colors
+    return { style: { colorScheme, ...variables }, 'data-tone': colorScheme }
 }
 
 /** The theme as a stylesheet setting its variables on :root, for SiteTheme. */

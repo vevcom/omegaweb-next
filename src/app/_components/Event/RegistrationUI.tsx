@@ -123,7 +123,8 @@ export default function RegistrationUI({
         }
     })
 
-    if (!session.data) {
+    // Only a user registers for an event: a company user is offered the login as a visitor is.
+    if (!session.data?.user) {
         const loginHref = authLinks(config.authPages).login({ callbackUrl: eventLinks(config).event(event) })
         return <SiteLink href={loginHref}>Logg inn for å melde deg på</SiteLink>
     }

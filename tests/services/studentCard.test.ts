@@ -1,14 +1,14 @@
-import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { userOperations } from '@/services/users/operations'
 import { userPrivateSelection } from '@/services/users/constants'
+import { testSession } from 'tests/utils'
 import { describe, expect, test } from '@jest/globals'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
 
 function sessionOf(user: UserFiltered | null, permissions: Permission[] = []) {
-    return Session.fromJsObject({ memberships: [], permissions, user })
+    return testSession({ memberships: [], permissions, user })
 }
 
 async function createUserWithCard(username: string) {

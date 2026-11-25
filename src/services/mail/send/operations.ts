@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { defaultNotificationAlias } from './constants'
 import { getMailHandler } from './mailHandler'
 import { sendMailSchemas } from './schemas'

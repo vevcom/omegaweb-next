@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 import { resetPasswordExpiration } from '@/lib/email/systemMail/constants'
 import { Html } from '@react-email/components'

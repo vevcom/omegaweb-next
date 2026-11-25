@@ -14,7 +14,7 @@ export function inferGroupName(group: GroupWithRelationsNameInferencer): string 
  * which logs an invalid group on the server.
  */
 export function inferGroupNameIfValid(
-    group: GroupWithDumbRelations<'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name'>
+    group: GroupWithDumbRelations<'name', 'name', 'level', 'name', 'omegaMembershipLevel', 'name', 'revueGroup'>
 ): string | null {
     switch (group.groupType) {
         case 'COMMITTEE':
@@ -31,6 +31,8 @@ export function inferGroupNameIfValid(
                 : null
         case 'STUDY_PROGRAMME':
             return group.studyProgramme?.name ?? null
+        case 'REVUE_SUB_GROUP':
+            return group.revueSubGroup?.revueGroup?.name ?? null
         default:
             return null
     }

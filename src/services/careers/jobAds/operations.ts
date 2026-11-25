@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { jobAdAuth } from './auth'
 import { jobAdSchemas } from './schemas'
 import { activeJobAdOrdering, articleAndCompanyIncluder, simpleArticleAndCompanyIncluder } from './constants'
@@ -8,8 +8,7 @@ import { logoIncluder } from '@/services/careers/companies/constants'
 import { jobAdLinks } from '@/pageKits/jobAds/links'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { articleOperations } from '@/cms/articles/operations'
-import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { implementArticleOperations } from '@/cms/articles/implement'
 import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
 import type { SearchFindArgs } from '@/services/search/implement'
@@ -31,6 +30,16 @@ const read = defineOperation({
     })
 })
 
+const article = implementArticleOperations({
+    maxNameLength: 30,
+    authorizer: () => jobAdAuth.updateArticle,
+    implementationParamsSchema: jobAdSchemas.params.article,
+    ownedArticles: async ({ implementationParams }) => {
+        const jobAd = await read({ params: { id: implementationParams.jobAdId }, bypassAuth: true })
+        return [jobAd.article]
+    }
+})
+
 export const jobAdOperations = {
     create: defineOperation({
         dataSchema: jobAdSchemas.data.create,
@@ -38,18 +47,16 @@ export const jobAdOperations = {
         transaction: 'OPENS',
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
             const jobAd = await prisma.$transaction(async tx => {
-                const article = await articleOperations.create.internalCall({
+                const createdArticle = await article.internal.create.internalCall({
                     prisma: tx,
                     data: { name: articleName },
-                    dataSchemaImplementationFields: { maxNameLength: 30 },
-                    operationImplementationFields: { special: null }
                 })
 
                 return tx.jobAd.create({
                     data: {
                         article: {
                             connect: {
-                                id: article.id
+                                id: createdArticle.id
                             }
                         },
                         company: {
@@ -69,7 +76,7 @@ export const jobAdOperations = {
                 })
             })
 
-            await newJobAdNotificationChannel.internalOperations.createNotification.internalCall({
+            await newJobAdNotificationChannel.internal.createNotification.internalCall({
                 data: {
                     title: `Ny jobbannonse: ${articleName}`,
                     message: `${jobAd.company.name} har lagt ut en ny jobbannonse: ${articleName}`,
@@ -181,14 +188,7 @@ export const jobAdOperations = {
             data,
         })
     }),
-    updateArticle: implementUpdateArticleOperations({
-        authorizer: () => jobAdAuth.updateArticle,
-        implementationParamsSchema: jobAdSchemas.params.updateArticle,
-        ownedArticles: async ({ implementationParams }) => {
-            const jobAd = await read({ params: { id: implementationParams.jobAdId }, bypassAuth: true })
-            return [jobAd.article]
-        }
-    }),
+    article,
     destroy: defineOperation({
         paramsSchema: jobAdSchemas.params.destroy,
         authorizer: () => jobAdAuth.destroy,
@@ -196,7 +196,7 @@ export const jobAdOperations = {
             const jobAd = await prisma.jobAd.delete({
                 where: { id },
             })
-            await articleOperations.destroy.internalCall({ params: { articleId: jobAd.articleId } })
+            await article.internal.destroy.internalCall({ params: { articleId: jobAd.articleId } })
         }
     }),
 } as const

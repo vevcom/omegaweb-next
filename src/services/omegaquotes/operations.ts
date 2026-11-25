@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { omegaQuotesAuth } from './auth'
 import { omegaquoteSchemas } from './schemas'
 import { omegaQuoteFilterSelection } from './constants'
@@ -24,7 +24,7 @@ export const omegaquoteOperations = {
                 }
             })
 
-            await newOmegaquoteNotificationChannel.internalOperations.createNotification.internalCall({
+            await newOmegaquoteNotificationChannel.internal.createNotification.internalCall({
                 data: {
                     title: 'Ny Omegaquote♪',
                     message: `${results.quote}\n - ${results.author}`,

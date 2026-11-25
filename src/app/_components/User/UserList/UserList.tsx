@@ -29,7 +29,7 @@ import type { GroupType } from '@/prisma-generated-pn-types'
 import type { ExpandedGroup, ExpandedGroupsOfAllTypes } from '@/services/groups/types'
 import type { AppHref } from '@/lib/sites/href'
 
-type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP'>
+type GroupSelectionType = Exclude<GroupType, 'INTEREST_GROUP' | 'MANUAL_GROUP' | 'REVUE_SUB_GROUP'>
 
 type DisableGroupFilters = Partial<Record<GroupSelectionType, boolean>>
 
@@ -132,7 +132,10 @@ export default function UserList({
     const groupSelected = !!userPaging?.details.selectedGroup
     const partition = userPaging?.details.partition ?? 'activeOmegaStudents'
     // The list covers the active omega students. An admin may widen it to everyone who is not archived.
-    const canWiden = useAuthorizer({ authorizer: userAuth.readUnarchivedPage }).authorized && partition !== 'archived'
+    // A list read from elsewhere covers whom its reader says, and is not widened.
+    const readsItsOwnPartitions = userPaging?.details.readPage === undefined
+    const mayWiden = useAuthorizer({ authorizer: userAuth.readUnarchivedPage }).authorized
+    const canWiden = mayWiden && readsItsOwnPartitions && partition !== 'archived'
 
     const groupsResult = useGroups()
     const groups = groupsResult.status === 'success' ? groupsResult.groups : null

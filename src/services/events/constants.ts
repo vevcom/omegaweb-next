@@ -23,6 +23,7 @@ export const eventFieldsToExpose = [
     'bindingRegistration',
     'allowRegistrationInMultipleVariants',
     'canBeViewedBy',
+    'createdById',
 ] as const satisfies (keyof Event)[]
 
 /** A quota as the lists and the event page show it, with how many hold one of its places. */
@@ -48,6 +49,7 @@ export const eventQuotaOrder = [
 export const eventVariantSummarySelection = {
     id: true,
     name: true,
+    description: true,
     order: true,
     registrationStart: true,
     registrationEnd: true,

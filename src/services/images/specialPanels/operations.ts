@@ -1,25 +1,27 @@
-import '@pn-server-only'
-import { flairImagesImagePanelOperations } from '@/services/flairs/flairImageCollection'
-import { ombulCoversImagePanelOperations } from '@/services/ombul/ombulCoverCollection'
-import { committeeLogosImagePanelOperations } from '@/services/groups/committees/committeeLogoCollection'
-import { profileImagesImagePanelOperations } from '@/services/users/profileImageCollection'
-import { standardImagesImagePanelOperations } from '@/services/images/standard/standardImageCollection'
-import { promoImagesImagePanelOperations } from '@/services/promo/promoImageCollection'
-import { careerTeamImagesImagePanelOperations } from '@/services/careers/team/persons/careerTeamImageCollection'
+import '@ow-server-only'
+import { flairImageCollection } from '@/services/flairs/flairImageCollection'
+import { ombulCoverCollection } from '@/services/ombul/ombulCoverCollection'
+import { committeeLogoCollection } from '@/services/groups/committees/committeeLogoCollection'
+import { profileImageCollection } from '@/services/users/profileImageCollection'
+import { standardImageCollection } from '@/services/images/standard/standardImageCollection'
+import { promoImageCollection } from '@/services/promo/promoImageCollection'
+import { careerTeamImageCollection } from '@/services/careers/team/persons/careerTeamImageCollection'
+import { companyLogoCollection } from '@/services/careers/companies/companyLogoCollection'
+import type { SpecialCollection } from '@/prisma-generated-pn-types'
+import type { SpecialCollectionImplementation } from '@/services/images/subservice/special/implement'
 
 /**
- * This is an assembly of all the `panel operations` - operations needed to display an
- * image panel in the frontend.
- *
- * This allows users (passing panel auth) to look through the images in the special collection.
- * And it allows them to be shown when editing Cms images.
+ * The special collections assembled, for what needs all of them: the seeder, and the image panels,
+ * which let whoever passes a collection's panel auth look through its images and pick one for a
+ * cms image. Uploading to one goes through the owning service's own collection.
  */
 export const specialImagePanelOperations = {
-    flairImages: flairImagesImagePanelOperations,
-    ombulCovers: ombulCoversImagePanelOperations,
-    committeeLogos: committeeLogosImagePanelOperations,
-    profileImages: profileImagesImagePanelOperations,
-    standardImages: standardImagesImagePanelOperations,
-    promoImages: promoImagesImagePanelOperations,
-    careerTeamImages: careerTeamImagesImagePanelOperations,
-} as const
+    FLAIRIMAGES: flairImageCollection,
+    OMBULCOVERS: ombulCoverCollection,
+    COMMITTEELOGOS: committeeLogoCollection,
+    PROFILEIMAGES: profileImageCollection,
+    STANDARDIMAGES: standardImageCollection,
+    PROMOIMAGES: promoImageCollection,
+    CAREERTEAMIMAGES: careerTeamImageCollection,
+    COMPANYLOGOS: companyLogoCollection,
+} as const satisfies Record<SpecialCollection, SpecialCollectionImplementation>

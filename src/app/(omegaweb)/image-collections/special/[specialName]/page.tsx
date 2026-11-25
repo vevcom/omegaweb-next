@@ -6,29 +6,15 @@ import { notFound } from 'next/navigation'
 import type { PageOperationArgs } from '@/app/ServerPage'
 import type { SpecialCollection } from '@/prisma-generated-pn-types'
 
-/**
- * The read operation for each special collection, keyed by the `SpecialCollection` the route
- * addresses (the operations object keys them by camelCase name).
- */
-const collectionOperations = {
-    FLAIRIMAGES: specialImagePanelOperations.flairImages,
-    OMBULCOVERS: specialImagePanelOperations.ombulCovers,
-    COMMITTEELOGOS: specialImagePanelOperations.committeeLogos,
-    PROFILEIMAGES: specialImagePanelOperations.profileImages,
-    PROMOIMAGES: specialImagePanelOperations.promoImages,
-    CAREERTEAMIMAGES: specialImagePanelOperations.careerTeamImages,
-    STANDARDIMAGES: specialImagePanelOperations.standardImages,
-} as const satisfies Record<SpecialCollection, unknown>
-
 const isSpecialCollection = (value: string): value is SpecialCollection =>
-    Object.keys(collectionOperations).includes(value)
+    Object.keys(specialImagePanelOperations).includes(value)
 
 const { page, generateMetadata } = serverPage({
     operation: async ({ params }: PageOperationArgs<{ specialName: string }>) => {
         const specialName = decodeURIComponent(params.specialName)
         if (!isSpecialCollection(specialName)) notFound()
 
-        const collection = await collectionOperations[specialName].readCollection({})
+        const collection = await specialImagePanelOperations[specialName].readCollection({})
         return { specialName, collection }
     },
     metadata: (data) => ({ title: data.collection.name }),

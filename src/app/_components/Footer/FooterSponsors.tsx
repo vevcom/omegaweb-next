@@ -29,9 +29,9 @@ function SponsorLink({ sponsor, children }: { sponsor: SponsorCompany, children:
 function Sponsor({ sponsor, width }: { sponsor: SponsorCompany, width: number }) {
     return (
         <SponsorLink sponsor={sponsor}>
-            {sponsor.logo.image ? (
+            {sponsor.logoImage ? (
                 <Image
-                    image={sponsor.logo.image}
+                    image={sponsor.logoImage}
                     alt={sponsor.name}
                     width={width}
                     hideCredit

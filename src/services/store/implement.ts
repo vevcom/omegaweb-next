@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { extensionForContent, type StorableExtension } from './fileExtensions'
 import { readStoreContent, writeStoreContent } from './locations'
 import { storeDirectories } from './paths'

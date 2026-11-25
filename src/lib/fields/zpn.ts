@@ -110,11 +110,14 @@ export namespace Zpn {
         }
     })
 
-    export const colorInput = () => z.string().regex(
+    /** The value of a colour input, `#rrggbb`, in lower case whatever case it is written in. */
+    export const hexColor = () => z.string().regex(
         /^#[0-9A-Fa-f]{6}$/, 'Farge må være en gyldig hex-farge'
     ).transform(
-        value => value.toUpperCase()
-    ).transform(
+        value => value.toLowerCase()
+    )
+
+    export const colorInput = () => hexColor().transform(
         value => ({
             red: parseInt(value.slice(1, 3), 16),
             green: parseInt(value.slice(3, 5), 16),

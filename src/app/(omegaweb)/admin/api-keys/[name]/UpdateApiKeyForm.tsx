@@ -22,7 +22,7 @@ export default function UpdateApiKeyForm({ id, children }: PropTypes) {
         <Form
             action={updateAction}
             submitText="Oppdater"
-            navigateOnSuccess={data => appHref(data ? `/admin/api-keys/${data.name}` : '/admin/api-keys')}
+            navigateOnSuccess={data => appHref(`/admin/api-keys/${data.name}`)}
             refreshOnSuccess
         >
             {children}

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { userInvitationExpiration } from './constants'
 import { generateVerifyEmailJWT } from './verifyEmailToken'
 import { sendMailOperations } from '@/services/mail/send/operations'

@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 
 import { Html } from '@react-email/components'
 import type { FeideIdentity } from '@/services/auth/types'

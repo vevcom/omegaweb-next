@@ -5,6 +5,7 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { exit } from 'process'
 
 process.env.SEED = 'true'
+process.env.NOTIFICATIONS_OFF = 'true'
 // The standard aliases and channels are on Omega's mail domain.
 loadDomainConfig()
 

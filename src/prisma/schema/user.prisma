@@ -47,6 +47,11 @@ model User {
   // it was started with and is only valid while that still matches.
   sessionEpoch                      Int                @default(0)
 
+  // The address the user has on one of our mail domains, where the mail in their own mailbox on the
+  // mail server arrives. It is not the email they are reached at, which is `email`.
+  vevenMailAddress String?      @unique
+  mailAddress      MailAddress? @relation(fields: [vevenMailAddress], references: [address], onDelete: Restrict, onUpdate: Cascade)
+
   bulshit     Bulshit[]
   image       Image?    @relation(fields: [imageId], references: [id])
   imageId     Int?      @unique
@@ -64,6 +69,9 @@ model User {
   feideAccount FeideAccount?
   // Codes the OpenID Connect provider has issued for the user and the sites have yet to exchange.
   oidcAuthorizationCodes OidcAuthorizationCode[]
+  // Their account on the chat, from the first time they sign in to it.
+  chatUser               ChatUser?
+  manualChatSpacesAdministered ManualChatSpaceAdmin[]
 
   // Memberships to groups (committees, interest groups, classes, etc...).
   memberships Membership[]
@@ -110,9 +118,6 @@ model User {
   // Which dots (a.k.a. "prikker") the user has received and given.
   dots        Dot[] @relation(name: "dot_user")
   dotsAccused Dot[] @relation(name: "dot_accuser")
-
-  // Which groups in the revues the user has been a member of.
-  revueGroupMemberships RevueGroupMember[]
 
   // Which cabin bookings the user has made.
   cabinBooking Booking[] @relation()

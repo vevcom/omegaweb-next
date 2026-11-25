@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { bulshitAuth } from './auth'
 import { bulshitSchemas } from './schemas'
 import { bulshitFilterSelection } from './constants'

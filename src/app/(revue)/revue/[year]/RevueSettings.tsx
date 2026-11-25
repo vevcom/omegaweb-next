@@ -1,25 +1,25 @@
 'use client'
 import { revueLinks } from '@/app/(revue)/links'
-import Form from '@/components/Form/Form'
+import { revueAdminLinks } from '@/app/(revue)/revue/(static-theme)/admin/links'
+import RevueMetaForms from '@/app/(revue)/_components/RevueMetaForms'
 import PopUp from '@/components/PopUp/PopUp'
-import NumberInput from '@/components/UI/NumberInput'
-import TextInput from '@/components/UI/TextInput'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import useAuthorizer from '@/hooks/useAuthorizer'
 import useEditMode from '@/hooks/useEditMode'
-import { configureAction } from '@/services/configureAction'
-import { destroyRevueAction, updateRevueAction } from '@/services/revue/actions'
 import { revueAuth } from '@/services/revue/auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faGear } from '@fortawesome/free-solid-svg-icons'
+import type { RevuePalette } from '@/app/(revue)/_lib/revueTheme'
 
 type PropTypes = {
-    revue: { id: number, year: number, name: string },
+    revue: { id: number, year: number, name: string } & RevuePalette,
 }
 
 export default function RevueSettings({ revue }: PropTypes) {
-    const editable = useEditMode({ authorizer: revueAuth.update })
+    const canUpdate = useAuthorizer({ authorizer: revueAuth.update })
+    const canDestroy = useAuthorizer({ authorizer: revueAuth.destroy })
+    const editable = useEditMode({ authorizer: revueAuth.update.or().allOf(revueAuth.destroy) })
     const popUpKey = `RevueSettings${revue.id}`
-    const params = { params: { revueId: revue.id } }
-    const updateRevue = configureAction(updateRevueAction, params)
 
     if (!editable) return null
     return (
@@ -32,28 +32,15 @@ export default function RevueSettings({ revue }: PropTypes) {
             showButtonContent={<FontAwesomeIcon icon={faGear} />}
             ariaLabel={`Innstillinger for ${revue.name}`}
         >
-            <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
-                <Form
-                    title="Innstillinger"
-                    action={updateRevue}
-                    submitText="Lagre"
+            <div className="flex flex-col gap-8">
+                <RevueMetaForms
+                    revue={revue}
+                    capabilities={{ canUpdate: canUpdate.toJsObject(), canDestroy: canDestroy.toJsObject() }}
                     closePopUpOnSuccess={popUpKey}
-                    navigateOnSuccess={updated => (updated ? revueLinks.revue(updated) : null)}
-                >
-                    <NumberInput name="year" label="År" defaultValue={revue.year} />
-                    <TextInput name="name" label="Navn" defaultValue={revue.name} />
-                </Form>
-                <Form
-                    action={configureAction(destroyRevueAction, params)}
-                    submitText="Slett revy"
-                    submitColor="red"
-                    closePopUpOnSuccess={popUpKey}
-                    navigateOnSuccess={revueLinks.frontpage()}
-                    confirmation={{
-                        confirm: true,
-                        text: `Vil du slette ${revue.name} med alle undergruppene og medlemmene?`,
-                    }}
+                    hrefOfUpdated={revueLinks.revue}
+                    hrefAfterDestroy={revueLinks.frontpage()}
                 />
+                <SiteLink href={revueAdminLinks.revue(revue)}>Grupper i revyen</SiteLink>
             </div>
         </PopUp>
     )

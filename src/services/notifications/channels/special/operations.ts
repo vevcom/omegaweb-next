@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { specialNotificationChannelAuth } from './auth'
 import { notificationChannelOperations } from '@/services/notifications/channels/subservice/operations'
 import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'
@@ -8,6 +8,8 @@ import { newNewsArticleNotificationChannel } from '@/services/news/newNewsArticl
 import { newJobAdNotificationChannel } from '@/services/careers/jobAds/newJobAdNotificationChannel'
 import { newOmegaquoteNotificationChannel } from '@/services/omegaquotes/newOmegaquoteNotificationChannel'
 import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
+import { chatNotificationChannel } from '@/services/chat/chatNotificationChannel'
+import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
 import type { SpecialNotificationChannel } from '@/prisma-generated-pn-types'
 import type { SpecialNotificationChannelImplementation } from '@/services/notifications/channels/implementSpecial'
 
@@ -30,5 +32,7 @@ export const specialNotificationChannelOperations = {
         NEW_JOBAD: newJobAdNotificationChannel,
         NEW_OMEGAQUOTE: newOmegaquoteNotificationChannel,
         CONTACTOR: contactorNotificationChannel,
+        CHAT: chatNotificationChannel,
+        CHAT_DIRECT_AND_GROUP: chatDirectAndGroupNotificationChannel,
     } satisfies Record<SpecialNotificationChannel, SpecialNotificationChannelImplementation>,
 } as const

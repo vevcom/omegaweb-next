@@ -3,6 +3,7 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { articleCategoryOperations } from '@/services/articleCategories/operations'
 import { seedDevArticleCategories } from '@/prisma/seeder/src/development/seedDevArticleCategories'
+import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
@@ -27,20 +28,20 @@ function sessionInGroups(...groupIds: number[]) {
         active: true,
         admin: false,
     }))
-    return Session.fromJsObject({ user: null, permissions: [], memberships })
+    return testSession({ user: null, permissions: [], memberships })
 }
 
 function sessionWithPermissions(...permissions: Parameters<typeof Session.fromDefaultPermissions>[0]) {
-    return Session.fromJsObject({ user: null, permissions, memberships: [] })
+    return testSession({ user: null, permissions, memberships: [] })
 }
 
 function activeIn(groupId: number): VisibilityMatrix {
-    return { requirements: [{ conditions: [{ type: 'ACTIVE', groupId }] }] }
+    return { requirements: [{ conditions: [activeMembersOf(groupId)] }] }
 }
 
 /** One requirement satisfied by being active in any one of the given groups. */
 function activeInAnyOf(...groupIds: number[]): VisibilityMatrix {
-    return { requirements: [{ conditions: groupIds.map(groupId => ({ type: 'ACTIVE', groupId })) }] }
+    return { requirements: [{ conditions: groupIds.map(groupId => (activeMembersOf(groupId))) }] }
 }
 
 async function createManualGroup(shortName: string) {
@@ -276,7 +277,7 @@ describe('changing a category and its articles', () => {
             session,
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Kapret' },
@@ -308,7 +309,7 @@ describe('changing a category and its articles', () => {
         const article = await addArticle(category.id)
 
         // groupTwo may read the articles, but may not change them.
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },
@@ -320,7 +321,7 @@ describe('changing a category and its articles', () => {
             session: sessionInGroups(groupTwo),
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
 
-        await articleCategoryOperations.updateArticle.update({
+        await articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: category.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },
@@ -343,7 +344,7 @@ describe('changing a category and its articles', () => {
         const other = await createCategory({ adminLevel: activeIn(groupTwo) })
         const article = await addArticle(other.id)
 
-        await expect(articleCategoryOperations.updateArticle.update({
+        await expect(articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId: administrated.id },
             params: { articleId: article.id },
             data: { name: 'Endret' },

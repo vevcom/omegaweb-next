@@ -1,18 +1,14 @@
-import { ClassLevelConfig } from '@/services/groups/constants'
 import Button from '@/components/UI/Button'
-import ProfilePicture from '@/components/User/ProfilePicture'
-import UserDisplayName from '@/components/User/UserDisplayName'
-import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
-import { updateUserBioParagraphContentAction } from '@/services/users/actions'
+import UserProfile, { profileGroupSectionClassName, profileLabelClassName } from '@/components/User/UserProfile'
 import { userOperations } from '@/services/users/operations'
 import { userAuth } from '@/services/users/auth'
-import { configureAction } from '@/services/configureAction'
-import { sexConfig } from '@/services/users/constants'
 import { flairOperations } from '@/services/flairs/operations'
+import { chatUserOperations } from '@/services/chat/users/operations'
 import { serverPage } from '@/app/ServerPage'
 import { RelationshipStatus } from '@/prisma-generated-pn-types'
 import UserNavBar from '@/app/(omegaweb)/users/[username]/UserNavBar'
 import UserSettingsNav from '@/app/(omegaweb)/users/[username]/UserSettingsNav'
+import DirectMessageButton from '@/app/(omegaweb)/users/[username]/DirectMessageButton'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { siteRedirect } from '@/app/domainContextOfRequest'
 import { appHref } from '@/lib/sites/href'
@@ -29,12 +25,6 @@ export type PropTypes = {
     }>,
 }
 
-const groupSectionClassName = `
-    mt-[1em]
-    [&_h2]:text-[1.1em] [&_h2]:text-base-content
-`
-const labelClassName = 'w-[10em] inline-block font-medium text-primary'
-
 const { page, generateMetadata } = serverPage({
     operation: async ({ params, session }: PageOperationArgs<{ username: string }>) => {
         if (params.username === 'me') {
@@ -43,9 +33,15 @@ const { page, generateMetadata } = serverPage({
 
         const profile = await userOperations.readProfile({ params: { username: params.username } })
         const flairs = await flairOperations.readUserFlairs({ params: { userId: profile.user.id } })
+        const isOwnProfile = profile.user.id === session.user?.id
+        const directMessage = isOwnProfile
+            ? null
+            : await chatUserOperations.readDirectMessage({ params: { userId: profile.user.id } })
 
         return {
             profile,
+            isOwnProfile,
+            directMessage,
             flairs: [...flairs].sort((flairOne, flairTwo) => flairOne.rank - flairTwo.rank),
         }
     },
@@ -53,46 +49,20 @@ const { page, generateMetadata } = serverPage({
         canUpdateBio: userAuth.updateBioParagraphContent.data({ userId: profile.user.id }),
     }),
     metadata: () => ({ title: 'Profil' }),
-    render: ({ data, capabilities, session }) => {
-        const { profile, flairs } = data
+    render: ({ data, capabilities }) => {
+        const { profile, flairs, isOwnProfile, directMessage } = data
 
-        const { committeeMemberships, activeStudyProgrammes, activeInterestGroups } = profile.groups
+        const { committeeMemberships, activeInterestGroups } = profile.groups
 
         // Newest order first: the history reads from the most recent membership downwards.
         const committeeMembershipsByOrder = [...committeeMemberships.active, ...committeeMemberships.historical]
             .sort((membershipOne, membershipTwo) => membershipTwo.order - membershipOne.order)
-
-        const omegaMembership = profile.omegaMembership
-
-        // NOT_SPECIFIED has no colour, so its profile picture gets no ring.
-        const relationshipColour: Partial<Record<RelationshipStatus, string>> = {
-            [RelationshipStatus.SINGLE]: 'green',
-            [RelationshipStatus.ITS_COMPLICATED]: 'yellow',
-            [RelationshipStatus.TAKEN]: 'red',
-        }
 
         const flairColour = {
             '--flairColor': flairs.length > 0
                 ? `rgb(${flairs[0].colorR}, ${flairs[0].colorG}, ${flairs[0].colorB})`
                 : 'transparent'
         } as React.CSSProperties
-        const isOwnProfile = profile.user.id === session.user?.id
-
-        function memberhipTitle(): string {
-            switch (omegaMembership.level) {
-                case 'SOELLE':
-                    return 'Soelle Noviice (avsky!)'
-                case 'SYSKEN':
-                    return `
-                        ${sexConfig[profile.user.sex ?? 'OTHER'].title}
-                        uudaf den ${omegaMembership.order}´dis orden i Sanctus Omega Broderskab
-                    `
-                case 'DEN_GEMENE_HOB':
-                    return 'Fortabt uudi den gemene hob'
-                default:
-            }
-            return 'Kunne ikke finne tittel'
-        }
 
         return (
             <div className="h-full">
@@ -103,112 +73,79 @@ const { page, generateMetadata } = serverPage({
                         before:rounded-[calc(var(--rounding)-0.375rem)] before:border-4
                         before:border-[color:var(--flairColor,transparent)] before:pointer-events-none
                     " style={flairColour}>
-                        <div className="
-                            absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8 grid grid-cols-[250px_1fr]
-                            grid-rows-[auto] items-start content-start gap-[0.5em]
-                            max-mobile:block
-                        ">
-                            <ProfilePicture
-                                width={240}
-                                profileImage={profile.user.image}
-                                ringColor={relationshipColour[profile.user.relationshipStatus]}
-                            />
-                            <div
-                                className="
-                                    flex flex-col justify-center
-                                    max-mobile:text-center max-mobile:items-center max-mobile:my-[1em] max-mobile:mx-[2em]
-                                "
-                            >
-                                <div className="
-                                    flex flex-row flex-wrap items-center
-                                    max-mobile:justify-center
-                                ">
-                                    <h1 className="mr-[.2em] text-[3em]"><UserDisplayName
-                                        user={profile.user}
-                                        width={40}
-                                    /></h1>
-                                </div>
-                                <p className="text-base-content font-secondary font-light italic">
-                                    { memberhipTitle() }
-                                </p>
-
-                                <div className="flex flex-wrap gap-[0.5em]">
-                                    {committeeMemberships.active.map(membership =>
-                                        <div
-                                            className="mt-[0.5em]"
-                                            key={`${membership.committee.shortName}-${membership.order}`}
-                                        >
-                                            <SiteLink href={appHref(`/committees/${membership.committee.shortName}`)}>
-                                                <p className="
-                                                    rounded-[0.3em] p-[0.5em] bg-primary text-primary-content inline-block
-                                                ">
-                                                    {membership.title} i {membership.committee.name}
-                                                </p>
-                                            </SiteLink>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <hr className="
-                                    border-none h-px my-[0.5em] mr-[4em] ml-0 bg-base-300
-                                    max-mobile:w-4/5 max-mobile:mx-auto
-                                " />
-
-                                {committeeMembershipsByOrder.length > 0 && (
-                                    <section className={groupSectionClassName}>
-                                        <h2>Komitémedlemskap:</h2>
-                                        {committeeMembershipsByOrder.map(membership =>
-                                            <SiteLink
+                        <div className="absolute inset-[calc(0.25rem*1.5+4px)] overflow-y-auto p-8">
+                            <UserProfile
+                                profile={profile}
+                                capabilities={capabilities}
+                                highlights={
+                                    <div className="flex flex-wrap gap-[0.5em]">
+                                        {committeeMemberships.active.map(membership =>
+                                            <div
+                                                className="mt-[0.5em]"
                                                 key={`${membership.committee.shortName}-${membership.order}`}
-                                                href={appHref(`/committees/${membership.committee.shortName}`)}
-                                                className="no-underline group"
                                             >
-                                                <p className="
-                                                    text-primary
-                                                    group-hover:underline
-                                                ">
-                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
-                                                    {membership.committee.name}
-                                                </p>
-                                            </SiteLink>
+                                                <SiteLink href={appHref(`/committees/${membership.committee.shortName}`)}>
+                                                    <p className="
+                                                        rounded-[0.3em] p-[0.5em] bg-primary text-primary-content
+                                                        inline-block
+                                                    ">
+                                                        {membership.title} i {membership.committee.name}
+                                                    </p>
+                                                </SiteLink>
+                                            </div>
                                         )}
-                                    </section>
-                                )}
+                                    </div>
+                                }
+                                groups={<>
+                                    {committeeMembershipsByOrder.length > 0 && (
+                                        <section className={profileGroupSectionClassName}>
+                                            <h2>Komitémedlemskap:</h2>
+                                            {committeeMembershipsByOrder.map(membership =>
+                                                <SiteLink
+                                                    key={`${membership.committee.shortName}-${membership.order}`}
+                                                    href={appHref(`/committees/${membership.committee.shortName}`)}
+                                                    className="no-underline group"
+                                                >
+                                                    <p className="
+                                                        text-primary
+                                                        group-hover:underline
+                                                    ">
+                                                        {membership.title} uudaf {membership.order}´dis orden i{' '}
+                                                        {membership.committee.name}
+                                                    </p>
+                                                </SiteLink>
+                                            )}
+                                        </section>
+                                    )}
 
-                                {activeInterestGroups.length > 0 && (
-                                    <section className={groupSectionClassName}>
-                                        <h2>Aktive interessegruppemedlemskap:</h2>
-                                        {activeInterestGroups.map(membership =>
-                                            <SiteLink
-                                                key={`${membership.interestGroup.id}-${membership.order}`}
-                                                href={appHref(`/interest-groups/${membership.interestGroup.id}`)}
-                                                className="no-underline group"
-                                            >
-                                                <p className="
-                                                    text-primary
-                                                    group-hover:underline
-                                                ">
-                                                    {membership.title} uudaf {membership.order}´dis orden i{' '}
-                                                    {membership.interestGroup.name}
-                                                </p>
-                                            </SiteLink>
-                                        )}
-                                    </section>
-                                )}
-
-                                {activeStudyProgrammes.length > 0 && (
-                                    <section className={groupSectionClassName}>
-                                        <h2>Studier:</h2>
-                                        {activeStudyProgrammes.map(({ studyProgramme }) =>
-                                            <p key={studyProgramme.id} className="text-base-content">
-                                                {studyProgramme.name} {`(${studyProgramme.code})`}
-                                            </p>
-                                        )}
-                                    </section>
-                                )}
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <div className="flex flex-col items-center gap-2">
+                                    {activeInterestGroups.length > 0 && (
+                                        <section className={profileGroupSectionClassName}>
+                                            <h2>Aktive interessegruppemedlemskap:</h2>
+                                            {activeInterestGroups.map(membership =>
+                                                <SiteLink
+                                                    key={`${membership.interestGroup.id}-${membership.order}`}
+                                                    href={appHref(`/interest-groups/${membership.interestGroup.id}`)}
+                                                    className="no-underline group"
+                                                >
+                                                    <p className="
+                                                        text-primary
+                                                        group-hover:underline
+                                                    ">
+                                                        {membership.title} uudaf {membership.order}´dis orden i{' '}
+                                                        {membership.interestGroup.name}
+                                                    </p>
+                                                </SiteLink>
+                                            )}
+                                        </section>
+                                    )}
+                                </>}
+                                actions={<>
+                                    {directMessage?.chatIsSetUp && (
+                                        <DirectMessageButton
+                                            url={directMessage.url}
+                                            firstname={profile.user.firstname}
+                                        />
+                                    )}
                                     {isOwnProfile && (
                                         <SiteLink href={appHref('/logout')}>
                                             <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
@@ -218,61 +155,32 @@ const { page, generateMetadata } = serverPage({
                                         </SiteLink>
                                     )}
                                     <UserSettingsNav username={profile.user.username} userId={profile.user.id} />
-                                </div>
+                                </>}
+                                details={<>
+                                    {(profile.user.relationshipStatus !== RelationshipStatus.NOT_SPECIFIED) &&
+                                    <p>
+                                        <span className={profileLabelClassName}>Sivilstatus: </span>
+                                        {profile.user.relationshipStatusText ? profile.user.relationshipStatusText :
+                                            profile.user.relationshipStatus === RelationshipStatus.SINGLE && 'Singel' ||
+                                            profile.user.relationshipStatus === RelationshipStatus.ITS_COMPLICATED
+                                                && 'Det er komplisert' ||
+                                            profile.user.relationshipStatus === RelationshipStatus.TAKEN && 'I et forhold'
+                                        }
 
-                            </div>
-                            <div
-                                className="
-                                    max-mobile:my-[1em] max-mobile:mx-[2em]
-                                    [&_p]:font-light! [&_p]:mb-[0.5em]! [&_p]:text-base-content!
-                                "
-                            >
-
-
-                                {/* An empty bio is only worth showing to someone who can write it, in edit mode. */}
-                                {(profile.user.bioParagraph.contentHtml !== '' || capabilities.canUpdateBio.authorized) &&
-                                    <div className="
-                                        mb-[2em] p-[1em] border-l-[3px] border-primary text-base-content/80 bg-base-200
-                                    ">
-                                        <h2>Bio:</h2>
-                                        <CmsParagraph
-                                            cmsParagraph={profile.user.bioParagraph}
-                                            updateCmsParagraphAction={configureAction(
-                                                updateUserBioParagraphContentAction,
-                                                { implementationParams: { userId: profile.user.id } }
-                                            )}
-                                            capabilities={{ canEdit: capabilities.canUpdateBio }}
-                                        />
-                                    </div>
-                                }
-
-                                {(profile.user.relationshipStatus !== RelationshipStatus.NOT_SPECIFIED) &&
-                                <p>
-                                    <span className={labelClassName}>Sivilstatus: </span>
-                                    {profile.user.relationshipStatusText ? profile.user.relationshipStatusText :
-                                        profile.user.relationshipStatus === RelationshipStatus.SINGLE && 'Singel' ||
-                                        profile.user.relationshipStatus === RelationshipStatus.ITS_COMPLICATED
-                                            && 'Det er komplisert' ||
-                                        profile.user.relationshipStatus === RelationshipStatus.TAKEN && 'I et forhold'
+                                    </p>
                                     }
 
-                                </p>
-                                }
 
-
-                                <p>
-                                    <span className={labelClassName}>E-post:</span>
-                                    {profile.user.email}
-                                </p>
-                                <p>
-                                    <span className={labelClassName}>Brukernavn:</span>
-                                    {profile.user.username}
-                                </p>
-                                <p>
-                                    <span className={labelClassName}>Klasse:</span>
-                                    {profile.class ? ClassLevelConfig[profile.class.level].name : 'Ingen klasse'}
-                                </p>
-                            </div>
+                                    <p>
+                                        <span className={profileLabelClassName}>E-post:</span>
+                                        {profile.user.email}
+                                    </p>
+                                    <p>
+                                        <span className={profileLabelClassName}>Brukernavn:</span>
+                                        {profile.user.username}
+                                    </p>
+                                </>}
+                            />
                         </div>
                     </div>
 

@@ -31,6 +31,7 @@ enum GroupType {
   MANUAL_GROUP
   OMEGA_MEMBERSHIP_GROUP
   STUDY_PROGRAMME
+  REVUE_SUB_GROUP
 }
 
 // The model 'Group' should be treated as an abstract table. I.e. a generic
@@ -56,6 +57,7 @@ model Group {
   manualGroup          ManualGroup?
   omegaMembershipGroup OmegaMembershipGroup?
   studyProgramme       StudyProgramme?
+  revueSubGroup        RevueSubGroup?
   LockerReservation    LockerReservation[]
   mailingLists         MailingListGroup[]
 
@@ -101,6 +103,11 @@ model Committee {
   logoImageId        Int?         @unique
   paragraph          CmsParagraph @relation(fields: [paragraphId], references: [id], name: "committeeParagraph")
   paragraphId        Int          @unique
+
+  chatSpace   ChatSpace? @relation(fields: [chatSpaceId], references: [id], onDelete: SetNull)
+  chatSpaceId Int?       @unique
+
+  revueGroup RevueGroup?
 
   events                             Event[]
   participationsInApplicationPeriods CommitteeParticipationInApplicationPeriod[]
@@ -155,4 +162,13 @@ model StudyProgramme {
 
   /// The users Feide has already reported this programme for - see the matching field on User.
   usersFeideHasAlreadyReturnedItFor User[] @relation("StudyProgrammesFeideHasAlreadyReturned")
+}
+
+// A group of the revue's own, such as the band. Its name is its revue group's, which it is always made with.
+model RevueSubGroup {
+  group   Group @relation(fields: [groupId], references: [id])
+  groupId Int   @unique
+  id      Int   @id @default(autoincrement())
+
+  revueGroup RevueGroup?
 }

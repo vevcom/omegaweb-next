@@ -16,7 +16,6 @@ export default function CreateMailingList({ config }: { config: MailServerPagesC
         submitText="Opprett"
         action={createMailingListAction}
         successCallback={data => {
-            if (!data) return
             push(links.node('mailingList', data.id))
         }}
     >

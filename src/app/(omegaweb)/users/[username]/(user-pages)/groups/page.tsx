@@ -7,12 +7,14 @@ import { studyProgrammeAuth } from '@/services/groups/studyProgrammes/auth'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
 import { manualGroupAuth } from '@/services/groups/manualGroups/auth'
+import { revueSubGroupAuth } from '@/services/groups/revueSubGroups/auth'
 import { omegaMembershipGroupOperations } from '@/services/groups/omegaMembershipGroups/operations'
 import { classOperations } from '@/services/groups/classes/operations'
 import { studyProgrammeOperations } from '@/services/groups/studyProgrammes/operations'
 import { committeeOperations } from '@/services/groups/committees/operations'
 import { interestGroupOperations } from '@/services/groups/interestGroups/operations'
 import { manualGroupOperations } from '@/services/groups/manualGroups/operations'
+import { revueSubGroupOperations } from '@/services/groups/revueSubGroups/operations'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -48,6 +50,11 @@ const groupTypes = [
         type: 'MANUAL_GROUP',
         authorizer: manualGroupAuth.readMembershipsOfUser,
         readMemberships: manualGroupOperations.readMembershipsOfUser,
+    },
+    {
+        type: 'REVUE_SUB_GROUP',
+        authorizer: revueSubGroupAuth.readMembershipsOfUser,
+        readMemberships: revueSubGroupOperations.readMembershipsOfUser,
     },
 ] as const
 

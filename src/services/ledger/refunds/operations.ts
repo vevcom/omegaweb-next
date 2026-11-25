@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { refundAuth } from './auth'
 import { refundParamsSchemas } from './schemas'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'

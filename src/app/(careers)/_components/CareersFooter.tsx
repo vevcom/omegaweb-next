@@ -1,12 +1,13 @@
 import CareersWordmark from './CareersWordmark'
+import { careerLinks } from '@/app/(careers)/links'
 import { CAREERS_SOCIALS } from '@/app/(careers)/_lib/careersSite'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { cmsLinkTextClassName, innerClassName } from '@/app/(careers)/_lib/careersClassNames'
 import SpecialCmsLink from '@/components/Cms/CmsLink/SpecialCmsLink'
 import {
-    readCareersFrontpageSpecialCmsLinkAction,
     updateCareersFrontpageSpecialCmsLinkAction,
 } from '@/services/careers/frontpage/actions'
+import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFacebookSquare, faInstagram, faLinkedin } from '@fortawesome/free-brands-svg-icons'
@@ -15,14 +16,16 @@ import type { Capabilities } from '@/auth/authorizer/capabilities'
 type PropTypes = {
     capabilities: Capabilities<'canEditSpecialCmsLink'>,
     showOmegaLink: boolean,
+    /** Whether to offer the login of company users, which is for a visitor who is not signed in. */
+    showCompanyLogin: boolean,
 }
 
 const headingClassName = 'mb-2 text-s font-semibold tracking-[0.1em] uppercase text-white'
 const textClassName = 'text-white/80 text-m leading-[1.6]'
 
-export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes) {
+export default function CareersFooter({ capabilities, showOmegaLink, showCompanyLogin }: PropTypes) {
     return (
-        <footer className="mt-20 bg-careers-navy">
+        <footer className="mt-20 pb-[env(safe-area-inset-bottom)] bg-careers-navy">
             <div className={`
                 ${innerClassName}
                 py-16 grid grid-cols-[2fr_1fr_1fr] gap-10
@@ -64,7 +67,7 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                             [&>a:hover]:text-white
                         `}
                         capabilities={{ canEdit: capabilities.canEditSpecialCmsLink }}
-                        readSpecialCmsLinkAction={readCareersFrontpageSpecialCmsLinkAction}
+                        readSpecialCmsLink={careersFrontpageOperations.cmsLinks.read}
                         updateCmsLinkAction={updateCareersFrontpageSpecialCmsLinkAction}
                     />
                 </div>
@@ -81,6 +84,12 @@ export default function CareersFooter({ capabilities, showOmegaLink }: PropTypes
                     flex justify-between gap-4 py-4
                 `}>
                     <span className="text-s text-white/80">© Contactor NTNU</span>
+                    {showCompanyLogin && (
+                        <SiteLink href={careerLinks.companyLogin()} className="
+                            text-s text-white/80
+                            hover:text-white
+                        ">Bedriftsinnlogging</SiteLink>
+                    )}
                     {showOmegaLink && (
                         <SiteLink href={omegaLinks.frontpage()} toMainDomainServingSite className="
                             text-s text-white/80

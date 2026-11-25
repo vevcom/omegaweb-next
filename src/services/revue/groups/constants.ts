@@ -1,13 +1,15 @@
 import { articleSectionsRelationsIncluder } from '@/cms/articleSections/constants'
-import { userBasicSelection } from '@/services/users/constants'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
-export const revueGroupMemberIncluder = {
-    user: { select: userBasicSelection },
-} as const satisfies Prisma.RevueGroupMemberInclude
+const groupOrder = { group: { select: { id: true, order: true, pensioned: true } } } as const
 
-export const revueGroupExpandedIncluder = {
-    revue: { select: { year: true, name: true } },
+/** Its group, which the revue's members of it are the memberships of, through its committee or sub group. */
+export const revueGroupKindIncluder = {
+    committee: { select: { name: true, shortName: true, ...groupOrder } },
+    revueSubGroup: { select: groupOrder },
+} as const satisfies Prisma.RevueGroupInclude
+
+export const revueGroupInRevueIncluder = {
+    ...revueGroupKindIncluder,
     articleSection: { include: articleSectionsRelationsIncluder },
-    members: { include: revueGroupMemberIncluder },
 } as const satisfies Prisma.RevueGroupInclude

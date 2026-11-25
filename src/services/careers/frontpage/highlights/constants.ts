@@ -62,7 +62,7 @@ export const careerFrontpageHighlightSelection = {
             company: {
                 select: {
                     name: true,
-                    logo: imageSelection,
+                    logoImage: { include: expandedImageIncluder },
                 },
             },
         },

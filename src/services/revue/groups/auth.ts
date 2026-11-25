@@ -1,11 +1,21 @@
 import { Require } from '@/auth/authorizer/Require'
+import { requireReadMembershipsOfUser } from '@/services/groups/auth'
 
 const revueAdmin = Require.permission('REVUE_ADMIN')
 
 export const revueGroupAuth = {
     create: revueAdmin,
-    read: Require.nothing(),
+    addToRevue: revueAdmin,
+    removeFromRevue: revueAdmin,
+    readMany: revueAdmin,
+    read: revueAdmin,
+    readManyForNewRevue: revueAdmin,
+    readManyInRevue: Require.nothing(),
+    readInRevue: Require.nothing(),
+    readMembersAtOrder: revueAdmin,
     update: revueAdmin,
     destroy: revueAdmin,
-    updateArticleSection: revueAdmin,
+    updateArticleSection: revueAdmin.or().groupAdmin(),
+    readManyOfUser: requireReadMembershipsOfUser('USERS_USE'),
+    readMemberProfilesInRevue: Require.permission('USERS_USE'),
 } as const

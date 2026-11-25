@@ -15,7 +15,8 @@ export const lockerReservationIncluder = {
                     interestGroup: true,
                     manualGroup: true,
                     omegaMembershipGroup: true,
-                    studyProgramme: true
+                    studyProgramme: true,
+                    revueSubGroup: { include: { revueGroup: { select: { name: true } } } },
                 }
             },
             user: {

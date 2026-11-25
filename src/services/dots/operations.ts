@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { dotAuth } from './auth'
 import { dotSchemas } from './schemas'
 import { dotsIncluder } from './constants'

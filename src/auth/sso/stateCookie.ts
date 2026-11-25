@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { SSO_STATE_MAX_AGE_S } from './constants'
 import { generateJWT, verifyJWT } from '@/lib/jwt/jwt'
 import { QueryParams } from '@/lib/queryParams/queryParams'

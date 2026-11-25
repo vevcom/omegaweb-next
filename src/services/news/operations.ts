@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { newsSchemas } from './schemas'
 import {
     defaultNewsArticleOldCutoff,
@@ -9,12 +9,10 @@ import {
 import { newsAuth } from './auth'
 import { newNewsArticleNotificationChannel } from './newNewsArticleNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
-import { articleOperations } from '@/cms/articles/operations'
-import { visibilityOperations } from '@/services/visibility/operations'
 import { implementDoubleLevelVisibilityOperations } from '@/services/visibility/implement'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
-import { implementUpdateArticleOperations } from '@/cms/articles/implement'
+import { implementArticleOperations } from '@/cms/articles/implement'
 import { implementSearchOperation } from '@/services/search/implement'
 import type { Prisma } from '@/prisma-generated-pn-types'
 
@@ -43,6 +41,25 @@ const visibility = implementDoubleLevelVisibilityOperations({
     }
 })
 
+const article = implementArticleOperations({
+    maxNameLength: 30,
+    implementationParamsSchema: newsSchemas.params.article,
+    authorizer: async ({ implementationParams, prisma }) =>
+        newsAuth.updateArticle.data({
+            visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({
+                params: { id: implementationParams.newsId },
+                prisma
+            })
+        }),
+    ownedArticles: async ({ implementationParams, prisma }) => {
+        const news = await prisma.newsArticle.findUniqueOrThrow({
+            where: { id: implementationParams.newsId },
+            include: newsArticleRelationsIncluder,
+        })
+        return [news.article]
+    }
+})
+
 export const newsOperations = {
     visibility,
     create: defineOperation({
@@ -54,17 +71,12 @@ export const newsOperations = {
 
             const backupEndDateTime = new Date(Date.now() + defaultNewsArticleOldCutoff * 24 * 60 * 60 * 1000)
 
-            const article = await articleOperations.create.internalCall({
-                prisma,
-                data: { name },
-                dataSchemaImplementationFields: { maxNameLength: 30 },
-                operationImplementationFields: { special: null }
-            })
-            const visibilityRegular = await visibilityOperations.createWithRequirements.internalCall({
+            const createdArticle = await article.internal.create.internalCall({ prisma, data: { name } })
+            const visibilityRegular = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityRegularRequirements },
             })
-            const visibilityAdmin = await visibilityOperations.createWithRequirements.internalCall({
+            const visibilityAdmin = await visibility.internal.create.internalCall({
                 prisma,
                 data: { requirements: data.visibilityAdminRequirements },
             })
@@ -73,7 +85,7 @@ export const newsOperations = {
                 data: {
                     description,
                     endDateTime: endDateTime ?? backupEndDateTime,
-                    article: { connect: { id: article.id } },
+                    article: { connect: { id: createdArticle.id } },
                     visibilityRegular: { connect: { id: visibilityRegular.id } },
                     visibilityAdmin: { connect: { id: visibilityAdmin.id } },
                 },
@@ -84,22 +96,22 @@ export const newsOperations = {
     destroy: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.destroy.data({
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
             }),
         paramsSchema: newsSchemas.params.destroy,
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             // The news row goes first: it restricts the deletion of its article and visibilities.
             const news = await prisma.newsArticle.delete({ where: { id: params.id } })
-            await visibilityOperations.destroy.internalCall({
+            await visibility.internal.destroy.internalCall({
                 prisma,
                 params: { visibilityId: news.visibilityAdminId },
             })
-            await visibilityOperations.destroy.internalCall({
+            await visibility.internal.destroy.internalCall({
                 prisma,
                 params: { visibilityId: news.visibilityRegularId },
             })
-            await articleOperations.destroy.internalCall({
+            await article.internal.destroy.internalCall({
                 prisma,
                 params: { articleId: news.articleId },
             })
@@ -166,7 +178,7 @@ export const newsOperations = {
             })
             return newsAuth.read.data({
                 published,
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
             })
         },
         operation: async ({ prisma, params }) => prisma.newsArticle.findUniqueOrThrow({
@@ -177,7 +189,7 @@ export const newsOperations = {
     update: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.update.data({
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
             }),
         paramsSchema: newsSchemas.params.update,
         dataSchema: newsSchemas.data.update,
@@ -203,7 +215,7 @@ export const newsOperations = {
     setPublished: defineOperation({
         authorizer: async ({ params, prisma }) =>
             newsAuth.setPublished.data({
-                visibility: await visibility.readDoubleLevelMatrixInternal({ params, prisma })
+                visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
             }),
         paramsSchema: newsSchemas.params.setPublished,
         dataSchema: newsSchemas.data.setPublished,
@@ -219,7 +231,7 @@ export const newsOperations = {
             })
 
             if (data.published && !previous.published) {
-                await newNewsArticleNotificationChannel.internalOperations.createNotification.internalCall({
+                await newNewsArticleNotificationChannel.internal.createNotification.internalCall({
                     data: {
                         title: `Ny nyhetsartikkel: ${news.article.name}`,
                         message: `${news.description ? `${news.description}\n` : ''}Les hele saken på Omegaveven.`,
@@ -232,23 +244,7 @@ export const newsOperations = {
             return withCoverImage(news)
         }
     }),
-    updateArticle: implementUpdateArticleOperations({
-        implementationParamsSchema: newsSchemas.params.updateArticle,
-        authorizer: async ({ implementationParams, prisma }) =>
-            newsAuth.updateArticle.data({
-                visibility: await visibility.readDoubleLevelMatrixInternal({
-                    params: { id: implementationParams.newsId },
-                    prisma
-                })
-            }),
-        ownedArticles: async ({ implementationParams, prisma }) => {
-            const news = await prisma.newsArticle.findUniqueOrThrow({
-                where: { id: implementationParams.newsId },
-                include: newsArticleRelationsIncluder,
-            })
-            return [news.article]
-        }
-    })
+    article,
 } as const
 
 /** Lifts the cover image out of the article, the shape the news lists and cards are built on. */

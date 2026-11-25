@@ -3,7 +3,7 @@ import { apiHandler } from '@/api/apiHandler'
 import { oidcOperations } from '@/services/auth/oidc/operations'
 import { oidcClientOf } from '@/services/auth/oidc/clients'
 import { fromWire } from '@/services/auth/oidc/wire'
-import { readSessionToken, sessionFromCookie } from '@/auth/sso/session'
+import { readUserSessionToken, sessionFromCookie } from '@/auth/sso/session'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import { DomainContext } from '@/lib/sites/context'
@@ -27,7 +27,7 @@ export const GET = providerRoute(apiHandler({
     serviceOperation: oidcOperations.issueCode,
     session: request => sessionFromCookie(asNextRequest(request)),
     query: async (query, request) => {
-        const token = await readSessionToken(asNextRequest(request))
+        const token = await readUserSessionToken(asNextRequest(request))
         if (!token) throw new Smorekopp('UNAUTHENTICATED', 'Logg inn for å fortsette')
         return {
             userId: token.user.id,

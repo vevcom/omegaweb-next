@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { notificationMethodIncluder } from './constants'
 import { notificationSubscriptionAuth } from './auth'
 import { notificationSubscriptionSchemas } from './schemas'

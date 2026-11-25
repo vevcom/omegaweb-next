@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { createActionError } from './actionError'
 import { ParseError, Smorekopp } from './error'
 import { ServerSession } from '@/auth/session/ServerSession'

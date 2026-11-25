@@ -305,6 +305,10 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                     bg-[color-mix(in_srgb,var(--color-base-100),transparent_40%)] backdrop-blur-[8px]
                     backdrop-saturate-[140%] rounded-round flex flex-col gap-2 p-4 overflow-hidden
                     max-mobile:w-screen max-mobile:max-h-svh max-mobile:h-svh max-mobile:rounded-none
+                    max-mobile:pt-[calc(--spacing(4)+env(safe-area-inset-top))]
+                    max-mobile:pr-[calc(--spacing(4)+env(safe-area-inset-right))]
+                    max-mobile:pb-[calc(--spacing(4)+env(safe-area-inset-bottom))]
+                    max-mobile:pl-[calc(--spacing(4)+env(safe-area-inset-left))]
                 " ref={ref}>
                     <div className="flex items-center gap-2 shrink-0">
                         <FontAwesomeIcon icon={faMagnifyingGlass} className="shrink-0 text-base-content/80" />
@@ -363,7 +367,7 @@ export function defineGlobalSearch({ action, placeholder }: GlobalSearchConfig) 
                                                             flex items-center gap-2 p-2 rounded-[calc(0.5*var(--gap))]
                                                             no-underline transition-colors duration-300
                                                             ${index === safeActiveIndex
-                                                    ? 'bg-primary text-base-content-inv'
+                                                    ? 'bg-primary text-primary-content'
                                                     : `
                                                         text-base-content
                                                         hover:bg-base-300

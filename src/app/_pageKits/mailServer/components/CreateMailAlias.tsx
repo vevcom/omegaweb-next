@@ -25,7 +25,6 @@ export default function CreateMailAlias({
         submitText="Opprett"
         action={createMailAliasAction}
         successCallback={(data) => {
-            if (!data) return
             push(links.node('alias', data.id))
         }}
     >

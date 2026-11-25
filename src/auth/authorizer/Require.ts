@@ -63,6 +63,9 @@ const defaultMessages = {
     noRulesConfigured: 'Ingen regler er konfigurert for denne autorisasjonen',
     permission: (permission: Permission) => `Du trenger tillatelse '${permission}' for å få tilgang`,
     groupAdmin: (groupId: number) => `Du må være gruppeleder for gruppe ${groupId} for å få tilgang`,
+    companyUser: 'Du må være innlogget som bedrift for å få tilgang',
+    companyMember: 'Du må være bruker i bedriften for å få tilgang',
+    companyAdmin: 'Du må være administrator for bedriften for å få tilgang',
 }
 
 /** ANDs every check in `group`, short-circuiting on the first failure. On success the result
@@ -99,9 +102,10 @@ function evaluateGroup<PrismaWhereFilter extends object | undefined>(
  * that has several groups, combine the two from `Require`: `Require.allOf(chain, extra)` is
  * `(a AND extra) OR (b AND extra)`.
  *
- * The chain also tracks whether passing it proves there is a logged-in user. `'HAS_USER'` means a
- * check such as `.user()` or `.userId()` proved one, `'HAS_USER' | 'NO_USER'` that there may be
- * none. `LastUser` is that of the group being built, where one such check is enough. `EarlierUser`
+ * The chain also tracks whose session passing it proves it to be. `'HAS_USER'` means a check such
+ * as `.user()` or `.userId()` proved a logged-in user, `'HAS_COMPANY_USER'` that one such as
+ * `.companyAdmin()` proved a company user, and the whole of `UserGuaranteeOption` that it may be
+ * anyone's or no one's. `LastUser` is that of the group being built, where one such check is enough. `EarlierUser`
  * is that of the groups before it. Any one group may be the one that passes, so `.auth()` promises
  * a user only when both are `'HAS_USER'`.
  */
@@ -223,6 +227,52 @@ export class RequireBuilder<
             session.memberships.some(membership => membership.groupId === groupId && membership.active && membership.admin)
                 ? { success: true }
                 : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.groupAdmin(groupId) }
+        ))
+    }
+
+    /** Requires the session to be a company user's, of any company. */
+    companyUser(opts?: { errorMessage?: string }):
+        RequireBuilder<Data, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
+        return this.and<NoData, never, 'HAS_COMPANY_USER'>(({ session }) => (
+            session.companyUser
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.companyUser }
+        ))
+    }
+
+    /** Requires the session to be that of the company user with the given id. Needs
+     * `{ companyUserId: number }` supplied via `.data()`. */
+    companyUserId(opts?: { errorMessage?: string }):
+        RequireBuilder<Data & { companyUserId: number }, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
+        return this.and<{ companyUserId: number }, never, 'HAS_COMPANY_USER'>(({ session, companyUserId }) => {
+            if (!session.companyUser) {
+                return { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.companyUser }
+            }
+            return session.companyUser.id === companyUserId
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.generic }
+        })
+    }
+
+    /** Requires the session to be that of a user of the company. Only an active company user has a
+     * session at all. Needs `{ companyId: number }` supplied via `.data()`. */
+    companyMember(opts?: { errorMessage?: string }):
+        RequireBuilder<Data & { companyId: number }, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
+        return this.and<{ companyId: number }, never, 'HAS_COMPANY_USER'>(({ session, companyId }) => (
+            session.companyUser?.company.id === companyId
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.companyMember }
+        ))
+    }
+
+    /** Requires the session to be that of an admin of the company. Needs `{ companyId: number }`
+     * supplied via `.data()`. */
+    companyAdmin(opts?: { errorMessage?: string }):
+        RequireBuilder<Data & { companyId: number }, PrismaWhereFilter, EarlierUser, 'HAS_COMPANY_USER'> {
+        return this.and<{ companyId: number }, never, 'HAS_COMPANY_USER'>(({ session, companyId }) => (
+            session.companyUser?.company.id === companyId && session.companyUser.admin
+                ? { success: true }
+                : { success: false, errorMessage: opts?.errorMessage ?? defaultMessages.companyAdmin }
         ))
     }
 

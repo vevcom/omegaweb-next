@@ -1,5 +1,5 @@
 'use client'
-import VisibilityMatrixEditor from '@/components/Visibility/VisibilityMatrixEditor/VisibilityMatrixEditor'
+import { newMailOwners } from './mailOwnersVisibility'
 
 /** The owners of a new alias or mailing list: whoever passes the requirements, and only mail server admins given none. */
 export default function OwnersField() {
@@ -8,6 +8,6 @@ export default function OwnersField() {
         <p className="m-0 text-base-content/80 text-[0.9rem]">
             Eierne ser og kobler det de eier. Uten eiere er det bare e-posttjeneradministratorene som gjør det.
         </p>
-        <VisibilityMatrixEditor name="ownerRequirements" emptyMeans="Ingen eiere: bare e-posttjeneradministratorene." />
+        <newMailOwners.Field name="ownerRequirements" />
     </div>
 }

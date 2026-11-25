@@ -11,7 +11,42 @@ permissions:
   contents: read
 
 jobs:
+  # npm ci runs the install scripts of every dependency, so it runs here, away from the token that pushes images.
+  versions:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: set up node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.12.x'
+        cache: npm
+    - name: install dependencies
+      run: |
+        npm ci
+        npx prisma generate
+    # Nothing persists between builds, so each one bakes every release.
+    - name: bake the versions
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPOSITORY: ${{ github.repository }}
+        SERVER_URL: ${{ github.server_url }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+      run: npm run versions:bake -- "$REPOSITORY" "$SERVER_URL" "$RELEASE_TAG" versions
+    - uses: actions/upload-artifact@v4
+      with:
+        name: versions
+        path: versions
+        if-no-files-found: error
+        retention-days: 1
+
   images:
+    needs: versions
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,6 +61,12 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v4
+    - name: download the versions
+      if: matrix.target == 'prod'
+      uses: actions/download-artifact@v4
+      with:
+        name: versions
+        path: versions
     - uses: docker/setup-buildx-action@v3
     - uses: docker/login-action@v3
       with:

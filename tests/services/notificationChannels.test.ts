@@ -10,7 +10,9 @@ import { userOperations } from '@/services/users/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { Smorekopp } from '@/services/error'
+import { activeMembersOf } from 'tests/utils'
 import { afterAll, afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
+import type { VisibilityRequirement } from '@/services/visibility/types'
 
 const createdChannelIds: number[] = []
 
@@ -23,7 +25,7 @@ afterEach(async () => {
 })
 
 async function readRoot() {
-    return specialNotificationChannelOperations.channels.ROOT.readChannel({ bypassAuth: true })
+    return specialNotificationChannelOperations.channels.ROOT.read({ bypassAuth: true })
 }
 
 async function createManualChannel(name: string, parentId: number) {
@@ -84,7 +86,7 @@ describe('the special and the manual notification channels', () => {
 
         await expect(manualNotificationChannelOperations.createNotification({
             params: { channelId: channel.id },
-            data: { title: 'Sent in a manual channel', message: 'Nothing is created under IGNORE_SERVER_ONLY.' },
+            data: { title: 'Sent in a manual channel', message: 'Nothing is created under NOTIFICATIONS_OFF.' },
             bypassAuth: true,
         })).resolves.toEqual({ notification: null })
     })
@@ -93,7 +95,7 @@ describe('the special and the manual notification channels', () => {
         const root = await readRoot()
         const channel = await createManualChannel('test-audience', root.id)
         const group = await prisma.group.findFirstOrThrow()
-        const send = (requirements: { conditions: { type: 'ACTIVE', groupId: number }[] }[]) =>
+        const send = (requirements: VisibilityRequirement[]) =>
             manualNotificationChannelOperations.createNotification({
                 params: { channelId: channel.id },
                 data: { title: 'To some', message: 'Only those in the group get this.', audience: { requirements } },
@@ -102,11 +104,11 @@ describe('the special and the manual notification channels', () => {
 
         await expect(send([{ conditions: [] }])).rejects.toThrow(new Smorekopp('BAD DATA'))
 
-        // Notifications are not created under IGNORE_SERVER_ONLY, so it is lifted to see this one made.
-        const ignoreServerOnly = process.env.IGNORE_SERVER_ONLY
-        Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
+        // The tests make no notifications, see tests/setup.ts, so that is lifted to see this one made.
+        const notificationsOff = process.env.NOTIFICATIONS_OFF
+        Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
         try {
-            const { notification: toSome } = await send([{ conditions: [{ type: 'ACTIVE', groupId: group.id }] }])
+            const { notification: toSome } = await send([{ conditions: [activeMembersOf(group.id)] }])
             const { notification: toAll } = await send([])
             expect(toAll?.visibilityId).toBeNull()
             const visibility = await prisma.visibility.findUniqueOrThrow({
@@ -129,17 +131,17 @@ describe('the special and the manual notification channels', () => {
             expect(await prisma.visibility.findUnique({ where: { id: visibility.id } })).toBeNull()
             expect(await prisma.notification.count({ where: { id: { in: [toSome?.id ?? -1, toAll?.id ?? -1] } } })).toBe(0)
         } finally {
-            if (ignoreServerOnly === undefined) Reflect.deleteProperty(process.env, 'IGNORE_SERVER_ONLY')
-            else process.env.IGNORE_SERVER_ONLY = ignoreServerOnly
+            if (notificationsOff === undefined) Reflect.deleteProperty(process.env, 'NOTIFICATIONS_OFF')
+            else process.env.NOTIFICATIONS_OFF = notificationsOff
         }
     })
 
     test('a special channel is created from its config when it is missing', async () => {
-        const before = await contactorNotificationChannel.readChannel({ bypassAuth: true })
+        const before = await contactorNotificationChannel.read({ bypassAuth: true })
         await prisma.notificationChannel.delete({ where: { id: before.id } })
         await prisma.notificationMethod.delete({ where: { id: before.availableMethodsId } })
 
-        const recreated = await contactorNotificationChannel.readChannel({ bypassAuth: true })
+        const recreated = await contactorNotificationChannel.read({ bypassAuth: true })
         expect(recreated.id).not.toBe(before.id)
         expect(recreated).toMatchObject({
             special: 'CONTACTOR',
@@ -214,7 +216,7 @@ describe('the channels an event owns', () => {
 
     test('an event is made with its three channels under the EVENT channel', async () => {
         const [own, info, general] = await readChannelsOfEvent(eventId)
-        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+        const parent = await eventNotificationChannel.read({ bypassAuth: true })
 
         expect(own).toMatchObject({ purpose: 'EVENT', parentId: parent.id })
         expect(info).toMatchObject({ purpose: 'EVENT_INFO', parentId: own.id })
@@ -289,7 +291,7 @@ describe('the channels an event owns', () => {
     })
 
     test("an event's channels take no rows of their own: the parent's subscribers follow through them", async () => {
-        const parent = await eventNotificationChannel.readChannel({ bypassAuth: true })
+        const parent = await eventNotificationChannel.read({ bypassAuth: true })
         await notificationSubscriptionOperations.update({
             params: { userId, channelId: parent.id },
             data: { email: true, emailWeekly: true, push: false },

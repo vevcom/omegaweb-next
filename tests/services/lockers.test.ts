@@ -1,13 +1,14 @@
-import { Session } from '@/auth/session/Session'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { lockerOperations } from '@/services/lockers/operations'
 import { lockerLocationOperations } from '@/services/lockers/locations/operations'
 import { lockerReservationOperations } from '@/services/lockers/reservations/operations'
 import { userOperations } from '@/services/users/operations'
+import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { UserFiltered } from '@/services/users/types'
+import type { AnySession } from '@/auth/session/Session'
 
 const DAY = 24 * 60 * 60 * 1000
 const BUILDING = 'Testblokka'
@@ -32,7 +33,7 @@ async function createTestUser(username: string) {
 }
 
 function sessionOf(user: UserFiltered | null, memberships: Omit<MembershipFiltered, 'order'>[] = []) {
-    return Session.fromJsObject({
+    return testSession({
         user,
         permissions: ['LOCKER_USE'],
         memberships: memberships.map(membership => ({ ...membership, order: currentOrder })),
@@ -53,7 +54,7 @@ const reserve = (
     { endDate, groupId: reservingGroupId = null, session = sessionOf(user) }: {
         endDate?: Date,
         groupId?: number | null,
-        session?: Session<'HAS_USER' | 'NO_USER'>,
+        session?: AnySession,
     } = {},
 ) => lockerReservationOperations.create({
     params: { lockerId, userId: user.id },
@@ -184,7 +185,7 @@ describe('updating a reservation', () => {
         const other = await createTestUser('lockerupdateother')
         const reservation = await reserve(holder, lockerId)
         const endDate = new Date(Date.now() + DAY)
-        const update = (session: Session<'HAS_USER' | 'NO_USER'>) => lockerReservationOperations.update({
+        const update = (session: AnySession) => lockerReservationOperations.update({
             params: { id: reservation.id },
             data: { groupId: 'null', endDate },
             session,

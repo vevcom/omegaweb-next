@@ -9,32 +9,30 @@ export const addInterestGroupMembersAction = makeAction(interestGroupOperations.
 export const removeInterestGroupMembersAction = makeAction(interestGroupOperations.removeMembers)
 export const setInterestGroupMemberAdminAction = makeAction(interestGroupOperations.setMemberAdmin)
 export const setInterestGroupMemberTitleAction = makeAction(interestGroupOperations.setMemberTitle)
+export const destroyInterestGroupMembershipAction = makeAction(interestGroupOperations.destroyMembership)
 export const migrateInterestGroupAction = makeAction(interestGroupOperations.migrateGroup)
 export const pensionInterestGroupAction = makeAction(interestGroupOperations.pension)
 export const updateInterestGroupAction = makeAction(interestGroupOperations.update)
 
-export const readSpecialCmsParagraphGeneralInfoAction = makeAction(
-    interestGroupOperations.readSpecialCmsParagraphGeneralInfo
-)
 export const updateSpecialCmsParagraphContentGeneralInfoAction = makeAction(
-    interestGroupOperations.updateSpecialCmsParagraphContentGeneralInfo
+    interestGroupOperations.generalInfo.updateContent
 )
 
 export const updateInterestGroupArticleSectionAction = makeAction(
-    interestGroupOperations.updateArticleSection.update
+    interestGroupOperations.articleSection.update
 )
 export const addPartToInterestGroupArticleSectionAction = makeAction(
-    interestGroupOperations.updateArticleSection.addPart
+    interestGroupOperations.articleSection.addPart
 )
 export const removePartFromInterestGroupArticleSectionAction = makeAction(
-    interestGroupOperations.updateArticleSection.removePart
+    interestGroupOperations.articleSection.removePart
 )
 export const updateInterestGroupCmsImageAction = makeAction(
-    interestGroupOperations.updateArticleSection.cmsImage
+    interestGroupOperations.articleSection.cmsImage
 )
 export const updateInterestGroupCmsParagraphAction = makeAction(
-    interestGroupOperations.updateArticleSection.cmsParagraph
+    interestGroupOperations.articleSection.cmsParagraph
 )
 export const updateInterestGroupCmsLinkAction = makeAction(
-    interestGroupOperations.updateArticleSection.cmsLink
+    interestGroupOperations.articleSection.cmsLink
 )

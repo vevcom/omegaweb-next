@@ -1,41 +1,37 @@
-model RevueGroup {
-  id   Int    @id @default(autoincrement())
-  name String
+enum RevueGroupType {
+  COMMITTEE
+  REVUE_SUB_GROUP
+}
 
-  revue   Revue @relation(fields: [revueId], references: [id], onDelete: Restrict)
-  revueId Int
+// What the revue site shows as a group: a committee, such as the board, or a revue sub group.
+model RevueGroup {
+  id   Int            @id @default(autoincrement())
+  name String         @unique
+  type RevueGroupType
+
+  // A check constraint gives COMMITTEE a committee and no sub group, and REVUE_SUB_GROUP a sub group and no committee.
+  committee       Committee?     @relation(fields: [committeeId], references: [id], onDelete: Restrict)
+  committeeId     Int?           @unique
+  revueSubGroup   RevueSubGroup? @relation(fields: [revueSubGroupId], references: [id], onDelete: Restrict)
+  revueSubGroupId Int?           @unique
 
   articleSection   ArticleSection @relation(fields: [articleSectionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   articleSectionId Int            @unique
 
-  members RevueGroupMember[]
+  revues RevueGroupInRevue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([revueId, name])
 }
 
-enum RevueGroupMemberType {
-  USER
-  DETAILS
-}
+// A revue group in a revue. The memberships of its group in the order are the revue's members of it.
+model RevueGroupInRevue {
+  revue        Revue      @relation(fields: [revueId], references: [id], onDelete: Cascade)
+  revueId      Int
+  revueGroup   RevueGroup @relation(fields: [revueGroupId], references: [id], onDelete: Cascade)
+  revueGroupId Int
+  omegaOrder   OmegaOrder @relation(fields: [order], references: [order], onDelete: Restrict)
+  order        Int
 
-model RevueGroupMember {
-  id   Int                  @id @default(autoincrement())
-  type RevueGroupMemberType
-
-  // A check constraint gives USER a user and no name, and DETAILS a name and no user.
-  name String?
-
-  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int?
-
-  group   RevueGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  groupId Int
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([groupId, userId])
+  @@id([revueId, revueGroupId])
 }

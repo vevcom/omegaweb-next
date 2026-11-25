@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { DomainConfig } from './domainConfig'
 import { DomainContext } from './context'
 import { domainConfigFile, readDomainConfig } from './domainConfigFile'

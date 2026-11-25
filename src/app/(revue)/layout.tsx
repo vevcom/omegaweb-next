@@ -1,12 +1,5 @@
-import RevueNavBar from './_components/RevueNavBar'
-import { revueAdminNavDef } from '@/app/(revue)/revue/admin/revueAdminNavDef'
-import SiteTheme from '@/components/SiteTheme/SiteTheme'
-import WorkInProgressBanner from '@/components/WorkInProgressBanner/WorkInProgressBanner'
-import { externalHref } from '@/lib/sites/href'
-import { Theme, themes } from '@/lib/theme'
-import { serverLayout } from '@/app/ServerPage'
-import type { LayoutOperationArgs } from '@/app/ServerPage'
 import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
 
 export const metadata: Metadata = {
     title: {
@@ -17,23 +10,11 @@ export const metadata: Metadata = {
 }
 
 /**
- * The revue pages as their own site inside Omega's, like the career pages: their own navigation,
- * and their own theme once they have one. Until then they keep Omega's default theme.
+ * The revue pages as their own site inside Omega's, like the career pages. Their shell is `RevueShell`,
+ * mounted twice: by the layout of /revue/[year] with the revue's own theme, and by the one of
+ * (static-theme) with the static theme for every other page. A page has one of them and never both,
+ * so it has one theme and one theme-color.
  */
-export default serverLayout({
-    allowUnregistered: true,
-    operation: async ({ session }: LayoutOperationArgs) => ({
-        loggedIn: session.user !== null,
-        hasAdminPages: (await revueAdminNavDef.visible(session)).length > 0,
-    }),
-    render: ({ data, children }) => (
-        <div className="min-h-dvh flex flex-col bg-base-100 text-base-content">
-            <SiteTheme colors={themes[Theme.STANDARD]} />
-            <WorkInProgressBanner siteName="Omegarevyen" currentSiteHref={externalHref('https://omegarevyen.no')} />
-            <RevueNavBar loggedIn={data.loggedIn} hasAdminPages={data.hasAdminPages} />
-            <main className="flex-1 w-full max-w-[1100px] mx-auto px-[clamp(1rem,4vw,3rem)] py-8">
-                {children}
-            </main>
-        </div>
-    ),
-})
+export default function RevueLayout({ children }: { children: ReactNode }) {
+    return children
+}

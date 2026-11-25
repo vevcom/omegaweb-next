@@ -4,17 +4,12 @@ import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
     faArchive,
-    faBell,
     faCog,
-    faCreditCard,
     faEye,
-    faLayerGroup,
-    faPen,
     faPlus,
     faQrcode,
     faQuestionCircle,
     faTag,
-    faTrash,
     faUpload,
     faUsers,
 } from '@fortawesome/free-solid-svg-icons'
@@ -22,7 +17,7 @@ import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
 type PropTypes = Omit<PopUpProps, 'showButtonContent'> & { scale?: number, label?: React.ReactNode }
 
-function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, defaultLabel?: string) {
+function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'] | null, scale = 40, defaultLabel?: string) {
     return function HeadItemPopUp({ showButtonClass, children, scale: overrideScale, label = defaultLabel, ...props }:
                                   PropTypes) {
         const buttonScale = overrideScale ?? scale
@@ -34,10 +29,10 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
             showButtonContent = {
                 label ? (
                     <>
-                        <span className="text-m text-base-content font-medium whitespace-nowrap">{label}</span>
-                        <FontAwesomeIcon style={iconStyle} icon={icon} />
+                        <span className="text-m font-medium whitespace-nowrap">{label}</span>
+                        {icon && <FontAwesomeIcon style={iconStyle} icon={icon} />}
                     </>
-                ) : (
+                ) : icon && (
                     <FontAwesomeIcon style={iconStyle} icon={icon} />
                 )
             }
@@ -50,8 +45,8 @@ function createHeaderItemPopUp(icon: FontAwesomeIconProps['icon'], scale = 40, d
                 duration-300 text-base-content
                 hover:bg-base-300
                 ${label
-        ? 'flex flex-row items-center gap-3 pr-3.5 pl-5 text-base-content [&_svg]:text-base-content '
-                        + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-base-content'
+        ? `flex flex-row items-center gap-3 ${icon ? 'pr-3.5 pl-5' : 'px-5'} text-base-content [&_svg]:text-base-content `
+                        + '[&_svg]:transition-colors [&_svg]:duration-300 hover:[&_svg]:text-primary'
         : 'grid place-items-center text-base-content'}
                 ${showButtonClass ?? ''}
             `}
@@ -78,6 +73,10 @@ export const HelpHeaderItemPopUp = createHeaderItemPopUp(faQuestionCircle, 18)
  */
 export const SettingsHeaderItemPopUp = createHeaderItemPopUp(faCog, 18)
 
+/**
+ * Component that can be used to show a pop up about the users of a page. No page uses it now, but
+ * the design system shows it, see .design-sync.
+ */
 export const UsersHeaderItemPopUp = createHeaderItemPopUp(faUsers, 18)
 
 /**
@@ -106,21 +105,6 @@ export const ArchiveHeaderItemPopUp = createHeaderItemPopUp(faArchive, 40, 'Arki
 export const ScanHeaderItemPopUp = createHeaderItemPopUp(faQrcode, 40, 'Skann')
 
 /**
- * Component that can be used to show the form that edits a page's subject in a pop up
+ * Component that can be used to open everything there is to administrate on a page, by name
  */
-export const EditHeaderItemPopUp = createHeaderItemPopUp(faPen, 18)
-
-/**
- * Component that can be used to show payment settings, such as the account paid into, in a pop up
- */
-export const PaymentHeaderItemPopUp = createHeaderItemPopUp(faCreditCard, 18)
-
-/**
- * Component that can be used to show a delete confirmation in a pop up
- */
-export const DeleteHeaderItemPopUp = createHeaderItemPopUp(faTrash, 18)
-
-/** For the variants and quotas of an event. */
-export const VariantsHeaderItemPopUp = createHeaderItemPopUp(faLayerGroup, 18)
-
-export const NotificationHeaderItemPopUp = createHeaderItemPopUp(faBell, 18)
+export const AdminHeaderItemPopUp = createHeaderItemPopUp(null, 40, 'Administrer')

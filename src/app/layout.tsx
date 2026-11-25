@@ -28,8 +28,8 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     // Lets the page paint into the status bar and home indicator areas instead of
-    // being letterboxed between them. The safe-area insets on the wrapper grid in
-    // (omegaweb)/layout.tsx are what then keep the nav bars clear of the system UI.
+    // being letterboxed between them. Each site's shell then keeps its bars clear of the
+    // system UI with the safe-area insets.
     viewportFit: 'cover',
 }
 
@@ -59,7 +59,8 @@ type PropTypes = {
  * the pages look like is up to the route groups - (omegaweb) is Omega's site with its navigation
  * and the user's theme, (careers) is the career site under /career with its own - so nothing here
  * paints a theme or a nav. Only the tone of the user's theme sits on <html>, so that pop-ups,
- * which teleport to the body, keep it; (careers) sets its own tone on its wrapper.
+ * which teleport to the body, keep it; (careers) and (revue) set the tone of their own theme on
+ * their wrappers.
  */
 export default async function RootLayout({ children }: PropTypes) {
     const nextAuthSession = await getServerSession(authOptions)

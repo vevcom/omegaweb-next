@@ -166,6 +166,7 @@ export const userSchemas = {
         readUserWithBalance: userLookup,
 
         readPage,
+        readPageOf: readPage,
         readUnarchivedPage: readPage,
         readArchivedPage: readPage,
 
@@ -174,6 +175,11 @@ export const userSchemas = {
         update: z.union([id, username]),
         updateProfile: username,
         updateBioParagraphContent: paramsFieldSchemas.pick({
+            userId: true,
+        }),
+        createDefaultVevenMailAddress: id,
+        // The user whose veven mail address the operations of vevenMailAddress.ts act on.
+        vevenMailAddress: paramsFieldSchemas.pick({
             userId: true,
         }),
         updatePassword: id,

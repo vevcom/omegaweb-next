@@ -1,4 +1,4 @@
-import '@pn-server-only'
+import '@ow-server-only'
 import { licenseSchemas } from './schemas'
 import { standardLicensesConfig, type StandardLicenseName } from './constants'
 import { licenseAuth } from './auth'

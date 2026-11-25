@@ -172,32 +172,32 @@ async function createArticleInCategory(
     })
 
     await buildArticleFromConfig({
-        updateName: data => articleCategoryOperations.updateArticle.update({
+        updateName: data => articleCategoryOperations.article.update({
             implementationParams: { articleCategoryId },
             params: { articleId: createdArticle.id },
             data
         }),
-        updateCoverImage: data => articleCategoryOperations.updateArticle.coverImage({
+        updateCoverImage: data => articleCategoryOperations.article.coverImage({
             implementationParams: { articleCategoryId },
             params: { cmsImageId: createdArticle.coverImage.id },
             data
         }),
-        addSection: data => articleCategoryOperations.updateArticle.addSection({
+        addSection: data => articleCategoryOperations.article.addSection({
             implementationParams: { articleCategoryId },
             params: { articleId: createdArticle.id },
             data
         }),
-        updateSectionParagraph: (paragraphId, data) => articleCategoryOperations.updateArticle.articleSections.cmsParagraph({
+        updateSectionParagraph: (paragraphId, data) => articleCategoryOperations.article.articleSections.cmsParagraph({
             implementationParams: { articleCategoryId },
             params: { paragraphId },
             data
         }),
-        updateSectionImage: (cmsImageId, data) => articleCategoryOperations.updateArticle.articleSections.cmsImage({
+        updateSectionImage: (cmsImageId, data) => articleCategoryOperations.article.articleSections.cmsImage({
             implementationParams: { articleCategoryId },
             params: { cmsImageId },
             data
         }),
-        updateSectionLink: (linkId, data) => articleCategoryOperations.updateArticle.articleSections.cmsLink({
+        updateSectionLink: (linkId, data) => articleCategoryOperations.article.articleSections.cmsLink({
             implementationParams: { articleCategoryId },
             params: { linkId },
             data
