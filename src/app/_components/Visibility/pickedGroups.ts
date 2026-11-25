@@ -2,17 +2,20 @@ import { findGroup } from '@/lib/groups/groupOptions'
 import { conditionKey } from '@/services/visibility/conditionKey'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { VisibilityCondition } from '@/services/visibility/types'
+import type { GroupType } from '@/prisma-generated-pn-types'
 
 /**
  * What a group picked in a visibility's editor starts as: the memberships of `order`, of any order
  * when it is null, or of the group's own current order, which need not be Omega's, and only the
- * active ones when `onlyActive`. It never starts as only the admins. Each owner states it for each of
- * its visibilities.
+ * active ones when `onlyActive`. It never starts as only the admins.
  */
 export type DefaultMembershipRequirement = {
     order: number | null | 'CURRENT_GROUP_ORDER',
     onlyActive: boolean,
 }
+
+/** What a picked group starts as by its type, which each owner states for each of its visibilities. */
+export type DefaultMembershipRequirements = Record<GroupType, DefaultMembershipRequirement>
 
 /**
  * The conditions of a list with the groups picked in it. A group is picked when the list holds it as
@@ -22,15 +25,15 @@ export function withPickedGroups(
     conditions: VisibilityCondition[],
     groupIds: number[],
     groups: ExpandedGroup[],
-    defaultRequirement: DefaultMembershipRequirement,
+    defaultRequirements: DefaultMembershipRequirements,
 ): VisibilityCondition[] {
     return withoutRepeats([
         ...conditions.filter(condition => (
-            groupIds.includes(condition.groupId) || !isAsPicked(condition, groups, defaultRequirement)
+            groupIds.includes(condition.groupId) || !isAsPicked(condition, groups, defaultRequirements)
         )),
         ...groupIds.flatMap(groupId => {
             const group = findGroup(groups, groupId)
-            return group ? [conditionOfPickedGroup(group, defaultRequirement)] : []
+            return group ? [conditionOfPickedGroup(group, defaultRequirements)] : []
         }),
     ])
 }
@@ -39,10 +42,10 @@ export function withPickedGroups(
 export function pickedGroupIds(
     conditions: VisibilityCondition[],
     groups: ExpandedGroup[],
-    defaultRequirement: DefaultMembershipRequirement,
+    defaultRequirements: DefaultMembershipRequirements,
 ): number[] {
     return conditions
-        .filter(condition => isAsPicked(condition, groups, defaultRequirement))
+        .filter(condition => isAsPicked(condition, groups, defaultRequirements))
         .map(({ groupId }) => groupId)
 }
 
@@ -53,16 +56,18 @@ export function withoutRepeats(conditions: VisibilityCondition[]) {
 
 function conditionOfPickedGroup(
     group: ExpandedGroup,
-    { order, onlyActive }: DefaultMembershipRequirement,
+    defaultRequirements: DefaultMembershipRequirements,
 ): VisibilityCondition {
+    const { order, onlyActive } = defaultRequirements[group.groupType]
     return { groupId: group.id, order: order === 'CURRENT_GROUP_ORDER' ? group.order : order, onlyActive, onlyAdmins: false }
 }
 
 function isAsPicked(
     condition: VisibilityCondition,
     groups: ExpandedGroup[],
-    defaultRequirement: DefaultMembershipRequirement,
+    defaultRequirements: DefaultMembershipRequirements,
 ) {
     const group = findGroup(groups, condition.groupId)
-    return group !== undefined && conditionKey(condition) === conditionKey(conditionOfPickedGroup(group, defaultRequirement))
+    return group !== undefined
+        && conditionKey(condition) === conditionKey(conditionOfPickedGroup(group, defaultRequirements))
 }

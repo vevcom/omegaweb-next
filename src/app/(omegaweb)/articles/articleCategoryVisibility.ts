@@ -1,5 +1,9 @@
 'use client'
 import { implementDoubleLevelVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
+import {
+    adminDefaultMembershipRequirements,
+    regularDefaultMembershipRequirements,
+} from '@/components/Visibility/defaultMembershipRequirements'
 import { configureAction } from '@/services/configureAction'
 import {
     updateArticleCategoryAdminLevelVisibilityAction,
@@ -11,7 +15,7 @@ export const articleCategoryVisibility = implementDoubleLevelVisibilityComponent
     regular: {
         verb: 'kan lese artiklene',
         everyone: 'Alle',
-        defaultMembershipRequirement: { order: 'CURRENT_GROUP_ORDER', onlyActive: false },
+        defaultMembershipRequirements: regularDefaultMembershipRequirements,
         update: implementationParams => configureAction(
             updateArticleCategoryRegularLevelVisibilityAction,
             { implementationParams },
@@ -20,7 +24,7 @@ export const articleCategoryVisibility = implementDoubleLevelVisibilityComponent
     },
     admin: {
         verb: 'kan redigere artiklene',
-        defaultMembershipRequirement: { order: null, onlyActive: true },
+        defaultMembershipRequirements: adminDefaultMembershipRequirements,
         update: implementationParams => configureAction(
             updateArticleCategoryAdminLevelVisibilityAction,
             { implementationParams },

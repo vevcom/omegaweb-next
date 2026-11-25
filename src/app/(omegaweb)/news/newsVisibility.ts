@@ -1,5 +1,9 @@
 'use client'
 import { implementDoubleLevelVisibilityComponents } from '@/components/Visibility/VisibilityComponents'
+import {
+    adminDefaultMembershipRequirements,
+    regularDefaultMembershipRequirements,
+} from '@/components/Visibility/defaultMembershipRequirements'
 import { configureAction } from '@/services/configureAction'
 import {
     updateNewsAdminLevelVisibilityAction,
@@ -11,13 +15,13 @@ export const newsVisibility = implementDoubleLevelVisibilityComponents<{ id: num
     regular: {
         verb: 'kan lese nyheten',
         everyone: 'Alle',
-        defaultMembershipRequirement: { order: 'CURRENT_GROUP_ORDER', onlyActive: false },
+        defaultMembershipRequirements: regularDefaultMembershipRequirements,
         update: implementationParams => configureAction(updateNewsRegularLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => newsAuth.updateRegularLevel.data({ visibility }),
     },
     admin: {
         verb: 'kan administrere nyheten',
-        defaultMembershipRequirement: { order: null, onlyActive: true },
+        defaultMembershipRequirements: adminDefaultMembershipRequirements,
         update: implementationParams => configureAction(updateNewsAdminLevelVisibilityAction, { implementationParams }),
         updateAuthorizer: visibility => newsAuth.updateAdminLevel.data({ visibility }),
     },

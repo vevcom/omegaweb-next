@@ -18,7 +18,7 @@ import { findGroup, orderOptions } from '@/lib/groups/groupOptions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
-import type { DefaultMembershipRequirement } from '@/components/Visibility/pickedGroups'
+import type { DefaultMembershipRequirements } from '@/components/Visibility/pickedGroups'
 import type { ExpandedGroup } from '@/services/groups/types'
 import type { VisibilityCondition, VisibilityRequirement } from '@/services/visibility/types'
 import type { GroupType } from '@/prisma-generated-pn-types'
@@ -28,7 +28,7 @@ type PropTypes = {
     verb: string,
     /** What no requirements means here. Left out where that must not be offered, as for those administrating. */
     everyone?: string,
-    defaultMembershipRequirement: DefaultMembershipRequirement,
+    defaultMembershipRequirements: DefaultMembershipRequirements,
 } & ({
     /** The form field the matrix is posted in, as JSON, which `Zpn.json` on the schema side reads. */
     name: string,
@@ -124,13 +124,13 @@ function ConditionChip({ condition, groups, onChange, onRemove }: {
 /**
  * An editor for a single visibility matrix, which says who gets in as a sentence. A list here is a
  * requirement, so someone must be in one group of every list, and a group picked in one starts as
- * `defaultMembershipRequirement` says. Given `name` it is a form field that posts the matrix as JSON. Given
+ * `defaultMembershipRequirements` says. Given `name` it is a form field that posts the matrix as JSON. Given
  * `requirements` and `onChange` it is controlled, for a form that needs the matrix as it is edited
  * and posts it itself. Its other inputs have no names, since they load late, which a form would
  * count as a change.
  */
 export default function VisibilityMatrixEditor(props: PropTypes) {
-    const { verb, everyone, defaultMembershipRequirement } = props
+    const { verb, everyone, defaultMembershipRequirements } = props
     const [ownRequirements, setOwnRequirements] = useState<VisibilityRequirement[]>(
         'defaultValue' in props ? props.defaultValue ?? [] : [],
     )
@@ -216,11 +216,11 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                     <MultiSearchableDropdown
                         label="Legg til gruppe"
                         options={groupOptions(groups)}
-                        values={pickedGroupIds(list.conditions, groups, defaultMembershipRequirement)}
+                        values={pickedGroupIds(list.conditions, groups, defaultMembershipRequirements)}
                         hideSelected
                         onChange={groupIds => setConditions(
                             listIndex,
-                            withPickedGroups(list.conditions, groupIds, groups, defaultMembershipRequirement),
+                            withPickedGroups(list.conditions, groupIds, groups, defaultMembershipRequirements),
                         )}
                         className="max-w-none! mt-0!"
                     />
