@@ -1,6 +1,7 @@
 import '@ow-server-only'
 import { chatSpaceNotificationOperations } from '@/services/chat/spaces/notifications/operations'
 import { chatDirectAndGroupNotificationChannel } from '@/services/chat/directAndGroupNotificationChannel'
+import { chatLinks } from '@/app/(omegaweb)/chat/links'
 import { prisma } from '@/prisma-pn-client-instance'
 import type { ChatPowerLevels, Homeserver } from './client'
 import type { SyncReport } from './report'
@@ -17,8 +18,6 @@ const NOTIFIED_OF_WITHIN_MS = 60 * 60 * 1000
 const DEFAULT_LEVEL_TO_MENTION_ROOM = 50
 /** The homeserver may tell of a message again for as long as it has not been answered, and then it is known. */
 const KEPT_AFTER_NOTIFIED_MS = 24 * 60 * 60 * 1000
-/** Where a notification leads: the user's own chat page, since a notification only links within the site. */
-const CHAT_PAGE_OF_THE_USER = '/users/me/chat'
 
 const withRoomAndSpace = {
     room: {
@@ -129,7 +128,7 @@ async function notifyOf(homeserver: Homeserver, message: MessageInSpace, { inRoo
     const notification = {
         title: `${sender} ${mentionsSomeone ? wrote : 'skrev'} i ${room.name}`,
         message: `Meldingen ligger i rommet ${room.name} i chatområdet ${room.space.name}.`,
-        url: CHAT_PAGE_OF_THE_USER,
+        url: chatLinks.spaces(),
         audience: { userIds: recipientUserIds },
     }
     const { createMentionsNotification, createAllNotification } = chatSpaceNotificationOperations.internal
@@ -197,7 +196,7 @@ async function notifyOfStandalone(
         if (recipientUserIds.length > 0) {
             await chatDirectAndGroupNotificationChannel.internal.createNotification.internalCall({
                 prisma: tx,
-                data: { ...notification, url: CHAT_PAGE_OF_THE_USER, audience: { userIds: recipientUserIds } },
+                data: { ...notification, url: chatLinks.messages(), audience: { userIds: recipientUserIds } },
             })
         }
         await tx.chatRoomMessage.updateMany({

@@ -44,7 +44,7 @@ An overlay includes `base` and fills in what it leaves open:
 - **The chat.** `CHAT_AUTH_URL` is the origin of the chat's sign in, MAS, whose host is the
   client id it signs users in through the provider with. Left unset, the provider knows no chat.
   The chat's own settings for this are documented in chat-infrastructure. `CHAT_CLIENT_URL` is the
-  origin of the chat client, which a user's chat page links to. Left unset, nothing links to it.
+  origin of the chat client, which the chat pages link to. Left unset, nothing links to it.
 - **Hearing from the chat.** `CHAT_HS_TOKEN` is the token the homeserver signs what it sends the
   app with, a secret the chat has too. The homeserver is told where the app is in its own config,
   as the app's address inside the cluster followed by `/api/chat/appservice`: the app answers there
