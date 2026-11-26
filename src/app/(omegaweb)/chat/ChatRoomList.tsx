@@ -1,9 +1,12 @@
 'use client'
+import { chatLinks } from './links'
 import { useChatSession } from '@/components/Chat/Session/ChatSessionProvider'
 import ChatSessionStatus from '@/components/Chat/Session/ChatSessionStatus'
 import Tag from '@/components/Chat/SpaceAdmin/Tag'
-import { standaloneRoomsOf } from '@/lib/chatSession/rooms'
-import { useEffect, useMemo } from 'react'
+import SiteLink from '@/components/SiteLink/SiteLink'
+import { watchStandaloneRooms } from '@/lib/chatSession/rooms'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import type { ChatSessionState } from '@/lib/chatSession/run'
 
 type PropTypes = {
     /** The Matrix ids of the spaces the user is in and of their rooms, which the spaces page lists. */
@@ -23,28 +26,43 @@ export default function ChatRoomList({ roomIdsOfSpaces }: PropTypes) {
         if (signsInAtOnce) signIn()
     }, [signsInAtOnce, signIn])
 
-    const rooms = useMemo(
-        () => (state.status === 'RUNNING' ? standaloneRoomsOf(state.client, roomIdsOfSpaces) : []),
-        [state, roomIdsOfSpaces],
-    )
-
     if (signsInAtOnce) return <p className="m-0 text-base-content/80">Logger inn på chatten ...</p>
     if (state.status !== 'RUNNING') return <ChatSessionStatus />
+    return <RoomsOfRunningSession state={state} roomIdsOfSpaces={roomIdsOfSpaces} />
+}
+
+/**
+ * A room the user is in opens, and says how much in it is unread. One they are only asked into does
+ * not open, since nothing here answers an invitation yet.
+ */
+function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces }: PropTypes & {
+    state: ChatSessionState & { status: 'RUNNING' },
+}) {
+    const watched = useMemo(() => watchStandaloneRooms(client, roomIdsOfSpaces), [client, roomIdsOfSpaces])
+    const rooms = useSyncExternalStore(watched.subscribe, watched.read)
 
     return <>
-        {state.connection === 'LOST' && (
+        {connection === 'LOST' && (
             <p className="m-0 text-base-content/80">Får ikke kontakt med chatten. Prøver igjen ...</p>
         )}
-        {state.connection === 'CONNECTING' && <p className="m-0 text-base-content/80">Henter samtalene dine ...</p>}
-        {state.connection === 'CONNECTED' && rooms.length === 0 && (
+        {connection === 'CONNECTING' && <p className="m-0 text-base-content/80">Henter samtalene dine ...</p>}
+        {connection === 'CONNECTED' && rooms.length === 0 && (
             <p className="m-0 text-base-content/80">Du har ingen direktemeldinger eller grupper ennå.</p>
         )}
         <ul className="m-0 p-0 list-none flex flex-col gap-2">
             {rooms.map(room => (
                 <li key={room.id} className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-medium">{room.name}</span>
+                    {room.isInvitation
+                        ? <span className="font-medium">{room.name}</span>
+                        : (
+                            <SiteLink href={chatLinks.room(room)} className={room.unread > 0 ? 'font-bold' : 'font-medium'}>
+                                {room.name}
+                            </SiteLink>
+                        )}
                     <Tag>{room.kind === 'DIRECT' ? 'Direktemelding' : 'Gruppe'}</Tag>
                     {room.isInvitation && <Tag>Invitasjon</Tag>}
+                    {room.unread > 0 && <Tag>{`${room.unread} ${room.unread === 1 ? 'ulest' : 'uleste'}`}</Tag>}
+                    {room.mentions > 0 && <Tag>{`${room.mentions} ${room.mentions === 1 ? 'omtale' : 'omtaler'}`}</Tag>}
                 </li>
             ))}
         </ul>

@@ -1,4 +1,7 @@
-import type { MatrixClient, RoomNameState, RoomNameType } from 'matrix-js-sdk'
+import { loadedChatSdk } from './sdk'
+import { isSameList, watchAtSync } from './watch'
+import type { Watched } from './watch'
+import type { MatrixClient, Room, RoomNameState, RoomNameType } from 'matrix-js-sdk'
 
 /**
  * What a room without a name of its own is called: the others in it, from the `names` and the
@@ -61,4 +64,55 @@ export function standaloneRoomsOf(client: MatrixClient, roomIdsOfSpaces: readonl
             }
         })
         .sort((one, other) => one.name.localeCompare(other.name, 'nb'))
+}
+
+export type ListedRoom = StandaloneRoom & {
+    /**
+     * How many messages the user has not read, as the homeserver counts them: those it would
+     * notify the user of, since the one the user last told it was read.
+     */
+    unread: number,
+    /** How many of the unread mention the user. */
+    mentions: number,
+}
+
+/**
+ * The list of standaloneRoomsOf as a component shows it, each room with its unread, which changes
+ * as the homeserver tells of the rooms.
+ */
+export function watchStandaloneRooms(client: MatrixClient, roomIdsOfSpaces: readonly string[]): Watched<ListedRoom[]> {
+    const { NotificationCountType } = loadedChatSdk()
+    return watchAtSync(client, () => standaloneRoomsOf(client, roomIdsOfSpaces).map(listed => {
+        const room = client.getRoom(listed.id)
+        return {
+            ...listed,
+            unread: room?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0,
+            mentions: room?.getUnreadNotificationCount(NotificationCountType.Highlight) ?? 0,
+        }
+    }), isSameList)
+}
+
+/** A room the user is in, which is one that opens. Null until the client knows of it, and for a room the user is not in. */
+export function joinedRoom(client: MatrixClient, roomId: string): Room | null {
+    const room = client.getRoom(roomId)
+    return room?.getMyMembership() === 'join' ? room : null
+}
+
+/**
+ * The direct message the user has with another: a room without a name that the user is in, of
+ * the two of them and nobody else, where the other has joined, and the one last written in when
+ * there are several. Who asked the user into a room says nothing of who is in it now, so a room
+ * the other has left is not one, whoever is in it in their place. One the other is only asked
+ * into is not one either: the homeserver does not tell the client of a member who has not
+ * joined. A room of a space has a name, so none of them is one. Null when the two have none.
+ */
+export function directRoomWith(client: MatrixClient, userId: string): Room | null {
+    const ownId = client.getSafeUserId()
+    if (userId === ownId) return null
+    const [latest] = standaloneRoomsOf(client, [])
+        .filter(({ kind, isInvitation }) => kind === 'DIRECT' && !isInvitation)
+        .flatMap(({ id }) => client.getRoom(id) ?? [])
+        .filter(room => room.getMember(userId)?.membership === 'join')
+        .sort((one, other) => other.getLastActiveTimestamp() - one.getLastActiveTimestamp())
+    return latest ?? null
 }

@@ -53,6 +53,6 @@ describe('without a chat client', () => {
         })
         const seesUsers = loaded.Session.fromJsObject({ user: viewer, permissions: ['USERS_USE'], memberships: [] })
         await expect(loaded.chatUserOperations.readDirectMessage({ params: { userId }, session: seesUsers }))
-            .resolves.toEqual({ isOnChat: true, url: null })
+            .resolves.toMatchObject({ isOnChat: true, url: null })
     })
 })

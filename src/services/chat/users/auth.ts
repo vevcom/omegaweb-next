@@ -13,4 +13,6 @@ export const chatUserAuth = {
     destroyPicture: Require.userId({ errorMessage: 'Bare du selv fjerner chatbildet ditt' }),
     /** A user who sees the users may write to the ones on the chat. */
     readDirectMessage: Require.user().permission('USERS_USE'),
+    /** A user who sees the users sees who the ones on the chat are. */
+    readProfiles: Require.user().permission('USERS_USE'),
 } as const

@@ -26,7 +26,8 @@ describe('the active item of the chat pages\' navigation', () => {
         expect(activeOn('/chat/settings')).toBe(chatLinks.settings())
     })
 
-    test('is the messages on a direct message, whatever the user is called', () => {
+    test('is the messages on a room and on a direct message, whatever the user is called', () => {
+        expect(activeOn(chatLinks.room({ id: '!rom:chat.test' }))).toBe(chatLinks.messages())
         expect(activeOn(chatLinks.directMessage({ username: 'kari' }))).toBe(chatLinks.messages())
         expect(activeOn(chatLinks.directMessage({ username: 'spaces' }))).toBe(chatLinks.messages())
         expect(activeOn(chatLinks.directMessage({ username: 'settings' }))).toBe(chatLinks.messages())

@@ -8,9 +8,10 @@ import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
+import { userPartitions } from '@/services/users/constants'
 import { chatClientOrigin } from '@/services/chat/constants'
 import { chatServer } from '@/lib/chatSync/constants'
-import { matrixUserIdOf } from '@/lib/chatSync/matrixUserId'
+import { localpartOf, matrixUserIdOf } from '@/lib/chatSync/matrixUserId'
 
 const subscribableChannel = {
     select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
@@ -190,9 +191,9 @@ export const chatUserOperations = {
     }),
 
     /**
-     * Whether a user is on the chat to be written to, and where the chat client opens a direct
-     * message with them. No url for a user without an account there, nor where the client or the
-     * server name is unset.
+     * Whether a user is on the chat to be written to, their Matrix id there, and where the chat
+     * client opens a direct message with them. No id for a user without an account there, nor
+     * without the server name, and no url without the id or the client.
      */
     readDirectMessage: defineOperation({
         paramsSchema: chatUserSchemas.params.readDirectMessage,
@@ -203,12 +204,41 @@ export const chatUserOperations = {
                 select: { localpart: true },
             })
             const { serverName } = chatServer
+            const matrixUserId = chatUser && serverName ? matrixUserIdOf(chatUser.localpart, serverName) : null
             return {
                 isOnChat: chatUser !== null,
-                url: chatUser && chatClientOrigin && serverName
-                    ? `${chatClientOrigin}/#/user/${matrixUserIdOf(chatUser.localpart, serverName)}?action=chat`
-                    : null,
+                matrixUserId,
+                url: matrixUserId && chatClientOrigin ? `${chatClientOrigin}/#/user/${matrixUserId}?action=chat` : null,
             }
+        },
+    }),
+
+    /**
+     * Who the accounts with these Matrix ids are here: the user of each, by name, and the picture
+     * the account has. One that is no user's account on this homeserver is left out, as is one
+     * that is deactivated, and the account of an archived user, whom only an admin sees.
+     */
+    readProfiles: defineOperation({
+        paramsSchema: chatUserSchemas.params.readProfiles,
+        authorizer: () => chatUserAuth.readProfiles,
+        operation: async ({ prisma, params }) => {
+            const { serverName } = chatServer
+            if (!serverName) return []
+            const localparts = params.matrixUserIds.flatMap(matrixUserId => localpartOf(matrixUserId, serverName) ?? [])
+            const chatUsers = await prisma.chatUser.findMany({
+                where: { localpart: { in: localparts }, deactivatedAt: null, user: userPartitions.unarchived },
+                select: {
+                    localpart: true,
+                    image: { include: expandedImageIncluder },
+                    user: { select: { firstname: true, lastname: true, image: { include: expandedImageIncluder } } },
+                },
+            })
+            return chatUsers.flatMap(({ localpart, image, user }) => (user ? [{
+                matrixUserId: matrixUserIdOf(localpart, serverName),
+                firstname: user.firstname,
+                lastname: user.lastname,
+                image: chatPictureOf({ image, user })?.image ?? null,
+            }] : []))
         },
     }),
 } as const

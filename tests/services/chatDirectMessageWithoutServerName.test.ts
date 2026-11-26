@@ -43,6 +43,6 @@ describe('the direct message with a user, without the server name', () => {
         const viewer = { id: 0 } as UserFiltered
         const seesUsers = loaded.Session.fromJsObject({ user: viewer, permissions: ['USERS_USE'], memberships: [] })
         await expect(loaded.chatUserOperations.readDirectMessage({ params: { userId }, session: seesUsers }))
-            .resolves.toEqual({ isOnChat: true, url: null })
+            .resolves.toEqual({ isOnChat: true, matrixUserId: null, url: null })
     })
 })

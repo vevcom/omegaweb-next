@@ -2,6 +2,8 @@ import { authorizeChatPage } from '@/app/(omegaweb)/chat/authorizeChatPage'
 import ChatAccountNotice from '@/app/(omegaweb)/chat/ChatAccountNotice'
 import { chatLinks } from '@/app/(omegaweb)/chat/links'
 import { usernameOfPage } from '@/app/(omegaweb)/links'
+import OpenChatRoom from '@/components/Chat/Room/OpenChatRoom'
+import { chatSessionOperations } from '@/services/chat/session/operations'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import { userOperations } from '@/services/users/operations'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -17,31 +19,45 @@ const { page, generateMetadata } = serverPage({
         const { user: recipient } = await userOperations.readProfile({ params: { username } })
         if (recipient.id === user.id) await siteRedirect(chatLinks.messages())
 
-        const [directMessage, chatUser] = await Promise.all([
+        const ofUser = { params: { userId: user.id } }
+        const [directMessage, chatUser, chatSession] = await Promise.all([
             chatUserOperations.readDirectMessage({ params: { userId: recipient.id } }),
-            withFallback(chatUserOperations.read({ params: { userId: user.id } }), null, ['NOT FOUND']),
+            withFallback(chatUserOperations.read(ofUser), null, ['NOT FOUND']),
+            withFallback(chatSessionOperations.read(ofUser), null, ['NOT FOUND']),
         ])
-        return { recipient, directMessage, hasChatAccount: chatUser !== null }
+        return { recipient, directMessage, hasChatAccount: chatUser !== null, signsIn: chatSession !== null }
     },
     metadata: ({ recipient }) => ({ title: `Melding til ${recipient.firstname}` }),
-    render: ({ data: { recipient, directMessage, hasChatAccount } }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
-            <h2 className="m-0">Melding til {recipient.firstname} {recipient.lastname}</h2>
-            {directMessage.isOnChat ? <>
-                <p className="m-0">Direktemeldinger ligger bare på chatten, så de vises ikke her ennå.</p>
-                <ChatAccountNotice hasChatAccount={hasChatAccount} />
-                {directMessage.url && (
-                    <SiteLink href={externalHref(directMessage.url)} target="_blank">
-                        Skriv til {recipient.firstname} i Element
-                    </SiteLink>
+    render: ({ data: { recipient, directMessage, hasChatAccount, signsIn } }) => {
+        const name = `${recipient.firstname} ${recipient.lastname}`
+        const inChatClient = directMessage.url && (
+            <SiteLink href={externalHref(directMessage.url)} target="_blank">
+                Skriv til {recipient.firstname} i Element
+            </SiteLink>
+        )
+        if (signsIn && directMessage.matrixUserId) {
+            return (
+                <OpenChatRoom room={{ directWith: directMessage.matrixUserId, name }}>
+                    <p className="m-0">Du har ingen direktemelding med {recipient.firstname} ennå.</p>
+                    {inChatClient}
+                </OpenChatRoom>
+            )
+        }
+        return (
+            <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+                <h2 className="m-0">Melding til {name}</h2>
+                {directMessage.isOnChat ? <>
+                    <p className="m-0">Direktemeldinger ligger bare på chatten, så de vises ikke her ennå.</p>
+                    <ChatAccountNotice hasChatAccount={hasChatAccount} />
+                    {inChatClient}
+                </> : (
+                    <p className="m-0">
+                        {recipient.firstname} er ikke på chatten. En konto der får man første gang man logger inn på chatten.
+                    </p>
                 )}
-            </> : (
-                <p className="m-0">
-                    {recipient.firstname} er ikke på chatten. En konto der får man første gang man logger inn på chatten.
-                </p>
-            )}
-        </div>
-    ),
+            </div>
+        )
+    },
 })
 
 export default page

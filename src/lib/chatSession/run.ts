@@ -20,7 +20,7 @@ export type ChatSessionState =
     | { status: 'SIGNED_OUT', reason: 'NO_SESSION' | 'ENDED' | ChatSignInRefusal }
     /** On the way to the chat's sign in, or trading the answer it gave for tokens. */
     | { status: 'SIGNING_IN' }
-    /** The client runs. The state is shown anew at every sync, so what is read from the client is read again. */
+    /** The client runs. It is shown anew at every sync, also when nothing of it has changed. */
     | { status: 'RUNNING', client: MatrixClient, connection: 'CONNECTING' | 'CONNECTED' | 'LOST' }
     /** The chat could not be reached to sign in, or the client could not start. */
     | { status: 'FAILED' }
@@ -105,7 +105,7 @@ export function runChatSession({ config, browser, redirectUri, show }: Params): 
         }
         mine.session = session
 
-        const { ClientEvent, HttpApiEvent, SyncState } = await loadChatSdk()
+        const { ClientEvent, HttpApiEvent, PendingEventOrdering, SyncState } = await loadChatSdk()
         const client = await chatClientOf(config, browser, session)
         if (running !== mine) {
             stopChatClient(client)
@@ -120,7 +120,8 @@ export function runChatSession({ config, browser, redirectUri, show }: Params): 
             showUnlessStopped({ status: 'RUNNING', client, connection: isLost ? 'LOST' : 'CONNECTED' })
         })
         showUnlessStopped({ status: 'RUNNING', client, connection: 'CONNECTING' })
-        await client.startClient({ lazyLoadMembers: true })
+        // What the user sends is kept apart from a room's timeline until the homeserver sends it back.
+        await client.startClient({ lazyLoadMembers: true, pendingEventOrdering: PendingEventOrdering.Detached })
     }
 
     /** The session the browser has kept, when it is still the user's, and says so when it has ended meanwhile. */
