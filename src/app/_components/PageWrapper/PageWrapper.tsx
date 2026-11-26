@@ -1,6 +1,6 @@
 import ScrollArea from '@/components/ScrollIndicator/ScrollArea'
 import HeaderSearch from '@/components/HeaderItems/HeaderSearch'
-import React from 'react'
+import type React from 'react'
 
 export default function PageWrapper({
     children,

@@ -1,6 +1,5 @@
 
 import PopUp from '@/components/PopUp/PopUp'
-import React from 'react'
 import { FontAwesomeIcon, type FontAwesomeIconProps } from '@fortawesome/react-fontawesome'
 import {
     faArchive,
@@ -13,6 +12,7 @@ import {
     faUpload,
     faUsers,
 } from '@fortawesome/free-solid-svg-icons'
+import type React from 'react'
 import type { PropTypes as PopUpProps } from '@/components/PopUp/PopUp'
 
 type PropTypes = Omit<PopUpProps, 'showButtonContent'> & { scale?: number, label?: React.ReactNode }

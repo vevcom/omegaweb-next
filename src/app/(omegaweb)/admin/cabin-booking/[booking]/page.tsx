@@ -6,7 +6,7 @@ import { displayDate } from '@/lib/dates/displayDate'
 import { formatVevenUri } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { appHref } from '@/lib/sites/href'
-import React from 'react'
+import type React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 function trHelper(key: string, value: React.ReactNode) {

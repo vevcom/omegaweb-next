@@ -1,6 +1,6 @@
 import StandardImageServer from '@/components/Image/StandardImageServer'
 import frontpageStyles from '@/app/(omegaweb)/(frontpage)/page.module.scss'
-import React from 'react'
+import type React from 'react'
 
 type PropTypes = {
     children: React.ReactNode

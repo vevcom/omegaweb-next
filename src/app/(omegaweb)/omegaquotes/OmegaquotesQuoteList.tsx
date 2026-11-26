@@ -3,7 +3,8 @@
 import OmegaquoteQuote from './OmegaquotesQuote'
 import { OmegaquotePagingContext } from '@/contexts/paging/OmegaquotesPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
-import React, { useContext } from 'react'
+import { useContext } from 'react'
+import type React from 'react'
 
 export type PropTypes = {
     serverRendered?: React.ReactNode,
