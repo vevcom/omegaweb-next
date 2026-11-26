@@ -159,7 +159,8 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
                 // ProseMirror adds the classes one by one and takes no line breaks between them.
                 class: `
                     ${htmlContentClassName}
-                    min-h-8 p-2 -m-2 rounded-inner cursor-text bg-base-content/10 outline-primary
+                    min-h-8 rounded-inner cursor-text bg-base-content/10 ring-8 ring-base-content/10 outline-primary
+                    outline-offset-8
                     focus:outline-1
                 `.split(/\s+/).filter(Boolean).join(' '),
                 'aria-label': 'Innhold',
