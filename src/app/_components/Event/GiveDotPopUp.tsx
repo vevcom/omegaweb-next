@@ -1,4 +1,5 @@
 'use client'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import PopUp from '@/components/PopUp/PopUp'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
@@ -26,7 +27,11 @@ export default function GiveDotPopUp({ eventId, accuserId, userId, popUpKey }: P
     )
 
     return (
-        <PopUp popUpKey={popUpKey} showButtonContent="Gi prikk" showButtonClass="btn-primary whitespace-nowrap">
+        <PopUp
+            popUpKey={popUpKey}
+            showButtonContent="Gi prikk"
+            showButtonClass={buttonClassName({ className: 'whitespace-nowrap' })}
+        >
             <Form
                 action={action}
                 title="Gi prikk"

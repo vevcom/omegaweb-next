@@ -1,6 +1,7 @@
 'use client'
 import ReleasePeriodForm from './ReleasePeriodForm'
 import PricePeriodForm from './PricePeriodForm'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import PopUp from '@/app/_components/PopUp/PopUp'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
@@ -40,7 +41,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewReleasePeriod"
                 showButtonContent="Nytt slipp"
-                showButtonClass="btn-primary"
+                showButtonClass={buttonClassName()}
             >
                 <ReleasePeriodForm closePopUpOnSuccess="CreateNewReleasePeriod" />
             </PopUp>
@@ -71,7 +72,7 @@ export default function PageStateWrapper({
                             params: { id: period.id },
                         })}
                         submitText="Slett"
-                        submitColor="red"
+                        submitColor="error"
                         confirmation={{
                             confirm: true,
                             text: 'Er du sikker på at du vil slette dette slippet?'
@@ -84,7 +85,7 @@ export default function PageStateWrapper({
             <PopUp
                 popUpKey="CreateNewPricePeriod"
                 showButtonContent="Ny prisperiode"
-                showButtonClass="btn-primary"
+                showButtonClass={buttonClassName()}
             >
                 <PricePeriodForm closePopUpOnSuccess="CreateNewPricePeriod" />
             </PopUp>
@@ -113,7 +114,7 @@ export default function PageStateWrapper({
                             params: { id: period.id },
                         })}
                         submitText="Slett"
-                        submitColor="red"
+                        submitColor="error"
                         confirmation={{
                             confirm: true,
                             text: 'Er du sikker på at du vil slette denne prisperioden? '

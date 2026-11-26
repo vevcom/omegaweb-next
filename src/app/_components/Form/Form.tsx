@@ -212,7 +212,7 @@ export default function Form<GiveActionReturn>({
             {submitText}
         </SubmitButton>
         {secondarySubmit && <SubmitButton
-            color={secondarySubmit.color ?? 'secondary'}
+            color={secondarySubmit.color ?? 'neutral'}
             success={success && submitter === 'secondary'}
             confirmation={confirmation}
             pending={pending && submitter === 'secondary'}
@@ -256,7 +256,7 @@ export default function Form<GiveActionReturn>({
                         {dirty ? 'Du har ulagrede endringer.' : 'Alt er lagret.'}
                     </p>
                     <div className="flex items-start gap-2">
-                        {dirty && <Button type="reset" color="secondary" className="m-0">
+                        {dirty && <Button type="reset" color="neutral" className="m-0">
                             Forkast
                         </Button>}
                         {submitButton}

@@ -50,7 +50,7 @@ export default function PensionGroup({
                 )({ data: { pensioned: !pensioned } })}
                 refreshOnSuccess
                 submitText={pensioned ? 'Gjenopprett gruppen' : 'Pensjoner gruppen'}
-                submitColor={pensioned ? 'primary' : 'red'}
+                submitColor={pensioned ? 'primary' : 'error'}
                 confirmation={{
                     confirm: true,
                     text: pensioned

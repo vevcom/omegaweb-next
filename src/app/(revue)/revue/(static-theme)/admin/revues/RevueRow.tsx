@@ -1,3 +1,4 @@
+import ButtonLink from '@/components/UI/ButtonLink'
 import { revueLinks } from '@/app/(revue)/links'
 import { revueAdminLinks } from '@/app/(revue)/revue/(static-theme)/admin/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
@@ -17,6 +18,6 @@ export default function RevueRow({ revue }: PropTypes) {
             <span className="font-semibold">{revue.name}</span>
             <span className="text-base-content/80"> ({revue.year})</span>
         </SiteLink>
-        <SiteLink href={revueAdminLinks.revue(revue)} className="btn-neutral m-0">Administrer</SiteLink>
+        <ButtonLink href={revueAdminLinks.revue(revue)} color="neutral" className="m-0">Administrer</ButtonLink>
     </li>
 }

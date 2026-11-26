@@ -1,5 +1,7 @@
 import ChangeName from './ChangeName'
 import OmbulAdmin from './OmbulAdmin'
+import ButtonLink from '@/components/UI/ButtonLink'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import { updateOmbulParagraphContentAction } from '@/services/ombul/actions'
 import { ombulOperations } from '@/services/ombul/operations'
 import PdfDocument from '@/components/PdfDocument/PdfDocument'
@@ -11,7 +13,6 @@ import { configureAction } from '@/services/configureAction'
 import { ombulAuth } from '@/services/ombul/auth'
 import { serverPage } from '@/app/ServerPage'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
-import SiteLink from '@/components/SiteLink/SiteLink'
 import { appHref } from '@/lib/sites/href'
 import { storeFilePath } from '@/services/store/paths'
 import { notFound } from 'next/navigation'
@@ -47,11 +48,11 @@ const { page, generateMetadata } = serverPage({
                     {/* Beside the title rather than in the wrapper's header slot, which sits above it -
                         the actions would otherwise be read before the issue they act on. */}
                     <div className="flex flex-row flex-wrap items-center gap-2">
-                        <a className="btn-primary m-0!" href={path} download>Last ned</a>
-                        <SiteLink className="btn-neutral m-0!" href={path} target="blank">Åpne i ny fane</SiteLink>
+                        <a className={buttonClassName({ className: 'm-0!' })} href={path} download>Last ned</a>
+                        <ButtonLink color="neutral" className="m-0!" href={path} target="blank">Åpne i ny fane</ButtonLink>
                         <PopUp
                             popUpKey={`OmbulPdfViewer${ombul.id}`}
-                            showButtonClass="btn-neutral m-0!"
+                            showButtonClass={buttonClassName({ color: 'neutral', className: 'm-0!' })}
                             showButtonContent="Les PDF"
                         >
                             <PdfDocument src={path} className="block w-[min(calc(100vw-4rem),calc(130svh-6rem))]" />

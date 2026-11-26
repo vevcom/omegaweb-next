@@ -3,6 +3,7 @@ import { htmlContentClassName } from './htmlContentClassName'
 import { configureAction } from '@/services/configureAction'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import Button from '@/components/UI/Button'
 import { useEffect, useRef, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -187,21 +188,18 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
                     flex gap-1 p-1 rounded-round bg-base-300 border border-base-content/20 shadow-md
                 ">
                     {tools.map(tool => (
-                        <button
+                        <Button
                             key={tool.label}
+                            variant="icon"
+                            color="neutral"
                             type="button"
                             title={tool.label}
                             aria-label={tool.label}
                             aria-pressed={tool.isActive(editor)}
                             onClick={() => tool.run(editor)}
-                            className="
-                                size-8 rounded-inner cursor-pointer text-base-content
-                                hover:bg-base-100
-                                aria-pressed:bg-primary aria-pressed:text-primary-content
-                            "
                         >
                             <FontAwesomeIcon icon={tool.icon} />
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </BubbleMenu>}

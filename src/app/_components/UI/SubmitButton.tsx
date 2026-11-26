@@ -91,7 +91,7 @@ export default function SubmitButton({
         return label
     }
     const submitButton = (label: ReactNode, isConfirmation = false) => {
-        const idleColor = isConfirmation ? 'red' : color
+        const idleColor = isConfirmation ? 'error' : color
         return (
             <Button
                 className={isConfirmation ? confirmationButtonClassName : `
@@ -99,7 +99,7 @@ export default function SubmitButton({
                     ${className ?? ''}
                 `}
                 aria-disabled={pending || success}
-                color={success ? 'green' : idleColor}
+                color={success ? 'success' : idleColor}
                 type="submit"
                 onClick={onClick}
                 disabled={disabled}
@@ -118,7 +118,7 @@ export default function SubmitButton({
                 <Button
                     className={confirmationButtonClassName}
                     type="button"
-                    color="secondary"
+                    color="neutral"
                     onClick={() => setConfirmedOpen(false)}
                 >
                     Nei
@@ -172,7 +172,7 @@ export default function SubmitButton({
                     <Button
                         className={confirmationButtonClassName}
                         aria-disabled={pending || success}
-                        color={success ? 'green' : 'red'}
+                        color={success ? 'success' : 'error'}
                         type="button"
                         disabled={disabled || pending || success}
                         onClick={() => realSubmitRef.current?.click()}

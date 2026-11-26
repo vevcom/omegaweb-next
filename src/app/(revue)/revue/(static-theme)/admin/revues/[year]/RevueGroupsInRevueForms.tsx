@@ -47,7 +47,7 @@ export default function RevueGroupsInRevueForms({ revueId, groupsInRevue, groups
                                     params: { revueId, revueGroupId: group.id },
                                 })}
                                 submitText="Ta ut"
-                                submitColor="red"
+                                submitColor="error"
                                 buttonClassName="w-24!"
                                 refreshOnSuccess
                                 confirmation={{

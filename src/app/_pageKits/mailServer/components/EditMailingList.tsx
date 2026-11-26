@@ -132,7 +132,7 @@ export default function EditMailingList({
             action={configureAction(destroyMailingListAction, { params: { id: focusedMailingList.id } })}
             successCallback={() => push(links.part('mailingList'))}
             submitText="Slett e-postlisten"
-            submitColor="red"
+            submitColor="error"
             confirmation={{
                 confirm: true,
                 text: 'Er du sikker på at du vil slette denne e-postlisten? Dette kan ikke angres.',

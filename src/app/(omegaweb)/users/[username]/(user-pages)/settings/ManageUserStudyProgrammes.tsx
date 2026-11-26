@@ -48,7 +48,7 @@ function RemoveStudyProgrammeMembershipForm({ userId, programme }: {
                 [&>*:last-child]:mt-0!
             "
             submitText="Fjern"
-            submitColor="red"
+            submitColor="error"
             action={() => configureAction(
                 removeStudyProgrammeMembersAction,
                 { params: { groupId: programme.groupId, order: programme.order } }

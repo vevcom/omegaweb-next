@@ -127,7 +127,7 @@ export default function PushDeviceSettings({ userId, vapidPublicKey }: {
                 Push-varsler er på for denne enheten. Du får dem fra kanalene som har Push-varsel huket av i
                 tabellen under. Logger du ut, skrus de av på denne enheten.
             </p>
-            <Button color="secondary" onClick={disable} disabled={pending}>Skru av på denne enheten</Button>
+            <Button color="neutral" onClick={disable} disabled={pending}>Skru av på denne enheten</Button>
         </>}
 
         {error && <p className="text-error">{error}</p>}

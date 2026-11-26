@@ -107,7 +107,7 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
             <span>eller</span>
         </div>
 
-        <Button color="secondary" style={{ width: '100%', margin: '0' }} onClick={() => signIn('feide', {
+        <Button color="neutral" style={{ width: '100%', margin: '0' }} onClick={() => signIn('feide', {
             redirect: true,
             callbackUrl,
         })}>

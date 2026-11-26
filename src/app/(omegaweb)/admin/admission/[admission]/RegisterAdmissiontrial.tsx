@@ -58,7 +58,7 @@ export default function RegisterAdmissiontrial({
                     <Form
                         className="m-0 p-0 text-[0.8rem]"
                         submitText="Registrer"
-                        submitColor="secondary"
+                        submitColor="neutral"
                         refreshOnSuccess
                         action={configureAction(createAdmissionTrialAction, { params: { admission } })}
                     >

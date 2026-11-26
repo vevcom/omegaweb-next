@@ -43,7 +43,7 @@ export default function SpaceRooms({ spaceId, rooms, spaceMembers, actions }: Pr
                                 <Form
                                     className="flex flex-row items-center gap-2 w-auto! grow"
                                     submitText="Lagre"
-                                    submitColor="secondary"
+                                    submitColor="neutral"
                                     action={configureAction(updateRoom, ofRoom)}
                                     refreshOnSuccess
                                 >
@@ -58,7 +58,7 @@ export default function SpaceRooms({ spaceId, rooms, spaceMembers, actions }: Pr
                                 <Form
                                     className="w-auto!"
                                     submitText="Slett"
-                                    submitColor="red"
+                                    submitColor="error"
                                     action={configureAction(destroyRoom, ofRoom)}
                                     refreshOnSuccess
                                     confirmation={{

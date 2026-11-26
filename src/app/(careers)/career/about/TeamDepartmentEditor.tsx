@@ -1,5 +1,7 @@
 'use client'
 import Form from '@/components/Form/Form'
+import Button from '@/components/UI/Button'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
@@ -20,11 +22,7 @@ type PropTypes = {
     canMoveDown: boolean
 }
 
-const controlClassName = `
-    grid place-items-center size-8 rounded-full border-none bg-base-300 text-base-content cursor-pointer transition-colors
-    hover:bg-base-300
-    disabled:opacity-30 disabled:cursor-default
-`
+const controlClassName = 'bg-base-300! rounded-full!'
 
 export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDown }: PropTypes) {
     const editable = useEditMode({ authorizer: careersTeamAuth.updateDepartment })
@@ -40,25 +38,29 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
     if (!editable) return null
     return (
         <div className="flex items-center gap-2 mt-4">
-            <button
+            <Button
+                variant="icon"
+                color="neutral"
                 className={controlClassName}
                 disabled={!canMoveUp}
                 onClick={() => move('UP')}
                 aria-label="Flytt avdelingen opp"
             >
                 <FontAwesomeIcon icon={faArrowUp} />
-            </button>
-            <button
+            </Button>
+            <Button
+                variant="icon"
+                color="neutral"
                 className={controlClassName}
                 disabled={!canMoveDown}
                 onClick={() => move('DOWN')}
                 aria-label="Flytt avdelingen ned"
             >
                 <FontAwesomeIcon icon={faArrowDown} />
-            </button>
+            </Button>
             <PopUp
                 popUpKey={popUpKey}
-                showButtonClass={controlClassName}
+                showButtonClass={buttonClassName({ variant: 'icon', color: 'neutral', className: controlClassName })}
                 showButtonContent={<FontAwesomeIcon icon={faPencil} />}
                 ariaLabel={`Rediger ${department.name}`}
             >
@@ -75,7 +77,7 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
                     <Form
                         action={configureAction(destroyCareersTeamDepartmentAction, params)}
                         submitText="Slett avdeling"
-                        submitColor="red"
+                        submitColor="error"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
                         confirmation={{

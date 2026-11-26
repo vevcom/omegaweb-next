@@ -20,7 +20,7 @@ export default function ArchiveUserForm({ userId, ownAccount }: PropTypes) {
             title="Arkiver bruker"
             action={configureAction(archiveUserAction, { params: { id: userId } })}
             submitText={ownAccount ? 'Arkiver kontoen min' : 'Arkiver brukeren'}
-            submitColor="red"
+            submitColor="error"
             navigateOnSuccess={ownAccount ? omegaAuthLinks.logout() : appHref('/admin/users/archived')}
             confirmation={{
                 confirm: true,

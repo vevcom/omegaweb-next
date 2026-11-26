@@ -352,7 +352,7 @@ function SeatingEditor({ eventId, board, onDiscard, points, setPoints }: {
                             data: { published: !board.publishedAt },
                         })}
                         submitText={board.publishedAt ? 'Skjul bordene' : 'Publiser bordene'}
-                        submitColor={board.publishedAt ? 'red' : 'green'}
+                        submitColor={board.publishedAt ? 'error' : 'success'}
                         disabled={!board.publishedAt && hasUnsavedPlan}
                         refreshOnSuccess
                     />

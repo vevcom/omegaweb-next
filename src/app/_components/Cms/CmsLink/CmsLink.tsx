@@ -1,4 +1,5 @@
 import CmsLinkEditor from './CmsLinkEditor'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { hrefOf } from '@/lib/sites/href'
@@ -16,17 +17,15 @@ export type PropTypes = {
     capabilities: Capabilities<'canEdit'>
 }
 
+const secondaryClassName = buttonClassName({
+    color: 'neutral',
+    className: 'm-0 hover:bg-neutral/90 hover:text-neutral-content',
+})
+
 const colorClassNames = {
-    primary: 'btn-primary m-0',
-    secondary: `
-        btn-neutral m-0
-        hover:bg-neutral/90 hover:text-neutral-content
-    `,
-    neutral:
-        `
-            btn-neutral m-0
-            hover:bg-neutral/90 hover:text-neutral-content
-        `,
+    primary: buttonClassName({ className: 'm-0' }),
+    secondary: secondaryClassName,
+    neutral: secondaryClassName,
 } as const
 
 export default function CmsLink({

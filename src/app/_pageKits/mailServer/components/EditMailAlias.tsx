@@ -139,7 +139,7 @@ export default function EditMailAlias({
             action={configureAction(destroyMailAliasAction, { params: { id: focusedAlias.id } })}
             successCallback={() => push(links.part('alias'))}
             submitText="Slett aliaset"
-            submitColor="red"
+            submitColor="error"
             confirmation={{
                 confirm: true,
                 text: 'Er du sikker på at du vil slette dette aliaset? Dette kan ikke angres.',

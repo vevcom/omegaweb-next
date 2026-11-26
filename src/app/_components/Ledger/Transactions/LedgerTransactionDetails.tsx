@@ -145,7 +145,7 @@ export default function LedgerTransactionDetails({ transaction, accountId }: Pro
         {transaction.state === 'PENDING' && canCancel && (
             <Form
                 submitText="Avbryt betaling"
-                submitColor="red"
+                submitColor="error"
                 confirmation={{
                     confirm: true,
                     text: 'Er du sikker på at du vil avbryte denne betalingen?',

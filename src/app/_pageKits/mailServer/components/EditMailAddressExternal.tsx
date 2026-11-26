@@ -72,7 +72,7 @@ export default function EditMailAddressExternal({
             action={configureAction(destroyMailAddressExternalAction, { params: { id: focusedExternal.id } })}
             successCallback={() => push(links.part('mailaddressExternal'))}
             submitText="Slett adressen"
-            submitColor="red"
+            submitColor="error"
             confirmation={{
                 confirm: true,
                 text: 'Er du sikker på at du vil slette denne eksterne adressen? Dette kan ikke angres.',

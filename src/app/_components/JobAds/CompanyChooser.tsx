@@ -1,9 +1,9 @@
 'use client'
+import ButtonLink from '@/components/UI/ButtonLink'
 import CompanyList from '@/components/Company/CompanyList'
 import TextInput from '@/components/UI/TextInput'
 import { CompanyPagingContext } from '@/contexts/paging/CompanyPaging'
 import { careerLinks } from '@/app/(careers)/links'
-import SiteLink from '@/components/SiteLink/SiteLink'
 import { useContext } from 'react'
 import type { ChangeEvent } from 'react'
 
@@ -34,9 +34,9 @@ export default function CompanyChooser({ className }: PropTypes) {
                     name="name"
                     onChange={handleNameFilter}
                 />
-                <SiteLink href={careerLinks.companies()} className="btn-neutral m-0 whitespace-nowrap">
+                <ButtonLink href={careerLinks.companies()} color="neutral" className="m-0 whitespace-nowrap">
                     Administrer bedrifter
-                </SiteLink>
+                </ButtonLink>
             </div>
             <div className="
                 flex-1 min-h-0 overflow-y-auto pr-2

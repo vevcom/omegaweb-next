@@ -1,8 +1,8 @@
+import ButtonLink from '@/components/UI/ButtonLink'
 import LedgerTransactionRow from '@/components/Ledger/Transactions/LedgerTransactionRow'
 import LedgerTransactionTable, { emptyTransactionsText } from '@/components/Ledger/Transactions/LedgerTransactionTable'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { withPageSession } from '@/app/ServerPage'
-import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import type { AppHref } from '@/lib/sites/href'
@@ -32,9 +32,9 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
         }
         {
             transactionsHref &&
-            <SiteLink href={transactionsHref} className="btn-primary inline-flex items-center gap-2">
+            <ButtonLink href={transactionsHref} className="inline-flex items-center gap-2">
                 Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} />
-            </SiteLink>
+            </ButtonLink>
         }
     </div>
 }

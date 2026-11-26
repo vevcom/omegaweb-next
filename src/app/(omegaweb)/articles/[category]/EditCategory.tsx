@@ -125,7 +125,7 @@ export default function EditCategory({ category }: PropTypes) {
                             )}
                             successCallback={handleSuccessDestroy}
                             submitText="Slett kategori"
-                            submitColor="red"
+                            submitColor="error"
                             confirmation={{
                                 confirm: true,
                                 text: 'Er du sikker på at du vil slette denne kategorien?',

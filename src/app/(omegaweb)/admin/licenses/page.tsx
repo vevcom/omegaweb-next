@@ -66,7 +66,7 @@ const { page, generateMetadata } = serverPage({
                                     <Form
                                         action={configureAction(destroyLicenseAction, { params: { id: license.id } })}
                                         submitText="Slett"
-                                        submitColor="red"
+                                        submitColor="error"
                                         refreshOnSuccess
                                     />
                                     }

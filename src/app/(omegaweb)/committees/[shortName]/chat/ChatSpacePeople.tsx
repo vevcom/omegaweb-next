@@ -28,7 +28,7 @@ export default function ChatSpacePeople({ spaceId, people, actions }: PropTypes)
         <Form
             className="w-auto!"
             submitText="Fjern"
-            submitColor="red"
+            submitColor="error"
             action={configureAction(removeMembers, ofSpace)}
             refreshOnSuccess
             confirmation={{ confirm: true, text: `Fjerne ${nameOf(person)} fra chatområdet og rommene i det?` }}
@@ -40,7 +40,7 @@ export default function ChatSpacePeople({ spaceId, people, actions }: PropTypes)
         <Form
             className="w-auto!"
             submitText="Legg til"
-            submitColor="secondary"
+            submitColor="neutral"
             action={configureAction(addMembers, ofSpace)}
             refreshOnSuccess
         >

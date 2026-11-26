@@ -125,7 +125,7 @@ export default function EventTagsAdmin({
                                                 closePopUpOnSuccess={`EventTagPopUp${tag.id}`}
                                                 refreshOnSuccess
                                                 action={configureAction(destroyEventTagAction, { params: { id: tag.id } })}
-                                                submitColor="red"
+                                                submitColor="error"
                                                 confirmation={{
                                                     confirm: true,
                                                     text: 'Er du sikker på at du vil slette denne taggen?'

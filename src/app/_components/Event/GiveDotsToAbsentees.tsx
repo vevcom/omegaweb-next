@@ -1,4 +1,5 @@
 'use client'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import PopUp from '@/components/PopUp/PopUp'
 import Form from '@/components/Form/Form'
 import NumberInput from '@/components/UI/NumberInput'
@@ -38,7 +39,7 @@ export default function GiveDotsToAbsentees({ eventId, accuserId, notAttended }:
         <PopUp
             popUpKey={popUpKey}
             showButtonContent="Gi prikker til de som ikke møtte opp"
-            showButtonClass="btn-primary"
+            showButtonClass={buttonClassName()}
         >
             <div className="min-w-[min(28rem,85vw)]">
                 <Form

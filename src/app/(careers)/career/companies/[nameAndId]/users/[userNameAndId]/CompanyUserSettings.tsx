@@ -100,7 +100,7 @@ export default function CompanyUserSettings({ companyUser, capabilities, usersHr
                     action={configureAction(destroyCompanyUserAction, params)}
                     navigateOnSuccess={usersHref}
                     submitText="Fjern bruker"
-                    submitColor="red"
+                    submitColor="error"
                     confirmation={{
                         confirm: true,
                         text: `Vil du fjerne ${companyUser.firstname} ${companyUser.lastname}?`,

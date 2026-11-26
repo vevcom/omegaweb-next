@@ -74,7 +74,7 @@ const { page, generateMetadata } = serverPage({
                                         <Form
                                             className="m-0! p-0! text-[0.8rem]!"
                                             submitText="Flytt hit"
-                                            submitColor="secondary"
+                                            submitColor="neutral"
                                             refreshOnSuccess
                                             confirmation={{
                                                 confirm: true,
@@ -110,7 +110,7 @@ const { page, generateMetadata } = serverPage({
                                                 <Form
                                                     className="m-0! p-0! text-[0.8rem]!"
                                                     submitText="Registrer"
-                                                    submitColor="secondary"
+                                                    submitColor="neutral"
                                                     refreshOnSuccess
                                                     action={configureAction(createAdmissionTrialAction, {
                                                         params: { admission },

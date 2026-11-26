@@ -65,7 +65,7 @@ const { page, generateMetadata } = serverPage({
                                 'Vi anbefaler heller å deaktivere den.',
                             confirm: true,
                         }}
-                        submitColor="red"
+                        submitColor="error"
                         navigateOnSuccess={appHref('/admin/api-keys')}
                     />
                     }

@@ -46,7 +46,7 @@ export default function AddGroupToLedgerAccount({ ledgerAccountId, availableGrou
                 value={selectedGroupId}
                 onChange={setSelectedGroupId}
             />
-            <Button onClick={addGroup} color="secondary">Legg til</Button>
+            <Button onClick={addGroup} color="neutral">Legg til</Button>
             {error && <p className="text-error">{error}</p>}
         </div>
     )

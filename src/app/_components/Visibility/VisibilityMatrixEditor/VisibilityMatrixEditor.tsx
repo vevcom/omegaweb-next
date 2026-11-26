@@ -193,7 +193,7 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
                         {lists.length > 1 && <Button
                             type="button"
                             variant="text"
-                            color="secondary"
+                            color="neutral"
                             onClick={() => onChange(lists.filter((_, index) => index !== listIndex))}
                         >
                             Fjern
@@ -233,7 +233,7 @@ export default function VisibilityMatrixEditor(props: PropTypes) {
             </p>)}
             <Button
                 type="button"
-                color="secondary"
+                color="neutral"
                 onClick={() => onChange([...lists, { conditions: [] }])}
                 className="self-start m-0! py-1! px-3! text-s!"
             >

@@ -1,4 +1,5 @@
 import FlairTable from './FlairTable'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import { createFlairAction, updateFlairImageAction } from '@/services/flairs/actions'
 import { flairOperations } from '@/services/flairs/operations'
 import { flairAuth } from '@/services/flairs/auth'
@@ -38,10 +39,11 @@ const { page, generateMetadata } = serverPage({
                 <PopUp
                     popUpKey={`EditFlairImage${flair.id}`}
                     showButtonContent="Endre bilde"
-                    showButtonClass="
-                        btn-neutral block mt-[0.5em]! py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap
-                        max-mobile:whitespace-normal
-                    "
+                    showButtonClass={buttonClassName({
+                        color: 'neutral',
+                        size: 's',
+                        className: 'block mt-[0.5em]! whitespace-nowrap max-mobile:whitespace-normal',
+                    })}
                 >
                     <ImageUploader
                         title={`Endre bilde for ${flair.name}`}

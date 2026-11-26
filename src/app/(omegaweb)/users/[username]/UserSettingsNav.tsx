@@ -34,7 +34,7 @@ export default async function UserSettingsNav({ username, userId }: UserNavSubje
             <div className="flex flex-col items-center gap-2">
                 {items.map(item => (
                     <SiteLink key={item.key} href={item.href}>
-                        <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
+                        <Button color="neutral" className="flex! items-center! gap-[0.5em]!">
                             <FontAwesomeIcon icon={item.icon} />
                             <p className="w-[8em]">{item.name}</p>
                         </Button>

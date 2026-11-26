@@ -109,7 +109,7 @@ export default function ChannelSettings({
             <Form
                 title="Slett kanal"
                 submitText="Slett kanal"
-                submitColor="red"
+                submitColor="error"
                 action={configureAction(destroyManualNotificationChannelAction, { params: { id: currentChannel.id } })}
                 navigateOnSuccess={appHref('/admin/notification-channels')}
                 confirmation={{

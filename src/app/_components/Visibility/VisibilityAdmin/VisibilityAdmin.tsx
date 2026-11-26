@@ -27,7 +27,7 @@ export default function VisibilityAdmin({
         <Form
             className="flex flex-col gap-[0.5em] min-w-[350px]"
             submitText="Lagre"
-            submitColor="green"
+            submitColor="success"
             refreshOnSuccess
             action={configureAction(updateVisibilityAction, { params: { visibilityId } })}
         >

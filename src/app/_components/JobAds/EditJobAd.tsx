@@ -118,7 +118,7 @@ export default function EditJobAd({ jobAd, config, children }: PropTypes) {
                                     'Dette kan ikke angres. Vi anbefaler å sette annonsen ' +
                                     'til inaktiv i stedet.'
                                 }}
-                                submitColor="red"
+                                submitColor="error"
                             >
                             </Form>
                         </div>

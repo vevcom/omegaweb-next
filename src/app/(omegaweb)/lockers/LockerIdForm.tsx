@@ -31,7 +31,7 @@ export default function LockerIdForm() {
                 value={lockerId}
                 onChange={event => setLockerId(event.target.value)}
             />
-            <Button type="submit" color="secondary">Gå til skap</Button>
+            <Button type="submit" color="neutral">Gå til skap</Button>
         </form>
     )
 }

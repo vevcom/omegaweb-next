@@ -113,7 +113,7 @@ export default function EventLocationInput({ name, defaultValue }: PropTypes) {
         <JsonFieldInput name={name} value={locationMap} onReset={reset} />
         {provider !== 'NONE' && <Button
             type="button"
-            color="secondary"
+            color="neutral"
             disabled={!validLocation}
             onClick={() => setPreview(validLocation)}
         >

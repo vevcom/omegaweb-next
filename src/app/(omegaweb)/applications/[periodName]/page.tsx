@@ -1,5 +1,7 @@
 import { committeeCardBodyClassName, committeeCardClassName } from './committeeCardClassNames'
 import PrioritizedCommittees from './PrioritizedCommittees'
+import ButtonLink from '@/components/UI/ButtonLink'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import { default as DateComponent } from '@/components/Date/Date'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import CountDown from '@/components/CountDown/CountDown'
@@ -154,7 +156,7 @@ const { page, generateMetadata } = serverPage({
                                             {part.priority === null ? 'Søk nå!' : 'Endre søknad'}
                                         </span>
                                     }
-                                    showButtonClass="btn-primary m-0!"
+                                    showButtonClass={buttonClassName({ className: 'm-0!' })}
                                 >
                                     <h1>Søknad til {part.committee.name}</h1>
                                     {
@@ -204,22 +206,21 @@ const { page, generateMetadata } = serverPage({
                                                     confirm: true,
                                                     text: 'Er du sikker på at du vil slette søknaden?',
                                                 }}
-                                                submitColor="red"
+                                                submitColor="error"
                                                 submitText="Slett søknad"
                                             />
                                         )
                                     }
                                 </PopUp>
-                            ) : <SiteLink href={appHref('/login')} className="btn-primary m-0!">
+                            ) : <ButtonLink href={appHref('/login')} className="m-0!">
                             Logg inn for å søke
-                            </SiteLink>
+                            </ButtonLink>
                         }
-                        <SiteLink
-                            href={appHref(`/committees/${part.committee.shortName}`)}
-                            className="btn-neutral m-0!"
+                        <ButtonLink
+                            href={appHref(`/committees/${part.committee.shortName}`)} color="neutral" className="m-0!"
                         >
                         Les mer
-                        </SiteLink>
+                        </ButtonLink>
                         <CmsLink
                             className="
                                 min-w-0! h-auto!
@@ -275,7 +276,7 @@ const { page, generateMetadata } = serverPage({
                                             Dette kan ikke angres!
                                         `,
                                     }}
-                                    submitColor="red"
+                                    submitColor="error"
                                     submitText="Fjern alle søknadstekster"
                                     closePopUpOnSuccess={`period-${period.name}-settings`}
                                     refreshOnSuccess
@@ -300,7 +301,7 @@ const { page, generateMetadata } = serverPage({
                                             Dette kan ikke angres!
                                         `,
                                     }}
-                                    submitColor="red"
+                                    submitColor="error"
                                     submitText="Slett søknadsperiode"
                                     closePopUpOnSuccess={`period-${period.name}-settings`}
                                     refreshOnSuccess

@@ -48,7 +48,7 @@ export default function RevueMetaForms({
         {capabilities.canDestroy.authorized && <Form
             action={configureAction(destroyRevueAction, params)}
             submitText="Slett revy"
-            submitColor="red"
+            submitColor="error"
             closePopUpOnSuccess={closePopUpOnSuccess}
             refreshOnSuccess={!hrefAfterDestroy}
             navigateOnSuccess={hrefAfterDestroy}

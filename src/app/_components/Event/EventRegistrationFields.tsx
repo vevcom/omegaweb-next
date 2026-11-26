@@ -86,7 +86,7 @@ function QuotaRow({ quota, index, several, handle, onChange, onRemove }: {
                 {several && <Button
                     type="button"
                     variant="text"
-                    color="red"
+                    color="error"
                     aria-label="Fjern kvoten"
                     title={quota.numOfRegistrations > 0 ? 'Kvoten har påmeldte' : undefined}
                     disabled={quota.numOfRegistrations > 0}
@@ -149,7 +149,7 @@ function QuotaFlow({ variant, waitingList, addLabel, onChange }: {
         </div>
         {addLabel && <Button
             type="button"
-            color="secondary"
+            color="neutral"
             onClick={() => onChange({
                 quotas: [...variant.quotas, newQuotaDraft(`Kvote ${variant.quotas.length + 1}`, variant.quotas)],
             })}
@@ -281,7 +281,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
                     <Button
                         type="button"
                         variant="text"
-                        color="red"
+                        color="error"
                         title={hasRegistrants(variant) ? 'Varianten har påmeldte' : undefined}
                         disabled={hasRegistrants(variant)}
                         onClick={() => setVariants(variants.filter(other => other.key !== variant.key))}
@@ -300,7 +300,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
             </AdminSection>)}
             <Button
                 type="button"
-                color="secondary"
+                color="neutral"
                 onClick={() => setVariants([
                     ...variants,
                     newVariantDraft(`Variant ${variants.length + 1}`, eventStart, variants, variants[0]),

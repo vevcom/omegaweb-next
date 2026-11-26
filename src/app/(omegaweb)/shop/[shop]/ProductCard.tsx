@@ -1,6 +1,7 @@
 'use client'
 
 import { EditProductForShopForm } from './EditProductForShopForm'
+import Button from '@/components/UI/Button'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import PopUp from '@/components/PopUp/PopUp'
 import useAuthorizer from '@/hooks/useAuthorizer'
@@ -102,18 +103,18 @@ export default function ProductCard({ shop, product, quantity, canUpdateProduct,
                     <span className="text-l font-bold tabular-nums">{displayAmount(product.price)}</span>
                     {product.active && (
                         quantity === 0 ? (
-                            <button
+                            <Button
                                 type="button"
                                 className="
-                                    btn-primary m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4!
-                                    rounded-full! text-s!
+                                    m-0! flex w-full items-center justify-center gap-2 h-9 py-0! px-4! rounded-full!
+                                    text-s!
                                     [&_svg]:text-inherit
                                 "
                                 onClick={onAdd}
                             >
                                 <FontAwesomeIcon icon={faPlus} />
                                 Legg til
-                            </button>
+                            </Button>
                         ) : (
                             <div className="flex items-center justify-between">
                                 <button
