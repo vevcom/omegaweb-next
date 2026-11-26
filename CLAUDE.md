@@ -157,7 +157,7 @@ export const fooCapabilities = defineCapabilities(fooContract, {
 
 - **`defineContract`**, from `src/services/serviceContract.ts`, takes an entry per operation: its `params` schema and its `data` schema, each left out when the operation takes none, and `authorizer`, its rule. `contract.ts` imports nothing of the server, so the browser can import it too.
 - **`defineOperation(entry, { authorizerData?, operation })`** makes the operation of an entry. Its schemas and its rule are the entry's, so it cannot run another rule than its own. `authorizerData` returns the data the rule still needs, and may read the database. Leaving it out is a type error when the rule needs data, and so is giving it when the rule needs none. It may return more than the rule needs, but never a `session`. The entry form takes no `transaction` flag yet.
-- **`defineCapabilities(contract, actions)`** joins the contract with its actions, by key. An action made from another entry, from another contract or from no entry is a type error, except between two contracts of the very same type, such as two with only a `readAll` behind a permission, which the compiler cannot tell apart. The result has every key of the contract, each with `authorizer` and `action`, which is `undefined` for an operation given no action.
+- **`defineCapabilities(contract, actions)`** joins the contract with its actions, by key. An action made from another entry, from another contract or from no entry is a type error, except between two contracts of the very same type, such as two with only a `readAll` behind a permission, which the compiler cannot tell apart. The result has every key of the contract, each with `params`, `data`, `authorizer` and `action`, which is `undefined` for an operation given no action.
 - A service's `contract.ts` is imported by the service's own files and by its capabilities file under `_capabilities`, and by nothing else. The frontend imports from `@/capabilities/...`: a page, a component or the navigation reads a rule as `fooCapabilities.update.authorizer` and an action as `fooCapabilities.update.action`. An action given to no capability, such as the read a paging context calls, is imported from the `actions.ts` beside it.
 
 ### Authorizers
@@ -518,6 +518,12 @@ const canDoThing = useAuthorizer({ authorizer: someAuth.operation.data({ userId 
 
 For a service in the contract form the rule is `someCapabilities.operation.authorizer`, from `@/capabilities/some/capabilities`.
 
+`useCapability` from `@/hooks/useCapability` decides a whole capability: whether the user may, by its rule, and its action with the params bound. A declared form calls it for its submitter, see [Form Handling](#form-handling):
+
+```typescript
+const create = useCapability(someCapabilities.create, { params: { groupId }, authorizerData: { userId } })
+```
+
 Never do this manually in client components:
 ```typescript
 const session = useSession()
@@ -557,13 +563,48 @@ Another service that validates the same kind of input (the auth service taking a
 
 ### Form Handling
 
-Forms typically use Server Actions with FormData:
+A form is written in one of two ways while the forms are moved from the first to the second.
+
+#### `Form` with `FormData`
+
+`Form` from `@/components/Form/Form` posts the `FormData` of the inputs among its children to an action:
 1. Define a dataSchema using `zod-form-data`, imported as `zfd`
 2. Create a ServiceOperation with the schema
 3. Wrap it with `makeAction()`
 4. Call from a client component with FormData
 
 A long form is split with `Tabs` and `FormTab`: the one `Form` holds every value across its tabs and saves them together, and a tab with a refused input is brought forward. See `EventAdmin`. Panels stay mounted, so nothing is lost moving between tabs. A `Form` cannot hold another `Form`, so a tab that saves on its own is a `TabPanel` next to it.
+
+#### The declared form
+
+A form of a service in the contract form is declared, with `Form` from `@/components/Form/Declared/Form`. A capability is bound in one file, which gives the form's submitter and its field, and the form is written with those two in any component, also one the server renders. See `src/app/(omegaweb)/omegaquotes/`.
+
+```tsx
+// fooSubmitters.ts, beside the components that use it
+'use client'
+export const [UpdateFooSubmitter, UpdateFooField] = Form.Submitter({ capability: fooCapabilities.update })
+
+// any component
+<UpdateFooSubmitter
+    params={{ id: foo.id }}
+    authorizerData={{ userId: foo.ownerId }}
+    submitText="Lagre"
+    refreshOnSuccess
+>
+    <UpdateFooField kind="string" name="name" label="Navn" />
+</UpdateFooSubmitter>
+```
+
+- **`Form.Submitter({ capability })`** is called at the top of a `'use client'` file, since a schema cannot be passed from a server component to a client component. It binds the capability and nothing else, and returns a pair: the submitter, which is rendered around the fields, and the field of that form. The two are named exports of their own, written `export const [FooSubmitter, FooField] = Form.Submitter({ ... })`, since a server component cannot reach into an object or a pair exported from a `'use client'` file. ESLint refuses a `Form.Submitter(...)` that is not the whole right side of such a top-level `export const [A, B] = ...`, also one with a rest element in the brackets. It reads the call as it is written, so it does not see `Form` under another name or a `Submitter` taken out of it. The component that declares the form imports its submitters file, and nothing of `Form`.
+- The submitter takes `params`, what the capability's params schema takes, and `authorizerData`, the data its rule still needs. Leaving one out is a type error when the capability needs it, and so is giving one it does not need. It decides the capability itself, with `useCapability`, and renders nothing for a user who may not submit.
+- Everything else about a form is a prop of the submitter too, given where the form is declared: `title`, `submitText`, which is `Opprett` when left out, `refreshOnSuccess`, `closePopUpOnSuccess` and `className`.
+- **A field** is `kind`, `name`, `label` and the props of its kind. `kind` says which input of `src/app/_components/UI/` it is: `string` is `TextInput` and `text` is `Textarea`. `name` is a key of the capability's data schema. A field gets its value from the form and sets it there, and shows the first of its errors under it. The inputs are used as they are, never copied or restyled for a form.
+- **What the compiler holds.** `name` is a key of this capability's schema where the schema takes what the kind writes: a string field fits a key that takes a string, also one that may be left out or be null, and not one that takes a number or one of a few words. The other props are those of the kind, and `kind` is one the table has. A misspelt name, a name of the wrong kind and a prop of another kind are type errors. That holds for a `kind` written as one word: a `kind` given as a union of kinds lets the props of any of them through.
+- **What is held only when the form runs.** A field reads the form of the submitter it was made with, through a context of that `Form.Submitter` call. Under another submitter, or under none, it throws an error that says so. A pop-up renders what is in it outside whatever is around it, so a form in a pop-up has its submitter inside the pop-up too, or its fields are under none. A submitter throws when it is rendered inside another, since the browser submits a form inside a form itself and the values are lost. In development a field whose value the schema drops is an error at that field.
+- **A kind is one file and one line.** A kind is `defineKind<Writes, Props>(emptyValue, Component)` in a file of `Form/Declared/Kinds/`: what it writes to the form, which decides the names it fits, the props it takes beside `kind`, `name` and `label`, and the component that binds an input to its one value. The component is given `label`, its props and `field`, with `name`, `value`, `set` and `leave`, and never the form's store. It is also handed the `kind` and `name` the field was written with. `Kinds/kinds.ts` is the table, and the field and its types are derived from it, so a new kind is its file and its line there.
+- **No function props, and no hooks for whoever declares the form.** A submitter takes no `onSubmit`, `onChange` or `successCallback`, so a server component can render it. What happens after a save is a prop of the submitter, such as `refreshOnSuccess`. An effect a form needs and the submitter lacks is added to the submitter as a prop, for every form.
+- **The form's state stays in `Form/Declared/`.** Outside that folder only `Form` is imported from it, which ESLint enforces, so no component reads or drives a form's values through its store. The folder's tests are the exception.
+- The submitter holds the values of its fields by their `name`. On submit it parses them in the browser with the capability's data schema, through `parseData` in `src/services/parseData.ts`, which the operation parses with too. A refused form sends no request. Otherwise the action is called with the values as they are, never as `FormData`, and the server parses them again. An issue is shown at the field it names, and by the submit button when it names none, whether the browser or the server raised it. A field is checked when it is left, once it has been changed, and after a refused submit the form is checked as its values change. A submit while one is under way, or while the check mark of the last one shows, does nothing.
 
 ## Testing
 

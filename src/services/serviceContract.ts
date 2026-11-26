@@ -30,7 +30,7 @@ export function defineCapabilities<
     // Object.fromEntries types every key as string, so the contract's keys are asserted.
     return Object.fromEntries(Object.entries(contract).map(([key, entry]) => [
         key,
-        { authorizer: entry.authorizer, action: actionOf[key] },
+        { params: entry.params, data: entry.data, authorizer: entry.authorizer, action: actionOf[key] },
     ])) as DeclaredCapabilities<Entries, Actions>
 }
 
@@ -49,6 +49,11 @@ export type Rule = RequireBuilder<
     UserGuaranteeOption,
     UserGuaranteeOption
 >
+
+/** The data a rule still needs before it can be run. */
+export type RuleData<EntryRule extends Rule> =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Only the data is read, and any matches the rest.
+    EntryRule extends RequireBuilder<infer RequiredData, any, any, any> ? RequiredData : never
 
 export type ContractEntry<
     Mark,
@@ -99,6 +104,8 @@ type ActionOfEntry<Entry extends AnyContractEntry> =
     Action<unknown, undefined, Entry['params'], Entry['data']> & Marked<Entry[typeof contractMark]>
 
 type DeclaredCapability<Entry extends AnyContractEntry, EntryAction> = {
+    readonly params: Entry['params'],
+    readonly data: Entry['data'],
     readonly authorizer: Entry['authorizer'],
     readonly action: EntryAction,
 }

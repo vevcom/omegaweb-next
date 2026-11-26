@@ -1,43 +1,30 @@
-'use client'
-
+import { CreateQuoteField, CreateQuoteSubmitter } from './omegaquoteSubmitters'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import Form from '@/components/Form/Form'
-import { omegaquoteCapabilities } from '@/capabilities/omegaquotes/capabilities'
-import TextInput from '@/components/UI/TextInput'
-import Textarea from '@/components/UI/Textarea'
-import { configureAction } from '@/services/configureAction'
-import { useSession } from '@/auth/session/useSession'
-import useSiteRouter from '@/hooks/useSiteRouter'
 
-export default function CreateOmegaquoteForm() {
-    const { refresh } = useSiteRouter()
-    const session = useSession()
-    if (session.loading || !session.session.user) return null
-
+export default function CreateOmegaquoteForm({ userId }: { userId: number }) {
     return (
         <AddHeaderItemPopUp popUpKey="new_omega_quote">
-            <Form
+            <CreateQuoteSubmitter
+                params={{ userPosterId: userId }}
+                authorizerData={{ userId }}
                 title="Ny Omegaquote"
                 submitText="Legg til"
-                action={configureAction(
-                    omegaquoteCapabilities.create.action,
-                    { params: { userPosterId: session.session.user?.id } }
-                )}
-                successCallback={refresh}
-                className="w-[400px]"
+                refreshOnSuccess
                 closePopUpOnSuccess="new_omega_quote"
+                className="w-[400px]"
             >
-                <Textarea
+                <CreateQuoteField
+                    kind="text"
                     name="quote"
                     label="Omegaquote"
                     placeholder="Omegaquote"
                     className="h-[100px] max-h-[300px]"
                 />
-                <TextInput label="Sagt av" name="author" className="
+                <CreateQuoteField kind="string" name="author" label="Sagt av" className="
                     w-full max-w-full
                     [&_input]:w-full
                 "/>
-            </Form>
+            </CreateQuoteSubmitter>
         </AddHeaderItemPopUp>
     )
 }

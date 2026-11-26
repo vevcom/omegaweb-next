@@ -30,9 +30,9 @@ const { page, generateMetadata } = serverPage({
             : Require.user(),
     }),
     metadata: () => ({ title: 'Omegaquotes' }),
-    render: ({ data: quotes, capabilities }) => (
+    render: ({ data: quotes, capabilities, session }) => (
         <PageWrapper headerItem={
-            capabilities.canCreate.authorized && <CreateOmegaquoteForm/>
+            session.user && capabilities.canCreate.authorized && <CreateOmegaquoteForm userId={session.user.id} />
         }>
             <OmegaquotePagingProvider
                 startPage={{
