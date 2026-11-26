@@ -2,7 +2,7 @@
 
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import Form from '@/components/Form/Form'
-import { createQuoteAction } from '@/services/omegaquotes/actions'
+import { omegaquoteCapabilities } from '@/capabilities/omegaquotes/capabilities'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
 import { configureAction } from '@/services/configureAction'
@@ -20,7 +20,7 @@ export default function CreateOmegaquoteForm() {
                 title="Ny Omegaquote"
                 submitText="Legg til"
                 action={configureAction(
-                    createQuoteAction,
+                    omegaquoteCapabilities.create.action,
                     { params: { userPosterId: session.session.user?.id } }
                 )}
                 successCallback={refresh}

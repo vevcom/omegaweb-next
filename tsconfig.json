@@ -36,6 +36,9 @@
       "@/components/*": [
         "src/app/_components/*"
       ],
+      "@/capabilities/*": [
+        "src/app/_capabilities/*"
+      ],
       "@/UI/*": [
         "src/app/_components/UI/*"
       ],

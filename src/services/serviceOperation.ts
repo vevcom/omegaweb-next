@@ -8,7 +8,9 @@ import { zfd } from 'zod-form-data'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { AsyncLocalStorage } from 'async_hooks'
 import type { ServiceErrorCode } from './error'
+import type { ContractEntry, Marked, Rule } from './serviceContract'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
+import type { RequireBuilder } from '@/auth/authorizer/Require'
 import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
 import type { Prisma, PrismaClient } from '@/prisma-generated-pn-client'
@@ -683,7 +685,52 @@ export function defineOperation<
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
     PrismaWhereFilter extends object | undefined = undefined
->({ paramsSchema, dataSchema, transaction, authorizer, operation }: {
+>(
+    config: OperationConfig<Flag, Return, ParamsSchema, DataSchema, PrismaWhereFilter>
+): ServiceOperation<OpensTransactionOf<Flag>, Return, ParamsSchema, DataSchema, undefined>
+
+/**
+ * The operation of a contract entry. Its schemas and its rule are the entry's, so it cannot run
+ * another rule than its own. `authorizerData` gives the data the rule still needs.
+ */
+export function defineOperation<
+    Mark,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    EntryRule extends Rule,
+    Return,
+>(
+    entry: ContractEntry<Mark, ParamsSchema, DataSchema, EntryRule>,
+    implementation: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
+): ServiceOperation<false, Return, ParamsSchema, DataSchema, undefined> & Marked<Mark>
+
+export function defineOperation<
+    Flag extends TransactionFlag,
+    Return,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    PrismaWhereFilter extends object | undefined,
+    EntryRule extends Rule,
+>(
+    configOrEntry:
+        | OperationConfig<Flag, Return, ParamsSchema, DataSchema, PrismaWhereFilter>
+        | ContractEntry<unknown, ParamsSchema, DataSchema, EntryRule>,
+    implementation?: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
+) {
+    if ('operation' in configOrEntry) return operationOfConfig(configOrEntry)
+    if (!implementation) {
+        throw new Smorekopp('SERVER ERROR', 'An operation made from a contract entry was given no implementation.')
+    }
+    return operationOfEntry(configOrEntry, implementation)
+}
+
+type OperationConfig<
+    Flag extends TransactionFlag,
+    Return,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    PrismaWhereFilter extends object | undefined,
+> = {
     paramsSchema?: ParamsSchema,
     dataSchema?: DataSchema,
     transaction?: Flag,
@@ -691,7 +738,54 @@ export function defineOperation<
         OpensTransactionOf<Flag>, ParamsSchema, DataSchema, undefined, PrismaWhereFilter | undefined
     >,
     operation: ServiceOperationOperation<OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
-}): ServiceOperation<OpensTransactionOf<Flag>, Return, ParamsSchema, DataSchema, undefined> {
+}
+
+type EntryImplementation<
+    Return,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    EntryRule extends Rule,
+> = {
+    operation: ServiceOperationOperation<false, ParamsSchema, DataSchema, Return, RuleFilter<EntryRule>>,
+} & AuthorizerDataConfig<ParamsSchema, DataSchema, EntryRule>
+
+/**
+ * Required when the rule needs data, and refused when it needs none. It may give more than the
+ * rule needs, as a read of everything a service's rules ask about does, but never a session.
+ */
+type AuthorizerDataConfig<
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    EntryRule extends Rule,
+> = [keyof RuleData<EntryRule>] extends [never]
+    ? { authorizerData?: undefined }
+    : {
+        authorizerData: (
+            args: ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, DataSchema, undefined>
+        ) => Awaitable<RuleData<EntryRule> & { session?: never }>
+    }
+
+/** The data a rule still needs before it can be run. */
+type RuleData<EntryRule extends Rule> =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Only the data is read, and any matches the rest.
+    EntryRule extends RequireBuilder<infer RequiredData, any, any, any> ? RequiredData : never
+
+/** The filter a rule hands its operation, as the second argument of `operation`. */
+type RuleFilter<EntryRule extends Rule> =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Only the filter is read, and any matches the rest.
+    EntryRule extends RequireBuilder<any, infer Filter extends object | undefined, any, any>
+        ? ([Filter] extends [never] ? undefined : Filter)
+        : undefined
+
+function operationOfConfig<
+    Flag extends TransactionFlag,
+    Return,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    PrismaWhereFilter extends object | undefined,
+>({ paramsSchema, dataSchema, transaction, authorizer, operation }: OperationConfig<
+    Flag, Return, ParamsSchema, DataSchema, PrismaWhereFilter
+>): ServiceOperation<OpensTransactionOf<Flag>, Return, ParamsSchema, DataSchema, undefined> {
     return defineSubOperation<
         Return,
         Flag,
@@ -713,6 +807,23 @@ export function defineOperation<
         dataSchemaImplementationFields: undefined,
         paramsSchemaImplementationFields: undefined,
         operationImplementationFields: undefined,
+    })
+}
+
+function operationOfEntry<
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    EntryRule extends Rule,
+    Return,
+>(
+    entry: ContractEntry<unknown, ParamsSchema, DataSchema, EntryRule>,
+    { authorizerData, operation }: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
+) {
+    return operationOfConfig<'NONE', Return, ParamsSchema, DataSchema, RuleFilter<EntryRule>>({
+        paramsSchema: entry.params,
+        dataSchema: entry.data,
+        authorizer: async args => entry.authorizer.data(authorizerData ? await authorizerData(args) : {}),
+        operation,
     })
 }
 

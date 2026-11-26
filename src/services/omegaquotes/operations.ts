@@ -1,6 +1,5 @@
 import '@ow-server-only'
-import { omegaQuotesAuth } from './auth'
-import { omegaquoteSchemas } from './schemas'
+import { omegaquoteContract } from './contract'
 import { omegaQuoteFilterSelection } from './constants'
 import { newOmegaquoteNotificationChannel } from './newOmegaquoteNotificationChannel'
 import { omegaLinks } from '@/app/(omegaweb)/links'
@@ -8,10 +7,8 @@ import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 
 export const omegaquoteOperations = {
-    create: defineOperation({
-        authorizer: ({ params }) => omegaQuotesAuth.create.data({ userId: params.userPosterId }),
-        dataSchema: omegaquoteSchemas.data.create,
-        paramsSchema: omegaquoteSchemas.params.create,
+    create: defineOperation(omegaquoteContract.create, {
+        authorizerData: ({ params }) => ({ userId: params.userPosterId }),
         operation: async ({ prisma, data, params }) => {
             const results = await prisma.omegaQuote.create({
                 data: {
@@ -35,9 +32,7 @@ export const omegaquoteOperations = {
             return results
         }
     }),
-    readPage: defineOperation({
-        paramsSchema: omegaquoteSchemas.params.readPage,
-        authorizer: () => omegaQuotesAuth.readPage,
+    readPage: defineOperation(omegaquoteContract.readPage, {
         operation: async ({ prisma, params }) =>
             prisma.omegaQuote.findMany({
                 orderBy: {

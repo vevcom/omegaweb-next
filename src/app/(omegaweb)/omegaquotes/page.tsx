@@ -4,7 +4,7 @@ import CreateOmegaquoteForm from './CreateOmegaquoteForm'
 import { OmegaquotePagingProvider } from '@/contexts/paging/OmegaquotesPaging'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
-import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
+import { omegaquoteCapabilities } from '@/capabilities/omegaquotes/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
 import type { PageSizeOmegaquote } from '@/contexts/paging/OmegaquotesPaging'
@@ -25,7 +25,9 @@ const { page, generateMetadata } = serverPage({
         }
     }),
     capabilities: (_, session) => ({
-        canCreate: session.user ? omegaQuotesAuth.create.data({ userId: session.user.id }) : Require.user(),
+        canCreate: session.user
+            ? omegaquoteCapabilities.create.authorizer.data({ userId: session.user.id })
+            : Require.user(),
     }),
     metadata: () => ({ title: 'Omegaquotes' }),
     render: ({ data: quotes, capabilities }) => (

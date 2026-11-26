@@ -2,72 +2,16 @@ import '@ow-server-only'
 import { createActionError } from './actionError'
 import { ParseError, Smorekopp } from './error'
 import { ServerSession } from '@/auth/session/ServerSession'
-import type { Action, ActionReturn } from './actionTypes'
+import type { Action, ActionFromServiceOperation, ActionReturn } from './actionTypes'
+import type { MarkOf } from './serviceContract'
 import type { ServiceOperation } from '@/services/serviceOperation'
 import type { z } from 'zod'
 
-// This function is overloaded to allow for different combinations of parameters and data.
-
+// The signature callers see. It takes the operation whole, so that the mark of a contract entry reaches its action.
 export function makeAction<
-    Return,
->(
-    serviceOperation: ServiceOperation<boolean, Return, undefined, undefined, undefined>
-): Action<Return, undefined, undefined, undefined>
-
-export function makeAction<
-    Return,
-    ImplementationParamsSchema extends z.ZodTypeAny,
->(
-    serviceOperation: ServiceOperation<boolean, Return, undefined, undefined, ImplementationParamsSchema>
-): Action<Return, ImplementationParamsSchema, undefined, undefined>
-
-export function makeAction<
-    Return,
-    ParamsSchema extends z.ZodTypeAny,
->(
-    serviceOperation: ServiceOperation<boolean, Return, ParamsSchema, undefined, undefined>
-): Action<Return, undefined, ParamsSchema, undefined>
-
-export function makeAction<
-    Return,
-    DataSchema extends z.ZodTypeAny
->(
-    serviceOperation: ServiceOperation<boolean, Return, undefined, DataSchema, undefined>
-): Action<Return, undefined, undefined, DataSchema>
-
-export function makeAction<
-    Return,
-    ImplementationParamsSchema extends z.ZodTypeAny,
-    ParamsSchema extends z.ZodTypeAny,
->(
-    serviceOperation: ServiceOperation<boolean, Return, ParamsSchema, undefined, ImplementationParamsSchema>
-): Action<Return, ImplementationParamsSchema, ParamsSchema, undefined>
-
-export function makeAction<
-    Return,
-    ParamsSchema extends z.ZodTypeAny,
-    DataSchema extends z.ZodTypeAny
->(
-    serviceOperation: ServiceOperation<boolean, Return, ParamsSchema, DataSchema, undefined>
-): Action<Return, undefined, ParamsSchema, DataSchema>
-
-export function makeAction<
-    Return,
-    ImplementationParamsSchema extends z.ZodTypeAny,
-    DataSchema extends z.ZodTypeAny
->(
-    serviceOperation: ServiceOperation<boolean, Return, undefined, DataSchema, ImplementationParamsSchema>
-): Action<Return, ImplementationParamsSchema, undefined, DataSchema>
-
-export function makeAction<
-    Return,
-    ImplementationParamsSchema extends z.ZodTypeAny,
-    ParamsSchema extends z.ZodTypeAny,
-    DataSchema extends z.ZodTypeAny
->(
-    serviceOperation: ServiceOperation<boolean, Return, ParamsSchema, DataSchema, ImplementationParamsSchema>
-): Action<Return, ImplementationParamsSchema, ParamsSchema, DataSchema>
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Every operation is taken, whatever its schemas.
+    Operation extends ServiceOperation<boolean, any, any, any, any>,
+>(serviceOperation: Operation): ActionFromServiceOperation<Operation> & MarkOf<Operation>
 
 /**
  * Turn a service operation into suitable function for an action.

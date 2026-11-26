@@ -30,6 +30,11 @@ const noNextRedirect = {
     message: 'Redirect with siteRedirect from @/app/domainContextOfRequest, '
         + 'which resolves an app path for the domain the request came to.',
 }
+const noContractOfAnotherService = {
+    group: ['@/services/**/contract'],
+    message: 'A contract is imported by its own service, as ./contract, and by its capabilities file. '
+        + 'Everything else imports from @/capabilities.',
+}
 const noResolvedHrefTagging = {
     group: ['**/sites/href', '@/lib/sites/href'],
     importNames: ['domainContextResolvedHref'],
@@ -579,7 +584,7 @@ const eslintConfig = defineConfig([
             'no-restricted-imports': [
                 'error',
                 {
-                    patterns: [noRelativeImports, noResolvedHrefTagging],
+                    patterns: [noRelativeImports, noResolvedHrefTagging, noContractOfAnotherService],
                     paths: [noNextLink, noNextRouter, noNextRedirect],
                 },
             ],
@@ -646,6 +651,16 @@ const eslintConfig = defineConfig([
                         + 'etc.) instead of a raw <input>. type="hidden" inputs are exempt.'
                 }
             ]
+        }
+    },
+    {
+        // The one place outside its service a contract is imported: its capabilities file.
+        files: ['src/app/_capabilities/**/capabilities.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { patterns: [noRelativeImports, noResolvedHrefTagging], paths: [noNextLink, noNextRouter, noNextRedirect] },
+            ],
         }
     },
     {
@@ -720,8 +735,10 @@ const eslintConfig = defineConfig([
                 {
                     'src/app/_components/**/': 'PASCAL_CASE',
                     'src/app/_pageKits/**/': 'CAMEL_CASE',
+                    // Mirrors src/services, so its folders are named as the services are.
+                    'src/app/_capabilities/**/': 'CAMEL_CASE',
                     // .well-known is the folder RFC 8615 names, for the OpenID Connect discovery document.
-                    'src/app/!(_components|_pageKits|.well-known)/**/': 'NEXT_JS_APP_ROUTER_CASE',
+                    'src/app/!(_components|_pageKits|_capabilities|.well-known)/**/': 'NEXT_JS_APP_ROUTER_CASE',
                     'src/services/**/': 'CAMEL_CASE',
                     'src/contexts/**/': 'CAMEL_CASE',
                     'src/lib/**/': 'CAMEL_CASE',
