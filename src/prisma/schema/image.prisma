@@ -55,6 +55,7 @@ model Image {
   promo                   Promo?
   careerTeamPerson        CareerTeamPerson?
   company                 Company?
+  chatUser                ChatUser?
 
   @@index([collectionId])
 }
@@ -113,6 +114,7 @@ enum SpecialCollection {
   PROMOIMAGES
   CAREERTEAMIMAGES
   COMPANYLOGOS
+  CHATPROFILEIMAGES
 }
 
 model ImageCollection {

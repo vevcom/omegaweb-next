@@ -2,8 +2,11 @@ import '@ow-server-only'
 import { chatUserAuth } from './auth'
 import { chatUserSchemas } from './schemas'
 import { CHAT_LOCALPART_ATTEMPTS, chatLocalpartAt, isReservedChatLocalpart } from './localpart'
+import { chatPictureOf } from './picture'
+import { chatProfileImageCollection } from './chatProfileImageCollection'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
+import { expandedImageIncluder } from '@/services/images/subservice/constants'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 import { chatClientOrigin } from '@/services/chat/constants'
 import { chatServer } from '@/lib/chatSync/constants'
@@ -11,6 +14,8 @@ import { chatServer } from '@/lib/chatSync/constants'
 const subscribableChannel = {
     select: { id: true, name: true, description: true, availableMethods: { select: allNotificationMethodsOn } },
 } as const
+
+const NO_ACCOUNT = 'Brukeren har ingen chatkonto'
 
 const urlOfRoom = (matrixRoomId: string | null) => (
     chatClientOrigin && matrixRoomId ? `${chatClientOrigin}/#/room/${matrixRoomId}` : null
@@ -56,7 +61,7 @@ export const chatUserOperations = {
         authorizer: ({ params }) => chatUserAuth.read.data({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
             const chatUser = await prisma.chatUser.findUnique({ where: { userId: params.userId } })
-            if (!chatUser) throw new ServiceError('NOT FOUND', 'Brukeren har ingen chatkonto')
+            if (!chatUser) throw new ServiceError('NOT FOUND', NO_ACCOUNT)
             return chatUser
         },
     }),
@@ -107,6 +112,78 @@ export const chatUserOperations = {
                 url: urlOfRoom(matrixRoomId),
                 rooms: rooms.map(({ matrixRoomId: roomId, ...room }) => ({ ...room, url: urlOfRoom(roomId) })),
             })) ?? []
+        },
+    }),
+
+    readPicture: defineOperation({
+        paramsSchema: chatUserSchemas.params.readPicture,
+        authorizer: ({ params }) => chatUserAuth.readPicture.data({ userId: params.userId }),
+        operation: async ({ prisma, params }) => {
+            const chatUser = await prisma.chatUser.findUnique({
+                where: { userId: params.userId },
+                select: {
+                    image: { include: expandedImageIncluder },
+                    user: { select: { image: { include: expandedImageIncluder } } },
+                },
+            })
+            if (!chatUser) throw new ServiceError('NOT FOUND', NO_ACCOUNT)
+            return chatPictureOf(chatUser)
+        },
+    }),
+
+    /**
+     * Gives a user's account a picture of its own, in place of the one it had. The chat sync gives it
+     * to the homeserver.
+     */
+    updatePicture: defineOperation({
+        paramsSchema: chatUserSchemas.params.updatePicture,
+        dataSchema: chatUserSchemas.data.updatePicture,
+        authorizer: ({ params }) => chatUserAuth.updatePicture.data({ userId: params.userId }),
+        transaction: 'OPENS',
+        operation: async ({ prisma, params, data }) =>
+            // The upload writes the file before the database, so it needs more than the default
+            // transaction timeout.
+            prisma.$transaction(async tx => {
+                const chatUser = await tx.chatUser.findUnique({
+                    where: { userId: params.userId },
+                    select: { id: true, imageId: true, user: { select: { firstname: true, lastname: true } } },
+                })
+                if (!chatUser?.user) throw new ServiceError('NOT FOUND', NO_ACCOUNT)
+
+                const uploadedImage = await chatProfileImageCollection.internal.uploadImage.internalCall({
+                    prisma: tx,
+                    data: {
+                        imageFile: data.imageFile,
+                        imageName: 'Chatbilde',
+                        imageAlt: `Chatbilde av ${chatUser.user.firstname} ${chatUser.user.lastname}`.slice(0, 100),
+                    },
+                })
+                await tx.chatUser.update({ where: { id: chatUser.id }, data: { imageId: uploadedImage.id } })
+                if (chatUser.imageId !== null) {
+                    await chatProfileImageCollection.internal.destroyImage.internalCall({
+                        prisma: tx,
+                        params: { imageId: chatUser.imageId },
+                    })
+                }
+                return uploadedImage
+            }, { timeout: 20000 }),
+    }),
+
+    /** Takes away the picture of a user's account, which then has the user's profile image. */
+    destroyPicture: defineOperation({
+        paramsSchema: chatUserSchemas.params.destroyPicture,
+        authorizer: ({ params }) => chatUserAuth.destroyPicture.data({ userId: params.userId }),
+        operation: async ({ prisma, params }) => {
+            const chatUser = await prisma.chatUser.findUnique({
+                where: { userId: params.userId },
+                select: { imageId: true },
+            })
+            if (!chatUser) throw new ServiceError('NOT FOUND', NO_ACCOUNT)
+            if (chatUser.imageId === null) return
+            await chatProfileImageCollection.internal.destroyImage.internalCall({
+                prisma,
+                params: { imageId: chatUser.imageId },
+            })
         },
     }),
 
