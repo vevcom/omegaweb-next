@@ -1,4 +1,13 @@
-import { FileTooLarge, PICTURE_TYPES, fetchMedia, mediaOf, uploadLimitOf, uploadMedia } from './media'
+import {
+    FileTooLarge,
+    PICTURE_TYPES,
+    encryptedMediaOf,
+    fetchMedia,
+    mediaOf,
+    uploadEncryptedMedia,
+    uploadLimitOf,
+    uploadMedia,
+} from './media'
 import { loadedChatSdk } from './sdk'
 import type { FetchedAs, Media } from './media'
 import type { Watched } from './watch'
@@ -38,6 +47,14 @@ export type TimelineFile = {
     isPicture: boolean,
     /** Null where the message gives no address that is the homeserver's, so there is nothing to fetch. */
     media: Media | null,
+    /**
+     * What is fetched to show a picture small in its line, and null for what is no picture. The
+     * homeserver makes a small picture of one it can read, so this is the picture itself. Of an
+     * encrypted one it makes none: this is then the small one its sender made of it, and without
+     * one the picture itself. How much of it is fetched is bounded where it is fetched, see
+     * fetchMedia, and one that is more is a file to download.
+     */
+    small: Media | null,
     /** How many bytes it is said to be, where that is a size a file may have. */
     size: number | null,
     /** The box a picture is shown in, in pixels. */
@@ -56,6 +73,11 @@ type Shown = {
     text: string,
     /** The file or the picture the message is, and null for a text. */
     file: TimelineFile | null,
+    /**
+     * That the message was sent without encryption in a room that is encrypted, which the
+     * homeserver could then read. Nothing honest sends one there, so the line says so.
+     */
+    isNotEncrypted?: true,
     isEdited: boolean,
     /** `NOT_LOADED` for an answer to a message the timeline does not hold. */
     repliesTo: Replied | 'NOT_LOADED' | null,
@@ -69,7 +91,7 @@ type Shown = {
     /**
      * Where a message the user wrote here stands until the homeserver has sent it back, which is
      * when something can be asked of it. Null for every other. One that is held was not tried: no
-     * message of a room is sent while an earlier one has failed.
+     * message of a room is sent while an earlier one has failed or is being sent again.
      */
     sending: 'SENDING' | 'FAILED' | 'HELD' | null,
 } | {
@@ -101,6 +123,8 @@ export type RoomTimeline = {
     canReact: boolean,
     /** Whether the room's levels let the user mention the whole room. */
     canMentionRoom: boolean,
+    /** Whether what is written in the room is encrypted, so only those in it read it. */
+    isEncrypted: boolean,
     /**
      * Whether a message of the user's was not sent. The SDK sends nothing in the room until it is
      * sent or let go, so until then nothing is reacted to, edited or removed.
@@ -153,8 +177,9 @@ export type WatchedRoomTimeline = Watched<RoomTimeline> & {
     /** Those in the room besides the user, whom the homeserver is asked for the first time. */
     members: () => Promise<Person[]>,
     /**
-     * Sends the messages that were not sent again, in the order they were written. The SDK sends
-     * them one after another and gives up on the rest when one fails, so none goes before an earlier.
+     * Sends the messages that were not sent again, in the order they were written: each once the
+     * homeserver has taken the one before it, and none after one that fails, so none goes before
+     * an earlier.
      */
     resend: () => void,
     /** Lets go of a message that was not sent, by the id of its line. */
@@ -174,6 +199,9 @@ const REACTIONS_AT_MOST = 20
 const NAMED_AT_MOST = 5
 const EXCERPT_LENGTH = 80
 const EMOJI_LENGTH_AT_MOST = 40
+/** What a message is before and after it is decrypted. */
+const OF_A_MESSAGE = ['m.room.message', 'm.room.encrypted']
+const OF_ANOTHER: readonly unknown[] = ['m.replace', 'm.annotation', 'm.reference']
 const REMOVABLE = ['m.room.message', 'm.sticker', 'm.room.encrypted']
 const TEXT_TYPES: readonly unknown[] = ['m.text', 'm.notice', 'm.emote']
 /** What is shown as a file. Sound and video are files to download here. */
@@ -202,9 +230,16 @@ const oneEmoji = new RegExp(`^(?:${flagOrKeycap}|${pictograph}(?:\\u200D${pictog
  * until the homeserver sends it back, see `pendingEventOrdering` in run.ts, so a message on its
  * way is last whatever arrives meanwhile, and survives the gap. A line is the same object until
  * what it shows has changed.
+ *
+ * In an encrypted room the SDK decrypts what it is given and encrypts what is sent, so an event is
+ * read here as what it was before it was encrypted. One the device has no key for is the line of
+ * a message that cannot be read, and is read anew when the SDK says it has decrypted it, which is
+ * when its key has come.
  */
 export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoomTimeline {
-    const { ClientEvent, Direction, EventStatus, EventType, RelationType, RoomEvent, SyncState } = loadedChatSdk()
+    const {
+        ClientEvent, Direction, EventStatus, EventType, MatrixEventEvent, RelationType, RoomEvent, SyncState,
+    } = loadedChatSdk()
     const roomEvents = [
         RoomEvent.Timeline,
         RoomEvent.TimelineReset,
@@ -226,6 +261,10 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         shown = null
         watchers.forEach(watcher => watcher())
     }
+    const onDecrypted = (event: MatrixEvent) => {
+        if (event.getRoomId() === room.roomId) changed()
+    }
+    const reading = (isHeldUp: boolean) => readingOf(room, ownId, isHeldUp, client.getCrypto() !== undefined)
     const hasEarlier = () => room.getLiveTimeline().getPaginationToken(Direction.Backward) !== null
     const unsent = () => room.getPendingEvents().filter(event => event.status === EventStatus.NOT_SENT)
     const isHeldUp = () => unsent().some(event => !isAct(event))
@@ -250,7 +289,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     }
 
     const read = (): RoomTimeline => {
-        const lines = timelineLinesOf(readingOf(room, ownId, isHeldUp())).map(line => {
+        const lines = timelineLinesOf(reading(isHeldUp())).map(line => {
             const before = linesBefore.get(line.id)
             return before && isSame(before, line) ? before : line
         })
@@ -261,6 +300,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
             earlier: fetching ?? (hasEarlier() ? 'SOME' : 'NONE'),
             canReact: room.currentState.maySendEvent(EventType.Reaction, ownId),
             canMentionRoom: room.currentState.mayTriggerNotifOfType('room', ownId),
+            isEncrypted: room.hasEncryptionStateEvent(),
             isHeldUp: isHeldUp(),
         }
     }
@@ -288,6 +328,14 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         throw error
     })
 
+    // One at a time: the SDK looks up whether a room is encrypted before it queues a message, so
+    // of several sent again at once a later one could be queued after an earlier one had failed.
+    // Those not sent are asked for anew each time, so one written meanwhile is sent too.
+    const sendAgain = (): void => {
+        const [event] = unsent()
+        if (event) void client.resendEvent(event, room).then(sendAgain, () => undefined)
+    }
+
     return {
         subscribe: onChange => {
             if (watchers.size === 0) {
@@ -295,6 +343,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
                 room.on(RoomEvent.TimelineReset, onGap)
                 // eslint-disable-next-line no-sync -- The event of the client's sync, and no synchronous call.
                 client.on(ClientEvent.Sync, onSync)
+                client.on(MatrixEventEvent.Decrypted, onDecrypted)
                 shown = null
             }
             watchers.add(onChange)
@@ -305,6 +354,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
                 room.off(RoomEvent.TimelineReset, onGap)
                 // eslint-disable-next-line no-sync -- As above.
                 client.off(ClientEvent.Sync, onSync)
+                client.off(MatrixEventEvent.Decrypted, onDecrypted)
             }
         },
         read: shownNow,
@@ -331,13 +381,15 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         sendFile: async (toSend, { text = '', mentions, replyTo, signal } = {}) => {
             const atMost = await uploadLimit()
             if (atMost !== null && toSend.file.size > atMost) throw new FileTooLarge(atMost)
-            const address = await uploadMedia(client, toSend.file, signal)
-            const message = fileMessage(toSend, address, text.trim(), allowed(mentions))
+            const where = room.hasEncryptionStateEvent()
+                ? { file: await uploadEncryptedMedia(client, toSend.file, signal) }
+                : { url: await uploadMedia(client, toSend.file, signal) }
+            const message = fileMessage(toSend, where, text.trim(), allowed(mentions))
             void client.sendMessage(room.roomId, { ...message, ...answering(replyTo) }).catch(() => undefined)
         },
         uploadLimit,
         fetchFile: (media, as, signal) => fetchMedia(client, media, as, signal),
-        resend: () => unsent().forEach(event => void client.resendEvent(event, room).catch(() => undefined)),
+        resend: sendAgain,
         drop: lineId => {
             const event = unsent().find(unsentEvent => unsentEvent.getId() === lineId)
             if (event) client.cancelPendingEvent(event)
@@ -346,7 +398,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
             const toSend = text.trim()
             const [event, line] = [room.findEventById(lineId), messageLine(lineId)]
             if (!event || !toSend || !line?.canEdit || line.text === toSend) return null
-            const had = mentionsIn(contentOf(event, readingOf(room, ownId, false)))
+            const had = mentionsIn(contentOf(event, reading(false)))
             const now = allowed(mentions)
             const added = { userIds: now.userIds.filter(id => !had.userIds.includes(id)), room: now.room && !had.room }
             return act(client.sendMessage(room.roomId, {
@@ -358,13 +410,13 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         remove: lineId => (messageLine(lineId)?.canRemove ? act(client.redactEvent(room.roomId, lineId)) : null),
         mentionedIn: lineId => {
             const event = room.findEventById(lineId)
-            const { userIds } = event ? mentionsIn(contentOf(event, readingOf(room, ownId, false))) : NOBODY
+            const { userIds } = event ? mentionsIn(contentOf(event, reading(false))) : NOBODY
             return userIds.map(id => ({ id, name: textOf(room.getMember(id)?.name) ?? id }))
         },
         react: async (lineId, key) => {
             const line = messageLine(lineId)
             if (!line || !isEmoji(key) || !shownNow().canReact || isHeldUp()) return
-            const own = readingOf(room, ownId, false).reactions.get(lineId)?.get(key)
+            const own = reading(false).reactions.get(lineId)?.get(key)
             if (own?.own === 'SENDING') return
             await act(own?.ownEventId ? client.redactEvent(room.roomId, own.ownEventId) : client.sendEvent(
                 room.roomId,
@@ -422,9 +474,9 @@ export function textMessage(text: string, { userIds, room }: Mentions = NOBODY) 
 /**
  * What is sent as a file: a picture of a kind that is shown as a picture, and anything else as a
  * file. Its `body` is what was written to go with it, and its name where nothing was, as Matrix
- * has it.
+ * has it. `where` is its address, or of an encrypted one its address with what unlocks it.
  */
-function fileMessage({ file, width, height }: FileToSend, address: string, text = '', mentions: Mentions = NOBODY) {
+function fileMessage({ file, width, height }: FileToSend, where: object, text = '', mentions: Mentions = NOBODY) {
     const { MsgType } = loadedChatSdk()
     const isPicture = PICTURE_TYPES.includes(file.type)
     const msgtype: MsgType.Image | MsgType.File = isPicture ? MsgType.Image : MsgType.File
@@ -432,7 +484,7 @@ function fileMessage({ file, width, height }: FileToSend, address: string, text 
         ...textMessage(text || file.name, mentions),
         msgtype,
         filename: file.name,
-        url: address,
+        ...where,
         info: {
             mimetype: file.type || 'application/octet-stream',
             size: file.size,
@@ -461,9 +513,16 @@ type Reading = {
     ownId: string,
     state: RoomState,
     isHeldUp: boolean,
+    /** Whether the client decrypts, so an event that is still encrypted is one it has not decrypted yet or cannot. */
+    decrypts: boolean,
+    /**
+     * The events the timeline holds from before the room was encrypted, which were rightly sent
+     * without encryption. Null for a room that is not encrypted.
+     */
+    fromBeforeEncryption: ReadonlySet<MatrixEvent> | null,
 }
 
-function readingOf(room: Room, ownId: string, isHeldUp: boolean): Reading {
+function readingOf(room: Room, ownId: string, isHeldUp: boolean, decrypts: boolean): Reading {
     const events = room.getLiveTimeline().getEvents()
     const loaded = new Map(events.flatMap(event => {
         const id = textOf(event.getId())
@@ -478,6 +537,11 @@ function readingOf(room: Room, ownId: string, isHeldUp: boolean): Reading {
         ownId,
         state: room.currentState,
         isHeldUp,
+        decrypts,
+        // A timeline that does not hold the event that encrypted the room begins after it.
+        fromBeforeEncryption: room.hasEncryptionStateEvent()
+            ? new Set(events.slice(0, Math.max(0, events.findIndex(isWhatEncrypted))))
+            : null,
     }
     reading.events.forEach(event => {
         try {
@@ -496,14 +560,17 @@ function readingOf(room: Room, ownId: string, isHeldUp: boolean): Reading {
  * as one emoji. One that is removed holds nothing any more, so it is neither.
  */
 function keepRelation(event: MatrixEvent, reading: Reading): void {
-    const relatesTo = recordOf(recordOf(event.getOriginalContent())['m.relates_to'])
+    const relatesTo = relationOf(event)
     const messageId = textOf(relatesTo.event_id)
     const message = messageId === null ? undefined : reading.loaded.get(messageId)
     const senderId = textOf(event.getSender())
     if (!messageId || !message || !senderId || event.isState()) return
     if (isEdit(event)) {
         const isOfText = textIn(message.getOriginalContent()) !== null
-        if (isOfText && message.getSender() === senderId && textIn(newContentOf(event)) !== null) {
+        // A new text the homeserver could read is none of a message it could not. One of the
+        // user's own is not encrypted until it is on its way.
+        const isAsSecret = !message.isEncrypted() || event.isEncrypted() || !reading.loaded.has(event.getId() ?? '')
+        if (isOfText && isAsSecret && message.getSender() === senderId && textIn(newContentOf(event)) !== null) {
             reading.edits.set(messageId, event)
         }
         return
@@ -535,8 +602,8 @@ function timelineLinesOf(reading: Reading): TimelineLine[] {
     const lines = reading.events
         .flatMap(event => lineOf(event, reading) ?? [])
         .filter((line, index, all) => !isSettingsAgain(all[index - 1], line))
-    const firstFailed = lines.findIndex(isFailed)
-    return lines.map((line, index) => (index > firstFailed && isFailed(line) ? { ...line, sending: 'HELD' } : line))
+    const firstOnItsWay = lines.findIndex(line => line.kind === 'MESSAGE' && line.sending !== null)
+    return lines.map((line, index) => (index > firstOnItsWay && isFailed(line) ? { ...line, sending: 'HELD' } : line))
 }
 
 function lineOf(event: MatrixEvent, reading: Reading): TimelineLine | null {
@@ -560,6 +627,10 @@ function shownOfMessage(event: MatrixEvent, reading: Reading): Shown | null {
     const type = event.getType()
     if (type === 'm.room.redaction' || type === 'm.reaction' || isEdit(event)) return null
     if (event.isRedacted()) return REMOVABLE.includes(type) ? note('REMOVED') : null
+    // What cannot be read and is of another event is no message: an edit, a reaction, or what
+    // other clients send about one, such as an answer to a poll.
+    const isOfAnother = OF_ANOTHER.includes(relationOf(event).rel_type)
+    if (event.isDecryptionFailure()) return isOfAnother ? null : note('ENCRYPTED')
     switch (type) {
         case 'm.room.message': {
             const content = contentOf(event, reading)
@@ -573,6 +644,7 @@ function shownOfMessage(event: MatrixEvent, reading: Reading): Shown | null {
                 kind: 'MESSAGE',
                 text: text ?? sent?.text ?? '',
                 file: sent?.file ?? null,
+                ...isSentPlain(event, reading) && { isNotEncrypted: true as const },
                 isEdited: reading.edits.has(id),
                 repliesTo: repliedOf(event, reading),
                 mentionsUser: !isOwn && mentionsUser(content, event, reading),
@@ -586,7 +658,8 @@ function shownOfMessage(event: MatrixEvent, reading: Reading): Shown | null {
         case 'm.sticker':
             return note('STICKER')
         case 'm.room.encrypted':
-            return note('ENCRYPTED')
+            // One that is being decrypted is a line once it is, and none until then.
+            return reading.decrypts || isOfAnother ? null : note('ENCRYPTED')
         default:
             return note('OTHER')
     }
@@ -622,16 +695,20 @@ function fileIn(content: Record<string, unknown>): { file: TimelineFile, text: s
     const [body, filename] = [textOf(content.body) ?? '', textOf(content.filename)]
     const info = recordOf(content.info)
     const isPicture = content.msgtype === 'm.image'
+    const size = typeof info.size === 'number' && Number.isInteger(info.size) && info.size >= 0 && info.size <= SIZE_AT_MOST
+        ? info.size
+        : null
+    const media = content.file === undefined ? mediaOf(content.url) : encryptedMediaOf(content.file)
+    const small = media?.encrypted ? encryptedMediaOf(info.thumbnail_file) ?? media : media
     const written = (filename ?? body).replace(NOT_OF_A_NAME, '').replace(/\s+/g, ' ').trim()
     const name = Array.from(written).slice(0, FILE_NAME_LENGTH).join('')
     return {
         file: {
             name: name || (isPicture ? 'bilde' : 'fil'),
             isPicture,
-            media: mediaOf(content.url),
-            size: typeof info.size === 'number' && Number.isInteger(info.size) && info.size >= 0 && info.size <= SIZE_AT_MOST
-                ? info.size
-                : null,
+            media,
+            small: isPicture ? small : null,
+            size,
             box: boxOf(info.w, info.h),
         },
         text: filename !== null && filename !== body ? body : '',
@@ -655,6 +732,17 @@ function boxOf(width: unknown, height: unknown): TimelineFile['box'] {
     }
 }
 
+/** Whether an event is the one that encrypted its room, which only the room's setting of that kind is. */
+function isWhatEncrypted(event: MatrixEvent): boolean {
+    return event.isState() && event.getStateKey() === '' && event.getWireType() === 'm.room.encryption'
+}
+
+/** Whether the homeserver has the message as one that was not encrypted, in a room that was encrypted by then. */
+function isSentPlain(event: MatrixEvent, { fromBeforeEncryption, loaded }: Reading): boolean {
+    return fromBeforeEncryption !== null && !fromBeforeEncryption.has(event)
+        && loaded.has(event.getId() ?? '') && !event.isEncrypted()
+}
+
 /** What a message holds now: what its newest edit gave it, where it has one. */
 function contentOf(event: MatrixEvent, reading: Reading): Record<string, unknown> {
     const edit = reading.edits.get(event.getId() ?? '')
@@ -666,8 +754,16 @@ function newContentOf(edit: MatrixEvent): unknown {
 }
 
 function isEdit(event: MatrixEvent): boolean {
-    const relatesTo = recordOf(recordOf(event.getOriginalContent())['m.relates_to'])
-    return event.getType() === 'm.room.message' && relatesTo.rel_type === 'm.replace'
+    const relatesTo = relationOf(event)
+    return OF_A_MESSAGE.includes(event.getType()) && relatesTo.rel_type === 'm.replace'
+}
+
+/**
+ * What an event says it is of. An encrypted event says so beside its encrypted part, which is
+ * also what is left to read of one that cannot be decrypted.
+ */
+function relationOf(event: MatrixEvent): Record<string, unknown> {
+    return recordOf(recordOf(event.isEncrypted() ? event.getWireContent() : event.getOriginalContent())['m.relates_to'])
 }
 
 /** An event that is a line of its own and may be answered, which an edit and what happens to the room are not. */
@@ -687,7 +783,7 @@ function textIn(content: unknown): string | null {
 }
 
 function repliedOf(event: MatrixEvent, reading: Reading): Replied | 'NOT_LOADED' | null {
-    const relatesTo = recordOf(recordOf(event.getOriginalContent())['m.relates_to'])
+    const relatesTo = relationOf(event)
     const id = textOf(recordOf(relatesTo['m.in_reply_to']).event_id)
     if (id === null) return null
     const replied = reading.loaded.get(id)
@@ -723,7 +819,10 @@ function sendingOf(event: MatrixEvent): 'SENDING' | 'FAILED' | null {
     return event.status === EventStatus.NOT_SENT ? 'FAILED' : 'SENDING'
 }
 
-/** A message that was not sent. The first of them in a room is the one that failed, and the later are held. */
+/**
+ * A message that was not sent. The first of them in a room is the one that failed, and the later
+ * are held, and so are those behind one that is being sent again.
+ */
 function isFailed(line: TimelineLine): line is TimelineLine & { kind: 'MESSAGE' } {
     return line.kind === 'MESSAGE' && line.sending === 'FAILED'
 }

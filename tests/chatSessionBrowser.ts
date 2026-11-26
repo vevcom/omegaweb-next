@@ -10,6 +10,7 @@ import type { ChatSessionConfig } from '@/services/chat/session/types'
 export const HOMESERVER = 'https://matrix.chat.test'
 export const CHAT_AUTH = 'https://account.chat.test'
 export const REDIRECT_URI = 'https://omega.ntnu.no/chat/sign-in'
+const JOIN = '/_matrix/client/v3/join/'
 
 export const configFor = (matrixUserId: string | null): ChatSessionConfig => ({
     homeserverUrl: HOMESERVER,
@@ -32,6 +33,21 @@ export function tameChatSdk(spyOn: typeof jest.spyOn): void {
 }
 
 const runs: ChatSessionRun[] = []
+const untaken = new Set<Promise<void>>()
+const NEWS_WAIT_MS = 10_000
+
+/**
+ * Resolves when the clients have taken everything the tests' homeservers have told of, and what
+ * followed from it has run. A test waits for this and not for a time: how long a client takes
+ * over a sync answer depends on what else the machine is doing. News no client will take, since
+ * it was stopped or does not sync, is waited for NEWS_WAIT_MS and no longer.
+ */
+export async function newsTaken(): Promise<void> {
+    const all = Promise.all(untaken)
+    await Promise.race([all, new Promise(resolve => setTimeout(resolve, NEWS_WAIT_MS))])
+    await new Promise(resolve => setTimeout(resolve, 0))
+}
+
 
 /**
  * The client of the session a browser has kept for the user, once it runs and has synced, as a
@@ -53,6 +69,7 @@ export function syncedChatClient(browser: ChatSessionBrowser, matrixUserId: stri
 /** Stops the clients of `syncedChatClient`, and waits while the SDK finishes what it was writing. */
 export async function stopSyncedChatClients(): Promise<void> {
     runs.splice(0).forEach(run => run.stop())
+    untaken.clear()
     await new Promise(resolve => setTimeout(resolve, 50))
 }
 
@@ -90,7 +107,8 @@ const authMetadata = {
  * A browser with nothing kept, and a chat that answers it: the homeserver at HOMESERVER and its
  * sign in at CHAT_AUTH. The sign in hands out `access-1` and `refresh-1`, then `access-2` and so
  * on, and the homeserver says they are the tokens of `account`. It answers a first sync with
- * `rooms` and holds every later one, as a homeserver does until there is news. `answer` says what
+ * `rooms` and holds every later one, as a homeserver does until there is news. It keeps the keys a
+ * device publishes and gives them to whoever asks, and has no backup of keys. `answer` says what
  * a path answers in place of that, at once or when the test has it, and `tellingOfNews` makes the
  * later syncs the test's to answer. `browser` is one tab of it and `openTab` gives another: the tabs
  * share what is kept between visits, the synced databases and the lock, and each is told of what
@@ -102,8 +120,12 @@ export function fakeChatBrowser() {
     const leftFor: string[] = []
     const watchersOfTabs = new Set<Set<() => void>>()
     const indexedDB = new IDBFactory()
+    // The SDK keeps the keys of a device in the IndexedDB of the page it runs in, whatever it is handed.
+    globalThis.indexedDB = indexedDB
     const answers = new Map<string, Answering>()
     const answersUnder: [string, Answering][] = []
+    // The keys the devices have published, which a device asks for its own of too.
+    const deviceKeys = new Map<string, Record<string, object>>()
     let heldRequests = 0
     const chat = { account: '@kari:chat.test', tokensGiven: 0, rooms: {} as object }
 
@@ -137,8 +159,23 @@ export function fakeChatBrowser() {
                         expires_in: 300,
                     },
                 }
+            case `${HOMESERVER}/_matrix/client/v3/keys/upload`: {
+                const { device_keys: uploaded } = call.json as { device_keys?: { user_id: string, device_id: string } }
+                const ofUser = deviceKeys.get(uploaded?.user_id ?? '')
+                if (uploaded) deviceKeys.set(uploaded.user_id, { ...ofUser, [uploaded.device_id]: uploaded })
+                return { body: { one_time_key_counts: { signed_curve25519: 50 } } }
+            }
+            case `${HOMESERVER}/_matrix/client/v3/keys/query`: {
+                const asked = Object.keys((call.json as { device_keys: object }).device_keys)
+                const published = asked.map(userId => [userId, deviceKeys.get(userId) ?? {}] as const)
+                return { body: { device_keys: Object.fromEntries(published) } }
+            }
+            case `${HOMESERVER}/_matrix/client/v3/room_keys/version`:
+                return { status: 404, body: { errcode: 'M_NOT_FOUND', error: 'No current backup version' } }
             default:
-                return { body: {} }
+                return call.url.pathname.startsWith(JOIN)
+                    ? { body: { room_id: decodeURIComponent(call.url.pathname.slice(JOIN.length)) } }
+                    : { body: {} }
         }
     }
 
@@ -234,7 +271,18 @@ export function fakeChatBrowser() {
         browser,
         openTab: () => openTab().browser,
         /** The names of the databases the browser holds. */
-        databases: async () => (await indexedDB.databases()).map(database => database.name),
+        databases: async () => (await indexedDB.databases()).map(database => database.name).toSorted(),
+        /**
+         * The names of the databases left once those being deleted are gone. A deletion waits for
+         * the tab that has the database open to close it, which a client does as it is stopped.
+         */
+        databasesLeft: async () => {
+            const names = async () => (await indexedDB.databases()).map(database => database.name).toSorted()
+            for (let waits = 0; waits < 250 && (await names()).length > 0; waits++) {
+                await new Promise(resolve => setTimeout(resolve, 20))
+            }
+            return names()
+        },
         makeDatabase: (name: string) => new Promise<void>((resolve, reject) => {
             const opening = indexedDB.open(name)
             opening.onsuccess = () => {
@@ -259,15 +307,23 @@ export function fakeChatBrowser() {
         /**
          * Lets the test say what the homeserver tells of after the first sync: `tell` answers the
          * sync that waits, or the next to come, with what has happened in the rooms, and with what
-         * has been noted in the user's account.
+         * has been noted in the user's account. The client has taken that answer when it asks on
+         * from it, which newsTaken waits for.
          */
         tellingOfNews: () => {
-            const news: object[] = []
+            type Told = { told: object, taken: () => void }
+            const news: Told[] = []
+            const takenAt = new Map<string, () => void>()
             let tellings = 0
             let waiting: ((answer: Answer) => void) | null = null
-            const answerWith = (told: object): Answer => ({ body: { next_batch: `news-${++tellings}`, ...told } })
+            const answerWith = ({ told, taken }: Told): Answer => {
+                takenAt.set(`news-${++tellings}`, taken)
+                return { body: { next_batch: `news-${tellings}`, ...told } }
+            }
             answers.set('/_matrix/client/v3/sync', call => {
                 if (!call.url.searchParams.has('since')) return { body: { next_batch: 'first', rooms: chat.rooms } }
+                // The client asks on from an answer once it has taken all of it.
+                takenAt.get(call.url.searchParams.get('since') ?? '')?.()
                 const told = news.shift()
                 return told ? answerWith(told) : new Promise<Answer>(resolve => {
                     waiting = resolve
@@ -275,11 +331,15 @@ export function fakeChatBrowser() {
             })
             return {
                 tell: (rooms: object, accountData: object[] = []) => {
-                    const told = { rooms, account_data: { events: accountData } }
-                    const answerTheOneThatWaits = waiting
-                    waiting = null
-                    if (answerTheOneThatWaits) answerTheOneThatWaits(answerWith(told))
-                    else news.push(told)
+                    const telling = new Promise<void>(taken => {
+                        const told = { told: { rooms, account_data: { events: accountData } }, taken }
+                        const answerTheOneThatWaits = waiting
+                        waiting = null
+                        if (answerTheOneThatWaits) answerTheOneThatWaits(answerWith(told))
+                        else news.push(told)
+                    })
+                    untaken.add(telling)
+                    void telling.then(() => untaken.delete(telling))
                 },
             }
         },

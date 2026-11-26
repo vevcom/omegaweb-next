@@ -1,4 +1,10 @@
-import { fakeChatBrowser, stopSyncedChatClients, syncedChatClient, tameChatSdk } from 'tests/chatSessionBrowser'
+import {
+    fakeChatBrowser,
+    newsTaken,
+    stopSyncedChatClients,
+    syncedChatClient,
+    tameChatSdk,
+} from 'tests/chatSessionBrowser'
 import { INVITED_ANSWER_WAIT_MS } from '@/lib/chatSession/invited'
 import {
     directInvitationFrom,
@@ -62,7 +68,7 @@ const startedWith = (...invited: string[]) => ({
     timeline: { events: [] },
     summary: { 'm.joined_member_count': 1, 'm.invited_member_count': invited.length, 'm.heroes': invited },
 })
-const settled = () => new Promise(resolve => setTimeout(resolve, 30))
+const settled = () => newsTaken().then(() => new Promise(resolve => setTimeout(resolve, 30)))
 
 /** Kari's browser, signed in and with the client running, in the rooms given. */
 async function inRooms(rooms: object) {

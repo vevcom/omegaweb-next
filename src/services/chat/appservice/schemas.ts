@@ -18,22 +18,39 @@ export const chatAppserviceSchemas = {
     },
 }
 
-/** A message as Matrix sends it, as far as the app reads it. A removed message has no content left. */
-export const roomMessageEventSchema = z.object({
-    type: z.literal('m.room.message'),
+const eventFieldSchemas = {
     event_id: z.string(),
     room_id: z.string(),
     sender: z.string(),
     origin_server_ts: z.number(),
-    content: z.object({
-        msgtype: z.string(),
-        'm.mentions': z.object({
-            user_ids: z.array(z.string()).optional(),
-            room: z.boolean().optional(),
-        }).optional(),
-        'm.relates_to': z.object({ rel_type: z.string().optional() }).optional(),
+}
+const besideWhatIsSaidSchemas = {
+    'm.mentions': z.object({
+        user_ids: z.array(z.string()).optional(),
+        room: z.boolean().optional(),
+    }).optional(),
+    'm.relates_to': z.object({ rel_type: z.string().optional() }).optional(),
+}
+
+/**
+ * A message as Matrix sends it, as far as the app reads it. A removed message has no content left.
+ * One written in an encrypted room comes as `m.room.encrypted`: the app is told who wrote, where
+ * and when, and not what. Whom it mentions and what it is of stand beside the encrypted part,
+ * where the client that wrote it put them, and nothing says they are true: the homeserver passes
+ * them on from anyone.
+ */
+export const roomMessageEventSchema = z.discriminatedUnion('type', [
+    z.object({
+        ...eventFieldSchemas,
+        type: z.literal('m.room.message'),
+        content: z.object({ msgtype: z.string(), ...besideWhatIsSaidSchemas }),
     }),
-})
+    z.object({
+        ...eventFieldSchemas,
+        type: z.literal('m.room.encrypted'),
+        content: z.object({ algorithm: z.string(), ...besideWhatIsSaidSchemas }),
+    }),
+])
 
 export type RoomMessageEvent = z.infer<typeof roomMessageEventSchema>
 

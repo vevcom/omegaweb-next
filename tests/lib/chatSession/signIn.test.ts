@@ -1,7 +1,7 @@
 import { CHAT_AUTH, configFor, fakeChatBrowser, REDIRECT_URI, tameChatSdk } from 'tests/chatSessionBrowser'
 import { completeSignIn, startSignIn } from '@/lib/chatSession/signIn'
 import { signOut } from '@/lib/chatSession/client'
-import { readStoredSession } from '@/lib/chatSession/storage'
+import { readStoredSession, storeSession } from '@/lib/chatSession/storage'
 import { beforeAll, describe, expect, jest, test } from '@jest/globals'
 
 const KARI = '@kari:chat.test'
@@ -150,6 +150,23 @@ describe('completing a sign in to the chat', () => {
         }])
         expect(fake.kept.size).toBe(0)
         await expect(fake.databases()).resolves.toEqual([])
+    })
+
+    test('leaves what a session kept meanwhile has in the browser, which may be running in another tab', async () => {
+        const fake = fakeChatBrowser()
+        fake.chat.account = OLA
+        const { state } = await start(fake, KARI)
+        const ofKari = { userId: KARI, deviceId: 'KARISDEVICE1', accessToken: 'access-0', refreshToken: 'refresh-0' }
+        storeSession(fake.browser, ofKari)
+        const keysOf = (device: string) => `ow-chat-crypto:${device}::matrix-sdk-crypto`
+        const karis = ['matrix-js-sdk:ow-chat-sync:@kari:chat.test', keysOf('@kari:chat.test:KARISDEVICE1')]
+        for (const name of [...karis, keysOf('@ola:chat.test:OLASDEVICE12')]) await fake.makeDatabase(name)
+
+        await expect(completeSignIn(configFor(KARI), fake.browser, REDIRECT_URI, answerOf(state)))
+            .resolves.toEqual({ signedIn: false, refusal: 'OTHER_ACCOUNT' })
+
+        await expect(fake.databases()).resolves.toEqual(karis)
+        expect(readStoredSession(fake.browser)).toEqual(ofKari)
     })
 
     test('takes any account for another user\'s when the user has none here', async () => {

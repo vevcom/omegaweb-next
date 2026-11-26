@@ -96,6 +96,37 @@ describe('what the homeserver sends the app', () => {
         expect(JSON.stringify(kept)).not.toContain('lagres aldri')
     })
 
+    test('keeps a message of an encrypted room, with whom it says beside the encrypted part that it mentions', async () => {
+        const room = await createRoomOfASpace()
+        const encrypted = (eventId: string, beside: object = {}) => ({
+            ...message(eventId, { algorithm: 'm.megolm.v1.aes-sha2', ciphertext: 'Dette kan appen ikke lese', ...beside }),
+            type: 'm.room.encrypted',
+        })
+
+        await send([
+            encrypted('$secret'),
+            encrypted('$mention', { 'm.mentions': { user_ids: [OLA] } }),
+            encrypted('$room', { 'm.mentions': { room: true } }),
+            { ...encrypted('$direct'), room_id: '!direkte:chat.test' },
+            encrypted('$edit', {
+                'm.mentions': { user_ids: [OLA] },
+                'm.relates_to': { rel_type: 'm.replace', event_id: '$secret' },
+            }),
+            encrypted('$reaction', { 'm.relates_to': { rel_type: 'm.annotation', event_id: '$secret' } }),
+            encrypted('$verification', { 'm.relates_to': { rel_type: 'm.reference', event_id: '$secret' } }),
+            { ...encrypted('$removed'), content: {} },
+        ])
+
+        const kept = await loaded.prisma.chatRoomMessage.findMany({ orderBy: { id: 'asc' } })
+        expect(kept).toMatchObject([
+            { roomId: room.id, matrixEventId: '$secret', senderMatrixId: KARI, mentionedMatrixIds: [], mentionsRoom: false },
+            { roomId: room.id, matrixEventId: '$mention', mentionedMatrixIds: [OLA], mentionsRoom: false },
+            { roomId: room.id, matrixEventId: '$room', mentionedMatrixIds: [], mentionsRoom: true },
+            { roomId: null, standaloneMatrixRoomId: '!direkte:chat.test', matrixEventId: '$direct' },
+        ])
+        expect(JSON.stringify(kept)).not.toContain('ikke lese')
+    })
+
     test('lets go of a message in the room a space itself is, and in a room that is being destroyed', async () => {
         const room = await createRoomOfASpace()
         await loaded.prisma.chatSpace.update({ where: { id: room.spaceId }, data: { matrixRoomId: '!omraade:chat.test' } })

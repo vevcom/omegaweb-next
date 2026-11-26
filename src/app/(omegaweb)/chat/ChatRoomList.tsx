@@ -2,6 +2,7 @@
 import { chatLinks } from './links'
 import ChatInvitationAnswer from '@/components/Chat/Membership/ChatInvitationAnswer'
 import NewConversation from '@/components/Chat/Membership/NewConversation'
+import ChatRecoveryNotice from '@/components/Chat/Recovery/ChatRecoveryNotice'
 import { useChatSession } from '@/components/Chat/Session/ChatSessionProvider'
 import ChatSessionStatus from '@/components/Chat/Session/ChatSessionStatus'
 import Tag from '@/components/Chat/SpaceAdmin/Tag'
@@ -47,6 +48,7 @@ function RoomsOfRunningSession({ state: { client, connection }, roomIdsOfSpaces 
 
     return <>
         <NewConversation client={client} />
+        <ChatRecoveryNotice client={client} />
         {connection === 'LOST' && (
             <p className="m-0 text-base-content/80">Får ikke kontakt med chatten. Prøver igjen ...</p>
         )}

@@ -1,5 +1,12 @@
 import { loadChatSdk, oauthOf } from './sdk'
-import { deleteSyncStores, readDeviceId, storePendingSignIn, storeSession, takePendingSignIn } from './storage'
+import {
+    deleteChatStores,
+    readDeviceId,
+    readStoredSession,
+    storePendingSignIn,
+    storeSession,
+    takePendingSignIn,
+} from './storage'
 import type { ChatSessionBrowser } from './browser'
 import type { StoredChatSession } from './storage'
 import type { ChatSessionConfig } from '@/services/chat/session/types'
@@ -79,7 +86,8 @@ export async function completeSignIn(
     }).whoami()
     if (who.user_id !== config.matrixUserId) {
         await oauth.revokeToken(tokens.refresh_token, 'refresh_token')
-        await deleteSyncStores(browser)
+        // A session kept meanwhile, by another tab, is running there on the only copy of its keys.
+        await deleteChatStores(browser, readStoredSession(browser) ?? undefined)
         return { signedIn: false, refusal: 'OTHER_ACCOUNT' }
     }
 

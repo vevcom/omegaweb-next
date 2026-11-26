@@ -116,6 +116,7 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                     <span className="font-medium">{name}</span>
                     <TimeOfLine sentAt={line.sentAt} />
                     {line.isEdited && <span className="text-s text-base-content/80">redigert</span>}
+                    {line.isNotEncrypted && <span className="text-s text-error">ikke kryptert</span>}
                     {line.mentionsUser && <span className="text-s font-medium text-primary">Nevner deg</span>}
                 </div>
                 {repliesTo === 'NOT_LOADED' && (
