@@ -1,14 +1,16 @@
 'use client'
+import { fieldBackgroundClassNames, fieldColorClassNames, fieldWrapperClassName } from './fieldClassNames'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons'
 import { useId, type SelectHTMLAttributes } from 'react'
+import type { FieldBackground, FieldColor } from './fieldClassNames'
 
 export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & {
     /** Left out for a select that is part of a larger field, which posts the value itself. */
     name?: string,
     label?: string,
-    color?: 'base' | 'primary' | 'secondary' | 'error',
-    background?: 'base100' | 'base200',
+    color?: FieldColor,
+    background?: FieldBackground,
     onChange?: (value: ValueType) => void,
     options: {
         value: ValueType,
@@ -20,38 +22,6 @@ export type PropTypes<ValueType> = Omit<SelectHTMLAttributes<HTMLSelectElement>,
 } | {
     defaultValue?: ValueType,
 })
-
-const colorClassNames = {
-    base: { field: `
-        text-base-content
-        focus:border-base-content
-    `, accent: 'peer-focus:text-base-content' },
-    primary: { field: `
-        text-primary
-        focus:border-primary
-    `, accent: 'peer-focus:text-primary' },
-    secondary: { field: `
-        text-secondary
-        focus:border-secondary
-    `, accent: 'peer-focus:text-secondary' },
-    error: { field: `
-        text-error
-        focus:border-error
-    `, accent: 'peer-focus:text-error' },
-} as const
-
-const backgroundClassNames = {
-    base100: `
-        bg-base-100
-        hover:bg-base-200
-        focus:bg-base-200
-    `,
-    base200: `
-        bg-base-200
-        hover:bg-base-300
-        focus:bg-base-300
-    `,
-} as const
 
 export function SelectConstructor<ValueType extends string | number>(valueConverter: (value: string) => ValueType) {
     return function Select({
@@ -74,7 +44,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
             <div
                 className={
                     `
-                        relative w-full max-w-[320px] mt-2
+                        ${fieldWrapperClassName}
                         ${className ?? ''}
                     `
                 }
@@ -90,8 +60,8 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                         transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                         disabled:cursor-not-allowed disabled:opacity-60
                         [&_option]:bg-base-200 [&_option]:text-base-content
-                        ${colorClassNames[color].field}
-                        ${backgroundClassNames[background]}
+                        ${fieldColorClassNames[color].field}
+                        ${fieldBackgroundClassNames[background]}
                     `}
                     {
                         ...(value ? { value } : { defaultValue })
@@ -119,7 +89,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     className={`
                         absolute right-4 top-1/2 -translate-y-1/2 text-base-content/80 transition-colors duration-300
                         pointer-events-none
-                        ${colorClassNames[color].accent}
+                        ${fieldColorClassNames[color].label}
                     `}
                 />
                 <label
@@ -127,7 +97,7 @@ export function SelectConstructor<ValueType extends string | number>(valueConver
                     className={`
                         absolute left-4 top-2 block text-[length:calc(var(--text-s)*0.85)] text-base-content/80
                         transition-all duration-300 pointer-events-none z-1
-                        ${colorClassNames[color].accent}
+                        ${fieldColorClassNames[color].label}
                     `}
                 >{label ?? name}</label>
             </div>

@@ -3,6 +3,7 @@ import Button from '@/components/UI/Button'
 import ButtonLink from '@/components/UI/ButtonLink'
 import SubmitButton from '@/components/UI/SubmitButton'
 import TextInput from '@/components/UI/TextInput'
+import NumberInput from '@/components/UI/NumberInput'
 import Textarea from '@/components/UI/Textarea'
 import Checkbox from '@/components/UI/Checkbox'
 import DateInput from '@/components/UI/DateInput'
@@ -20,7 +21,7 @@ import { faPencil, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 const buttonColors = ['primary', 'neutral', 'success', 'error'] as const
 const textInputColors = ['base', 'secondary', 'error'] as const
 const sliderColors = ['base', 'primary', 'secondary', 'error'] as const
-const fileInputColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
+const fileInputColors = ['base', 'primary', 'error'] as const
 const selectColors = ['primary', 'secondary', 'base', 'error'] as const
 
 const dropdownOptions = [
@@ -108,6 +109,7 @@ export default function Components() {
                     {textInputColors.map(color => (
                         <TextInput key={color} name={`text_${color}`} label={color} color={color} />
                     ))}
+                    <NumberInput name="number_demo" label="Number" />
                 </div>
                 <div className="flex flex-wrap items-start gap-4">
                     <Textarea name="textarea_demo" label="Textarea" />
