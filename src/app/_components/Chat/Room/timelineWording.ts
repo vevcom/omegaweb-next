@@ -9,8 +9,6 @@ const wordings: Record<Exclude<TimelineNote, 'NAMED' | 'INVITED' | 'TAKEN_OUT' |
     VIDEO: `sendte en video, ${notShown}`,
     LOCATION: `delte en posisjon, ${notShown}`,
     STICKER: `sendte et klistremerke, ${notShown}`,
-    EDIT: 'redigerte en melding',
-    REACTION: 'reagerte på en melding',
     REMOVED: 'sendte en melding som er fjernet',
     ENCRYPTED: 'sendte en kryptert melding, som ikke kan leses her',
     OTHER: `sendte noe ${notShown}`,

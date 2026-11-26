@@ -107,6 +107,9 @@ describe('a direct message that is started', () => {
         tell({ join: { [NEW_ROOM]: told([olaAskedIn], [OLA]) } })
         expect((await started).roomId).toBe(NEW_ROOM)
         expect(await sentIn(NEW_ROOM)).toEqual(['Hei Ola'])
+        // It says whom it mentions, which is nobody, as every message does.
+        expect(fake.calls.find(call => call.url.pathname.startsWith(ofRoom(NEW_ROOM, 'send/')))?.json)
+            .toEqual({ msgtype: 'm.text', body: 'Hei Ola', 'm.mentions': {} })
         expect(directRoomWith(client, OLA)?.roomId).toBe(NEW_ROOM)
         expect(fake.callsTo(DIRECT).map(call => call.json)).toEqual([{ [OLA]: [NEW_ROOM] }])
     })

@@ -156,6 +156,7 @@ export function useDropdown<ValueType extends string | number>({
  * @param emptyText - Shown in place of the options when there are none. Without it the panel is just empty.
  * @param id - The listbox's id, for the control that opens it to reference with aria-controls.
  * @param selectedValues - Marks several options as selected, in place of `value`.
+ * @param placement - `above` opens it over the control, for one at the bottom of the page.
  */
 export function DropdownPanel<ValueType extends string | number>({
     options,
@@ -166,6 +167,7 @@ export function DropdownPanel<ValueType extends string | number>({
     emptyText,
     id,
     selectedValues,
+    placement = 'below',
 }: {
     options: DropdownOption<ValueType>[],
     value: ValueType | undefined,
@@ -175,6 +177,7 @@ export function DropdownPanel<ValueType extends string | number>({
     emptyText?: string,
     id?: string,
     selectedValues?: ValueType[],
+    placement?: 'below' | 'above',
 }) {
     const isSelected = (option: DropdownOption<ValueType>) => (
         selectedValues ? selectedValues.includes(option.value) : option.value === value
@@ -186,10 +189,11 @@ export function DropdownPanel<ValueType extends string | number>({
     }, [activeIndex])
 
     return (
-        <ul id={id} className="
-            absolute top-[calc(100%+var(--gap))] left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto
-            rounded-inner bg-base-200 shadow-soft-hover
-        " role="listbox" ref={panelRef}>
+        <ul id={id} className={`
+            absolute left-0 right-0 z-5 list-none m-0 p-2 max-h-[260px] overflow-y-auto rounded-inner bg-base-200
+            shadow-soft-hover
+            ${placement === 'above' ? 'bottom-[calc(100%+var(--gap))]' : 'top-[calc(100%+var(--gap))]'}
+        `} role="listbox" ref={panelRef}>
             {
                 options.length === 0 && emptyText ? (
                     <li className="py-2 px-4 text-base-content/80 text-s">{emptyText}</li>
@@ -201,6 +205,7 @@ export function DropdownPanel<ValueType extends string | number>({
                         <button
                             type="button"
                             role="option"
+                            id={id && dropdownOptionId(id, index)}
                             aria-selected={isSelected(option)}
                             className={
                                 `
@@ -323,4 +328,9 @@ export default function Dropdown<ValueType extends string | number>({
             {name && <input type="hidden" name={name} value={value ?? ''} readOnly />}
         </div>
     )
+}
+
+/** The id of an option of a panel with an id, for the control to name the active one with aria-activedescendant. */
+export function dropdownOptionId(panelId: string, index: number): string {
+    return `${panelId}-option-${index}`
 }
