@@ -1,13 +1,15 @@
 import '@ow-server-only'
 import { oidcAuth } from './auth'
 import { loginProviderSchema, oidcSchemas } from './schemas'
-import { isPostLogoutRedirectUri, oidcClientOf } from './clients'
+import { isPostLogoutRedirectUri, oidcClientOf, oidcClientsToldOfSignOut } from './clients'
 import { OIDC_CODE_LIFETIME_MS, OIDC_TOKEN_LIFETIME_S, oidcIssuer } from './constants'
 import { userClaims } from './scopes'
 import { discoveryDocument } from './discovery'
-import { jwks, signAccessToken, signIdToken, verifyAccessToken } from './tokens'
+import { jwks, signAccessToken, signIdToken, signLogoutToken, verifyAccessToken } from './tokens'
+import { postLogoutToken } from './backchannelLogout'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
+import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { createHash, randomBytes } from 'node:crypto'
 import type { Prisma } from '@/prisma-generated-pn-client'
@@ -43,6 +45,7 @@ async function redeemCode(prisma: Prisma.TransactionClient, params: ExchangePara
         clientId: stored.clientId,
         scopes: stored.scope.split(' '),
         nonce: stored.nonce,
+        sid: stored.sid,
     }
 }
 
@@ -75,6 +78,7 @@ export const oidcOperations = {
                     codeHash: hashOf(code),
                     userId: params.userId,
                     provider: params.provider,
+                    sid: params.sid,
                     clientId: client.id,
                     redirectUri: params.redirectUri,
                     scope: scopes.join(' '),
@@ -114,7 +118,7 @@ export const oidcOperations = {
                 token_type: 'Bearer',
                 expires_in: OIDC_TOKEN_LIFETIME_S,
                 scope: grant.scopes.join(' '),
-                id_token: signIdToken({ ...identity, nonce: grant.nonce, claims }),
+                id_token: signIdToken({ ...identity, nonce: grant.nonce, sid: grant.sid, claims }),
             }
         },
     }),
@@ -130,17 +134,22 @@ export const oidcOperations = {
     }),
 
     /**
-     * Where a logged out visitor goes, RP-Initiated Logout section 2: the uri the client asked for
-     * when it is one of ours, the provider's own frontpage otherwise.
+     * The end of a session on the auth domain. The clients are told of it by the id the session
+     * had, see {@link tellClientsOfSignOut}; a session without an id, or no session, tells no one.
+     * The answer is where a logged out visitor goes, RP-Initiated Logout section 2: the uri the
+     * client asked for when it is one of ours, the provider's own frontpage otherwise.
      */
     endSession: defineOperation({
         paramsSchema: oidcSchemas.params.endSession,
         authorizer: () => oidcAuth.endSession,
-        operation: ({ params }) => ({
-            redirectTo: params.postLogoutRedirectUri && isPostLogoutRedirectUri(params.postLogoutRedirectUri)
-                ? params.postLogoutRedirectUri
-                : `${oidcIssuer()}/`,
-        }),
+        operation: async ({ params }) => {
+            if (params.sid) await tellClientsOfSignOut(params.sid)
+            return {
+                redirectTo: params.postLogoutRedirectUri && isPostLogoutRedirectUri(params.postLogoutRedirectUri)
+                    ? params.postLogoutRedirectUri
+                    : `${oidcIssuer()}/`,
+            }
+        },
     }),
 
     /** The discovery document, see discovery.ts. */
@@ -155,3 +164,31 @@ export const oidcOperations = {
         operation: () => jwks(),
     }),
 } as const
+
+/**
+ * Tells every client that has an address for it that a session on the auth domain has ended, see
+ * postLogoutToken: once each, as the session ends, and never again. A client that is not told keeps
+ * what was started in that session. That is logged and stops nothing, since logging out never
+ * depends on a client.
+ */
+async function tellClientsOfSignOut(sid: string): Promise<void> {
+    await Promise.all(oidcClientsToldOfSignOut().map(async client => {
+        try {
+            await postLogoutToken(client.backchannelLogoutUri, signLogoutToken({ clientId: client.id, sid }))
+        } catch (error) {
+            logger.error('A client of the OpenID Connect provider was not told of a sign out', {
+                clientId: client.id,
+                address: client.backchannelLogoutUri,
+                reason: reasonOf(error),
+            })
+        }
+    }))
+}
+
+/** What went wrong, with what lies behind it: a fetch that failed says why in its cause. */
+function reasonOf(error: unknown): string {
+    if (!(error instanceof Error)) return String(error)
+    const { cause } = error
+    if (!(cause instanceof Error)) return error.message
+    return `${error.message}: ${'code' in cause && typeof cause.code === 'string' ? cause.code : cause.message}`
+}

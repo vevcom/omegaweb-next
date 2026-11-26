@@ -9,6 +9,8 @@ model OidcAuthorizationCode {
   userId   Int
   // The login the user's session on the auth domain came from, which the client's session then carries.
   provider String
+  // The id of that session, which the ID token names it by. Null for a session that has none.
+  sid      String?
 
   clientId    String
   redirectUri String

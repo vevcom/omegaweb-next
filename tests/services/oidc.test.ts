@@ -73,6 +73,7 @@ const issue = ({ user, session }: Actor, challenge: string, overrides: Partial<I
             codeChallenge: challenge,
             codeChallengeMethod: 'S256',
             provider: 'credentials',
+            sid: 'session-1',
             ...overrides,
         },
         session,
@@ -127,6 +128,7 @@ describe('the OpenID Connect provider', () => {
             scope: 'openid profile email',
             nonce: 'nonce-1',
             provider: 'credentials',
+            sid: 'session-1',
         })
 
         await expect(exchange(code, verifier)).resolves.toEqual({
@@ -135,6 +137,7 @@ describe('the OpenID Connect provider', () => {
             clientId: CLIENT,
             scopes: ['openid', 'profile', 'email'],
             nonce: 'nonce-1',
+            sid: 'session-1',
         })
         await refused(exchange(code, verifier), 'DISSALLOWED')
     })
@@ -241,9 +244,26 @@ describe('the OpenID Connect provider', () => {
         await refused(oidcOperations.userinfo({ params: { accessToken: `${tokens.access_token}x` } }), 'JWT INVALID')
     })
 
+    test('the ID token names the session the code was issued in, and no session where there is no id', async () => {
+        const actor = await createUser('session-id')
+        const tokensOf = async (sid: string | null) => {
+            const { verifier, challenge } = pkce()
+            const { code } = await issue(actor, challenge, { sid })
+            const grant = { clientId: CLIENT, redirectUri: REDIRECT_URI, code, codeVerifier: verifier }
+            return oidcOperations.token({ data: { ...grant, grantType: 'authorization_code' } })
+        }
+
+        const inSession = await tokensOf('session-of-this-browser')
+        expect(decode(inSession.id_token)).toMatchObject({ sid: 'session-of-this-browser', sub: String(actor.user.id) })
+        expect(decode(inSession.access_token)).not.toHaveProperty('sid')
+
+        expect(decode((await tokensOf(null)).id_token)).not.toHaveProperty('sid')
+        await refused(issue(actor, pkce().challenge, { sid: '' }), 'BAD PARAMETERS')
+    })
+
     test('a logged out visitor is sent to the uri asked for when it is ours, and to the frontpage otherwise', async () => {
         const endSession = (postLogoutRedirectUri: string | null) =>
-            oidcOperations.endSession({ params: { postLogoutRedirectUri } })
+            oidcOperations.endSession({ params: { postLogoutRedirectUri, sid: null } })
         await expect(endSession(`${ISSUER}/career`)).resolves.toEqual({ redirectTo: `${ISSUER}/career` })
         await expect(endSession('https://evil.example/')).resolves.toEqual({ redirectTo: `${ISSUER}/` })
         await expect(endSession(null)).resolves.toEqual({ redirectTo: `${ISSUER}/` })
@@ -386,7 +406,7 @@ describe('the OpenID Connect provider', () => {
         }
 
         const claims = await userClaims(user.id, ['openid', 'profile', 'email'])
-        const idToken = signIdToken({ clientId: CLIENT, userId: user.id, nonce: 'nonce-1', claims })
+        const idToken = signIdToken({ clientId: CLIENT, userId: user.id, nonce: 'nonce-1', sid: null, claims })
         expect(decode(idToken, { complete: true })?.header).toMatchObject({ alg: 'ES256', kid: keys[0].kid })
         expect(decode(idToken)).toMatchObject({
             iss: ISSUER,
@@ -453,7 +473,7 @@ describe('the OpenID Connect provider', () => {
         expect(discoveryDocument().scopes_supported).toEqual(OIDC_SCOPES)
         expect(discoveryDocument().claims_supported).toEqual(OIDC_CLAIMS)
         expect(OIDC_SCOPES).toEqual(['openid', 'profile', 'email', OIDC_MAIL_SCOPE, OIDC_CHAT_SCOPE])
-        expect(OIDC_CLAIMS).toEqual(['sub', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))])
+        expect(OIDC_CLAIMS).toEqual(['sub', 'sid', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))])
         expect(OIDC_CLAIMS).not.toContain('groups')
     })
 })

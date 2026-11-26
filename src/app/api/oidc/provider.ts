@@ -62,6 +62,9 @@ export const jsonWith = (headers: Record<string, string>) => (result: unknown) =
 /** For the endpoints no session takes part in, so none is looked up. */
 export const noSession = () => Promise.resolve(Session.empty())
 
+/** The handler gets a Request by type and a NextRequest in fact, as every route does. */
+export const asNextRequest = (request: Request) => request as NextRequest
+
 type RouteHandler = (request: NextRequest, context?: { params: Promise<unknown> }) => Awaitable<Response>
 
 /**

@@ -87,8 +87,8 @@ export const isOidcScope = (scope: string): scope is OidcScope => Object.hasOwn(
 export const scopesFor = (kind: OidcClientKind): OidcScope[] =>
     OIDC_SCOPES.filter(scope => (oidcScopes[scope].clients as readonly OidcClientKind[]).includes(kind))
 
-/** Every claim a token may carry: the subject, and the claims of the scopes. */
-export const OIDC_CLAIMS = ['sub', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))]
+/** Every claim a token may carry: the subject, the session it was issued in, and the claims of the scopes. */
+export const OIDC_CLAIMS = ['sub', 'sid', ...Object.values(oidcScopes).flatMap(scope => Object.keys(scope.claims))]
 
 /** The claims of a user, by name. */
 export type UserClaims = Record<string, ClaimValue>

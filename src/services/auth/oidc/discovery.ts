@@ -3,8 +3,9 @@ import { OIDC_CLAIMS, OIDC_SCOPES } from './scopes'
 
 /**
  * The document at `oidcPaths.discovery`, by which a client finds the endpoints and what they
- * support, see OpenID Connect Discovery section 3: the one protocol of oidcProtocol, and the
- * scopes and claims of oidcScopes.
+ * support, see OpenID Connect Discovery section 3: the one protocol of oidcProtocol, the scopes
+ * and claims of oidcScopes, and that a client with an address for it is told when a session ends,
+ * by the `sid` its ID token had.
  */
 export function discoveryDocument() {
     const issuer = oidcIssuer()
@@ -24,5 +25,7 @@ export function discoveryDocument() {
         claims_supported: [...OIDC_CLAIMS],
         token_endpoint_auth_methods_supported: [oidcProtocol.tokenEndpointAuthMethod],
         code_challenge_methods_supported: [oidcProtocol.codeChallengeMethod],
+        backchannel_logout_supported: true,
+        backchannel_logout_session_supported: true,
     }
 }

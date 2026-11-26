@@ -6,6 +6,12 @@ export const OIDC_CODE_LIFETIME_MS = 2 * 60 * 1000
 /** How long an ID token and an access token are good for, in seconds. */
 export const OIDC_TOKEN_LIFETIME_S = 60 * 60
 
+/** How long a logout token is good for, in seconds. A client is handed it once, as it is signed. */
+export const OIDC_LOGOUT_TOKEN_LIFETIME_S = 2 * 60
+
+/** How long a client may take to answer when it is told of a sign out, before the logout goes on without it. */
+export const OIDC_BACKCHANNEL_LOGOUT_TIMEOUT_MS = 3 * 1000
+
 /**
  * The one shape of the protocol the provider speaks: the schemas refuse anything else, the discovery
  * document publishes it, the tokens are signed by it, and the sites ask for it.
@@ -21,6 +27,9 @@ export const oidcProtocol = {
     /** Public clients, which prove themselves with PKCE and no secret. */
     tokenEndpointAuthMethod: 'none',
     subjectType: 'public',
+    /** What a logout token says of itself and of what happened, OpenID Connect Back-Channel Logout 1.0 section 2.4. */
+    logoutTokenType: 'logout+jwt',
+    logoutEvent: 'http://schemas.openid.net/event/backchannel-logout',
 } as const
 
 /** The endpoints of the provider, served on the auth domain alone. */

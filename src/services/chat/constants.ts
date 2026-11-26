@@ -31,6 +31,12 @@ export const chatSignIn = chatAuth && homeserverPublicOrigin && chatServer.serve
  */
 export const CHAT_SESSION_CLIENT_ID = '000000000000000000MEGACHAT'
 
+/**
+ * The id the provider on the auth domain has in MAS's config, which chat-infrastructure fixes too.
+ * MAS's addresses for what concerns the provider end in it.
+ */
+export const CHAT_AUTH_PROVIDER_ID = '000000000000000000000VEVEN'
+
 export type ChatAuth = { origin: string, host: string }
 
 function originAndHostOf(envName: 'CHAT_AUTH_URL' | 'CHAT_CLIENT_URL' | 'CHAT_HOMESERVER_PUBLIC_URL'): ChatAuth | null {
