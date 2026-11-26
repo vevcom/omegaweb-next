@@ -82,6 +82,15 @@ const ownSources = {
 const SELF = "'self'"
 
 /**
+ * What a chat page is let do that no other page is. The browser keeps the user's session with the
+ * chat itself, so the page fetches from the chat.
+ */
+type ChatPage = {
+    /** The origins of the homeserver and its sign in, as browsers reach them. */
+    origins: string[]
+}
+
+/**
  * The content security policy of a page. Scripts run only when they carry the nonce of the request, or
  * were loaded by one that does ('strict-dynamic'), so an injected script cannot run even if it gets past
  * the html sanitizer. Next.js reads the nonce from this header on the request and puts it on its own
@@ -89,23 +98,34 @@ const SELF = "'self'"
  * the session.
  *
  * Styles stay 'unsafe-inline': React writes style attributes, and a nonce would not cover those.
+ *
+ * A chat page is let do more than every other page, see {@link ChatPage}. The proxy says which
+ * page is one.
  */
-export function contentSecurityPolicy(nonce: string, { development }: { development: boolean }): string {
+export function contentSecurityPolicy(
+    nonce: string,
+    { development, chatPage = null }: { development: boolean, chatPage?: ChatPage | null },
+): string {
     const directives: Record<string, string[]> = {
         'default-src': [SELF],
-        // React needs eval in development for its debugging features, never in production.
         'script-src': [
             SELF,
             `'nonce-${nonce}'`,
             "'strict-dynamic'",
             ...originsFor('scripts'),
+            // React needs eval in development for its debugging features, never in production.
             ...(development ? ["'unsafe-eval'"] : []),
         ],
         'style-src': [SELF, "'unsafe-inline'", ...originsFor('styles')],
         'img-src': [SELF, ...ownSources.images, ...originsFor('images')],
         'font-src': [SELF, ...ownSources.fonts, ...originsFor('fonts')],
         // ws: for hot reloading in development.
-        'connect-src': [SELF, ...originsFor('requests'), ...(development ? ['ws:'] : [])],
+        'connect-src': [
+            SELF,
+            ...originsFor('requests'),
+            ...(chatPage?.origins ?? []),
+            ...(development ? ['ws:'] : []),
+        ],
         'frame-src': originsFor('frames'),
         'worker-src': [SELF, ...ownSources.workers],
         'manifest-src': [SELF],

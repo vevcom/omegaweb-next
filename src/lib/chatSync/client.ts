@@ -6,6 +6,7 @@ import {
     CHAT_MAS_CLIENT_ID,
     ROOM_MODERATOR_LEVEL,
 } from './constants'
+import { matrixUserIdOf } from './matrixUserId'
 
 export type ChatFetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'status' | 'json'>>
 
@@ -103,7 +104,7 @@ export class ChatClient {
     }
 
     userIdOf(localpart: string): string {
-        return `@${localpart}:${this.config.serverName}`
+        return matrixUserIdOf(localpart, this.config.serverName)
     }
 
     private request(url: string, token: string, method: string, body?: unknown): Promise<unknown> {

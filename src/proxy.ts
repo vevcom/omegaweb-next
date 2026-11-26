@@ -4,6 +4,8 @@ import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
 import { Site } from '@/lib/sites/site'
 import { appHref } from '@/lib/sites/href'
 import { CHAT_APPSERVICE_PATH } from '@/services/chat/appservice/constants'
+import { chatSignIn } from '@/services/chat/constants'
+import { chatPages, isChatPagePath } from '@/app/(omegaweb)/chat/config'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -48,13 +50,28 @@ export function proxy(request: NextRequest) {
     }
 
     const nonce = btoa(crypto.randomUUID())
-    const policy = contentSecurityPolicy(nonce, { development: process.env.NODE_ENV === 'development' })
+    const policy = contentSecurityPolicy(nonce, {
+        development: process.env.NODE_ENV === 'development',
+        chatPage: chatPageOf(context),
+    })
     // Next.js finds the nonce in the request's policy and puts it on the scripts it renders.
     requestHeaders.set('Content-Security-Policy', policy)
 
     const response = siteResponse(request, context, requestHeaders)
     response.headers.set('Content-Security-Policy', policy)
     return response
+}
+
+/**
+ * What the policy lets a chat page do beyond every other page, or null for a request that is for
+ * none: a page under the chat pages' path, on a domain that serves them, where the chat pages sign
+ * the browser in. The policy is the document's and holds for as long as the document lives: also
+ * after the visitor has moved on to another page in it, and not at a chat page the visitor came to
+ * from another page, which ChatSessionProvider therefore loads anew.
+ */
+function chatPageOf(context: DomainContext) {
+    if (!chatSignIn || !context.serves(Site.of(chatPages.site)) || !isChatPagePath(context.path)) return null
+    return { origins: [chatSignIn.homeserverOrigin, chatSignIn.authOrigin] }
 }
 
 /**
