@@ -11,9 +11,10 @@ import { formatVevenUri } from '@/lib/urlEncoding'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { appHref } from '@/lib/sites/href'
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronUp, faX } from '@fortawesome/free-solid-svg-icons'
+import type React from 'react'
 import type { ExpandedArticleCategoryWithVisibility } from '@/services/articleCategories/types'
 
 type PropTypes = {

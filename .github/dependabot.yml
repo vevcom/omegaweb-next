@@ -4,15 +4,53 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    open-pull-requests-limit: 18
+    # No major is ignored, so a major that waits stays open as a pull request of its own.
+    # A package gets no minor or patch updates while a major of it waits.
+    # Only majors that cannot be installed apart are grouped.
     groups:
+      stripe:
+        patterns:
+        - "@stripe/*"
+        update-types:
+        - "major"
+      react-pdf:
+        patterns:
+        - "react-pdf"
+        - "pdfjs-dist"
+        update-types:
+        - "major"
+      stylelint:
+        patterns:
+        - "stylelint"
+        - "stylelint-*"
+        - "@stylistic/stylelint-plugin"
+        update-types:
+        - "major"
+      react:
+        patterns:
+        - "react"
+        - "react-dom"
+        - "@types/react"
+        - "@types/react-dom"
+        update-types:
+        - "major"
+      prisma:
+        patterns:
+        - "prisma"
+        - "@prisma/*"
+        update-types:
+        - "major"
+      fortawesome:
+        patterns:
+        - "@fortawesome/*"
+        update-types:
+        - "major"
       minor:
         update-types:
         - "minor"
         - "patch"
-      major:
-        update-types:
-        - "major"
-        
+
   - package-ecosystem: docker
     directory: "/"
     schedule:

@@ -3,7 +3,8 @@
 import Bulshit from './Bulshit'
 import { BulshitPagingContext } from '@/contexts/paging/BulshitPaging'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
-import React, { useContext } from 'react'
+import { useContext } from 'react'
+import type React from 'react'
 
 export type PropTypes = {
     serverRendered?: React.ReactNode,

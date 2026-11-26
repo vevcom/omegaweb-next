@@ -79,13 +79,12 @@
     "zod-form-data": "^2.0.4"
   },
   "overrides": {
-    "nodemailer": "^10.0.14",
+    "nodemailer": "$nodemailer",
     "pdfjs-dist": "5.4.296",
     "mysql2": "^3.24.5",
     "deepmerge-ts": "^8.0.2"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.28.5",
     "@jest/globals": "^30.3.0",
     "@stylistic/stylelint-plugin": "^5.0.1",
     "@tailwindcss/postcss": "^4.3.3",

@@ -1,5 +1,6 @@
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import React, { useImperativeHandle } from 'react'
+import { useImperativeHandle } from 'react'
+import type React from 'react'
 
 export type StripePaymentRef = {
     submit: () => Promise<string | null>;

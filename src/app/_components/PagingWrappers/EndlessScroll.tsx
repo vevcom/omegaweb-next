@@ -1,7 +1,7 @@
 'use client'
 import Button from '@/components/UI/Button'
 import { getDefaultErrorMessage } from '@/services/error'
-import React, {
+import {
     useContext,
     useEffect,
     useMemo,
@@ -9,6 +9,7 @@ import React, {
     useState,
 } from 'react'
 import { useInView } from 'react-intersection-observer'
+import type React from 'react'
 import type { PagingContext } from '@/contexts/paging/PagingGenerator'
 
 type PropTypes<Data, Cursor, PageSize extends number, FetcherDetails> = {

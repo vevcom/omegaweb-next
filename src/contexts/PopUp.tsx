@@ -1,6 +1,7 @@
 'use client'
 import useOnNavigation from '@/hooks/useOnNavigation'
-import React, { createContext, useState, useCallback } from 'react'
+import { createContext, useState, useCallback } from 'react'
+import type React from 'react'
 
 export type PopUpKeyType = number | string
 

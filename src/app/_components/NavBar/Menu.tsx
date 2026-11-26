@@ -7,9 +7,9 @@ import { useOmegaGlobalSearch } from '@/app/(omegaweb)/GlobalSearch'
 import { useNavMenu } from '@/contexts/NavMenu'
 import useActiveNavHref from '@/hooks/useActiveNavHref'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
+import type React from 'react'
 import type { NavLink } from '@/lib/navDef/navDef'
 
 type PropTypes = {

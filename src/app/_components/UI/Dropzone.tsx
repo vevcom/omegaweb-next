@@ -1,13 +1,14 @@
 'use client'
 
 import styles from './Dropzone.module.scss'
-import React, {
+import {
     useCallback,
     useRef,
     useEffect,
 } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUpload, faTrash, faCheck, faSpinner, faExclamation } from '@fortawesome/free-solid-svg-icons'
+import type React from 'react'
 import type {
     InputHTMLAttributes,
     ChangeEvent,

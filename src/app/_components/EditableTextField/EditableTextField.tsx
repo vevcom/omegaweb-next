@@ -1,9 +1,10 @@
 'use client'
 import Form from '@/components/Form/Form'
 import useKeyPress from '@/hooks/useKeyPress'
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
+import type React from 'react'
 import type { PropTypes as FormPropTypes } from '@/components/Form/Form'
 
 type PropTypes<ReturnType> = {

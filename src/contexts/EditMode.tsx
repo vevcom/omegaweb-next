@@ -1,5 +1,6 @@
 'use client'
-import React, { useState, createContext, useCallback } from 'react'
+import { useState, createContext, useCallback } from 'react'
+import type React from 'react'
 
 type PropTypes = {
     children: React.ReactNode,

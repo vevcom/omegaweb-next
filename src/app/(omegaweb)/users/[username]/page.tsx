@@ -16,7 +16,7 @@ import { omegaLinks } from '@/app/(omegaweb)/links'
 import { omegaAuthLinks } from '@/app/(omegaweb)/(auth)/links'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSignOut } from '@fortawesome/free-solid-svg-icons'
-import React from 'react'
+import type React from 'react'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 export type PropTypes = {
