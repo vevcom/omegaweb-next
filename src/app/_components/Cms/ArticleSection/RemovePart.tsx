@@ -1,10 +1,9 @@
 'use client'
-import Form from '@/components/Form/Form'
 import useEditMode from '@/hooks/useEditMode'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { useState } from 'react'
-import { faX } from '@fortawesome/free-solid-svg-icons'
+import { faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { ArticleSectionPart, RemovePartFromArticleSectionAction } from '@/cms/articleSections/types'
 import type { ConfiguredAction } from '@/services/actionTypes'
@@ -16,45 +15,51 @@ type PropTypes = {
     capabilities: CapabilitiesJsObject<'canEdit'>
 }
 
+/** Removes a part of a section. The first click asks, on the button itself, and the second removes. */
 export default function RemovePart({ part, removePartFromArticleSectionAction, capabilities }: PropTypes) {
     const { refresh } = useSiteRouter()
     const editable = useEditMode({ authResult: capabilities.canEdit })
-    const [confirmOpen, setConfirmOpen] = useState(false)
-    const confirmRef = useClickOutsideRef(() => setConfirmOpen(false))
-    const handleRemove = removePartFromArticleSectionAction.bind(null, { data: { part } })
+    const [state, setState] = useState<'idle' | 'confirming' | 'removing' | 'failed'>('idle')
+    const ref = useClickOutsideRef(() => setState('idle'))
 
     if (!editable) return null
+
+    const handleClick = async () => {
+        if (state !== 'confirming') {
+            setState('confirming')
+            return
+        }
+        setState('removing')
+        const result = await removePartFromArticleSectionAction({ data: { part } })
+        if (!result.success) {
+            setState('failed')
+            return
+        }
+        refresh()
+    }
+    const asking = state !== 'idle'
+
     return (
-        <div ref={confirmRef} className="relative">
+        <div ref={ref}>
             <button
-                className="
-                    bg-[red] w-[30px] h-[30px] rounded-full border-none grid place-items-center transition-colors
-                    duration-300
-                    hover:bg-[hsl(0,100%,40%)] hover:cursor-pointer
-                "
-                onClick={() => setConfirmOpen(x => !x)}>
-                <FontAwesomeIcon icon={faX} />
+                type="button"
+                title="Fjern"
+                aria-label={asking ? 'Bekreft fjerning' : 'Fjern'}
+                disabled={state === 'removing'}
+                onClick={handleClick}
+                className={`
+                    h-8 rounded-inner border-none flex items-center gap-1 cursor-pointer text-s whitespace-nowrap
+                    ${asking ? 'px-2 bg-error text-error-content' : `
+                        w-8 justify-center bg-base-200 text-error
+                        hover:bg-base-300
+                    `}
+                `}
+            >
+                <FontAwesomeIcon icon={faTrash} />
+                {state === 'confirming' && 'Fjern?'}
+                {state === 'removing' && 'Fjerner...'}
+                {state === 'failed' && 'Kunne ikke fjerne'}
             </button>
-            {
-                confirmOpen && (
-                    <div
-                        className="
-                            shadow-[0_0_10px_0_var(--boxShadow)] absolute top-full left-1/2 -translate-x-1/2 w-[200px]
-                            bg-base-200 round grid place-items-center
-                            [&_form]:w-auto [&_form]:h-auto
-                        "
-                    >
-                        <Form
-                            action={handleRemove}
-                            submitText="Fjern"
-                            successCallback={() => {
-                                refresh()
-                            }}
-                            submitColor="red"
-                        />
-                    </div>
-                )
-            }
         </div>
     )
 }

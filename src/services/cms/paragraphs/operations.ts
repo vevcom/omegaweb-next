@@ -3,7 +3,7 @@ import { cmsParagraphSchemas } from './schemas'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
-import { markdownToSafeHtml } from '@/lib/html/safeHtml'
+import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import type { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
@@ -62,17 +62,13 @@ export const cmsParagraphOperations = {
         paramsSchema: () => cmsParagraphSchemas.params.updateContent,
         dataSchema: () => cmsParagraphSchemas.data.updateContent,
         operation: () => async ({ params, prisma, data }) => {
-            const safeHtml = await markdownToSafeHtml(data.markdown).catch(() => {
-                throw new ServiceError('BAD PARAMETERS', 'Ugyldig Markdown')
-            })
-            const contentHtml = safeHtml
-                .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
+            const contentHtml = sanitizeHtml(data.html)
+                .replace(/<img[^>]*>/g, 'Bilder i tekst er ikke støttet. Bruk det innebygde bildeverktøyet.')
             return await prisma.cmsParagraph.update({
                 where: {
                     id: params.paragraphId
                 },
                 data: {
-                    contentMd: data.markdown,
                     contentHtml,
                 }
             })

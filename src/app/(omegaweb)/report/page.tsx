@@ -30,8 +30,9 @@ const { page, generateMetadata } = serverPage({
     }),
     metadata: () => ({ title: 'Varsling' }),
     render: ({ data: article, capabilities }) => (
-        <PageWrapper className={reportPageClassName}>
+        <PageWrapper transparent hideTitle className={reportPageClassName}>
             <SpecialArticle
+                islands
                 article={article}
                 capabilities={capabilities}
                 actions={{

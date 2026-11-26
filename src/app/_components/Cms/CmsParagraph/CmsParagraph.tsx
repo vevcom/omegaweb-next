@@ -21,21 +21,22 @@ export default function CmsParagraph({ cmsParagraph, className, updateCmsParagra
                 w-full relative
                 ${className}
             `}>
-                {cmsParagraph.contentHtml ? (
-                    <div
-                        className={htmlContentClassName}
-                        // Sanitized again on the way out, not only when written: older rows, and the
-                        // html imported from OmegaWeb Basic, never passed through it.
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}
-                    />
-                ) : (
-                    <i>Her var det ikke noe innhold</i>
-                )}
                 <ParagraphEditor
                     capabilities={capabilitiesToJsObject(capabilities)}
                     cmsParagraph={cmsParagraph}
                     updateCmsParagraphAction={updateCmsParagraphAction}
-                />
+                >
+                    {cmsParagraph.contentHtml ? (
+                        <div
+                            className={htmlContentClassName}
+                            // Sanitized again on the way out, not only when written: older rows, and the
+                            // html imported from OmegaWeb Basic, never passed through it.
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(cmsParagraph.contentHtml) }}
+                        />
+                    ) : (
+                        <i>Her var det ikke noe innhold</i>
+                    )}
+                </ParagraphEditor>
             </div>
         </>
     )

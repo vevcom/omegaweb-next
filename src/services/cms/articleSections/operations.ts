@@ -60,6 +60,7 @@ export const articleSectionOperations = {
                 data: {
                     imageSize: data.imageSize,
                     imagePosition: data.position,
+                    background: data.background,
                 },
                 include: articleSectionsRelationsIncluder,
             })

@@ -44,16 +44,16 @@ describe('special cms parts of an owner', () => {
 
         await expect(frontpageOperations.cmsParagraphs.updateContent({
             params: { paragraphId: paragraph.id },
-            data: { markdown: 'nope' },
+            data: { html: 'nope' },
             session: visitor,
         })).rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
 
         const updated = await frontpageOperations.cmsParagraphs.updateContent({
             params: { paragraphId: paragraph.id },
-            data: { markdown: '# Hei' },
+            data: { html: '<h1>Hei</h1><script>alert(1)</script>' },
             session: admin,
         })
-        expect(updated.contentMd).toBe('# Hei')
+        expect(updated.contentHtml).toBe('<h1>Hei</h1>')
     })
 
     test('a paragraph of another owner cannot be updated through this one', async () => {
@@ -67,7 +67,7 @@ describe('special cms parts of an owner', () => {
         for (const paragraphId of [contract.id, plain.id]) {
             await expect(frontpageOperations.cmsParagraphs.updateContent({
                 params: { paragraphId },
-                data: { markdown: 'taken over' },
+                data: { html: 'taken over' },
                 session: admin,
             })).rejects.toMatchObject({ errorCode: 'DISSALLOWED' })
         }

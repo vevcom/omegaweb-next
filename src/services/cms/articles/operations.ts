@@ -44,6 +44,34 @@ const createSpecial = defineSubOperation({
     })
 })
 
+/**
+ * Puts the sections of an article in the order given, which must name each of them once. The orders
+ * already in use are dealt out anew, so nothing outside the article is touched.
+ */
+async function setSectionOrder(prisma: Prisma.TransactionClient, articleId: number, sectionIds: number[]) {
+    const sections = await prisma.articleSection.findMany({
+        where: { articleId },
+        select: { id: true, order: true },
+        orderBy: { order: 'asc' },
+    })
+    const remaining = new Set(sections.map(section => section.id))
+    if (sectionIds.length !== sections.length || !sectionIds.every(id => remaining.delete(id))) {
+        throw new ServiceError('BAD PARAMETERS', 'Rekkefølgen må inneholde alle seksjonene i artikkelen én gang.')
+    }
+
+    // Moved out of the way first: (articleId, order) is unique, so no section can take an order
+    // another still holds.
+    for (const section of sections) {
+        await prisma.articleSection.update({ where: { id: section.id }, data: { order: -section.id } })
+    }
+    for (let index = 0; index < sections.length; index++) {
+        await prisma.articleSection.update({
+            where: { id: sectionIds[index] },
+            data: { order: sections[index].order },
+        })
+    }
+}
+
 export const articleOperations = {
     create,
     createSpecial,
@@ -85,7 +113,7 @@ export const articleOperations = {
                 include: articleRelationsIncluder,
             })
     }),
-    /** Adds a section after the last one, with the parts asked for created empty in the same write. */
+    /** Adds a section where asked, or last, with the parts asked for created empty in the same write. */
     addSection: defineSubOperation({
         paramsSchema: () => articleSchemas.params.addSection,
         dataSchema: () => articleSchemas.data.addSection,
@@ -114,9 +142,28 @@ export const articleOperations = {
                 (sectionSoFar, part) => ({ ...sectionSoFar, ...part }),
                 { order: (sections._max.order ?? -1) + 1 },
             )
-            return prisma.article.update({
+            const created = await prisma.articleSection.create({
+                data: { ...section, article: { connect: { id: params.articleId } } },
+                select: { id: true },
+            })
+            if (data.afterSectionId !== undefined) {
+                const others = await prisma.articleSection.findMany({
+                    where: { articleId: params.articleId, id: { not: created.id } },
+                    select: { id: true },
+                    orderBy: { order: 'asc' },
+                })
+                const place = data.afterSectionId === null
+                    ? 0
+                    : others.findIndex(other => other.id === data.afterSectionId) + 1
+                if (data.afterSectionId !== null && place === 0) {
+                    throw new ServiceError('BAD PARAMETERS', 'Seksjonen det skal settes inn etter finnes ikke i artikkelen.')
+                }
+                const sectionIds = others.map(other => other.id)
+                sectionIds.splice(place, 0, created.id)
+                await setSectionOrder(prisma, params.articleId, sectionIds)
+            }
+            return prisma.article.findUniqueOrThrow({
                 where: { id: params.articleId },
-                data: { articleSections: { create: section } },
                 include: articleRelationsIncluder,
             })
         },
@@ -126,40 +173,7 @@ export const articleOperations = {
         transaction: 'RUNS_IN',
         dataSchema: () => articleSchemas.data.reorderSections,
         operation: () => async ({ prisma, params, data }) => {
-            const section = await prisma.articleSection.findUnique({
-                where: {
-                    articleId: params.articleId,
-                    id: params.sectionId,
-                },
-            })
-            if (!section) throw new ServiceError('NOT FOUND', 'Seksjon ikke funnet.')
-
-            // The neighbour the section swaps places with: the nearest one above or below it.
-            const otherSection = await prisma.articleSection.findFirst({
-                where: {
-                    articleId: params.articleId,
-                    order: data.direction === 'UP' ? { lt: section.order } : { gt: section.order },
-                },
-                orderBy: {
-                    order: data.direction === 'UP' ? 'desc' : 'asc',
-                },
-            })
-            if (!otherSection) throw new ServiceError('BAD PARAMETERS', 'Seksjon kan ikke flyttes opp/ned.')
-
-            // Swapped by way of -1: (articleId, order) is unique, so neither section can take the
-            // other's order while it is still held.
-            await prisma.articleSection.update({
-                where: { id: section.id },
-                data: { order: -1 },
-            })
-            await prisma.articleSection.update({
-                where: { id: otherSection.id },
-                data: { order: section.order },
-            })
-            return prisma.articleSection.update({
-                where: { id: section.id },
-                data: { order: otherSection.order },
-            })
+            await setSectionOrder(prisma, params.articleId, data.sectionIds)
         },
     }),
 
