@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
@@ -29,7 +30,7 @@ const { page, generateMetadata } = serverPage({
         canManagePushDevice: browserPushSubscriptionAuth.create.data({ userId: data.profile.user.id }),
     }),
     render: ({ data, capabilities }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding)">
+        <Card>
             <h2>Varslinger</h2>
             {capabilities.canManagePushDevice.authorized && (
                 <PushDeviceSettings
@@ -42,7 +43,7 @@ const { page, generateMetadata } = serverPage({
                 channels={data.channels}
                 subscriptions={data.subscriptions}
             />
-        </div>
+        </Card>
     ),
 })
 

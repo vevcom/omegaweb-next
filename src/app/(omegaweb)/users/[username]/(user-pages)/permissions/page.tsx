@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import Permission from '@/components/Permission/Permission'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { permissionOperations } from '@/services/permissions/operations'
@@ -10,14 +11,14 @@ const { page, generateMetadata } = serverPage({
         return permissionOperations.readPermissionsOfUser({ params: { userId: profile.user.id } })
     },
     render: ({ data: permissions }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding)">
+        <Card>
             <h2>Tilganger:</h2>
             <ul>
                 {permissions.map(permission =>
                     <Permission key={permission} permission={permission} className="mb-[1em]" />
                 )}
             </ul>
-        </div>
+        </Card>
     ),
 })
 

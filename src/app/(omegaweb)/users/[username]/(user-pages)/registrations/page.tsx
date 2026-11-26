@@ -1,4 +1,5 @@
 import UpcomingRegistrationRow from './UpcomingRegistrationRow'
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
@@ -16,7 +17,7 @@ const { page, generateMetadata } = serverPage({
         return { profile, registrations }
     },
     render: ({ data }) => (
-        <div className="min-h-full bg-base-100 rounded-round p-(--card-padding)">
+        <Card className="min-h-full">
             <h2>Påmeldinger</h2>
             {data.registrations.length === 0 ? (
                 <p>
@@ -34,7 +35,7 @@ const { page, generateMetadata } = serverPage({
                     ))}
                 </div>
             )}
-        </div>
+        </Card>
     ),
 })
 

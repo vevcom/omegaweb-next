@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { createAdmissionTrialAction } from '@/services/admission/actions'
 import {
@@ -47,7 +48,7 @@ const { page, generateMetadata } = serverPage({
         const showTrialRegistration = capabilities.canRegisterTrial.authorized && currentLevel === 'SOELLE'
 
         return (
-            <div className="bg-base-100 rounded-round p-(--card-padding)">
+            <Card>
                 <h2>Medlemsstatus</h2>
 
                 {/* Highest standing first, so the ladder is read from the top down. */}
@@ -152,7 +153,7 @@ const { page, generateMetadata } = serverPage({
                         </Form>
                     )}
                 </section>
-            </div>
+            </Card>
         )
     },
 })

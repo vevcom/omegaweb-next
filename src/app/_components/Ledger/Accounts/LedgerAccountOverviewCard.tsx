@@ -1,5 +1,6 @@
 import LedgerAccountBalance from './LedgerAccountBalance'
 import LedgerAccountFreezeButton from './LedgerAccountFreezeButton'
+import Card from '@/components/UI/Card'
 import DepositModal from '@/components/Ledger/Modals/DepositModal'
 import PayoutModal from '@/components/Ledger/Modals/PayoutModal'
 import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
@@ -46,7 +47,7 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <div className="bg-base-100 text-base-content rounded-round p-(--card-padding)">
+    return <Card className="text-base-content">
         <h2 className="text-base-content">Kontooversikt</h2>
         <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
         {
@@ -75,5 +76,5 @@ export default async function LedgerAccountOverview({
                 <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className="ml-auto" />
             }
         </div>
-    </div>
+    </Card>
 }

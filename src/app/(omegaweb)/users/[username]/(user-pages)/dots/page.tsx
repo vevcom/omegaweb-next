@@ -1,4 +1,5 @@
 import UserDotsInEditMode from './UserDotsInEditMode'
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { dotOperations } from '@/services/dots/operations'
 import { serverPage } from '@/app/ServerPage'
@@ -11,10 +12,10 @@ const { page, generateMetadata } = serverPage({
         return { profile, dots }
     },
     render: ({ data }) => (
-        <div className="min-h-full bg-base-100 rounded-round p-(--card-padding)">
+        <Card className="min-h-full">
             <h2>Prikker</h2>
             <UserDotsInEditMode userId={data.profile.user.id} dots={data.dots} />
-        </div>
+        </Card>
     ),
 })
 

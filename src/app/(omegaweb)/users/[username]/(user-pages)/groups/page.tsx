@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import SimpleTable from '@/components/Table/SimpleTable'
 import { groupTypesConfig } from '@/services/groups/constants'
@@ -71,7 +72,7 @@ const { page, generateMetadata } = serverPage({
             })))
     },
     render: ({ data: sections }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding)">
+        <Card>
             <h2>Grupper</h2>
             {sections.map(({ type, memberships }) =>
                 <section key={type} className="mt-(--card-padding) overflow-x-auto">
@@ -98,7 +99,7 @@ const { page, generateMetadata } = serverPage({
                     )}
                 </section>
             )}
-        </div>
+        </Card>
     ),
 })
 

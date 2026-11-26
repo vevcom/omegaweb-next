@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import {
     assignFlairToUserAction,
     unAssignFlairToUserAction
@@ -32,7 +33,7 @@ const { page, generateMetadata } = serverPage({
         canUnAssign: flairAuth.unAssignToUser,
     }),
     render: ({ data, capabilities }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding)">
+        <Card>
             <div className="ohma-table overflow-x-auto">
                 <p>
                     Den øverste tildelte flairen vises først på brukerens profil og
@@ -83,7 +84,7 @@ const { page, generateMetadata } = serverPage({
                     </tbody>
                 </table>
             </div>
-        </div >
+        </Card>
     ),
 })
 
