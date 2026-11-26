@@ -425,6 +425,7 @@ describe('the rooms of the user outside every space', () => {
                     invite_state: {
                         events: [
                             stateEvent('m.room.member', '@per:chat.test', { membership: 'invite', is_direct: true }, KARI),
+                            stateEvent('m.room.create', '@per:chat.test', {}),
                             per,
                         ],
                     },

@@ -2,10 +2,10 @@
 import ChatComposer from './ChatComposer'
 import ChatTimeline from './ChatTimeline'
 import useChatProfiles from './useChatProfiles'
-import SiteLink from '@/components/SiteLink/SiteLink'
-import { chatLinks } from '@/app/(omegaweb)/chat/links'
+import ChatRoomActions from '@/components/Chat/Membership/ChatRoomActions'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import type { RoomOfSpace } from '@/components/Chat/Membership/ChatRoomActions'
 import type { TimelineLine } from '@/lib/chatSession/timeline'
 import type { MatrixClient, Room } from 'matrix-js-sdk'
 
@@ -19,6 +19,7 @@ type PropTypes = {
      * calls it.
      */
     directWith?: string,
+    ofSpace?: RoomOfSpace,
 }
 
 /**
@@ -27,7 +28,7 @@ type PropTypes = {
  * people of the room are shown as the app knows them, and as the homeserver names them until it
  * has answered and where it knows nobody.
  */
-export default function ChatRoom({ client, room, isConnectionLost, directWith }: PropTypes) {
+export default function ChatRoom({ client, room, isConnectionLost, directWith, ofSpace }: PropTypes) {
     const watched = useMemo(() => watchRoomTimeline(client, room), [client, room])
     const timeline = useSyncExternalStore(watched.subscribe, watched.read)
     const profiles = useChatProfiles(useMemo(() => peopleOf(timeline.lines), [timeline.lines]))
@@ -38,7 +39,7 @@ export default function ChatRoom({ client, room, isConnectionLost, directWith }:
         <div className="h-full flex flex-col gap-3 bg-base-100 rounded-round p-(--card-padding)">
             <div className="flex flex-row flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                 <h2 className="m-0 wrap-anywhere">{directWith ? headingOfDirectMessage(directWith) : name}</h2>
-                <SiteLink href={chatLinks.messages()}>Alle meldinger</SiteLink>
+                <ChatRoomActions client={client} room={room} ofSpace={ofSpace} />
             </div>
             {isConnectionLost && (
                 <p className="m-0 text-base-content/80">Får ikke kontakt med chatten. Prøver igjen ...</p>
