@@ -1,10 +1,12 @@
 'use client'
+import ChatFile, { ChatWholePicture, useDownload, useThumbnail } from './ChatFile'
 import Button from '@/components/UI/Button'
 import ProfilePicture from '@/components/User/ProfilePicture'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEllipsis } from '@fortawesome/free-solid-svg-icons'
 import { memo, useEffect, useId, useState } from 'react'
+import type { FetchFile } from './ChatFile'
 import type { Person, TimelineLine, TimelineReaction } from '@/lib/chatSession/timeline'
 import type { ExpandedImage } from '@/services/images/subservice/types'
 import type { KeyboardEvent } from 'react'
@@ -25,10 +27,12 @@ export type LineActions = {
     onReact: (id: string, emoji: string) => void,
     /** Brings a message before the reader. */
     onShow: (id: string) => void,
+    /** Fetches the file or the picture of a message from the homeserver. */
+    fetchFile: FetchFile,
 }
 
 type MessagePropTypes = {
-    line: TimelineLine & { kind: 'TEXT' },
+    line: TimelineLine & { kind: 'MESSAGE' },
     name: string,
     image: ExpandedImage | null,
     nameOf: (person: Person) => string,
@@ -41,7 +45,8 @@ type MessagePropTypes = {
 }
 
 /**
- * A text message of a timeline. Its text is shown as text, whatever it holds. Its line is the same
+ * A message of a timeline: a text, or a file or a picture with what was written to go with it,
+ * see ChatFile. Its text is shown as text, whatever it holds. Its line is the same
  * object until what it shows has changed, so a timeline that changes renders only the lines that
  * did, and so does a new name of someone, which renders the lines that name them. What the user
  * does with it is behind one button, so a timeline is not a wall of buttons. That button is the
@@ -65,9 +70,13 @@ export const ChatNoteLine = memo(NoteLine)
 export const LINE_ACTIONS = 'data-line-actions'
 
 function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop, actions }: MessagePropTypes) {
-    const { id, sending, repliesTo, reactions } = line
+    const { id, sending, repliesTo, reactions, file } = line
     const textId = useId()
     const [resendId, dropId, moreId, headId] = [`${textId}-resend`, `${textId}-drop`, `${textId}-more`, `${textId}-head`]
+    // What the message is, for the names of its buttons: its file and its text.
+    const whatId = `${textId}-file ${textId}`
+    const thumbnail = useThumbnail(file, actions.fetchFile)
+    const { state: downloading, download } = useDownload(file, actions.fetchFile)
     const [doing, setDoing] = useState<'NOTHING' | 'CHOOSING' | 'REMOVING'>('NOTHING')
     const mayReact = canReact && !isHeldUp
 
@@ -123,12 +132,32 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                         Svar til {nameOf(repliesTo.sender)}{repliesTo.excerpt !== null && `: ${repliesTo.excerpt}`}
                     </Button>
                 )}
-                <p id={textId} className={`
-                    m-0 whitespace-pre-wrap wrap-anywhere
-                    ${sending ? 'text-base-content/80' : ''}
-                `}>
-                    {line.text}
-                </p>
+                {file && (
+                    <div id={`${textId}-file`} className="flex flex-col">
+                        <ChatFile
+                            file={file}
+                            thumbnail={thumbnail}
+                            lineId={id}
+                            fetchFile={actions.fetchFile}
+                            onDownload={download}
+                        />
+                        <span role="status" className="
+                            text-s text-base-content/80
+                            empty:hidden
+                        ">
+                            {downloading === 'FETCHING' && 'Henter filen ...'}
+                            {downloading === 'FAILED' && 'Filen ble ikke hentet.'}
+                        </span>
+                    </div>
+                )}
+                {(line.text || !file) && (
+                    <p id={textId} className={`
+                        m-0 whitespace-pre-wrap wrap-anywhere
+                        ${sending ? 'text-base-content/80' : ''}
+                    `}>
+                        {line.text}
+                    </p>
+                )}
                 {reactions.length > 0 && (
                     <ul className="m-0 p-0 py-0.5 list-none flex flex-row flex-wrap gap-1.5" aria-label="Reaksjoner">
                         {reactions.map(reaction => (
@@ -167,7 +196,7 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                         {sending === 'FAILED' && (
                             <Button
                                 id={resendId}
-                                aria-labelledby={`${resendId} ${textId}`}
+                                aria-labelledby={`${resendId} ${whatId}`}
                                 variant="text"
                                 onClick={actions.onResend}
                             >
@@ -176,7 +205,7 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                         )}
                         <Button
                             id={dropId}
-                            aria-labelledby={`${dropId} ${textId}`}
+                            aria-labelledby={`${dropId} ${whatId}`}
                             variant="text"
                             color="red"
                             onClick={() => actions.onDrop(id)}
@@ -192,6 +221,8 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                         mayReact={mayReact}
                         isHeldUp={isHeldUp}
                         isRemoving={doing === 'REMOVING'}
+                        hasThumbnail={thumbnail instanceof Blob}
+                        onDownload={download}
                         onAskToRemove={() => setDoing('REMOVING')}
                         onClose={close}
                         // What is chosen is done once the actions are closed, since it may move the focus.
@@ -214,7 +245,7 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
                     "
                     aria-label="Handlinger"
                     // Who wrote and when is in its name, since the arrow keys read the lines by this button.
-                    aria-labelledby={`${moreId} ${headId} ${textId}`}
+                    aria-labelledby={`${moreId} ${headId} ${whatId}`}
                     aria-expanded={doing !== 'NOTHING'}
                     tabIndex={isTabStop ? 0 : -1}
                     {...{ [LINE_ACTIONS]: true }}
@@ -230,6 +261,9 @@ function MessageLine({ line, name, image, nameOf, canReact, isHeldUp, isTabStop,
 type ActionsPropTypes = Pick<MessagePropTypes, 'line' | 'nameOf' | 'isHeldUp' | 'actions'> & {
     mayReact: boolean,
     isRemoving: boolean,
+    /** Whether the message is a picture that is shown, which is one that opens whole. */
+    hasThumbnail: boolean,
+    onDownload: () => void,
     onAskToRemove: () => void,
     onClose: () => void,
     onChosen: (act: (id: string) => void) => void,
@@ -237,14 +271,17 @@ type ActionsPropTypes = Pick<MessagePropTypes, 'line' | 'nameOf' | 'isHeldUp' | 
 
 /**
  * What is done with a message: its reactions with who gave them, each given and taken back, the
- * emojis it has none of yet, and answering, editing and removing it, which asks first.
+ * emojis it has none of yet, and answering, editing and removing it, which asks first. A file is
+ * downloaded from here too, and a picture opened whole.
  */
 function ActionsOfLine({
-    line: { id, repliesTo, reactions, canEdit, canRemove },
+    line: { id, repliesTo, reactions, canEdit, canRemove, file },
     nameOf,
     mayReact,
     isHeldUp,
     isRemoving,
+    hasThumbnail,
+    onDownload,
     onAskToRemove,
     onClose,
     onChosen,
@@ -286,6 +323,18 @@ function ActionsOfLine({
                 <div className="flex flex-row flex-wrap items-center gap-x-4 gap-y-1">
                     <Button variant="text" autoFocus onClick={() => onChosen(actions.onReply)}>Svar</Button>
                     {canEdit && <Button variant="text" onClick={() => onChosen(actions.onEdit)}>Rediger</Button>}
+                    {file && hasThumbnail && (
+                        // The actions stay open under the picture, so the focus is back on this button when it closes.
+                        <ChatWholePicture
+                            popUpKey={`chat-picture-of-actions-${id}`}
+                            file={file}
+                            fetchFile={actions.fetchFile}
+                            onDownload={onDownload}
+                        >
+                            {open => <Button variant="text" onClick={open}>Vis hele bildet</Button>}
+                        </ChatWholePicture>
+                    )}
+                    {file?.media && <Button variant="text" onClick={() => onChosen(onDownload)}>Last ned</Button>}
                     {canRemove && <Button variant="text" color="red" onClick={onAskToRemove}>Fjern</Button>}
                     {repliesTo && repliesTo !== 'NOT_LOADED' && (
                         <Button variant="text" onClick={() => onChosen(() => actions.onShow(repliesTo.id))}>

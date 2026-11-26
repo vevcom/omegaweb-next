@@ -63,9 +63,13 @@ export type ChatCall = {
     form: URLSearchParams,
     /** What was sent to the homeserver as JSON. */
     json: unknown,
+    /** A file that was sent to the homeserver, as what it was said to be. */
+    file: Blob | null,
+    contentType: string | null,
     token: string | null,
 }
 
+/** A body that is a file is answered as that file, and any other as JSON. */
 type Answer = { status?: number, body: unknown } | 'UNREACHABLE' | 'NEVER'
 /** An answer, at once or when the test has it. */
 type Answering = (call: ChatCall) => Answer | Promise<Answer>
@@ -146,6 +150,8 @@ export function fakeChatBrowser() {
             url,
             form: new URLSearchParams(init?.body instanceof URLSearchParams ? init.body : undefined),
             json: typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined,
+            file: init?.body instanceof Blob ? init.body : null,
+            contentType: headers.get('Content-Type'),
             token: headers.get('Authorization'),
         }
         calls.push(call)
@@ -160,9 +166,10 @@ export function fakeChatBrowser() {
         const respond = (answer: Answer) => {
             if (answer === 'UNREACHABLE') return Promise.reject(new TypeError('fetch failed'))
             if (answer === 'NEVER') return held()
-            return Promise.resolve(new Response(JSON.stringify(answer.body), {
+            const isFile = answer.body instanceof Blob
+            return Promise.resolve(new Response(isFile ? answer.body as Blob : JSON.stringify(answer.body), {
                 status: answer.status ?? 200,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': isFile ? (answer.body as Blob).type : 'application/json' },
             }))
         }
         const answering = answers.get(url.pathname)

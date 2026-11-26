@@ -1,11 +1,16 @@
 'use client'
+import { ChatPicture } from './ChatFile'
+import { wordingOfSize, wordingOfTooLarge } from './timelineWording'
 import Button from '@/components/UI/Button'
 import { DropdownPanel, dropdownOptionId } from '@/components/UI/Dropdown'
 import Textarea from '@/components/UI/Textarea'
 import { ROOM_MENTION, mentionBefore, mentionsOf, stillMentioned, withMention } from '@/lib/chatSession/mentions'
+import { PICTURE_TYPES } from '@/lib/chatSession/media'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPaperclip } from '@fortawesome/free-solid-svg-icons'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { DropdownOption } from '@/components/UI/Dropdown'
-import type { Mentions, Person } from '@/lib/chatSession/timeline'
+import type { FileToSend, Mentions, Person } from '@/lib/chatSession/timeline'
 import type { KeyboardEvent } from 'react'
 
 const SUGGESTED_AT_MOST = 6
@@ -32,6 +37,13 @@ type PropTypes = {
     onMentioning?: () => void,
     /** Gives false when what was written was not taken, and is then left in the field. */
     onSend: (text: string, mentions: Mentions) => boolean | void,
+    /** How many bytes the homeserver takes in one file, where it has said. */
+    uploadLimit?: number | null,
+    /**
+     * Uploads and sends a file, with what is written as its text, and gives whether it was sent.
+     * One that was not stays attached, with what is written. Left out, nothing is attached here.
+     */
+    onSendFile?: (toSend: FileToSend, text: string, mentions: Mentions, signal: AbortSignal) => Promise<boolean>,
 }
 
 /**
@@ -39,7 +51,10 @@ type PropTypes = {
  * has the focus when the room is opened. An at sign and the beginning of a name suggest those of
  * the room, and whom a text mentions is mentionsOf's to say. While a message is given a new text
  * the field holds that text, and what was being written is kept and is back in the field when
- * that is over, so starting on an edit throws nothing away.
+ * that is over, so starting on an edit throws nothing away. One file or picture is attached by
+ * its button, by pasting it or by dropping it on the field, and is shown before it is sent. One
+ * that is larger than the homeserver takes is not attached, which is said. While it is uploaded
+ * the text is not changed, and the upload can be stopped.
  */
 export default function ChatComposer({
     roomName,
@@ -50,6 +65,8 @@ export default function ChatComposer({
     canMentionRoom = false,
     onMentioning,
     onSend,
+    uploadLimit = null,
+    onSendFile,
 }: PropTypes) {
     const ownFieldId = useId()
     const fieldId = givenFieldId ?? ownFieldId
@@ -60,9 +77,14 @@ export default function ChatComposer({
     const [edited, setEdited] = useState<{ id: string, draft: Draft } | null>(null)
     const [active, setActive] = useState(0)
     const [dismissedAt, setDismissedAt] = useState<number | null>(null)
+    const [attached, setAttached] = useState<FileToSend | null>(null)
+    const [notAttached, setNotAttached] = useState<string | null>(null)
+    const [uploading, setUploading] = useState<AbortController | null>(null)
     const caretToPlace = useRef<number | null>(null)
+    const filePicker = useRef<HTMLInputElement>(null)
     const suggestionsId = useId()
     const isEmpty = text.trim() === ''
+    const attaches = onSendFile !== undefined && !editing
 
     // The message that is edited is another than the field holds the text of: its text takes the
     // place of what was being written, which is kept, or what was kept is back.
@@ -103,6 +125,13 @@ export default function ChatComposer({
         field.setSelectionRange(field.value.length, field.value.length)
     }, [fieldId, editedId])
 
+    // An edit takes the field, so an upload that is under way is stopped, and its file stays attached.
+    useEffect(() => {
+        if (editedId !== undefined) uploading?.abort()
+    }, [editedId, uploading])
+    // So is one whose room is left, which then sends nothing.
+    useEffect(() => () => uploading?.abort(), [uploading])
+
     const pick = ({ value }: DropdownOption<string>) => {
         const person = mentionable.find(({ id }) => id === value)
         if (!mention || (!person && value !== ROOM_MENTION)) return
@@ -113,12 +142,39 @@ export default function ChatComposer({
         if (person) setPicked([...picked, person])
     }
 
-    const send = () => {
-        if (isEmpty || onSend(text, mentionsOf(text, picked)) === false || editing) return
+    const attach = (files: FileList | null | undefined) => {
+        const file = files?.[0]
+        if (!file || !attaches || uploading) return
+        const isTooLarge = uploadLimit !== null && file.size > uploadLimit
+        const onlyOne = files.length > 1 ? 'Bare én fil kan legges ved om gangen, så den første er lagt ved.' : null
+        setNotAttached(isTooLarge ? wordingOfTooLarge(uploadLimit) : onlyOne)
+        if (!isTooLarge) setAttached({ file })
+        document.getElementById(fieldId)?.focus()
+    }
+
+    const emptied = () => {
+        setNotAttached(null)
         setText('')
         setPicked([])
         // The button is no longer to be pressed once the field is empty, and the next message is written here.
         document.getElementById(fieldId)?.focus()
+    }
+
+    const send = () => {
+        if (uploading) return
+        if (attached && attaches) {
+            const stop = new AbortController()
+            setUploading(stop)
+            void onSendFile(attached, text, mentionsOf(text, picked), stop.signal).then(wasSent => {
+                setUploading(null)
+                if (!wasSent) return
+                setAttached(null)
+                emptied()
+            })
+            return
+        }
+        if (isEmpty || onSend(text, mentionsOf(text, picked)) === false || editing) return
+        emptied()
     }
 
     const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -146,6 +202,14 @@ export default function ChatComposer({
                 event.preventDefault()
                 send()
             }}
+            onDragOver={event => {
+                if (attaches && event.dataTransfer.types.includes('Files')) event.preventDefault()
+            }}
+            onDrop={event => {
+                if (!attaches || event.dataTransfer.files.length === 0) return
+                event.preventDefault()
+                attach(event.dataTransfer.files)
+            }}
         >
             {about && (
                 <div className="flex flex-row items-baseline gap-x-3 text-s">
@@ -153,6 +217,41 @@ export default function ChatComposer({
                         {about.kind === 'EDIT' ? 'Du redigerer en melding.' : `Svarer ${about.name}: ${about.text}`}
                     </span>
                     <Button type="button" variant="text" onClick={onCancelAbout}>Avbryt</Button>
+                </div>
+            )}
+            {attaches && (
+                <div className="flex flex-row flex-wrap items-center gap-x-3 text-s">
+                    {attached && PICTURE_TYPES.includes(attached.file.type) && <ChatPicture
+                        picture={attached.file}
+                        className="size-12 rounded-inner object-cover"
+                        onLoad={({ currentTarget: { naturalWidth: width, naturalHeight: height } }) => setAttached(
+                            now => (now?.file === attached.file ? { file: now.file, width, height } : now)
+                        )}
+                    />}
+                    <span role="status" className="
+                        min-w-0 truncate
+                        empty:hidden
+                    ">
+                        {attached && `${uploading ? 'Laster opp' : 'Vedlegg:'} ${attached.file.name}, ${
+                            wordingOfSize(attached.file.size)}`}
+                    </span>
+                    {attached && (uploading ? (
+                        <Button key="stop" type="button" variant="text" onClick={() => uploading.abort()}>
+                            Avbryt opplastingen
+                        </Button>
+                    ) : (
+                        <Button key="remove" type="button" variant="text" color="red" onClick={() => {
+                            setAttached(null)
+                            setNotAttached(null)
+                            document.getElementById(fieldId)?.focus()
+                        }}>
+                            Fjern vedlegget
+                        </Button>
+                    ))}
+                    <span role="alert" className="
+                        basis-full text-error
+                        empty:hidden
+                    ">{notAttached}</span>
                 </div>
             )}
             <div className="flex flex-row items-end gap-2">
@@ -174,6 +273,12 @@ export default function ChatComposer({
                         }}
                         onSelect={event => setCaret(event.currentTarget.selectionStart)}
                         onKeyDown={onKey}
+                        onPaste={event => {
+                            if (!attaches || event.clipboardData.files.length === 0) return
+                            event.preventDefault()
+                            attach(event.clipboardData.files)
+                        }}
+                        readOnly={uploading !== null}
                         aria-autocomplete="list"
                         aria-controls={suggested.length > 0 ? suggestionsId : undefined}
                         aria-activedescendant={suggested.length > 0
@@ -193,7 +298,35 @@ export default function ChatComposer({
                         />
                     )}
                 </div>
-                <Button type="submit" disabled={isEmpty}>{editing ? 'Lagre' : 'Send'}</Button>
+                {attaches && <>
+                    <input
+                        ref={filePicker}
+                        type="file"
+                        className="hidden"
+                        onChange={({ target }) => {
+                            attach(target.files)
+                            target.value = ''
+                        }}
+                    />
+                    <button
+                        type="button"
+                        className="
+                            shrink-0 grid place-items-center size-10 rounded-full border-none bg-transparent
+                            text-base-content/80
+                            enabled:cursor-pointer
+                            enabled:hover:bg-base-200
+                        "
+                        aria-label="Legg ved en fil eller et bilde"
+                        title="Legg ved en fil eller et bilde"
+                        disabled={uploading !== null}
+                        onClick={() => filePicker.current?.click()}
+                    >
+                        <FontAwesomeIcon icon={faPaperclip} />
+                    </button>
+                </>}
+                <Button type="submit" disabled={uploading !== null || isEmpty && !(attached && attaches)}>
+                    {editing ? 'Lagre' : 'Send'}
+                </Button>
             </div>
         </form>
     )

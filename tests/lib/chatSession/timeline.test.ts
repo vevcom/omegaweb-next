@@ -2,6 +2,7 @@ import { fakeChatBrowser, stopSyncedChatClients, syncedChatClient, tameChatSdk }
 import { storeSession } from '@/lib/chatSession/storage'
 import { watchRoomTimeline } from '@/lib/chatSession/timeline'
 import { refusalOf } from '@/lib/chatSession/membership'
+import { FileTooLarge, isStopped, isTooLarge } from '@/lib/chatSession/media'
 import { afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
 import type { TimelineLine } from '@/lib/chatSession/timeline'
 
@@ -15,6 +16,8 @@ const MESSAGES = `${OF_ROOM}/messages`
 const SEND = `${OF_ROOM}/send/m.room.message/`
 const REACT = `${OF_ROOM}/send/m.reaction/`
 const REMOVE = `${OF_ROOM}/redact/`
+const MEDIA = '/_matrix/client/v1/media'
+const UPLOAD = '/_matrix/media/v3/upload'
 const receiptOf = (eventId: string) => `${OF_ROOM}/receipt/m.read/${encodeURIComponent(eventId)}`
 const ofKari = { userId: KARI, deviceId: 'KARISDEVICE1', accessToken: 'access-0', refreshToken: 'refresh-0' }
 
@@ -95,13 +98,13 @@ async function inRoom(timeline: object[]) {
         lines: () => watched.read().lines,
         /** The text lines by their ids, as what `of` gives of each. */
         texts: <Given>(of: (line: TextLine) => Given) => Object.fromEntries(watched.read().lines
-            .flatMap(line => (line.kind === 'TEXT' ? [[line.id, of(line)] as const] : []))),
+            .flatMap(line => (line.kind === 'MESSAGE' ? [[line.id, of(line)] as const] : []))),
         tellOf: (events: object[], roomId = ROOM, more: object = {}) =>
             tell({ join: { [roomId]: { timeline: { events, ...more } } } }),
     }
 }
 
-type TextLine = TimelineLine & { kind: 'TEXT' }
+type TextLine = TimelineLine & { kind: 'MESSAGE' }
 /** A homeserver that takes every message, and gives each an id made of its text. */
 const taking = (call: { json: unknown }) => ({ body: { event_id: `$${(call.json as { body: string }).body}` } })
 const settled = () => new Promise(resolve => setTimeout(resolve, 30))
@@ -117,13 +120,14 @@ describe('the lines of a timeline', () => {
         ])
 
         const ofText = {
-            kind: 'TEXT',
+            kind: 'MESSAGE',
             isEdited: false,
             repliesTo: null,
             mentionsUser: false,
             reactions: [],
             canRemove: false,
             sending: null,
+            file: null,
         }
         const ofOwn = { canEdit: true, canRemove: true }
         expect(lines()).toEqual([
@@ -138,17 +142,14 @@ describe('the lines of a timeline', () => {
             content: { format: 'org.matrix.custom.html', formatted_body: '<img src=x onerror=alert(1)>' },
         })])
 
-        expect(lines()).toMatchObject([{ kind: 'TEXT', text: '<b>Hei</b>' }])
+        expect(lines()).toMatchObject([{ kind: 'MESSAGE', text: '<b>Hei</b>' }])
         expect(JSON.stringify(lines())).not.toContain('onerror')
     })
 
     test('say what a thing is where it is not shown', async () => {
         const of = (msgtype: string) => ({ content: { msgtype, url: 'mxc://chat.test/abc' } })
         const { lines } = await inRoom([
-            text('$image', OLA, 'bilde.png', of('m.image')),
-            text('$file', OLA, 'notat.pdf', of('m.file')),
-            text('$audio', OLA, 'lyd.ogg', of('m.audio')),
-            text('$video', OLA, 'film.mp4', of('m.video')),
+            text('$location', OLA, 'Her', of('m.location')),
             text('$unknown', OLA, 'hm', of('constructor')),
             event('$bodiless', OLA, { content: { msgtype: 'm.text', body: { not: 'text' } } }),
             event('$sticker', OLA, { type: 'm.sticker', content: { body: 'katt', url: 'mxc://chat.test/def' } }),
@@ -161,10 +162,7 @@ describe('the lines of a timeline', () => {
         ])
 
         expect(lines().map(line => [line.id, line.kind === 'NOTE' ? line.what : line.text])).toEqual([
-            ['$image', 'IMAGE'],
-            ['$file', 'FILE'],
-            ['$audio', 'AUDIO'],
-            ['$video', 'VIDEO'],
+            ['$location', 'LOCATION'],
             ['$unknown', 'OTHER'],
             ['$bodiless', 'OTHER'],
             ['$sticker', 'STICKER'],
@@ -366,11 +364,12 @@ describe('a room that is watched', () => {
         tellOf([text('$8', OLA, 'Åtte'), text('$9', OLA, 'Ni')], ROOM, { limited: true, prev_batch: 'before-8' })
         await settled()
 
-        expect(lines().map(line => (line.kind === 'TEXT' ? line.text : line.what))).toEqual(['Åtte', 'Ni', 'På vei'])
+        expect(lines().map(line => (line.kind === 'MESSAGE' ? line.text : line.what))).toEqual(['Åtte', 'Ni', 'På vei'])
         fake.answer(MESSAGES, () => ({ body: { chunk: [text('$7', OLA, 'Sju')] } }))
         await watched.pageBack()
         expect(fake.callsTo(MESSAGES)[0].url.searchParams.get('from')).toBe('before-8')
-        expect(lines().map(line => (line.kind === 'TEXT' ? line.text : line.what))).toEqual(['Sju', 'Åtte', 'Ni', 'På vei'])
+        expect(lines().map(line => (line.kind === 'MESSAGE' ? line.text : line.what)))
+            .toEqual(['Sju', 'Åtte', 'Ni', 'På vei'])
     })
 })
 
@@ -449,7 +448,7 @@ describe('a message the user writes', () => {
         const transactionId = sent.url.pathname.slice(SEND.length)
         tellOf([text('$mine', KARI, 'Hei selv', { unsigned: { transaction_id: decodeURIComponent(transactionId) } })])
         await settled()
-        expect(lines().map(line => [line.id, line.kind === 'TEXT' && line.sending])).toEqual([
+        expect(lines().map(line => [line.id, line.kind === 'MESSAGE' && line.sending])).toEqual([
             ['$1', null],
             ['$2', null],
             ['$mine', null],
@@ -468,7 +467,7 @@ describe('a message the user writes', () => {
 
     test('fails when the homeserver refuses it, and holds every later one back until it is sent', async () => {
         const { fake, watched, lines } = await inRoom([])
-        const written = () => lines().map(line => line.kind === 'TEXT' && [line.text, line.sending])
+        const written = () => lines().map(line => line.kind === 'MESSAGE' && [line.text, line.sending])
         const bodiesSent = () => sends(fake).map(call => (call.json as { body: string }).body)
         fake.answerUnder(SEND, () => ({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }))
 
@@ -495,7 +494,7 @@ describe('a message the user writes', () => {
 
     test('is let go when it was not sent, and the next one that was held is then the one to send again', async () => {
         const { fake, watched, lines } = await inRoom([])
-        const written = () => lines().map(line => line.kind === 'TEXT' && [line.text, line.sending])
+        const written = () => lines().map(line => line.kind === 'MESSAGE' && [line.text, line.sending])
         fake.answerUnder(SEND, () => ({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }))
         watched.send('En')
         await settled()
@@ -512,7 +511,7 @@ describe('a message the user writes', () => {
 })
 
 describe('a message the homeserver has taken that the sync does not bring back', () => {
-    const shown = (lines: () => TimelineLine[]) => lines().map(line => line.kind === 'TEXT' && [line.text, line.sending])
+    const shown = (lines: () => TimelineLine[]) => lines().map(line => line.kind === 'MESSAGE' && [line.text, line.sending])
 
     test('is no longer on its way after a sync that left a gap, and is one line when it is paged back', async () => {
         const { fake, watched, lines, tellOf } = await inRoom([text('$1', OLA, 'Gammel')])
@@ -680,7 +679,7 @@ describe('a message that answers another', () => {
         const ola = { id: OLA, name: 'Ola' }
         expect(texts(line => line.repliesTo)).toMatchObject({
             $4: { id: '$2', sender: ola, excerpt: `Vi møtes ${'å'.repeat(71)}…` },
-            $5: { id: '$3', sender: ola, excerpt: null },
+            $5: { id: '$3', sender: ola, excerpt: 'bilde.png' },
             $6: 'NOT_LOADED',
             $7: 'NOT_LOADED',
             $8: 'NOT_LOADED',
@@ -742,8 +741,8 @@ describe('an edit', () => {
             edit('$of-earlier', OLA, '$earlier', 'Ny tekst'),
         ])
 
-        expect(lines().map(line => [line.id, line.kind === 'TEXT' ? line.text : line.what]))
-            .toEqual([['$text', 'Olas egen'], ['$other', 'En redigering'], ['$image', 'IMAGE']])
+        expect(lines().map(line => [line.id, line.kind === 'MESSAGE' ? line.text : line.what]))
+            .toEqual([['$text', 'Olas egen'], ['$other', 'En redigering'], ['$image', '']])
 
         fake.answer(MESSAGES, () => ({ body: { chunk: [text('$earlier', OLA, 'Før')] } }))
         await watched.pageBack()
@@ -915,7 +914,7 @@ describe('a message that is removed', () => {
 
     test('says so in place of its text at once, and holds its text again when the homeserver refuses', async () => {
         const { fake, watched, lines } = await inRoom([text('$olas', OLA, 'Hei'), text('$mine', KARI, 'Hemmelig')])
-        const shown = () => lines().map(line => (line.kind === 'TEXT' ? line.text : line.what))
+        const shown = () => lines().map(line => (line.kind === 'MESSAGE' ? line.text : line.what))
         let answerIt: (answer: { status?: number, body: object }) => void = () => undefined
         fake.answerUnder(REMOVE, () => new Promise(resolve => {
             answerIt = resolve
@@ -1042,6 +1041,305 @@ describe('a mention', () => {
 
         expect(picked).toEqual([{ id: OLA, name: 'Ola' }, { id: PER, name: 'Per' }])
         expect(fake.callsTo(`${OF_ROOM}/members`)).toHaveLength(1)
+    })
+})
+
+describe('a file and a picture', () => {
+    // eslint-disable-next-line id-length -- What Matrix calls a picture's width and height.
+    const sized = (width: unknown, height: unknown) => ({ w: width, h: height })
+    const sent = (id: string, msgtype: string, content: object) => event(id, OLA, { content: { msgtype, ...content } })
+    const files = (lines: () => TimelineLine[]) => lines().map(line => (line.kind === 'MESSAGE' ? line.file : line.what))
+
+    test('are messages with what they are said to be, and sound and video are files', async () => {
+        const { lines, tellOf } = await inRoom([
+            sent('$picture', 'm.image', {
+                body: 'Se her!',
+                filename: 'katt.png',
+                url: 'mxc://chat.test/abc',
+                info: { mimetype: 'image/png', size: 2048, ...sized(1200, 800) },
+            }),
+            sent('$file', 'm.file', { body: 'notat.pdf', url: 'mxc://chat.test/def', info: { size: 10 } }),
+            sent('$sound', 'm.audio', { body: 'lyd.ogg', filename: 'lyd.ogg', url: 'mxc://chat.test/ghi' }),
+            sent('$video', 'm.video', { body: 'film.mp4', url: 'mxc://chat.test/jkl' }),
+        ])
+
+        const ofFile = { isPicture: false, size: null, box: { width: 320, height: 240 } }
+        expect(lines().map(line => line.kind === 'MESSAGE' && [line.text, line.canEdit, line.file])).toEqual([
+            ['Se her!', false, {
+                name: 'katt.png',
+                isPicture: true,
+                media: { serverName: 'chat.test', mediaId: 'abc' },
+                size: 2048,
+                box: { width: 320, height: 213 },
+            }],
+            ['', false, { name: 'notat.pdf', ...ofFile, media: { serverName: 'chat.test', mediaId: 'def' }, size: 10 }],
+            ['', false, { name: 'lyd.ogg', ...ofFile, media: { serverName: 'chat.test', mediaId: 'ghi' } }],
+            ['', false, { name: 'film.mp4', ...ofFile, media: { serverName: 'chat.test', mediaId: 'jkl' } }],
+        ])
+
+        const before = lines()
+        tellOf([text('$next', OLA, 'Mer')])
+        await settled()
+        expect(lines().slice(0, 4).every((line, index) => line === before[index])).toBe(true)
+    })
+
+    test('have no address to fetch from but one of the homeserver\'s', async () => {
+        const { lines } = await inRoom([
+            'https://evil.example/katt.png',
+            'https://chat.test/abc',
+            'MXC://chat.test/abc',
+            'mxc://../abc',
+            'mxc://./abc',
+            // eslint-disable-next-line no-script-url -- What a message may hold, which is fetched from nowhere.
+            'javascript:alert(1)',
+            'data:image/svg+xml,<svg onload=alert(1)>',
+            'mxc://chat.test/../../_synapse/admin/v1/users',
+            'mxc://chat.test/abc?x=1',
+            'mxc://chat.test/abc/def',
+            'mxc:///abc',
+            NO_TEXT,
+            undefined,
+        ].map((url, index) => sent(`$${index}`, 'm.image', { body: 'katt.png', url })))
+
+        expect(files(lines)).toEqual(Array(13).fill(expect.objectContaining({ name: 'katt.png', media: null })))
+    })
+
+    test('have a name that is one line of text and no path, whatever the message calls them', async () => {
+        const named = (id: string, content: object) => sent(id, 'm.file', { url: 'mxc://chat.test/abc', ...content })
+        const { lines } = await inRoom([
+            named('$turned', { body: 'faktura\u202Efdp.exe' }),
+            named('$path', { body: '..\\../etc/passwd' }),
+            named('$lines', { body: 'en\nto\u2028tre\u0000' }),
+            named('$long', { body: `${'a'.repeat(500)}.pdf` }),
+            named('$spaced', { body: `et   navn \t med${' '.repeat(300)}rom.pdf` }),
+            named('$cut', { body: `${'a'.repeat(119)}😀😀` }),
+            named('$nothing', { body: NO_TEXT, filename: NO_TEXT }),
+            sent('$picture', 'm.image', { body: ' \n ' }),
+            named('$html', { body: '<img src=x onerror=alert(1)>.html', filename: 5 }),
+        ])
+
+        expect(lines().map(line => line.kind === 'MESSAGE' && [line.file?.name, line.text])).toEqual([
+            ['fakturafdp.exe', ''],
+            ['....etcpasswd', ''],
+            ['entotre', ''],
+            ['a'.repeat(120), ''],
+            ['et navn med rom.pdf', ''],
+            [`${'a'.repeat(119)}😀`, ''],
+            ['fil', ''],
+            ['bilde', ''],
+            ['<img src=x onerror=alert(1)>.html', ''],
+        ])
+    })
+
+    test('keep a box for a picture that is within what a line takes, whatever size the message says', async () => {
+        const said = (id: string, info: unknown) => sent(id, 'm.image', { body: 'b.png', url: 'mxc://chat.test/abc', info })
+        const { lines } = await inRoom([
+            said('$wide', { ...sized(1e9, 1), size: 1e300 }),
+            said('$tall', { ...sized(1, 1e9), size: -5 }),
+            said('$small', { ...sized(20, 10), size: '12' }),
+            said('$negative', { ...sized(-400, 300), size: 1.5 }),
+            said('$texts', sized('400', '300')),
+            said('$none', NO_TEXT),
+            said('$endless', { ...sized(1e309, 100), size: 2 ** 53 - 1 }),
+            said('$real', { ...sized(600, 400), size: 2 ** 40 }),
+        ])
+
+        expect(lines().map(line => line.kind === 'MESSAGE' && [line.file?.box, line.file?.size])).toEqual([
+            [{ width: 320, height: 80 }, null],
+            [{ width: 48, height: 192 }, null],
+            [{ width: 48, height: 48 }, null],
+            [{ width: 320, height: 240 }, null],
+            [{ width: 320, height: 240 }, null],
+            [{ width: 320, height: 240 }, null],
+            [{ width: 320, height: 240 }, null],
+            [{ width: 320, height: 213 }, 2 ** 40],
+        ])
+    })
+
+    test('are answered, reacted to and removed as any message, and are never given a new text', async () => {
+        const { fake, watched, texts, tellOf } = await inRoom([
+            event('$mine', KARI, { content: { msgtype: 'm.file', body: 'notat.pdf', url: 'mxc://chat.test/abc' } }),
+        ])
+        fake.answerUnder(SEND, taking)
+
+        expect(texts(line => [line.canEdit, line.canRemove])).toEqual({ $mine: [false, true] })
+        expect(watched.edit('$mine', 'Noe annet')).toBeNull()
+        tellOf([edit('$edit', KARI, '$mine', 'Noe annet'), reaction('$r', OLA, '$mine', '👍')])
+        await settled()
+        expect(texts(line => [line.text, line.file?.name, line.reactions.length]))
+            .toEqual({ $mine: ['', 'notat.pdf', 1] })
+        expect(sends(fake)).toHaveLength(0)
+    })
+})
+
+describe('a file that is fetched', () => {
+    const media = { serverName: 'chat.test', mediaId: 'abc' }
+    const png = new Blob(['png'], { type: 'image/png' })
+    const svg = new Blob(['<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'], {
+        type: 'image/svg+xml',
+    })
+    const html = new Blob(['<script>alert(1)</script>'], { type: 'text/html' })
+
+    test('is asked of the homeserver as the user, a picture as the small one it made or as itself', async () => {
+        const { fake, watched } = await inRoom([])
+        fake.answerUnder(MEDIA, () => ({ body: png }))
+
+        const thumbnail = await watched.fetchFile(media, 'THUMBNAIL')
+        const picture = await watched.fetchFile(media, 'PICTURE')
+
+        expect([thumbnail.type, await thumbnail.text(), picture.type]).toEqual(['image/png', 'png', 'image/png'])
+        const [ofThumbnail, ofPicture] = fake.calls.filter(call => call.url.pathname.startsWith(MEDIA))
+        expect(`${ofThumbnail.url.pathname}${ofThumbnail.url.search}`)
+            .toBe(`${MEDIA}/thumbnail/chat.test/abc?width=640&height=480&method=scale`)
+        expect(ofPicture.url.pathname).toBe(`${MEDIA}/download/chat.test/abc`)
+        expect([ofThumbnail.token, ofPicture.token]).toEqual(['Bearer access-0', 'Bearer access-0'])
+    })
+
+    test('is no picture to show when the homeserver says it is a document, such as an SVG', async () => {
+        const { fake, watched } = await inRoom([])
+        for (const given of [svg, html, new Blob(['?']), new Blob(['x'], { type: 'image/svg+xml; charset=utf-8' })]) {
+            fake.answerUnder(MEDIA, () => ({ body: given }))
+            await expect(watched.fetchFile(media, 'THUMBNAIL')).rejects.toThrow('no picture')
+            await expect(watched.fetchFile(media, 'PICTURE')).rejects.toThrow('no picture')
+        }
+    })
+
+    test('is downloaded as bytes that are nothing to a browser, whatever the homeserver says they are', async () => {
+        const { fake, watched } = await inRoom([])
+        for (const given of [svg, html, png]) {
+            fake.answerUnder(MEDIA, () => ({ body: given }))
+            const fetched = await watched.fetchFile(media, 'DOWNLOAD')
+            expect([fetched.type, await fetched.text()]).toEqual(['application/octet-stream', await given.text()])
+        }
+        expect(fake.calls.at(-1)?.url.pathname).toBe(`${MEDIA}/download/chat.test/abc`)
+    })
+
+    test('says so when the homeserver does not give it', async () => {
+        const { fake, watched } = await inRoom([])
+        fake.answerUnder(MEDIA, () => ({ status: 400, body: { errcode: 'M_UNKNOWN', error: 'Cannot find any thumbnails' } }))
+        await expect(watched.fetchFile(media, 'THUMBNAIL')).rejects.toMatchObject({ errcode: 'M_UNKNOWN' })
+    })
+})
+
+describe('a file the user sends', () => {
+    const picture = new File(['x'.repeat(300)], 'katt.png', { type: 'image/png' })
+    const uploads = (fake: ReturnType<typeof fakeChatBrowser>) => fake.callsTo(UPLOAD)
+    const taken = (fake: ReturnType<typeof fakeChatBrowser>) => {
+        fake.answer(UPLOAD, () => ({ body: { content_uri: 'mxc://chat.test/new' } }))
+        fake.answerUnder(SEND, () => ({ body: { event_id: '$sent' } }))
+    }
+
+    test('is uploaded from the browser and then sent as a picture, with its text, as a line at once', async () => {
+        const { fake, watched, lines } = await inRoom([text('$1', OLA, 'Hei')])
+        taken(fake)
+
+        await watched.sendFile({ file: picture, width: 1200, height: 800 }, {
+            text: ' Se @Ola ',
+            mentions: { userIds: [OLA], room: false },
+            replyTo: '$1',
+        })
+        expect(lines().at(-1)).toMatchObject({
+            text: 'Se @Ola',
+            sending: 'SENDING',
+            file: { name: 'katt.png', isPicture: true, media: { serverName: 'chat.test', mediaId: 'new' }, size: 300 },
+        })
+        await settled()
+
+        const [upload] = uploads(fake)
+        expect([upload.method, upload.contentType, upload.file?.size, upload.token])
+            .toEqual(['POST', 'image/png', 300, 'Bearer access-0'])
+        expect(sends(fake).map(call => call.json)).toEqual([{
+            msgtype: 'm.image',
+            body: 'Se @Ola',
+            filename: 'katt.png',
+            url: 'mxc://chat.test/new',
+            // eslint-disable-next-line id-length -- What Matrix calls a picture's width and height.
+            info: { mimetype: 'image/png', size: 300, w: 1200, h: 800 },
+            'm.mentions': { user_ids: [OLA] },
+            'm.relates_to': { 'm.in_reply_to': { event_id: '$1' } },
+        }])
+    })
+
+    test('is sent as a file when it is no picture that is shown, an SVG too, under its name', async () => {
+        const { fake, watched } = await inRoom([])
+        taken(fake)
+
+        const drawing = new File(['<svg/>'], 'tegning.svg', { type: 'image/svg+xml' })
+        await watched.sendFile({ file: drawing, width: 10, height: 10 })
+        await watched.sendFile({ file: new File(['?'], 'ukjent') })
+        await settled()
+
+        expect(uploads(fake).map(call => call.contentType)).toEqual(['image/svg+xml', 'application/octet-stream'])
+        expect(sends(fake).map(call => call.json)).toEqual([{
+            msgtype: 'm.file',
+            body: 'tegning.svg',
+            filename: 'tegning.svg',
+            url: 'mxc://chat.test/new',
+            info: { mimetype: 'image/svg+xml', size: 6 },
+            'm.mentions': {},
+        }, {
+            msgtype: 'm.file',
+            body: 'ukjent',
+            filename: 'ukjent',
+            url: 'mxc://chat.test/new',
+            info: { mimetype: 'application/octet-stream', size: 1 },
+            'm.mentions': {},
+        }])
+    })
+
+    test('is not uploaded when it is over the homeserver\'s limit, which is asked for once', async () => {
+        const { fake, watched, lines } = await inRoom([])
+        taken(fake)
+        fake.answer(`${MEDIA}/config`, () => ({ body: { 'm.upload.size': 299 } }))
+
+        const refused = await watched.sendFile({ file: picture }).catch((error: unknown) => error)
+        expect(refused).toBeInstanceOf(FileTooLarge)
+        expect([isTooLarge(refused), refused instanceof FileTooLarge && refused.limit]).toEqual([true, 299])
+        expect(await watched.uploadLimit()).toBe(299)
+        expect([uploads(fake).length, sends(fake).length, lines().length]).toEqual([0, 0, 0])
+        expect(fake.callsTo(`${MEDIA}/config`)).toHaveLength(1)
+
+        await watched.sendFile({ file: new File(['x'.repeat(299)], 'akkurat.png', { type: 'image/png' }) })
+        expect(uploads(fake)).toHaveLength(1)
+    })
+
+    test('is tried when the homeserver says no limit, and is too large when the homeserver then says so', async () => {
+        const { fake, watched, lines } = await inRoom([])
+        fake.answer(`${MEDIA}/config`, () => ({ status: 500, body: { errcode: 'M_UNKNOWN' } }))
+        fake.answer(UPLOAD, () => ({ status: 413, body: { errcode: 'M_TOO_LARGE', error: 'Too large' } }))
+
+        const refused = await watched.sendFile({ file: picture }).catch((error: unknown) => error)
+        expect([isTooLarge(refused), refused instanceof FileTooLarge]).toEqual([true, false])
+        expect(await watched.uploadLimit()).toBeNull()
+        expect(fake.callsTo(`${MEDIA}/config`)).toHaveLength(2)
+
+        const ofProxy = new Blob(['<html>Request Entity Too Large</html>'], { type: 'text/html' })
+        fake.answer(UPLOAD, () => ({ status: 413, body: ofProxy }))
+        expect(isTooLarge(await watched.sendFile({ file: picture }).catch((error: unknown) => error))).toBe(true)
+        expect([sends(fake).length, lines().length]).toEqual([0, 0])
+    })
+
+    test('is not sent when the upload fails or is stopped, which says why', async () => {
+        const { fake, watched, lines } = await inRoom([])
+        fake.answerUnder(SEND, taking)
+
+        fake.answer(UPLOAD, () => 'UNREACHABLE')
+        const unreached = await watched.sendFile({ file: picture }).catch((error: unknown) => error)
+        expect([refusalOf(unreached), isTooLarge(unreached), isStopped(unreached)]).toEqual(['UNREACHABLE', false, false])
+
+        fake.answer(UPLOAD, () => ({ status: 403, body: { errcode: 'M_FORBIDDEN', error: 'Nei' } }))
+        const refused = await watched.sendFile({ file: picture }).catch((error: unknown) => error)
+        expect([refusalOf(refused), isTooLarge(refused)]).toEqual(['REFUSED', false])
+
+        fake.answer(UPLOAD, () => 'NEVER')
+        const stop = new AbortController()
+        const stopped = watched.sendFile({ file: picture }, { signal: stop.signal }).catch((error: unknown) => error)
+        await settled()
+        stop.abort()
+        expect(isStopped(await stopped)).toBe(true)
+
+        await settled()
+        expect([sends(fake).length, lines().length, watched.read().isHeldUp]).toEqual([0, 0, false])
     })
 })
 

@@ -1,10 +1,12 @@
+import { FileTooLarge, PICTURE_TYPES, fetchMedia, mediaOf, uploadLimitOf, uploadMedia } from './media'
 import { loadedChatSdk } from './sdk'
+import type { FetchedAs, Media } from './media'
 import type { Watched } from './watch'
 import type { EventTimeline, MatrixClient, MatrixEvent, MsgType, Room, RoomState, SyncState } from 'matrix-js-sdk'
 
 /** What a timeline says in place of what it does not show, which the component puts into words. */
 export type TimelineNote =
-    | 'IMAGE' | 'FILE' | 'AUDIO' | 'VIDEO' | 'LOCATION' | 'STICKER'
+    | 'LOCATION' | 'STICKER'
     | 'REMOVED' | 'ENCRYPTED' | 'OTHER'
     | 'CREATED' | 'NAMED' | 'JOINED' | 'LEFT' | 'INVITED' | 'TAKEN_OUT' | 'BANNED' | 'SETTINGS'
 
@@ -25,10 +27,35 @@ export type TimelineReaction = {
     own: 'NONE' | 'SENDING' | 'SENT',
 }
 
+/**
+ * A file or a picture of a message, as whoever sent it says it is: the homeserver checks none of
+ * it. So its name is only ever shown as text and saved under, and its sizes only say how much room
+ * to keep for it, see boxOf.
+ */
+export type TimelineFile = {
+    name: string,
+    /** Whether it was sent as a picture. One the homeserver makes no thumbnail of is still shown as a file. */
+    isPicture: boolean,
+    /** Null where the message gives no address that is the homeserver's, so there is nothing to fetch. */
+    media: Media | null,
+    /** How many bytes it is said to be, where that is a size a file may have. */
+    size: number | null,
+    /** The box a picture is shown in, in pixels. */
+    box: { width: number, height: number },
+}
+
+/** A file the user sends: what the browser says of it, and for a picture how large it is where that is known. */
+export type FileToSend = { file: Blob & { name: string }, width?: number, height?: number }
+
 type Shown = {
-    kind: 'TEXT',
-    /** The newest text of the message, which is its last edit's where it has been edited. */
+    kind: 'MESSAGE',
+    /**
+     * The newest text of the message, which is its last edit's where it has been edited. Of a
+     * message that is a file it is what was written to go with it, which may be nothing.
+     */
     text: string,
+    /** The file or the picture the message is, and null for a text. */
+    file: TimelineFile | null,
     isEdited: boolean,
     /** `NOT_LOADED` for an answer to a message the timeline does not hold. */
     repliesTo: Replied | 'NOT_LOADED' | null,
@@ -90,6 +117,22 @@ export type WatchedRoomTimeline = Watched<RoomTimeline> & {
      */
     send: (text: string, more?: { mentions?: Mentions, replyTo?: string }) => void,
     /**
+     * Uploads a file from the browser to the homeserver and sends it as a message, a picture of a
+     * kind that is shown as a picture and anything else as a file, with `text` as what is written
+     * to go with it. It resolves when the file is uploaded, which is when the message is a line,
+     * and rejects when it was not: with FileTooLarge and nothing uploaded where the file is over
+     * the homeserver's limit, and otherwise with why, see isTooLarge, isStopped and refusalOf.
+     * Nothing is sent then.
+     */
+    sendFile: (
+        toSend: FileToSend,
+        more?: { text?: string, mentions?: Mentions, replyTo?: string, signal?: AbortSignal },
+    ) => Promise<void>,
+    /** How many bytes the homeserver takes in one file, asked once, and null where it does not say. */
+    uploadLimit: () => Promise<number | null>,
+    /** Fetches the file of a message, see fetchMedia. */
+    fetchFile: (media: Media, as: FetchedAs, signal?: AbortSignal) => Promise<Blob>,
+    /**
      * Gives a message of the user's a new text, which mentions whom it is given. Those the message
      * did not mention before are told of it, and nobody else is a second time. This and `remove`
      * give null, and send nothing, where the line does not let the user now: the message is no
@@ -133,13 +176,16 @@ const EXCERPT_LENGTH = 80
 const EMOJI_LENGTH_AT_MOST = 40
 const REMOVABLE = ['m.room.message', 'm.sticker', 'm.room.encrypted']
 const TEXT_TYPES: readonly unknown[] = ['m.text', 'm.notice', 'm.emote']
-const notesOfMessageTypes = new Map<unknown, TimelineNote>([
-    ['m.image', 'IMAGE'],
-    ['m.file', 'FILE'],
-    ['m.audio', 'AUDIO'],
-    ['m.video', 'VIDEO'],
-    ['m.location', 'LOCATION'],
-])
+/** What is shown as a file. Sound and video are files to download here. */
+const FILE_TYPES: readonly unknown[] = ['m.image', 'm.file', 'm.audio', 'm.video']
+const FILE_NAME_LENGTH = 120
+/** The largest size a file is said to have here, which is far above what any homeserver takes. */
+const SIZE_AT_MOST = 2 ** 40
+/** The largest box a picture of a line is shown in, the smallest side one is given, and how oblong one may be. */
+const BOX = { width: 320, height: 240, least: 48, oblong: 4 }
+// What a name is not shown or saved with: what ends a line or a path, and what turns the reading
+// order, which would let a name look like one of another kind.
+const NOT_OF_A_NAME = new RegExp('[\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}/\\\\]', 'gu')
 const NOBODY: Mentions = { userIds: [], room: false }
 // One emoji as people see it: a flag, a keycap, or pictographs joined into one, each with at most
 // one skin tone. What only looks like another emoji is none, so no reaction is shown as another's.
@@ -174,6 +220,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     let fetching: 'FETCHING' | 'FAILED' | null = null
     let toldReadTo: string | null = null
     let takenAtLastSync = new Set<MatrixEvent>()
+    let limit: Promise<number | null> | null = null
 
     const changed = () => {
         shown = null
@@ -219,14 +266,22 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
     }
     const shownNow = () => (shown ??= read())
     /** A message of the timeline that the homeserver has, which is one something is asked of. */
-    const textLine = (lineId: string) => shownNow().lines
-        .flatMap(line => (line.kind === 'TEXT' && line.id === lineId && !line.sending ? [line] : []))
+    const messageLine = (lineId: string) => shownNow().lines
+        .flatMap(line => (line.kind === 'MESSAGE' && line.id === lineId && !line.sending ? [line] : []))
         .at(0)
     /** Whom a message of the user's may mention, which is the whole room only where the room's levels let them. */
     const allowed = (mentions: Mentions = NOBODY): Mentions => ({
         userIds: mentions.userIds,
         room: mentions.room && room.currentState.mayTriggerNotifOfType('room', ownId),
     })
+    const answering = (replyTo: string | undefined) => (
+        replyTo && room.findEventById(replyTo) ? { 'm.relates_to': { 'm.in_reply_to': { event_id: replyTo } } } : {}
+    )
+    // An answer that says nothing of the limit is not kept, so it is asked for again.
+    const uploadLimit = () => (limit ??= uploadLimitOf(client).then(answered => {
+        if (answered === null) limit = null
+        return answered
+    }))
     // What failed is let go, since the SDK would send nothing more in the room while it waited.
     const act = (asked: Promise<unknown>) => asked.then(() => undefined, (error: unknown) => {
         unsent().filter(isAct).forEach(event => client.cancelPendingEvent(event))
@@ -270,11 +325,18 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         send: (text, { mentions, replyTo } = {}) => {
             const toSend = text.trim()
             if (!toSend) return
-            const message = textMessage(toSend, allowed(mentions))
-            const answered = replyTo && room.findEventById(replyTo) ? { 'm.in_reply_to': { event_id: replyTo } } : null
-            void client.sendMessage(room.roomId, answered ? { ...message, 'm.relates_to': answered } : message)
+            void client.sendMessage(room.roomId, { ...textMessage(toSend, allowed(mentions)), ...answering(replyTo) })
                 .catch(() => undefined)
         },
+        sendFile: async (toSend, { text = '', mentions, replyTo, signal } = {}) => {
+            const atMost = await uploadLimit()
+            if (atMost !== null && toSend.file.size > atMost) throw new FileTooLarge(atMost)
+            const address = await uploadMedia(client, toSend.file, signal)
+            const message = fileMessage(toSend, address, text.trim(), allowed(mentions))
+            void client.sendMessage(room.roomId, { ...message, ...answering(replyTo) }).catch(() => undefined)
+        },
+        uploadLimit,
+        fetchFile: (media, as, signal) => fetchMedia(client, media, as, signal),
         resend: () => unsent().forEach(event => void client.resendEvent(event, room).catch(() => undefined)),
         drop: lineId => {
             const event = unsent().find(unsentEvent => unsentEvent.getId() === lineId)
@@ -282,7 +344,7 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
         },
         edit: (lineId, text, mentions) => {
             const toSend = text.trim()
-            const [event, line] = [room.findEventById(lineId), textLine(lineId)]
+            const [event, line] = [room.findEventById(lineId), messageLine(lineId)]
             if (!event || !toSend || !line?.canEdit || line.text === toSend) return null
             const had = mentionsIn(contentOf(event, readingOf(room, ownId, false)))
             const now = allowed(mentions)
@@ -293,14 +355,14 @@ export function watchRoomTimeline(client: MatrixClient, room: Room): WatchedRoom
                 'm.relates_to': { rel_type: RelationType.Replace, event_id: lineId },
             }))
         },
-        remove: lineId => (textLine(lineId)?.canRemove ? act(client.redactEvent(room.roomId, lineId)) : null),
+        remove: lineId => (messageLine(lineId)?.canRemove ? act(client.redactEvent(room.roomId, lineId)) : null),
         mentionedIn: lineId => {
             const event = room.findEventById(lineId)
             const { userIds } = event ? mentionsIn(contentOf(event, readingOf(room, ownId, false))) : NOBODY
             return userIds.map(id => ({ id, name: textOf(room.getMember(id)?.name) ?? id }))
         },
         react: async (lineId, key) => {
-            const line = textLine(lineId)
+            const line = messageLine(lineId)
             if (!line || !isEmoji(key) || !shownNow().canReact || isHeldUp()) return
             const own = readingOf(room, ownId, false).reactions.get(lineId)?.get(key)
             if (own?.own === 'SENDING') return
@@ -354,6 +416,29 @@ export function textMessage(text: string, { userIds, room }: Mentions = NOBODY) 
         msgtype,
         body: text,
         'm.mentions': { ...(userIds.length > 0 && { user_ids: Array.from(new Set(userIds)) }), ...(room && { room }) },
+    }
+}
+
+/**
+ * What is sent as a file: a picture of a kind that is shown as a picture, and anything else as a
+ * file. Its `body` is what was written to go with it, and its name where nothing was, as Matrix
+ * has it.
+ */
+function fileMessage({ file, width, height }: FileToSend, address: string, text = '', mentions: Mentions = NOBODY) {
+    const { MsgType } = loadedChatSdk()
+    const isPicture = PICTURE_TYPES.includes(file.type)
+    const msgtype: MsgType.Image | MsgType.File = isPicture ? MsgType.Image : MsgType.File
+    return {
+        ...textMessage(text || file.name, mentions),
+        msgtype,
+        filename: file.name,
+        url: address,
+        info: {
+            mimetype: file.type || 'application/octet-stream',
+            size: file.size,
+            // eslint-disable-next-line id-length -- What Matrix calls a picture's width and height.
+            ...(isPicture && width && height && { w: width, h: height }),
+        },
     }
 }
 
@@ -437,7 +522,8 @@ function keepRelation(event: MatrixEvent, reading: Reading): void {
 
 /**
  * The lines of a timeline, from its events in the order the homeserver gave them. A text message
- * is its text, and never the HTML it may come with. What is not shown is a note of what it is.
+ * is its text, and never the HTML it may come with. A file and a picture are messages too, see
+ * fileIn. What is not shown is a note of what it is.
  * These are no line: the event that removes another, since what it removed says so itself, an
  * edit and a reaction, which are shown with the message they are of, and a member's new name or
  * picture, which is no news of the room.
@@ -478,13 +564,15 @@ function shownOfMessage(event: MatrixEvent, reading: Reading): Shown | null {
         case 'm.room.message': {
             const content = contentOf(event, reading)
             const text = textIn(content)
-            if (text === null) return note(notesOfMessageTypes.get(content.msgtype) ?? 'OTHER')
+            const sent = text === null ? fileIn(content) : null
+            if (text === null && !sent) return note(content.msgtype === 'm.location' ? 'LOCATION' : 'OTHER')
             const id = event.getId() ?? ''
             const isOnHomeserver = reading.loaded.has(id) && !reading.isHeldUp
             const isOwn = event.getSender() === reading.ownId
             return {
-                kind: 'TEXT',
-                text,
+                kind: 'MESSAGE',
+                text: text ?? sent?.text ?? '',
+                file: sent?.file ?? null,
                 isEdited: reading.edits.has(id),
                 repliesTo: repliedOf(event, reading),
                 mentionsUser: !isOwn && mentionsUser(content, event, reading),
@@ -521,6 +609,50 @@ function reactionsOf(reacted: ReadonlyMap<string, Reacted> = new Map()): Timelin
         by: Array.from(by, ([id, name]) => ({ id, name })).slice(0, NAMED_AT_MOST),
         own,
     }))
+}
+
+/**
+ * The file a message is, where it is one, and what was written to go with it: its `body`, where
+ * it also has a `filename` that is another. Nothing of it is taken for more than it is: a name is
+ * a text without what would break a line or a path or turn it around, an address is one of the
+ * homeserver's or none, and a size is a number or none.
+ */
+function fileIn(content: Record<string, unknown>): { file: TimelineFile, text: string } | null {
+    if (!FILE_TYPES.includes(content.msgtype)) return null
+    const [body, filename] = [textOf(content.body) ?? '', textOf(content.filename)]
+    const info = recordOf(content.info)
+    const isPicture = content.msgtype === 'm.image'
+    const written = (filename ?? body).replace(NOT_OF_A_NAME, '').replace(/\s+/g, ' ').trim()
+    const name = Array.from(written).slice(0, FILE_NAME_LENGTH).join('')
+    return {
+        file: {
+            name: name || (isPicture ? 'bilde' : 'fil'),
+            isPicture,
+            media: mediaOf(content.url),
+            size: typeof info.size === 'number' && Number.isInteger(info.size) && info.size >= 0 && info.size <= SIZE_AT_MOST
+                ? info.size
+                : null,
+            box: boxOf(info.w, info.h),
+        },
+        text: filename !== null && filename !== body ? body : '',
+    }
+}
+
+/**
+ * The box a picture is shown in, which is kept for it before it is fetched so that nothing moves
+ * when it arrives. It has the shape the message says the picture has, within what a line takes:
+ * no larger than BOX or than the picture is said to be, no side under its least, and no more
+ * oblong than it lets. A picture that is another shape than was said is shown whole inside it.
+ */
+function boxOf(width: unknown, height: unknown): TimelineFile['box'] {
+    const isSize = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value >= 1
+    if (!isSize(width) || !isSize(height)) return { width: BOX.width, height: BOX.height }
+    const shape = Math.min(BOX.oblong, Math.max(1 / BOX.oblong, width / height))
+    const boxWidth = Math.min(BOX.width, BOX.height * shape, Math.max(width, BOX.least))
+    return {
+        width: Math.round(boxWidth),
+        height: Math.round(Math.max(BOX.least, Math.min(BOX.height, boxWidth / shape))),
+    }
 }
 
 /** What a message holds now: what its newest edit gave it, where it has one. */
@@ -561,7 +693,8 @@ function repliedOf(event: MatrixEvent, reading: Reading): Replied | 'NOT_LOADED'
     const replied = reading.loaded.get(id)
     const senderId = textOf(replied?.getSender())
     if (!replied || !senderId || !isMessage(replied)) return 'NOT_LOADED'
-    const text = replied.isRedacted() ? null : textIn(contentOf(replied, reading))
+    const content = contentOf(replied, reading)
+    const text = replied.isRedacted() ? null : textIn(content) ?? fileIn(content)?.file.name ?? null
     const sender = { id: senderId, name: nameOfSender(replied, senderId) }
     return { id, sender, excerpt: text === null ? null : excerptOf(text) }
 }
@@ -591,8 +724,8 @@ function sendingOf(event: MatrixEvent): 'SENDING' | 'FAILED' | null {
 }
 
 /** A message that was not sent. The first of them in a room is the one that failed, and the later are held. */
-function isFailed(line: TimelineLine): line is TimelineLine & { kind: 'TEXT' } {
-    return line.kind === 'TEXT' && line.sending === 'FAILED'
+function isFailed(line: TimelineLine): line is TimelineLine & { kind: 'MESSAGE' } {
+    return line.kind === 'MESSAGE' && line.sending === 'FAILED'
 }
 
 function shownOfState(event: MatrixEvent): Shown | null {
