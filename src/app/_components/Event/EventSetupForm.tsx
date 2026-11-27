@@ -6,6 +6,7 @@ import EventPaymentFields from './EventPaymentFields'
 import EventRegistrationFields from './EventRegistrationFields'
 import EventTagComponent from './EventTag'
 import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } from './EventVariantsField'
+import LinkedEventField, { LinkedEventSelectionProvider, useLinkedEvent } from './LinkedEventField'
 import SelectedCompany from '@/components/Company/SelectedCompany'
 import CompanySelectionProvider, { CompanySelectionContext } from '@/contexts/CompanySelection'
 import PopUpProvider from '@/contexts/PopUp'
@@ -22,6 +23,7 @@ import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
 import { firstVariantSetup, slotsStartOf } from '@/services/events/firstSetup'
+import { eventKinds } from '@/services/events/kinds'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
@@ -32,9 +34,12 @@ import { useContext, useState } from 'react'
 import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { SetupPart } from '@/services/events/publishProblems'
-import type { EventAccess, EventDetailed } from '@/services/events/types'
+import type { EventAccess, EventDetailed, LinkableEvent } from '@/services/events/types'
 import type { SlotOnBoard } from '@/services/events/slots/types'
 import type { Committee, Event, EventTag, LedgerAccount } from '@/prisma-generated-pn-types'
+
+/** What the save gives back, which is enough to go to the event's page. */
+type SavedEvent = Pick<Event, 'id' | 'kind' | 'name'>
 
 /** The tabs of the form, for the Tabs around it. */
 export const eventSetupTabs = [
@@ -59,7 +64,8 @@ export type PropTypes = {
     event: Pick<EventDetailed,
         'id' | 'kind' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
-        | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount' | 'company'
+        | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount' | 'company' | 'companyPresentation'
+        | 'requiresPresentationSeat'
     >,
     access: EventAccess,
     /** Whether the admin visibility could be read, so that the form never saves a fallback over it. */
@@ -74,6 +80,8 @@ export type PropTypes = {
     savedSlots: Record<number, SlotOnBoard[]>,
     /** Who waits on each slotted variant by its id, which with the holders are all that removing everyone removes. */
     savedWaiting: Record<number, number[]>,
+    /** The events the event may be linked to, when its kind links to another. */
+    linkable: LinkableEvent[],
 }
 
 /**
@@ -87,8 +95,8 @@ export type PropTypes = {
  */
 export default function EventSetupForm(props: PropTypes) {
     // The form is in a pop-up itself, which a pop-up opened from the app's provider would replace, so
-    // the company is chosen in a provider of its own. It renders that pop-up before the form rather
-    // than in it, where its buttons and Enter would submit the form.
+    // the company and the linked event are chosen in a provider of its own. It renders those pop-ups
+    // before the form rather than in it, where their buttons and Enter would submit the form.
     return <EventVariantsField
         name="variants"
         defaultValue={props.event.variants}
@@ -96,9 +104,11 @@ export default function EventSetupForm(props: PropTypes) {
         savedWaiting={props.savedWaiting}
     >
         <CompanySelectionProvider company={props.event.company}>
-            <PopUpProvider>
-                <SetupForm {...props} />
-            </PopUpProvider>
+            <LinkedEventSelectionProvider linked={props.event.companyPresentation}>
+                <PopUpProvider>
+                    <SetupForm {...props} />
+                </PopUpProvider>
+            </LinkedEventSelectionProvider>
         </CompanySelectionProvider>
     </EventVariantsField>
 }
@@ -111,8 +121,10 @@ function SetupForm({
     eventTags,
     committees,
     ledgerAccounts,
+    linkable,
 }: PropTypes) {
     const links = eventLinks(config)
+    const linksTo = eventKinds[event.kind].linksTo
     // Whether the rules tab has the waiting list switched on, for the registration tab to show it.
     const [waitingList, setWaitingList] = useState(event.waitingList)
     // Who sees and administrates the event as the form has it, for the access tab to show what that gives.
@@ -136,9 +148,9 @@ function SetupForm({
             requirements: quota.visibilityRequirements,
         }))),
     }
-    const saveSetup: ActionFormData<Event> = configureAction(saveEventSetupAction, { params: { id: event.id } })
+    const saveSetup: ActionFormData<SavedEvent> = configureAction(saveEventSetupAction, { params: { id: event.id } })
     // The schema of the save tells a variant by its place in the list, so the errors are given its name here.
-    const save: ActionFormData<Event> = async formData => {
+    const save: ActionFormData<SavedEvent> = async formData => {
         const result = await saveSetup(formData)
         if (result.success || !result.error) return result
         return { ...result, error: nameVariantInErrors(result.error, variantsFromForm(formData)) }
@@ -200,6 +212,10 @@ function SetupForm({
             <FormSection legend="Bedrift">
                 <SelectedCompany optional chooseInPopUp={canChooseCompany} />
             </FormSection>
+            {linksTo && <FormSection legend="Hører til">
+                <LinkedEventField name={eventKinds[linksTo].name} linkable={linkable} />
+                <PresentationSeatSwitch defaultChecked={event.requiresPresentationSeat} />
+            </FormSection>}
             <FormSection legend="Kart">
                 <EventLocationInput name="locationMap" defaultValue={event.locationMap} />
             </FormSection>
@@ -294,4 +310,13 @@ function SetupForm({
             </div>}
         </FormTab>
     </Form>
+}
+
+/** The requirement is read only while the event is linked, so it is offered only while a presentation is picked. */
+function PresentationSeatSwitch({ defaultChecked }: { defaultChecked: boolean }) {
+    return useLinkedEvent() && <Slider
+        label="Påmelding krever plass på presentasjonen"
+        name="requiresPresentationSeat"
+        defaultChecked={defaultChecked}
+    />
 }

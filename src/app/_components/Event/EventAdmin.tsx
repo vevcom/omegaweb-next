@@ -6,7 +6,6 @@ import EventSetupForm, { eventSetupTabs } from './EventSetupForm'
 import EventStatistics from './EventStatistics'
 import ManualRegistrationForm from './ManualRegistrationForm'
 import Tabs, { TabPanel } from '@/components/UI/Tabs'
-import { publishProblems } from '@/services/events/publishProblems'
 import type { PropTypes as SetupFormPropTypes } from './EventSetupForm'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { SeatingBoard } from '@/services/events/seating/types'
@@ -49,7 +48,7 @@ export default function EventAdmin({
     const canNotify = capabilities.canCreateNotification.authorized
     const publishingDot = () => {
         if (event.published) return { level: 'ok' as const, label: 'Publisert' }
-        return publishProblems({ ...event, adminVisibility: setup.access.adminVisibility }).length > 0
+        return (event.publishProblems ?? []).length > 0
             ? { level: 'missing' as const, label: 'Noe mangler før det kan publiseres' }
             : { level: 'warning' as const, label: 'Klart, men ikke publisert' }
     }
@@ -101,7 +100,6 @@ export default function EventAdmin({
             {showPublishing && <TabPanel tab="publishing">
                 <EventPublishing
                     event={event}
-                    adminVisibility={setup.access.adminVisibility}
                     config={setup.config}
                     capabilities={{
                         canSetPublished: capabilities.canSetPublished,

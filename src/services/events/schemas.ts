@@ -24,6 +24,9 @@ const dataFieldSchemas = z.object({
     // The committee hosting the event, shown on its page.
     hostedByCommitteeId: idOrNullFromForm.optional(),
     companyId: idOrNullFromForm.optional(),
+    // The company presentation a speed interview belongs to. See `linksTo` in kinds.ts.
+    companyPresentationId: idOrNullFromForm.optional(),
+    requiresPresentationSeat: Zpn.checkboxOrBoolean({ label: 'Krever plass på bedriftspresentasjonen' }),
     // The account a paid event is paid into. Linked apart from the rest of the event (see
     // connectToLedgerAccount), since linking an account takes access to that account.
     ledgerAccountId: z.coerce.number().int(),
@@ -92,6 +95,7 @@ const parsedFieldSchemas = dataFieldSchemas.extend({
     location: z.string().nullable(),
     hostedByCommitteeId: z.number().int().nullable().optional(),
     companyId: z.number().int().nullable().optional(),
+    companyPresentationId: z.number().int().nullable().optional(),
 })
 
 export const eventParamsFieldSchemas = z.object({
@@ -179,10 +183,14 @@ export const eventSchemas = {
         }).partial(),
         updateFields: parsedFieldSchemas.pick({
             ...eventFields,
+            companyPresentationId: true,
+            requiresPresentationSeat: true,
             notifyAboutChange: true,
         }).partial(),
         saveSetup: dataFieldSchemas.pick({
             ...eventFields,
+            companyPresentationId: true,
+            requiresPresentationSeat: true,
             notifyAboutChange: true,
             variants: true,
             adminRequirements: true,
@@ -203,6 +211,7 @@ export const eventSchemas = {
             kinds: true,
         }),
         readStatistics: eventId,
+        readLinkable: eventId,
         readManyCurrent: eventParamsFieldSchemas.pick({
             tags: true,
             kinds: true,

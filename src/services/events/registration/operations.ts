@@ -14,6 +14,7 @@ import { eventRegistrationSchemas } from './schemas'
 import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
 import { withPaymentDeadline } from './paymentDeadline'
 import { notifySlotChanges } from './notifySlotChanges'
+import { assertHoldsRequiredSeat, seatRefusalOf } from './presentationSeat'
 import {
     lockEvent,
     queuedAhead,
@@ -103,7 +104,10 @@ const createRegistration = defineSubOperation({
                 await assertMayJoin(tx, variant, params.userId)
                 const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
                 const slotId = await pickedSlot(tx, variant, params.slotId)
-                if (!asAdmin) assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
+                if (!asAdmin) {
+                    assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
+                    await assertHoldsRequiredSeat(tx, session, params.eventId, params.userId)
+                }
                 const placed = asAdmin
                     ? await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId, slotId)
                     : await joinVariant(tx, variant, { userId: params.userId }, slotId)
@@ -330,6 +334,19 @@ export const eventRegistrationOperations = {
     }),
 
     readDotPunishmentOfUser,
+
+    /**
+     * Why the user may not register for the event for want of the seat it requires on a
+     * presentation, in the words registering would be refused with, or null.
+     */
+    readSeatRefusal: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readSeatRefusal,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readSeatRefusal.data({
+            ...await readEventAccess(prisma, params.eventId),
+            userId: params.userId,
+        }),
+        operation: ({ prisma, params, session }) => seatRefusalOf(prisma, session, params.eventId, params.userId),
+    }),
 
     /** The registration of a user in a variant of an event, or null. */
     readOfUser: defineOperation({

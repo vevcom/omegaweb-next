@@ -9,7 +9,7 @@ import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
 type PropTypes = {
-    event: Event,
+    event: Pick<Event, 'id' | 'kind' | 'name'>,
     /** The event pages to navigate into once saved, which differ between Omega's site and the career site. */
     config: EventPagesConfig,
     capabilities: CapabilitiesJsObject<'canUpdate'>,

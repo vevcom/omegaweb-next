@@ -118,6 +118,7 @@ export const eventRegistrationSchemas = {
             userId: true,
         }),
         readOfUser: userAndEvent,
+        readSeatRefusal: paramsFieldSchemas.pick({ userId: true, eventId: true }),
         readUpcomingOfUser: paramsFieldSchemas.pick({
             userId: true,
             kinds: true,

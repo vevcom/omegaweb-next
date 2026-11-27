@@ -96,9 +96,29 @@ const keepsCompany = Require.custom<{ setsCompany: boolean }>(
 /** Putting a company on an event takes the right to see the companies, on top of the write's own rule. */
 const mayPutCompany = Require.anyOf(keepsCompany, companyAuth.readPage)
 
+/**
+ * Linking a speed interview to a company presentation takes administrating the presentation, on top
+ * of the write's own rule, since it is the presentation's one speed interview after. Clearing the
+ * link takes no more. Needs `{ linksPresentation }` supplied via `.data()`: the `EventAccess` of the
+ * presentation a write names, or null when it names none.
+ */
+const mayLinkPresentation = Require.custom<{ linksPresentation: EventAccess | null }>(
+    ({ session, linksPresentation }) => linksPresentation === null
+        || eventAdminLevel.data(linksPresentation).auth(session).authorized,
+    { errorMessage: 'Du kan bare koble til en bedriftspresentasjon du administrerer.' },
+)
+
 /** `hasNoAdministrators` as a where clause on a visibility. */
 const noAdministrators: Prisma.VisibilityWhereInput = {
     OR: [{ requirements: { none: {} } }, { requirements: { some: { conditions: { none: {} } } } }],
+}
+
+/** The rule of `eventAdminLevel` but for EVENT_ADMIN, as a where clause on events. */
+function eventsAdministeredBy(session: SessionMaybeUser): Prisma.EventWhereInput[] {
+    return [
+        { visibilityAdmin: visibilityFilter(session.memberships) },
+        ...(session.user ? [{ published: false, createdById: session.user.id, visibilityAdmin: noAdministrators }] : []),
+    ]
 }
 
 /** The same rule as `canSeeEvent`, as a where clause on events. */
@@ -106,8 +126,7 @@ export function eventsSeenBy(session: SessionMaybeUser): Prisma.EventWhereInput 
     const passes = visibilityFilter(session.memberships)
     return {
         OR: [
-            { visibilityAdmin: passes },
-            ...(session.user ? [{ published: false, createdById: session.user.id, visibilityAdmin: noAdministrators }] : []),
+            ...eventsAdministeredBy(session),
             ...(session.companyUser ? [{ companyId: session.companyUser.company.id }] : []),
             { published: true, canBeViewedBy: 'ALL' },
             { published: true, variants: { some: { quotas: { some: { visibility: passes } } } } },
@@ -127,12 +146,14 @@ export const eventAuth = {
 
     read: canSeeEvent,
     readStatistics: eventAdminLevel,
+    // Lists the events the session administrates, which are those it may link to.
+    readLinkable: Require.permission('EVENT_ADMIN').or().filter(({ session }) => ({ OR: eventsAdministeredBy(session) })),
     readManyCurrent: visibleEvents,
     readManyArchivedPage: visibleEvents,
     search: visibleEvents,
 
     update: Require.allOf(eventAdminLevel, mayPutCompany),
-    saveSetup: Require.allOf(eventAdminLevel, mayPutCompany),
+    saveSetup: Require.allOf(eventAdminLevel, mayPutCompany, mayLinkPresentation),
     connectToLedgerAccount: Require.allOf(eventAdminLevel, ledgerAccountAccess('LEDGER_ADMIN')),
     setPublished: eventAdminLevel,
     updateCmsCoverImage: eventAdminLevel,

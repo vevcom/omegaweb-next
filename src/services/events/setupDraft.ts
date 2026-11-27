@@ -160,7 +160,10 @@ export function variantsFromForm(values: FormData): ReadVariant[] {
  */
 export function eventSetupFromForm(
     values: FormData,
-    saved: Pick<EventSetup, 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'adminVisibility'>,
+    saved: Pick<EventSetup,
+        'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'ledgerAccount' | 'adminVisibility' | 'companyPresentation'
+        | 'requiresPresentationSeat'
+    >,
 ): EventSetup {
     const location = values.get('location')
     const eventStart = values.get('eventStart')
@@ -182,6 +185,12 @@ export function eventSetupFromForm(
         variants: variantsFromForm(values),
         // Not a field of the form when who administrates the event could not be read.
         adminVisibility: adminRequirements ? { requirements: adminRequirements } : saved.adminVisibility,
+        // The presentation as it is saved, since the form holds only the name of one picked.
+        companyPresentation: saved.companyPresentation,
+        // Not a field of the form while no presentation is shown in it.
+        requiresPresentationSeat: values.has('requiresPresentationSeat')
+            ? values.getAll('requiresPresentationSeat').includes('on')
+            : saved.requiresPresentationSeat,
     }
 }
 

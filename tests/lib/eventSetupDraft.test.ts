@@ -1,3 +1,4 @@
+import { FIELD_IS_PRESENT_VALUE } from '@/lib/fields/constants'
 import {
     eventSetupFromForm,
     newQuotaDraft,
@@ -63,6 +64,8 @@ const asSaved = {
     canBeViewedBy: 'ALL' as const,
     ledgerAccount: null,
     adminVisibility: { requirements: [] },
+    companyPresentation: null,
+    requiresPresentationSeat: false,
 }
 
 describe('the drafts of the setup form', () => {
@@ -165,6 +168,16 @@ describe('the setup read from what the form would post', () => {
             .toMatchObject({ canBeViewedBy: 'ALL', ledgerAccount: null })
         expect(eventSetupFromForm(formOf({ ledgerAccountSelection: '12' }), { ...asSaved, ledgerAccount: { id: 5 } }))
             .toMatchObject({ ledgerAccount: { id: 5 } })
+    })
+
+    test('takes the switch of the seat requirement while it is in the form, and the saved one otherwise', () => {
+        const requiring = { ...asSaved, requiresPresentationSeat: true }
+        expect(eventSetupFromForm(new FormData(), requiring).requiresPresentationSeat).toBe(true)
+        expect(eventSetupFromForm(formOf({ requiresPresentationSeat: FIELD_IS_PRESENT_VALUE }), requiring)
+            .requiresPresentationSeat).toBe(false)
+        const switchedOn = formOf({ requiresPresentationSeat: FIELD_IS_PRESENT_VALUE })
+        switchedOn.append('requiresPresentationSeat', 'on')
+        expect(eventSetupFromForm(switchedOn, asSaved).requiresPresentationSeat).toBe(true)
     })
 })
 

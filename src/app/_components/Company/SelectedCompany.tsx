@@ -1,6 +1,7 @@
 'use client'
 import CompanyChooser from './CompanyChooser'
 import Button from '@/components/UI/Button'
+import PickedValue from '@/components/UI/PickedValue'
 import PopUp from '@/components/PopUp/PopUp'
 import { useFormReset, useInputEvent } from '@/components/Form/JsonFieldInput'
 import { CompanySelectionContext } from '@/contexts/CompanySelection'
@@ -38,20 +39,12 @@ export default function SelectedCompany({ optional = false, chooseInPopUp = fals
     const missing = !company && !optional
 
     return (
-        <div
-            className={`
-                flex flex-col gap-1 w-full py-2 px-4 border-2 rounded-inner bg-base-200
-                ${missing ? 'border-[color-mix(in_srgb,var(--color-warning),transparent_60%)]' : 'border-transparent'}
-            `}
-        >
-            <span className="text-[length:calc(var(--text-s)*0.85)] text-base-content/80">Bedrift</span>
-            <span className={`
-                text-m leading-[calc(var(--text-m)*1.25)] truncate
-                ${
-        company ? 'text-base-content' : 'text-base-content/80 italic'
-        }
-            `}>{company?.name ?? (optional ? 'Ingen bedrift' : 'Velg en bedrift i listen')}</span>
-            {(chooseInPopUp || (optional && company)) && <div className="flex gap-4">
+        <PickedValue
+            label="Bedrift"
+            value={company?.name ?? null}
+            empty={optional ? 'Ingen bedrift' : 'Velg en bedrift i listen'}
+            missing={missing}
+            actions={(chooseInPopUp || (optional && company)) && <>
                 {chooseInPopUp && <PopUp
                     popUpKey={popUpKey}
                     customShowButton={open => (
@@ -71,9 +64,10 @@ export default function SelectedCompany({ optional = false, chooseInPopUp = fals
                         Fjern
                     </Button>
                 )}
-            </div>}
+            </>}
+        >
             {/* Rendered from the start, so that `useFormReset` finds its form; disabled, it posts nothing. */}
             <input ref={inputRef} name="companyId" type="hidden" value={value} disabled={missing} />
-        </div>
+        </PickedValue>
     )
 }

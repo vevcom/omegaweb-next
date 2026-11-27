@@ -50,6 +50,8 @@ export const eventRegistrationAuth = {
 
     readDotPunishmentOfUser: userIdOrEventAdmin,
     readOfUser: registrationOfUser,
+    // Your own, to be told on the event's page why you may not register before you try.
+    readSeatRefusal: Require.allOf(canSeeEvent, Require.userId()),
     readUpcomingOfUser: userIdOrEventAdmin,
     // Who is registered is shown to those who may see the event and are logged in.
     readPage: Require.allOf(Require.user(), canSeeEvent),

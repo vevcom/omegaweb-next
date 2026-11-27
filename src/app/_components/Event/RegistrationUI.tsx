@@ -27,8 +27,12 @@ import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 
-/** Whether the viewer passes a quota of the variant, and whether one they pass has a place left. */
+/**
+ * Whether the viewer passes a quota of the variant, and whether one they pass has a place left. A
+ * refusal is why they may not register for want of a seat on the presentation the event requires.
+ */
 export type RegistrationEligibility = {
+    seatRefusal: string | null,
     passesAnyQuota: boolean,
     placeAvailable: boolean,
 }
@@ -45,6 +49,7 @@ enum RegistrationButtonState {
     REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
     BANNED_BY_DOTS = 'BANNED_BY_DOTS',
     NOT_ALLOWED = 'NOT_ALLOWED',
+    NO_PRESENTATION_SEAT = 'NO_PRESENTATION_SEAT',
     ERROR = 'ERROR',
 }
 
@@ -88,6 +93,9 @@ export default function RegistrationUI({
         }
         if (!capabilities.canRegister.authorized || !eligibility.passesAnyQuota) {
             return RegistrationButtonState.NOT_ALLOWED
+        }
+        if (eligibility.seatRefusal) {
+            return RegistrationButtonState.NO_PRESENTATION_SEAT
         }
         if (registrationStart > new Date()) {
             return RegistrationButtonState.REGISTRATION_NOT_OPEN
@@ -326,6 +334,7 @@ export default function RegistrationUI({
             {btnState === RegistrationButtonState.REGISTRATION_CLOSED && 'Påmeldingen er over'}
             {btnState === RegistrationButtonState.BANNED_BY_DOTS && 'Utestengt på grunn av prikker'}
             {btnState === RegistrationButtonState.NOT_ALLOWED && 'Du kan ikke melde deg på dette arrangementet'}
+            {btnState === RegistrationButtonState.NO_PRESENTATION_SEAT && eligibility.seatRefusal}
         </SubmitButton>
 
         {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && (
