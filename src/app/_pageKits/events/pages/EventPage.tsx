@@ -15,6 +15,7 @@ import EventInfoRow from '@/components/Event/EventInfoRow'
 import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
 import EventTag from '@/components/Event/EventTag'
+import CompanyLogoAndName from '@/components/Company/CompanyLogoAndName'
 import DateDisplay from '@/components/Date/Date'
 import CmsImage from '@/components/Cms/CmsImage/CmsImage'
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
@@ -39,6 +40,7 @@ import { eventAuth } from '@/services/events/auth'
 import { hasNoTime } from '@/services/events/publishProblems'
 import { canRegisterSelf, eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
+import { companyAuth } from '@/services/careers/companies/auth'
 import { EMPTY_VISIBILITY } from '@/auth/visibility/emptyVisibility'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Require } from '@/auth/authorizer/Require'
@@ -88,7 +90,7 @@ export function eventPage(config: EventPagesConfig) {
                 quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => quota.visibility)),
             }
 
-            const administers = eventAuth.update.data(access).auth(session).authorized
+            const administers = eventAuth.update.data({ ...access, setsCompany: false }).auth(session).authorized
             const ledgerAccounts = administers
                 ? await withFallback(ledgerAccountOperations.readAccessible({
                     params: { includeGroupAccounts: true, includeUserAccounts: false },
@@ -186,7 +188,7 @@ export function eventPage(config: EventPagesConfig) {
             canEditCmsCoverImage: eventAuth.updateCmsCoverImage.data(data.access),
             canEditCmsParagraph: eventAuth.updateParagraphContent.data(data.access),
             canDestroy: eventAuth.destroy.data(data.access),
-            canUpdate: eventAuth.update.data(data.access),
+            canUpdate: eventAuth.update.data({ ...data.access, setsCompany: false }),
             canSetPublished: eventAuth.setPublished.data(data.access),
             canConnectToLedgerAccount: eventAuth.connectToLedgerAccount.data({
                 ...data.access,
@@ -207,6 +209,9 @@ export function eventPage(config: EventPagesConfig) {
                 userId: session.user.id,
             }) : Require.user(),
             canRegister: canRegisterSelf.data(data.access),
+            canReadCompany: data.event.company
+                ? companyAuth.read.data({ companyId: data.event.company.id })
+                : companyAuth.readPage,
             canPay: session.user
                 ? eventRegistrationAuth.createPayment.data({ userId: session.user.id })
                 : Require.user(),
@@ -353,6 +358,12 @@ export function eventPage(config: EventPagesConfig) {
                             flex flex-col gap-2 min-w-0
                             mobile:col-start-2 mobile:row-start-1 mobile:row-span-2
                         ">
+                            {event.company && <EventSection title="Bedrift">
+                                <CompanyLogoAndName
+                                    company={event.company}
+                                    capabilities={{ canReadCompany: capabilities.canReadCompany }}
+                                />
+                            </EventSection>}
                             {event.variants.length > 0 ? data.variantViews.map(view => (
                                 <EventSection
                                     key={view.variant.id}

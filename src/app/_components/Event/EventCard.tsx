@@ -3,6 +3,7 @@ import { eventLinks } from '@/pageKits/events/links'
 import { showsSeveralKinds } from '@/pageKits/events/filter'
 import { eventKinds } from '@/services/events/kinds'
 import Image from '@/components/Image/Image'
+import CompanyLogoAndName from '@/components/Company/CompanyLogoAndName'
 import { osloDateTime } from '@/lib/dates/oslo'
 import { displayTimeUntil } from '@/lib/dates/displayTimeUntil'
 import { upcomingRegistrationStart } from '@/services/events/upcomingRegistrationStart'
@@ -43,6 +44,7 @@ export default function EventCard({ event, config }: PropTypes) {
 
         <div className="list-row-main">
             <h2>{event.name}</h2>
+            {event.company && <CompanyLogoAndName company={event.company} />}
             <div className="flex items-center gap-2 list-none">
                 {showsSeveralKinds(config) && (
                     <span className="text-sm text-base-content/70">{eventKinds[event.kind].name}</span>

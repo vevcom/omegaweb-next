@@ -13,7 +13,7 @@ export const popUpClassNames = {
         max-mobile:max-h-[calc(100svh-env(safe-area-inset-top)-(--spacing(16)))]
         max-mobile:pb-[calc(1.5rem+env(safe-area-inset-bottom))] max-mobile:pl-[calc(1.5rem+env(safe-area-inset-left))]
         max-mobile:pr-[calc(1.5rem+env(safe-area-inset-right))]
-        text-base-content
+        text-base-content outline-none
     `,
     overflow: 'flex-1 min-h-0 overflow-x-visible overflow-y-auto m-0 p-0',
     closeBtn: `

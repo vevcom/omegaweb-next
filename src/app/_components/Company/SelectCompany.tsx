@@ -19,13 +19,19 @@ export default function SelectCompany({ company }: PropTypes) {
     const isSelected = companyCtx.selectedCompany?.id === company.id
     return (
         <>
-            <button className="opacity-0 size-full absolute top-0 left-0" onClick={() => {
-                if (isSelected) {
-                    companyCtx.setSelectedCompany(null)
-                    return
-                }
-                companyCtx.setSelectedCompany(company)
-            }} />
+            <button
+                type="button"
+                className="opacity-0 size-full absolute top-0 left-0"
+                aria-label={`Velg ${company.name}`}
+                aria-pressed={isSelected}
+                onClick={() => {
+                    if (isSelected) {
+                        companyCtx.setSelectedCompany(null)
+                        return
+                    }
+                    companyCtx.setSelectedCompany(company)
+                }}
+            />
             <div className={`
                 absolute top-0 right-0 size-[1.5em] rounded-full flex justify-center items-center
                 ${isSelected ? 'bg-primary text-primary-content' : 'bg-base-200'}
