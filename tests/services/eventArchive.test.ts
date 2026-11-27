@@ -25,7 +25,7 @@ const daysAgo = (days: number) => new Date(Date.now() - days * DAY)
 
 const createPastEvent = async (name: string, eventStart: Date) => {
     const event = await eventOperations.create({
-        data: { name, hostedByCommitteeId: committeeId },
+        data: { kind: 'ORDINARY', name, hostedByCommitteeId: committeeId },
         session: creator,
     })
     await prisma.event.update({

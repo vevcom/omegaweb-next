@@ -3,18 +3,23 @@ import { toVariantDrafts, variantsToPost } from '@/services/events/setupDraft'
 import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
+import { eventSchemas } from '@/services/events/schemas'
 import { eventQuotaOperations } from '@/services/events/quotas/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { userOperations } from '@/services/users/operations'
 import { companyOperations } from '@/services/careers/companies/operations'
+import { omegaEventPages } from '@/app/(omegaweb)/events/config'
+import { companyPresentationPages } from '@/app/(careers)/career/company-presentations/config'
+import { speedInterviewPages } from '@/app/(careers)/career/speed-interviews/config'
 import { EventKind } from '@/prisma-generated-pn-types'
 import { beforeAll, describe, expect, jest, test } from '@jest/globals'
 import { File } from 'node:buffer'
 import type { Data } from '@/services/serviceOperation'
 import type { Permission } from '@/prisma-generated-pn-types'
 import type { UserFiltered } from '@/services/users/types'
+import type { EventPagesConfig } from '@/pageKits/events/config'
 
 const HOUR = 60 * 60 * 1000
 const period = {
@@ -55,6 +60,7 @@ beforeAll(async () => {
 async function createEvent(name: string) {
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name,
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 48 * HOUR),
@@ -508,18 +514,22 @@ describe('who administrates, and the account', () => {
 describe('the kind of an event', () => {
     const kindOf = async (id: number) => (await prisma.event.findUniqueOrThrow({ where: { id } })).kind
 
-    test('is ordinary unless the event is created as another', async () => {
+    test('is the one the event is created as, which must be given', async () => {
         expect(await kindOf(await createEvent('Et vanlig arrangement'))).toBe('ORDINARY')
 
+        const visibilityAdminRequirements = [{ conditions: [activeMembersOf(groupId)] }]
         const presentation = await eventOperations.create({
-            data: {
-                name: 'En bedriftspresentasjon',
-                kind: 'COMPANY_PRESENTATION',
-                visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
-            },
+            data: { name: 'En bedriftspresentasjon', kind: 'COMPANY_PRESENTATION', visibilityAdminRequirements },
             bypassAuth: true,
         })
         expect(presentation.kind).toBe('COMPANY_PRESENTATION')
+
+        await expect(eventOperations.create({
+            data: { name: 'Uten type', visibilityAdminRequirements } as never,
+            bypassAuth: true,
+        })).rejects.toThrow(new Smorekopp('BAD DATA'))
+        const withoutKind = eventSchemas.data.create.safeParse({ name: 'Uten type', visibilityAdminRequirements })
+        expect(withoutKind.error?.issues.map(issue => issue.path[0])).toContain('kind')
     })
 
     test('is not changed by a save', async () => {
@@ -529,6 +539,18 @@ describe('the kind of an event', () => {
         const event = await prisma.event.findUniqueOrThrow({ where: { id } })
         expect(event.name).toBe('Blir det det var, med nytt navn')
         expect(event.kind).toBe('ORDINARY')
+    })
+
+    test('is not found under pages that do not show it', async () => {
+        const id = await createEvent('Bare på Omegas sider')
+        const readUnder = (pages: EventPagesConfig) => eventOperations.read({
+            params: { id, kinds: pages.kindsToShow },
+            bypassAuth: true,
+        })
+
+        await expect(readUnder(omegaEventPages)).resolves.toMatchObject({ id })
+        await expect(readUnder(companyPresentationPages)).rejects.toThrow(new Smorekopp('NOT FOUND'))
+        await expect(readUnder(speedInterviewPages)).rejects.toThrow(new Smorekopp('NOT FOUND'))
     })
 })
 
@@ -593,6 +615,7 @@ describe('the company of an event', () => {
         const company = await createCompany('Selskap på listene')
         const createAt = (name: string, eventStart: Date) => eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name,
                 eventStart,
                 eventEnd: new Date(eventStart.getTime() + 2 * HOUR),
@@ -707,6 +730,7 @@ describe('the company of an event', () => {
                 companyId?: number | 'NULL',
             ) => eventOperations.create({
                 data: {
+                    kind: 'ORDINARY',
                     name,
                     companyId,
                     visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],

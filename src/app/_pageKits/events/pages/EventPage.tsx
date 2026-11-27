@@ -1,6 +1,6 @@
 import styles from './EventPage.module.scss'
 import { eventLinks } from '@/pageKits/events/links'
-import { showsSeveralKinds } from '@/pageKits/events/filter'
+import { showsSeveralKinds } from '@/pageKits/events/config'
 import { eventKinds } from '@/services/events/kinds'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
@@ -47,7 +47,6 @@ import { Require } from '@/auth/authorizer/Require'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import { serverPage, withFallback } from '@/app/ServerPage'
 import SiteLink from '@/components/SiteLink/SiteLink'
-import { notFound } from 'next/navigation'
 import { faCalendar, faLocationDot, faLock, faPeopleGroup, faQrcode } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { EventPagesConfig } from '@/pageKits/events/config'
@@ -66,11 +65,10 @@ export function eventPage(config: EventPagesConfig) {
         operation: async ({ params, session }: PageOperationArgs<{ nameAndId: string }>) => {
             const event = await eventOperations.read({
                 params: {
-                    id: decodeVevenUriHandleError(params.nameAndId)
+                    id: decodeVevenUriHandleError(params.nameAndId),
+                    kinds: config.kindsToShow,
                 }
             })
-
-            if (!config.kindsToShow.includes(event.kind)) notFound()
 
             const tags = await eventTagOperations.readAll({})
 

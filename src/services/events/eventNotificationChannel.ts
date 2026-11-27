@@ -3,7 +3,7 @@ import { implementSpecialNotificationChannel } from '@/services/notifications/ch
 import { rootNotificationChannel } from '@/services/notifications/channels/rootNotificationChannel'
 import { allNotificationMethodsOn } from '@/services/notifications/constants'
 
-/** The channel every event's own channels sit under. Nothing is sent in it directly. */
+/** The channel the own channels of the ordinary events sit under. Nothing is sent in it directly. */
 export const eventNotificationChannel = implementSpecialNotificationChannel({
     special: 'EVENT',
     parent: rootNotificationChannel,

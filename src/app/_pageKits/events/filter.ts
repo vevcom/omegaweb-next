@@ -1,13 +1,9 @@
+import { showsSeveralKinds } from './config'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import type { EventPagesConfig } from './config'
 import type { EventListFilter } from './links'
 import type { EventKind } from '@/prisma-generated-pn-types'
 import type { SearchParams } from '@/app/ServerPage'
-
-/** Whether the pages show several kinds, so that each event says its kind and a list is narrowed to kinds. */
-export function showsSeveralKinds(config: EventPagesConfig): boolean {
-    return config.kindsToShow.length > 1
-}
 
 /**
  * What the visitor has narrowed a list to, from the url: tags where the pages take a tag filter, and
@@ -29,3 +25,8 @@ export function eventListFilterOf(
 export function kindsToRead(config: EventPagesConfig, filter: EventListFilter): EventKind[] {
     return filter.kinds?.length ? filter.kinds : config.kindsToShow
 }
+
+/** The picked items with the item added, or removed when it is among them, for a link that toggles it. */
+export const toggled = <Item, >(items: Item[], item: Item) => (
+    items.includes(item) ? items.filter(other => other !== item) : [...items, item]
+)

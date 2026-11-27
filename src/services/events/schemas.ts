@@ -93,7 +93,7 @@ const parsedFieldSchemas = dataFieldSchemas.extend({
     companyId: z.number().int().nullable().optional(),
 })
 
-const paramsFieldSchemas = z.object({
+export const eventParamsFieldSchemas = z.object({
     id: z.number(),
     eventId: z.number(),
     name: z.string().trim().max(searchMaxLength).optional(),
@@ -133,11 +133,11 @@ const eventFields = {
     allowRegistrationInMultipleVariants: true,
 } as const
 
-const eventId = paramsFieldSchemas.pick({
+const eventId = eventParamsFieldSchemas.pick({
     id: true,
 })
 
-const eventImplementationId = paramsFieldSchemas.pick({
+const eventImplementationId = eventParamsFieldSchemas.pick({
     eventId: true,
 })
 
@@ -159,7 +159,6 @@ export const eventSchemas = {
             visibilityAdminRequirements: true,
         })
             .partial({
-                kind: true,
                 location: true,
                 eventStart: true,
                 eventEnd: true,
@@ -196,19 +195,22 @@ export const eventSchemas = {
     },
     params: {
         adminVisibility: eventId,
-        read: eventId,
+        read: eventParamsFieldSchemas.pick({
+            id: true,
+            kinds: true,
+        }),
         readStatistics: eventId,
-        readManyCurrent: paramsFieldSchemas.pick({
+        readManyCurrent: eventParamsFieldSchemas.pick({
             tags: true,
             kinds: true,
             name: true,
             companyId: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
-            paramsFieldSchemas.pick({
+            eventParamsFieldSchemas.pick({
                 id: true,
             }),
-            paramsFieldSchemas.pick({
+            eventParamsFieldSchemas.pick({
                 name: true,
                 tags: true,
                 kinds: true,

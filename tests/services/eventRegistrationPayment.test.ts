@@ -86,6 +86,7 @@ async function createPaidEvent({ ledgerAccountId }: { ledgerAccountId?: number }
     }
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Betalt testarrangement',
             location: 'Lophtet',
             eventStart: new Date(now.getTime() + 7 * 24 * HOUR),

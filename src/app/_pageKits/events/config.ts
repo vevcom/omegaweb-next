@@ -5,7 +5,7 @@ import type { EventKind } from '@/prisma-generated-pn-types'
 /**
  * How a site renders the event pages: the list of coming events at the mount path, its archive
  * at `${mountPath}/archive`, the page of one event at `${mountPath}/[nameAndId]` and its attendance page.
- * Omega's site lists the events of every kind; the career site lists the company presentations.
+ * Omega's site lists the events of every kind, and the career site has one mount for each of its kinds.
  */
 export type EventPagesConfig = PagesMount & {
     /** The titles of the list of coming events and of the archive. */
@@ -18,4 +18,9 @@ export type EventPagesConfig = PagesMount & {
     tagFilter: boolean,
     /** The sign in flow of the site, for the login link where an event takes registrations. */
     authPages: AuthPagesConfig,
+}
+
+/** Whether the pages show several kinds, so that each event says its kind and a list is narrowed to kinds. */
+export function showsSeveralKinds(config: EventPagesConfig): boolean {
+    return config.kindsToShow.length > 1
 }

@@ -42,6 +42,7 @@ describe('waiting list promotion on more places', () => {
     async function createEventWithWaitingList() {
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Test waiting list',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + dayMs),
@@ -147,6 +148,7 @@ describe('moving registrations in the queue', () => {
     async function createEventWithQueue({ sameTime = false, places = 0 } = {}) {
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Test queue moving',
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + dayMs),

@@ -10,6 +10,7 @@ const variantOf = (eventId: number) => prisma.eventVariant.findFirstOrThrow({ wh
 
 function eventData(payment: { takesPayment?: boolean, price?: number }) {
     return {
+        kind: 'ORDINARY' as const,
         name: 'Test takes payment',
         location: 'Lophtet',
         eventStart: new Date(Date.now() + dayMs),

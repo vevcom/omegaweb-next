@@ -2,7 +2,8 @@ import { REGISTRATION_READER_TYPE } from './constants'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { Zpn } from '@/lib/fields/zpn'
 import { searchMaxLength } from '@/services/search/constants'
-import { EventKind, PaymentProvider } from '@/prisma-generated-pn-types'
+import { eventParamsFieldSchemas } from '@/services/events/schemas'
+import { PaymentProvider } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -28,7 +29,7 @@ const paramsFieldSchemas = z.object({
     amountFromBalance: z.coerce.number().nonnegative().default(0),
     manualFees: z.coerce.number().nonnegative().default(0),
     description: z.string().optional(),
-    kinds: z.array(z.nativeEnum(EventKind)).optional(),
+    kinds: eventParamsFieldSchemas.shape.kinds,
 })
 
 /**

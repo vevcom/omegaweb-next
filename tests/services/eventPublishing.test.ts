@@ -28,7 +28,7 @@ beforeAll(async () => {
 })
 
 const createDraft = (name: string) => eventOperations.create({
-    data: { name, hostedByCommitteeId: committeeId },
+    data: { kind: 'ORDINARY', name, hostedByCommitteeId: committeeId },
     session: creator,
 })
 
@@ -67,6 +67,7 @@ describe('creating an event from a name', () => {
 
     test('works from what the form sends', async () => {
         const formData = new FormData()
+        formData.append('kind', 'ORDINARY')
         formData.append('name', 'Fra skjemaet')
         formData.append('hostedByCommitteeId', String(committeeId))
 
@@ -81,7 +82,7 @@ describe('creating an event from a name', () => {
     })
 
     test('is refused with no user or host to administrate it', async () => {
-        await expect(eventOperations.create({ data: { name: 'Ingen admin' }, session: creator }))
+        await expect(eventOperations.create({ data: { kind: 'ORDINARY', name: 'Ingen admin' }, session: creator }))
             .rejects.toThrow(Smorekopp)
     })
 })
@@ -99,7 +100,7 @@ describe('a draft with no host', () => {
             bypassAuth: true,
         })
         const session = Session.fromJsObject({ user, permissions: ['EVENT_CREATE'], memberships: [] })
-        const event = await eventOperations.create({ data: { name: 'Uten vert' }, session })
+        const event = await eventOperations.create({ data: { kind: 'ORDINARY', name: 'Uten vert' }, session })
         return { event, session }
     }
 

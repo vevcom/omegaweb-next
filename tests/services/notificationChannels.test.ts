@@ -177,6 +177,7 @@ describe('the channels an event owns', () => {
     beforeAll(async () => {
         const event = await eventOperations.create({
             data: {
+                kind: 'ORDINARY',
                 name: 'Event with channels',
                 location: 'Here',
                 eventStart: new Date(Date.now() + HOUR),

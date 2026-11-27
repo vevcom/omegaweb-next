@@ -22,10 +22,8 @@ export function eventAttendancePage(config: EventPagesConfig) {
             if (!session.user) notFound()
 
             const event = await eventOperations.read({
-                params: { id: decodeVevenUriHandleError(params.nameAndId) },
+                params: { id: decodeVevenUriHandleError(params.nameAndId), kinds: config.kindsToShow },
             })
-
-            if (!config.kindsToShow.includes(event.kind)) notFound()
 
             const counts = await eventRegistrationOperations.readAttendanceCounts({
                 params: { eventId: event.id },

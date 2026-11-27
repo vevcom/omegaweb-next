@@ -85,6 +85,7 @@ async function createEvent(
 ) {
     const event = await eventOperations.create({
         data: {
+            kind: 'ORDINARY',
             name: 'Kvotearrangement',
             location: 'Lophtet',
             eventStart: new Date(Date.now() + 7 * 24 * HOUR),

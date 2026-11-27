@@ -12,6 +12,7 @@ import {
 } from './constants'
 import { careerFrontpageHighlightSchemas } from './schemas'
 import { activeJobAdOrdering } from '@/services/careers/jobAds/constants'
+import { eventHomePages } from '@/pageKits/events/homePages'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
 import type { CareerFrontpageHighlightTargets, ExpandedCareerFrontpageHighlight } from './types'
@@ -98,7 +99,7 @@ async function assertCanBeHighlighted(
     { eventId, jobAdId, start, end }: { eventId: number | null, jobAdId: number | null, start: Date, end: Date },
 ) {
     if ((eventId === null) === (jobAdId === null)) {
-        throw new ServiceError('BAD PARAMETERS', 'Velg enten en bedriftspresentasjon eller en jobbannonse')
+        throw new ServiceError('BAD PARAMETERS', 'Velg enten et arrangement eller en jobbannonse')
     }
     if (start >= end) {
         throw new ServiceError('BAD PARAMETERS', 'Fremhevingen må starte før den slutter')
@@ -109,7 +110,8 @@ async function assertCanBeHighlighted(
             select: { eventEnd: true },
         })
         if (!event) {
-            throw new ServiceError('BAD PARAMETERS', 'Bare publiserte bedriftspresentasjoner kan fremheves')
+            const kinds = highlightableEvent.kind.in.map(kind => eventHomePages[kind].titles.current.toLowerCase())
+            throw new ServiceError('BAD PARAMETERS', `Bare publiserte ${kinds.join(' og ')} kan fremheves`)
         }
         if (end > event.eventEnd) {
             throw new ServiceError('BAD PARAMETERS', 'Fremhevingen kan ikke slutte etter arrangementet')
