@@ -3,20 +3,25 @@ import type { ComponentType } from 'react'
 /**
  * A kind of field: the value an empty one holds, and the component that binds an input of
  * `_components/UI/` to the form. `Writes` is what it sets in the form, so it fits a name where the
- * schema takes that. `Props` is what it takes beside `kind`, `name` and `label`.
+ * schema takes that. The empty value of a text field is `''`. A number field has no number that
+ * means empty, so its empty value is `undefined`. `Props` is what it takes beside `kind`, `name`
+ * and `label`.
  */
 export function defineKind<Writes, Props extends object>(
-    emptyValue: Writes,
+    emptyValue: Writes | undefined,
     Component: ComponentType<{ label: string, field: FieldBinding<Writes> } & Props>,
 ): Kind<{ writes: Writes, props: Props }> {
     return { emptyValue, Component }
 }
 
-/** What the component of a kind binds its input with: its one value, and nothing else of the form. */
+/**
+ * What the component of a kind binds its input with: its one value, and nothing else of the form.
+ * A kind whose empty value is `undefined` sets that when its input is emptied.
+ */
 type FieldBinding<Writes> = {
     name: string,
     value: unknown,
-    set: (value: Writes) => void,
+    set: (value: Writes | undefined) => void,
     leave: () => void,
 }
 

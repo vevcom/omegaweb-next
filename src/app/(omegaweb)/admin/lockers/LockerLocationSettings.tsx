@@ -1,9 +1,9 @@
-import Form from '@/components/Form/Form'
-import TextInput from '@/components/UI/TextInput'
-import NumberInput from '@/components/UI/NumberInput'
+import {
+    DestroyLockerLocationSubmitter,
+    UpdateLockerLocationField,
+    UpdateLockerLocationSubmitter,
+} from './lockerLocationSubmitters'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { destroyLockerLocationAction, updateLockerLocationAction } from '@/services/lockers/locations/actions'
-import { configureAction } from '@/services/configureAction'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
@@ -29,26 +29,27 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
         <SettingsHeaderItemPopUp popUpKey={popUpKey}>
             <div className="flex flex-col gap-4 min-w-[min(360px,80vw)]">
                 {capabilities.canUpdate.authorized && (
-                    <Form
+                    <UpdateLockerLocationSubmitter
+                        params={{ id: location.id }}
+                        defaultValues={{ building: location.building, floor: location.floor }}
                         title={`Endre ${name}`}
                         submitText="Lagre"
-                        action={configureAction(updateLockerLocationAction, { params: { id: location.id } })}
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
                     >
-                        <TextInput label="Bygning" name="building" defaultValue={location.building} />
-                        <NumberInput label="Etasje" name="floor" defaultValue={location.floor} />
-                    </Form>
+                        <UpdateLockerLocationField kind="string" name="building" label="Bygning" />
+                        <UpdateLockerLocationField kind="number" name="floor" label="Etasje" />
+                    </UpdateLockerLocationSubmitter>
                 )}
                 {capabilities.canDestroy.authorized && (location._count.lockers > 0 ? (
                     <p className="max-w-[360px] text-base-content/80">
                         Lokasjonen har {location._count.lockers} skap, og kan ikke slettes før de er slettet.
                     </p>
                 ) : (
-                    <Form
+                    <DestroyLockerLocationSubmitter
+                        params={{ id: location.id }}
                         submitText="Slett lokasjonen"
                         submitColor="error"
-                        action={configureAction(destroyLockerLocationAction, { params: { id: location.id } })}
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
                         confirmation={{

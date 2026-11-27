@@ -6,7 +6,7 @@ import SimpleTable from '@/components/Table/SimpleTable'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import { lockerLocationOperations } from '@/services/lockers/locations/operations'
 import { lockerAuth } from '@/services/lockers/auth'
-import { lockerLocationAuth } from '@/services/lockers/locations/auth'
+import { lockerLocationCapabilities } from '@/capabilities/lockers/locations/capabilities'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import { serverPage } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -18,9 +18,9 @@ const { page, generateMetadata } = serverPage({
     },
     capabilities: () => ({
         canCreateLocker: lockerAuth.create,
-        canCreateLockerLocation: lockerLocationAuth.create,
-        canUpdateLockerLocation: lockerLocationAuth.update,
-        canDestroyLockerLocation: lockerLocationAuth.destroy,
+        canCreateLockerLocation: lockerLocationCapabilities.create.authorizer,
+        canUpdateLockerLocation: lockerLocationCapabilities.update.authorizer,
+        canDestroyLockerLocation: lockerLocationCapabilities.destroy.authorizer,
     }),
     metadata: () => ({ title: 'Administrer skap' }),
     render: ({ data: locations, capabilities }) => {

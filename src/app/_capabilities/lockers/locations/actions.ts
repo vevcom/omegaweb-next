@@ -1,5 +1,5 @@
 'use server'
-import { lockerLocationOperations } from './operations'
+import { lockerLocationOperations } from '@/services/lockers/locations/operations'
 import { makeAction } from '@/services/serverAction'
 
 export const createLockerLocationAction = makeAction(lockerLocationOperations.create)
