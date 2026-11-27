@@ -13,6 +13,7 @@ import { eventRegistrationAuth } from './auth'
 import { eventRegistrationSchemas } from './schemas'
 import { fixVariantPlaces, leaveOtherWaitingLists, notifyPromoted } from './fixState'
 import { withPaymentDeadline } from './paymentDeadline'
+import { notifySlotChanges } from './notifySlotChanges'
 import {
     lockEvent,
     queuedAhead,
@@ -55,6 +56,7 @@ import type {
     EventRegistrationExpanded,
     EventRegistrationNotAttended,
     EventRegistrationOfUser,
+    SlotAttendance,
     UpcomingRegistrationOfUser,
 } from './types'
 
@@ -131,12 +133,9 @@ const destroyRegistration = defineSubOperation({
 
             const promoted = await prisma.$transaction(async tx => {
                 await lockEvent(tx, eventId)
-                // createPayment holds this row lock, not the event's, so a payment started for the
-                // registration is either seen below or finds the registration gone.
-                await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${params.registrationId} FOR UPDATE`
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { id: true, userId: true, state: true, slotId: true },
+                    select: { state: true },
                 })
                 const [event, variant] = await Promise.all([
                     tx.event.findUniqueOrThrow({ where: { id: eventId }, select: { bindingRegistration: true } }),
@@ -158,52 +157,128 @@ const destroyRegistration = defineSubOperation({
                     }
                 }
 
-                // A still-processing attempt (e.g. Stripe checkout open in another tab) needs
-                // handling too, not just an already-SUCCEEDED one.
-                const liveTransaction = await tx.ledgerTransaction.findFirst({
-                    where: {
-                        eventRegistrationId: params.registrationId,
-                        OR: [{ state: 'PENDING' }, validTransactionFilter],
-                    },
-                    select: { id: true, state: true },
-                })
-                if (liveTransaction && registration.userId) {
-                    const payerAccount = await ledgerAccountOperations.read({
-                        params: { userId: registration.userId },
-                        bypassAuth: true,
-                        prisma: tx,
-                    })
-
-                    if (liveTransaction.state === 'SUCCEEDED') {
-                        await refundOperations.reverseTransaction({
-                            params: {
-                                originalTransactionId: liveTransaction.id,
-                                reason: 'Avregistrert fra betalt arrangement.',
-                                refundTo: payerAccount.id,
-                            },
-                            prisma: tx,
-                            bypassAuth: true,
-                        })
-                    } else {
-                        // Canceled so a late webhook can't complete it. If the payment succeeds at that
-                        // very moment, the cancel fails, and unregistering again reverses it instead.
-                        await ledgerTransactionOperations.cancel({
-                            params: { id: liveTransaction.id },
-                            prisma: tx,
-                            bypassAuth: true,
-                        })
-                    }
-                }
-
-                await eventSeatingOperations.internal.handOver.internalCall({
-                    prisma: tx,
-                    params: { registrationId: params.registrationId },
-                })
-                await tx.eventRegistration.delete({ where: { id: params.registrationId } })
-                return await fixVariantPlaces(tx, variantId, { freedSlotId: registration.slotId })
+                const { slotId } = await unregister(tx, params.registrationId)
+                return await fixVariantPlaces(tx, variantId, { freedSlotId: slotId })
             })
 
             await notifyPromoted(prisma, eventId, promoted)
+        },
+})
+
+/**
+ * Deletes a registration under `lockEvent`, and gives back what was paid for it or stops a payment
+ * on its way. Its seat goes to another registration of the user, if any. The places are left to
+ * whoever calls it.
+ */
+async function unregister(tx: Prisma.TransactionClient, registrationId: number) {
+    // createPayment holds this row lock, not the event's, so a payment started for the
+    // registration is either seen below or finds the registration gone.
+    await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${registrationId} FOR UPDATE`
+    const registration = await tx.eventRegistration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: { id: true, userId: true, slotId: true, contact: { select: { email: true } } },
+    })
+
+    // A still-processing attempt (e.g. Stripe checkout open in another tab) needs
+    // handling too, not just an already-SUCCEEDED one.
+    const liveTransaction = await tx.ledgerTransaction.findFirst({
+        where: {
+            eventRegistrationId: registrationId,
+            OR: [{ state: 'PENDING' }, validTransactionFilter],
+        },
+        select: { id: true, state: true },
+    })
+    if (liveTransaction && registration.userId) {
+        const payerAccount = await ledgerAccountOperations.read({
+            params: { userId: registration.userId },
+            bypassAuth: true,
+            prisma: tx,
+        })
+
+        if (liveTransaction.state === 'SUCCEEDED') {
+            await refundOperations.reverseTransaction({
+                params: {
+                    originalTransactionId: liveTransaction.id,
+                    reason: 'Avregistrert fra betalt arrangement.',
+                    refundTo: payerAccount.id,
+                },
+                prisma: tx,
+                bypassAuth: true,
+            })
+        } else {
+            // Canceled so a late webhook can't complete it. If the payment succeeds at that
+            // very moment, the cancel fails, and unregistering again reverses it instead.
+            await ledgerTransactionOperations.cancel({
+                params: { id: liveTransaction.id },
+                prisma: tx,
+                bypassAuth: true,
+            })
+        }
+    }
+
+    await eventSeatingOperations.internal.handOver.internalCall({
+        prisma: tx,
+        params: { registrationId },
+    })
+    await tx.eventRegistration.delete({ where: { id: registrationId } })
+    return registration
+}
+
+const slotTimes = { select: { start: true, end: true } } as const
+
+/**
+ * Gives the slot a registration holds up for another free one of its variant. A user switches
+ * their own while registration to the variant is open, and an administrator anyone's at any time,
+ * a guest's too, and tells them of it. The registration keeps its place, its payment and its
+ * attendance.
+ */
+const moveRegistrationToSlot = defineSubOperation({
+    paramsSchema: () => eventRegistrationSchemas.params.moveToSlot,
+    dataSchema: () => eventRegistrationSchemas.data.moveToSlot,
+    transaction: 'OPENS',
+    operation: ({ asAdmin }: { asAdmin: boolean }) =>
+        async ({ prisma, params, data }) => {
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
+
+            const moved = await prisma.$transaction(async tx => {
+                await lockEvent(tx, eventId)
+                const registration = await tx.eventRegistration.findUniqueOrThrow({
+                    where: { id: params.registrationId },
+                    select: { slotId: true, userId: true, contact: { select: { email: true } }, slot: slotTimes },
+                })
+                if (!registration.slot) {
+                    throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ingen tidsluke å bytte.')
+                }
+                if (!asAdmin) {
+                    const variant = await tx.eventVariant.findUniqueOrThrow({
+                        where: { id: variantId },
+                        select: { registrationStart: true, registrationEnd: true },
+                    })
+                    const now = new Date()
+                    if (now < variant.registrationStart || variant.registrationEnd < now) {
+                        throw new Smorekopp('BAD PARAMETERS', 'Tidsluken kan bare byttes mens påmeldingen er åpen.')
+                    }
+                }
+                if (data.slotId === registration.slotId) return null
+
+                await assertSlotFree(tx, variantId, data.slotId)
+                const { slot } = await tx.eventRegistration.update({
+                    where: { id: params.registrationId },
+                    data: { slotId: data.slotId },
+                    select: { slot: slotTimes },
+                })
+                return {
+                    registrationId: params.registrationId,
+                    variantId,
+                    userId: registration.userId,
+                    contact: registration.contact,
+                    before: registration.slot,
+                    after: slot,
+                    removed: false,
+                }
+            })
+
+            if (moved && asAdmin) await notifySlotChanges(prisma, eventId, [moved])
         },
 })
 
@@ -519,48 +594,23 @@ export const eventRegistrationOperations = {
         },
     }),
 
-    /**
-     * Gives the slot a registration holds up for another free one of its variant, while
-     * registration to the variant is open. The registration keeps its place, its payment and
-     * its attendance.
-     */
-    moveToSlot: defineOperation({
+    moveToSlot: moveRegistrationToSlot.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.moveToSlot(
             await prisma.eventRegistration.findUniqueOrThrow({
                 where: { id: params.registrationId },
                 select: { userId: true },
             })
         ),
-        paramsSchema: eventRegistrationSchemas.params.moveToSlot,
-        dataSchema: eventRegistrationSchemas.data.moveToSlot,
-        transaction: 'RUNS_IN',
-        operation: async ({ prisma, params, data }) => {
-            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: false },
+    }),
 
-            await lockEvent(prisma, eventId)
-            const registration = await prisma.eventRegistration.findUniqueOrThrow({
-                where: { id: params.registrationId },
-                select: { slotId: true },
-            })
-            if (registration.slotId === null) {
-                throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ingen tidsluke å bytte.')
-            }
-            const variant = await prisma.eventVariant.findUniqueOrThrow({
-                where: { id: variantId },
-                select: { registrationStart: true, registrationEnd: true },
-            })
-            const now = new Date()
-            if (now < variant.registrationStart || variant.registrationEnd < now) {
-                throw new Smorekopp('BAD PARAMETERS', 'Tidsluken kan bare byttes mens påmeldingen er åpen.')
-            }
-            if (data.slotId === registration.slotId) return
-
-            await assertSlotFree(prisma, variantId, data.slotId)
-            await prisma.eventRegistration.update({
-                where: { id: params.registrationId },
-                data: { slotId: data.slotId },
-            })
-        },
+    moveToSlotAsAdmin: moveRegistrationToSlot.implement({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.moveToSlotAsAdmin.data(
+            (await registrationOwnerAndAccess(prisma, params.registrationId)).access
+        ),
+        ownershipCheck: () => true,
+        operationImplementationFields: { asAdmin: true },
     }),
 
     /** For payments made outside the ledger, for example in person. */
@@ -646,6 +696,62 @@ export const eventRegistrationOperations = {
         ),
         operation: async ({ prisma, params }): Promise<EventAttendanceCounts> =>
             await countAttendance(prisma, params.eventId),
+    }),
+
+    readSlotAttendance: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.readSlotAttendance,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.readSlotAttendance.data(
+            await variantAccess(prisma, params.variantId)
+        ),
+        operation: async ({ prisma, params }): Promise<SlotAttendance> => {
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: {
+                    attendanceFinishedAt: true,
+                    slots: {
+                        orderBy: { start: 'asc' },
+                        select: {
+                            id: true,
+                            start: true,
+                            end: true,
+                            registration: { select: eventRegistrationAttendanceSelection },
+                        },
+                    },
+                },
+            })
+            return { finishedAt: variant.attendanceFinishedAt, slots: variant.slots }
+        },
+    }),
+
+    /**
+     * Finishes the attendance of a slotted variant, so that those with a place who are not marked as
+     * having come did not come, or takes that back. It gives no dots. Finishing it again keeps when
+     * it was first finished.
+     */
+    setAttendanceFinished: defineOperation({
+        paramsSchema: eventRegistrationSchemas.params.setAttendanceFinished,
+        dataSchema: eventRegistrationSchemas.data.setAttendanceFinished,
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.setAttendanceFinished.data(
+            await variantAccess(prisma, params.variantId)
+        ),
+        operation: async ({ prisma, params, data }) => {
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: { registrationType: true },
+            })
+            if (variant.registrationType !== 'SLOTTED') {
+                throw new Smorekopp('BAD PARAMETERS', 'Bare oppmøtet til en variant med tidsluker fullføres.')
+            }
+            // The type again, since a variant without registrations may be made a list meanwhile.
+            await prisma.eventVariant.updateMany({
+                where: {
+                    id: params.variantId,
+                    registrationType: 'SLOTTED',
+                    ...(data.finished ? { attendanceFinishedAt: null } : {}),
+                },
+                data: { attendanceFinishedAt: data.finished ? new Date() : null },
+            })
+        },
     }),
 
     /** The registrations with a place whose user did not show up. Guests have no user to give a dot. */
@@ -856,6 +962,71 @@ export const eventRegistrationOperations = {
             }
         },
     }),
+
+    /*
+     * The writes of the registrations when the slots of a variant are made again, for
+     * `eventSlotOperations.internal.saveSchedule`, which holds `lockEvent`. The places are fixed
+     * by whoever saves the schedule.
+     */
+    internal: {
+        /** Removes everyone registered to the variant, those waiting too, as an administrator removes one. */
+        destroyOfVariant: defineSubOperation({
+            paramsSchema: () => eventRegistrationSchemas.params.destroyOfVariant,
+            transaction: 'RUNS_IN',
+            operation: () => async ({ prisma, params }) => {
+                const registrations = await prisma.eventRegistration.findMany({
+                    where: registrationsOfVariant(params.variantId),
+                    orderBy: { id: 'asc' },
+                    select: { id: true },
+                })
+                const removed = []
+                for (const { id } of registrations) removed.push(await unregister(prisma, id))
+                return removed
+            },
+        }),
+
+        /** Takes every slot of the variant from whoever holds it, and sends those named to its waiting list. */
+        releaseSlots: defineSubOperation({
+            paramsSchema: () => eventRegistrationSchemas.params.releaseSlots,
+            dataSchema: () => eventRegistrationSchemas.data.releaseSlots,
+            transaction: 'RUNS_IN',
+            operation: () => async ({ prisma, params, data }) => {
+                for (const registrationId of data.toWaitingList) {
+                    await eventSeatingOperations.internal.handOver.internalCall({ prisma, params: { registrationId } })
+                }
+                await prisma.eventRegistration.updateMany({
+                    where: { id: { in: data.toWaitingList }, quota: { variantId: params.variantId } },
+                    data: {
+                        state: 'WAITING_LIST',
+                        quotaId: null,
+                        waitingListVariantId: params.variantId,
+                        promotedAt: null,
+                        slotId: null,
+                    },
+                })
+                await prisma.eventRegistration.updateMany({
+                    where: { slot: { variantId: params.variantId } },
+                    data: { slotId: null },
+                })
+            },
+        }),
+
+        /** Gives each registration named, which has a place in the variant, the slot of it named with it. */
+        takeSlots: defineSubOperation({
+            paramsSchema: () => eventRegistrationSchemas.params.takeSlots,
+            dataSchema: () => eventRegistrationSchemas.data.takeSlots,
+            transaction: 'RUNS_IN',
+            operation: () => async ({ prisma, params, data }) => {
+                for (const { registrationId, slotId } of data.placements) {
+                    const { count } = await prisma.eventRegistration.updateMany({
+                        where: { id: registrationId, quota: { variantId: params.variantId } },
+                        data: { slotId },
+                    })
+                    if (count === 0) throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ikke plass i varianten.')
+                }
+            },
+        }),
+    },
 } as const
 
 /**
@@ -1080,6 +1251,11 @@ async function registrationContext(prisma: PrismaPossibleTransaction<false>, reg
 async function registrationOwnerAndAccess(prisma: PrismaPossibleTransaction<false>, registrationId: number) {
     const { userId, eventId } = await registrationContext(prisma, registrationId)
     return { userId, access: await readEventAccess(prisma, eventId) }
+}
+
+async function variantAccess(prisma: PrismaPossibleTransaction<false>, variantId: number) {
+    const { eventId } = await prisma.eventVariant.findUniqueOrThrow({ where: { id: variantId }, select: { eventId: true } })
+    return await readEventAccess(prisma, eventId)
 }
 
 async function countAttendance(

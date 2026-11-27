@@ -2,6 +2,7 @@ import '@ow-server-only'
 import { eventSeatingAuth } from './auth'
 import { eventSeatingSchemas } from './schemas'
 import { placesOf } from './plan'
+import { registrantName } from '@/services/events/registration/registrantName'
 import { readEventAccess } from '@/services/events/access'
 import { lockEvent, seatedInEvent } from '@/services/events/registration/queue'
 import { eventHomeLinks } from '@/pageKits/events/links'
@@ -322,9 +323,7 @@ async function readSeatedRegistrations(prisma: PrismaPossibleTransaction<boolean
     return seated.map(registration => ({
         ...registration,
         seatingWishes: registration.seatingWishes.filter(wish => seatedIds.has(wish.wishedRegistrationId)),
-        name: registration.user
-            ? `${registration.user.firstname} ${registration.user.lastname}`
-            : registration.contact?.name ?? 'Ukjent',
+        name: registrantName(registration),
     }))
 }
 

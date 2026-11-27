@@ -13,6 +13,9 @@ const dataFieldSchemas = z.object({
     name: z.string().min(2),
     attended: Zpn.checkboxOrBoolean({ label: 'Møtt' }),
     manuallyPaid: Zpn.checkboxOrBoolean({ label: 'Betalt' }),
+    finished: Zpn.checkboxOrBoolean({ label: 'Fullført' }),
+    toWaitingList: z.array(z.number().int()),
+    placements: z.array(z.object({ registrationId: z.number().int(), slotId: z.number().int() })),
 })
 
 const paramsFieldSchemas = z.object({
@@ -72,6 +75,10 @@ const eventId = paramsFieldSchemas.pick({
 
 const eventAndVariant = eventId.extend(variantIdOptional)
 
+const variantId = paramsFieldSchemas.pick({
+    variantId: true,
+})
+
 export const eventRegistrationSchemas = {
     data: {
         createGuest: dataFieldSchemas.pick({
@@ -87,11 +94,20 @@ export const eventRegistrationSchemas = {
         setManuallyPaid: dataFieldSchemas.pick({
             manuallyPaid: true,
         }),
+        setAttendanceFinished: dataFieldSchemas.pick({
+            finished: true,
+        }),
         moveToQuota: dataFieldSchemas.pick({
             quotaId: true,
         }),
         moveToSlot: dataFieldSchemas.pick({
             slotId: true,
+        }),
+        releaseSlots: dataFieldSchemas.pick({
+            toWaitingList: true,
+        }),
+        takeSlots: dataFieldSchemas.pick({
+            placements: true,
         }),
     },
     params: {
@@ -127,6 +143,8 @@ export const eventRegistrationSchemas = {
             registeredById: true,
         }),
         readAttendanceCounts: eventId,
+        readSlotAttendance: variantId,
+        setAttendanceFinished: variantId,
         readNotAttended: eventId,
         createDot: eventId,
         createDotsForNonattendingUsers: eventId,
@@ -138,5 +156,8 @@ export const eventRegistrationSchemas = {
             manualFees: true,
             description: true,
         }).extend(variantIdOptional),
+        releaseSlots: variantId,
+        takeSlots: variantId,
+        destroyOfVariant: variantId,
     },
 }

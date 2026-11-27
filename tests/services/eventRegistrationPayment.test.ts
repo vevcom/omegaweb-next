@@ -5,6 +5,8 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { eventSlotOperations } from '@/services/events/slots/operations'
+import { newVariantDraft, toVariantDrafts, variantsToPost, withPlacesOfSlots } from '@/services/events/setupDraft'
 import { requeueNextUnpaidRegistration } from '@/services/events/registration/requeueUnpaid'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerMovementOperations } from '@/services/ledger/movements/operations'
@@ -557,5 +559,92 @@ describe('paying for an event', () => {
 
             expect(await prisma.ledgerTransaction.count({ where: { eventRegistrationId: registration.id } })).toBe(0)
         })
+    })
+})
+
+describe('a new schedule that removes everyone from a slotted variant', () => {
+    test('gives back what was paid, stops a payment on its way, and hands a seat over', async () => {
+        const eventId = await createPaidEvent({ ledgerAccountId: committeeAccountId })
+        const { eventStart } = await prisma.event.update({
+            where: { id: eventId },
+            data: { allowRegistrationInMultipleVariants: true },
+        })
+        const scheduleOf = (totalMinutes: number) => ({
+            start: eventStart,
+            slotMinutes: 10,
+            breakMinutes: 5,
+            totalMinutes,
+            longBreakEveryMinutes: null,
+            longBreakMinutes: null,
+        })
+        await changeEventSetup(eventId, variants => {
+            Object.assign(variants[0], { registrationType: 'SLOTTED', slotSchedule: scheduleOf(40) })
+            variants[0].quotas[0].places = 3
+            variants.push(newVariantDraft('Liste', eventStart, variants))
+            variants[1].quotas[0].places = 2
+        })
+        const slotted = await prisma.eventVariant.findFirstOrThrow({
+            where: { eventId, registrationType: 'SLOTTED' },
+            include: { slots: { orderBy: { start: 'asc' } } },
+        })
+        const list = await prisma.eventVariant.findFirstOrThrow({ where: { eventId, registrationType: 'LIST' } })
+        const [paid, paying, waiting] = await Promise.all(
+            ['slotremovepaid', 'slotremovepaying', 'slotremovewaiting'].map(createPayer)
+        )
+        const register = (userId: number, variantId: number, slotId?: number) => (
+            eventRegistrationOperations.createAsAdmin({ params: { eventId, userId, variantId, slotId }, bypassAuth: true })
+        )
+        const pay = (user: UserFiltered) => eventRegistrationOperations.createPayment({
+            params: { userId: user.id, eventId, variantId: slotted.id, amountFromBalance: EVENT_PRICE_ORE },
+            session: payerSessionOf(user),
+        })
+        const paidRegistration = await register(paid.id, slotted.id, slotted.slots[0].id)
+        const payingRegistration = await register(paying.id, slotted.id, slotted.slots[1].id)
+        const elsewhere = await register(paid.id, list.id)
+        await pay(paid)
+        await pay(paying)
+        await prisma.ledgerTransaction.updateMany({
+            where: { eventRegistrationId: payingRegistration.id },
+            data: { state: 'PENDING' },
+        })
+        await prisma.eventRegistration.create({
+            data: { state: 'WAITING_LIST', waitingListVariantId: slotted.id, userId: waiting.id },
+        })
+        const table = await prisma.eventTable.create({ data: { eventId, order: 0, seats: 4 } })
+        await prisma.eventRegistration.update({ where: { id: paidRegistration.id }, data: { tableId: table.id, seat: 0 } })
+        const { id: payingTransactionId } = await prisma.ledgerTransaction.findFirstOrThrow({
+            where: { eventRegistrationId: payingRegistration.id },
+        })
+        const paidAccount = await ledgerAccountOperations.read({ params: { userId: paid.id }, bypassAuth: true })
+        expect(await balanceOf(paidAccount.id)).toBe(STARTING_BALANCE - EVENT_PRICE_ORE)
+
+        const { variants } = await eventOperations.read({ params: { id: eventId }, bypassAuth: true })
+        const board = await eventSlotOperations.readBoard({ params: { variantId: slotted.id }, bypassAuth: true })
+        await eventOperations.saveSetup({
+            params: { id: eventId },
+            data: {
+                variants: variantsToPost(toVariantDrafts(
+                    variants,
+                    { [slotted.id]: board.slots },
+                    { [slotted.id]: board.waiting },
+                ).map(variant => (
+                    variant.id === slotted.id ? withPlacesOfSlots({
+                        ...variant,
+                        slotSchedule: scheduleOf(25),
+                        slotPlacing: { removeEveryone: true, chosen: {} },
+                    }) : variant
+                ))),
+            },
+            bypassAuth: true,
+        })
+
+        expect(await prisma.eventRegistration.count({
+            where: { OR: [{ quota: { variantId: slotted.id } }, { waitingListVariantId: slotted.id }] },
+        })).toBe(0)
+        expect(await balanceOf(paidAccount.id)).toBe(STARTING_BALANCE)
+        expect(await prisma.ledgerTransaction.findUniqueOrThrow({ where: { id: payingTransactionId } }))
+            .toMatchObject({ state: 'CANCELED' })
+        expect(await prisma.eventRegistration.findUniqueOrThrow({ where: { id: elsewhere.id } }))
+            .toMatchObject({ tableId: table.id, seat: 0 })
     })
 })

@@ -1,5 +1,6 @@
 import { eventLinks } from '@/pageKits/events/links'
 import AttendanceScanner from '@/components/Event/AttendanceScanner'
+import SlotAttendance from '@/components/Event/SlotAttendance'
 import AttendanceCountsPill from '@/components/Event/AttendanceCountsPill'
 import { AttendanceCountsProvider } from '@/components/Event/AttendanceCounts'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -29,9 +30,15 @@ export function eventAttendancePage(config: EventPagesConfig) {
                 params: { eventId: event.id },
             })
 
+            const slotted = event.variants.filter(variant => variant.registrationType === 'SLOTTED')
+            const slotAttendance = await Promise.all(slotted.map(async variant => ({
+                variant,
+                attendance: await eventRegistrationOperations.readSlotAttendance({ params: { variantId: variant.id } }),
+            })))
+
             const publicKey = await omegaIdOperations.readPublicKey({})
 
-            return { event, counts, publicKey, registeredById: session.user.id }
+            return { event, counts, slotAttendance, publicKey, registeredById: session.user.id }
         },
         metadata: (data) => ({ title: `Oppmøte for ${data.event.name}` }),
         render: ({ data }) => (
@@ -48,6 +55,13 @@ export function eventAttendancePage(config: EventPagesConfig) {
                             omegaIdPublicKey={data.publicKey}
                             registeredById={data.registeredById}
                         />
+                        {data.slotAttendance.map(({ variant, attendance }) => <SlotAttendance
+                            key={variant.id}
+                            variantId={variant.id}
+                            title={data.event.variants.length > 1 ? `Tidsluker, ${variant.name}` : 'Tidsluker'}
+                            attendance={attendance}
+                            registeredById={data.registeredById}
+                        />)}
                     </div>
                 </PageWrapper>
             </AttendanceCountsProvider>

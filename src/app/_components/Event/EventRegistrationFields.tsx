@@ -3,6 +3,7 @@ import AdminSection from './AdminSection'
 import { eventQuotaVisibility } from './eventVisibility'
 import EventQuotaBar from './EventQuotaBar'
 import EventSlotScheduleFields, { slotsInWords } from './EventSlotScheduleFields'
+import EventSlotPlacing from './EventSlotPlacing'
 import { useEventVariantsField } from './EventVariantsField'
 import {
     firstVariantDraft,
@@ -10,6 +11,7 @@ import {
     newQuotaDraft,
     newVariantDraft,
     slotsOfDraft,
+    slotsToPlaceIn,
     withPlacesOfSlots,
 } from '@/services/events/setupDraft'
 import { defaultSlotSchedule } from '@/services/events/slots/schedule'
@@ -250,12 +252,18 @@ function VariantFields({ variant, waitingList, slotsStart, addLabel, onChange }:
     addLabel?: string,
     onChange: (changes: Partial<VariantDraft>) => void,
 }) {
+    const slotsToPlace = slotsToPlaceIn(variant)
     return <>
         <RegistrationTypeChoice variant={variant} slotsStart={slotsStart} onChange={onChange} />
         <RegistrationPeriod variant={variant} onChange={onChange} />
         {variant.registrationType === 'SLOTTED' && variant.slotSchedule && <EventSlotScheduleFields
             schedule={variant.slotSchedule}
             onChange={slotSchedule => onChange({ slotSchedule })}
+        />}
+        {slotsToPlace && <EventSlotPlacing
+            variant={variant}
+            slots={slotsToPlace}
+            onChange={slotPlacing => onChange({ slotPlacing })}
         />}
         <VariantDescription variant={variant} onChange={onChange} />
         <QuotaFlow variant={variant} waitingList={waitingList} addLabel={addLabel} onChange={onChange} />

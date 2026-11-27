@@ -9,7 +9,7 @@ import EventVariantsField, { EventVariantsFieldInput, useEventVariantsField } fr
 import SelectedCompany from '@/components/Company/SelectedCompany'
 import CompanySelectionProvider, { CompanySelectionContext } from '@/contexts/CompanySelection'
 import PopUpProvider from '@/contexts/PopUp'
-import { eventSetupFromForm, variantsFromForm } from '@/services/events/setupDraft'
+import { eventSetupFromForm, slotsToPlaceIn, variantsFromForm } from '@/services/events/setupDraft'
 import Form from '@/components/Form/Form'
 import FormSection from '@/components/Form/FormSection'
 import FormTab from '@/components/Form/FormTab'
@@ -33,6 +33,7 @@ import type { ActionFormData } from '@/services/actionTypes'
 import type { EventPagesConfig } from '@/pageKits/events/config'
 import type { SetupPart } from '@/services/events/publishProblems'
 import type { EventAccess, EventDetailed } from '@/services/events/types'
+import type { SlotOnBoard } from '@/services/events/slots/types'
 import type { Committee, Event, EventTag, LedgerAccount } from '@/prisma-generated-pn-types'
 
 /** The tabs of the form, for the Tabs around it. */
@@ -69,6 +70,10 @@ export type PropTypes = {
     committees: Committee[] | null,
     /** The group accounts the session may link the event to. */
     ledgerAccounts: Pick<LedgerAccount, 'id' | 'name'>[],
+    /** The slots of each slotted variant by its id, with who holds them, for placing them in new ones. */
+    savedSlots: Record<number, SlotOnBoard[]>,
+    /** Who waits on each slotted variant by its id, which with the holders are all that removing everyone removes. */
+    savedWaiting: Record<number, number[]>,
 }
 
 /**
@@ -84,7 +89,12 @@ export default function EventSetupForm(props: PropTypes) {
     // The form is in a pop-up itself, which a pop-up opened from the app's provider would replace, so
     // the company is chosen in a provider of its own. It renders that pop-up before the form rather
     // than in it, where its buttons and Enter would submit the form.
-    return <EventVariantsField name="variants" defaultValue={props.event.variants}>
+    return <EventVariantsField
+        name="variants"
+        defaultValue={props.event.variants}
+        savedSlots={props.savedSlots}
+        savedWaiting={props.savedWaiting}
+    >
         <CompanySelectionProvider company={props.event.company}>
             <PopUpProvider>
                 <SetupForm {...props} />
@@ -134,6 +144,11 @@ function SetupForm({
         return { ...result, error: nameVariantInErrors(result.error, variantsFromForm(formData)) }
     }
     const { reportDots } = useTabs()
+    const removingEveryone = variants.filter(variant => variant.slotPlacing.removeEveryone && slotsToPlaceIn(variant))
+    const removedCount = removingEveryone.reduce(
+        (sum, variant) => sum + variant.numOfRegistrations + variant.numOnWaitingList,
+        0,
+    )
     // Putting a company on the event takes COMPANY_USE, as reading the companies to choose from does.
     // Without it the company is kept or cleared.
     const canChooseCompany = useAuthorizer({ authorizer: companyAuth.readPage }).authorized
@@ -151,6 +166,12 @@ function SetupForm({
         submitText="Lagre"
         className="flex flex-col min-h-full"
         saveBar
+        confirmation={removingEveryone.length > 0 ? {
+            confirm: true,
+            text: `Lagringen melder av alle de ${removedCount} påmeldte til `
+                + `${removingEveryone.map(variant => variant.name).join(' og ')}, også de på ventelisten, `
+                + 'og gir tilbake det de har betalt.',
+        } : undefined}
         onValuesChange={checkSetup}
         refreshOnSuccess
         navigateOnSuccess={data => links.event(data)}

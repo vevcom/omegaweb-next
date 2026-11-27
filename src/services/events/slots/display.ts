@@ -9,3 +9,6 @@ export const slotTime = (date: Date) => osloDateTime(date).toFormat('HH:mm')
 export const slotClock = (slot: Slot) => `${slotTime(slot.start)}–${slotTime(slot.end)}`
 
 export const displaySlot = (slot: Slot) => `${slotDay(slot.start)} ${slotClock(slot)}`
+
+/** Whether the slots are all on one day in Oslo, which is then said once. */
+export const onOneDay = (slots: Slot[]) => slots.every(slot => slotDay(slot.start) === slotDay(slots[0].start))

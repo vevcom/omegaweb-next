@@ -5,6 +5,7 @@ import { notifyPromotedFromWaitingList } from './notifyPromotedFromWaitingList'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { Smorekopp } from '@/services/error'
+import logger from '@/lib/logger'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { eventQuotaOrder } from '@/services/events/constants'
 import { membershipFilterSelection } from '@/services/groups/constants'
@@ -244,16 +245,23 @@ export async function leaveOtherWaitingLists(
     })
 }
 
-/** Tells the ones `fixVariantPlaces` took off the waiting list, once the change is saved. */
+/**
+ * Tells the ones `fixVariantPlaces` took off the waiting list, once the change is saved. It logs what
+ * fails and throws nothing, as `notifySlotChanges` does.
+ */
 export async function notifyPromoted(
     prisma: PrismaPossibleTransaction<false>,
     eventId: number,
     promoted: PromotedRegistration[],
 ) {
     if (promoted.length === 0) return
-    const event = await prisma.event.findUniqueOrThrow({
+    const event = await prisma.event.findUnique({
         where: { id: eventId },
         select: { id: true, kind: true, name: true, infoNotificationChannelId: true },
+    }).catch((error: unknown) => {
+        logger.error(`Could not read event ${eventId} to tell of promotions`, { error })
+        return null
     })
+    if (!event) return
     await notifyPromotedFromWaitingList(event, promoted)
 }

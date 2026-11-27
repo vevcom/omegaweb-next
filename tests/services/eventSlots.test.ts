@@ -30,6 +30,8 @@ let userIds: number[]
 let administrators: VisibilityRequirement[]
 
 const refusedWith = (message: string) => ({ errors: [expect.objectContaining({ message })] })
+const typeKept = 'Varianten har påmeldte, så påmeldingstypen kan ikke endres. '
+    + 'Meld dem av først, eller legg til en ny variant med den andre typen.'
 
 beforeAll(async () => {
     const users = await Promise.all(['first', 'second'].map(name => userOperations.create({
@@ -135,7 +137,7 @@ describe('the registration type of a variant', () => {
         await expect(changeAsTheForm(eventId, variants => {
             variants[0].registrationType = 'SLOTTED'
             variants[0].slotSchedule = schedule
-        })).rejects.toMatchObject(refusedWith('Varianten har påmeldte, så påmeldingstypen kan ikke endres.'))
+        })).rejects.toMatchObject(refusedWith(typeKept))
         expect(await typeOf(variant.id)).toBe('LIST')
         expect(await slotsOf(variant.id)).toEqual([])
     })
@@ -149,8 +151,19 @@ describe('the registration type of a variant', () => {
         await expect(changeEventSetup(eventId, variants => {
             variants[0].registrationType = 'SLOTTED'
             variants[0].slotSchedule = schedule
-        })).rejects.toMatchObject(refusedWith('Varianten har påmeldte, så påmeldingstypen kan ikke endres.'))
+        })).rejects.toMatchObject(refusedWith(typeKept))
         expect(await typeOf(variant.id)).toBe('LIST')
+    })
+
+    test('is not made a list while someone holds a slot, and is told so rather than to place them', async () => {
+        const { eventId, variant } = await createEventWithVariant('Tidsluker til liste', 'SLOTTED')
+        await registerAsAdmin(eventId, userIds[0], (await slotsOf(variant.id))[0].id)
+
+        await expect(changeAsTheForm(eventId, variants => {
+            variants[0].registrationType = 'LIST'
+        })).rejects.toMatchObject(refusedWith(typeKept))
+        expect(await typeOf(variant.id)).toBe('SLOTTED')
+        expect(await slotsOf(variant.id)).toHaveLength(8)
     })
 })
 
@@ -233,7 +246,7 @@ describe('a slotted variant', () => {
         expect(await slotsOf(variant.id)).toEqual(slots)
     })
 
-    test('is refused a change to its slots while someone is registered, and saves nothing', async () => {
+    test('is refused a change to its slots while someone holds one and is not placed, and saves nothing', async () => {
         const { eventId, variant } = await createEventWithVariant('Har en i en tidsluke', 'SLOTTED')
         const slots = await slotsOf(variant.id)
         await registerAsAdmin(eventId, userIds[0], slots[0].id)
@@ -241,7 +254,9 @@ describe('a slotted variant', () => {
         await expect(changeAsTheForm(eventId, variants => {
             variants[0].name = 'Skal ikke lagres'
             variants[0].slotSchedule = { ...schedule, slotMinutes: 15 }
-        })).rejects.toMatchObject(refusedWith('Varianten har påmeldte, så tidslukene kan ikke endres. Meld dem av først.'))
+        })).rejects.toMatchObject(refusedWith(
+            'Noen har tidsluker som ikke finnes i den nye timeplanen. Plasser dem i de nye tidslukene, eller meld av alle.'
+        ))
         expect(await slotsOf(variant.id)).toEqual(slots)
         expect(await scheduleOf(variant.id)).toMatchObject(schedule)
         expect((await prisma.eventVariant.findUniqueOrThrow({ where: { id: variant.id } })).name).toBe('Påmelding')
@@ -255,17 +270,20 @@ describe('a slotted variant', () => {
         expect(await slotsOf(variant.id)).toEqual(slots)
     })
 
-    test('is refused a change to its slots while someone waits for a place', async () => {
+    test('has its slots changed while no one holds one, though someone waits for a place', async () => {
         const { eventId, variant } = await createEventWithVariant('Har en som venter på en tidsluke', 'SLOTTED')
         await prisma.eventRegistration.create({
             data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, userId: userIds[1] },
         })
         const slots = await slotsOf(variant.id)
 
-        await expect(changeAsTheForm(eventId, variants => {
+        await changeAsTheForm(eventId, variants => {
             variants[0].slotSchedule = { ...schedule, slotMinutes: 15 }
-        })).rejects.toMatchObject(refusedWith('Varianten har påmeldte, så tidslukene kan ikke endres. Meld dem av først.'))
-        expect(await slotsOf(variant.id)).toEqual(slots)
+        })
+
+        const after = await slotsOf(variant.id)
+        expect(after).toHaveLength(6)
+        expect(after.some(slot => slots.some(old => old.id === slot.id))).toBe(false)
     })
 
     test('has the start of its schedule cut to the whole minute, saved or made at creation', async () => {

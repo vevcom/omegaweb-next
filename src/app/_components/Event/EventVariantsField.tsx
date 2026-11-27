@@ -4,6 +4,7 @@ import JsonFieldInput from '@/components/Form/JsonFieldInput'
 import { createContext, useContext, useState } from 'react'
 import type { VariantDraft } from '@/services/events/setupDraft'
 import type { EventVariantExpanded } from '@/services/events/variants/types'
+import type { SlotOnBoard } from '@/services/events/slots/types'
 import type { ReactNode } from 'react'
 
 type EventVariantsFieldContextType = {
@@ -27,14 +28,29 @@ function useField() {
  * it holds its value around them: put the form inside it and `EventVariantsFieldInput` once inside
  * the form, and edit the value with `useEventVariantsField`.
  */
-export default function EventVariantsField({ name, defaultValue, children }: {
+export default function EventVariantsField({ name, defaultValue, savedSlots, savedWaiting, children }: {
     name: string,
     defaultValue: EventVariantExpanded[],
+    /** The slots of each slotted variant by its id, with who holds them, when they could be read. */
+    savedSlots: Record<number, SlotOnBoard[]>,
+    /** Who waits for a slot on each slotted variant by its id. */
+    savedWaiting: Record<number, number[]>,
     children: ReactNode,
 }) {
-    const [variants, setVariants] = useState(() => toVariantDrafts(defaultValue))
+    const [variants, setVariants] = useState(() => toVariantDrafts(defaultValue, savedSlots, savedWaiting))
+    // A refresh of the page brings who holds the slots now and who waits, such as after registering
+    // someone in another tab, so that those placed or removed are the ones registered when it is saved.
+    const [boardGiven, setBoardGiven] = useState({ savedSlots, savedWaiting })
+    if (boardGiven.savedSlots !== savedSlots || boardGiven.savedWaiting !== savedWaiting) {
+        setBoardGiven({ savedSlots, savedWaiting })
+        setVariants(variants.map(variant => (variant.id === undefined ? variant : {
+            ...variant,
+            savedSlots: savedSlots[variant.id] ?? [],
+            savedWaiting: savedWaiting[variant.id] ?? [],
+        })))
+    }
 
-    const reset = () => setVariants(toVariantDrafts(defaultValue))
+    const reset = () => setVariants(toVariantDrafts(defaultValue, savedSlots, savedWaiting))
 
     return <EventVariantsFieldContext.Provider value={{ name, variants, setVariants, reset }}>
         {children}

@@ -422,7 +422,7 @@ describe('a change of places on a slotted variant', () => {
 })
 
 describe('switching slot', () => {
-    test('takes a free slot and frees the one left, and refuses a taken one', async () => {
+    test('takes a free slot and frees the one left, tells no one, and refuses a taken one', async () => {
         const { eventId, variant, slots } = await createSlottedEvent('Bytter', [{ places: 3, visibilityRequirements: open }])
         const registration = await register(eventId, userIds[0], slots[0].id)
         await register(eventId, userIds[1], slots[1].id)
@@ -430,6 +430,7 @@ describe('switching slot', () => {
         await moveToSlot(registration.id, slots[2].id)
         expect(await holderOf(slots[2].id)).toBe(userIds[0])
         expect(await holderOf(slots[0].id)).toBeNull()
+        expect(notifySpy).not.toHaveBeenCalled()
 
         await expect(moveToSlot(registration.id, slots[1].id))
             .rejects.toMatchObject(refusedWith('Tidsluken er tatt. Velg en annen.'))
