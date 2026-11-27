@@ -13,7 +13,7 @@ import {
 import { MazeMapLophtet } from '@/components/MazeMap/MazeMap'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { RenderSession } from '@/app/renderSession'
 import { frontpageAuth } from '@/services/frontpage/auth'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
@@ -29,7 +29,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 const ctaLayout = 'w-full m-0! py-5! px-6!'
 
 export default async function LoggedOutLandingPage() {
-    const session = await ServerSession.fromNextAuth()
+    const session = await RenderSession.fromNextAuth()
     const capabilities = runCapabilities(session, {
         canEditSpecialCmsImage: frontpageAuth.cmsImages.update,
         canEditSpecialCmsParagraph: frontpageAuth.cmsParagraphs.updateContent,

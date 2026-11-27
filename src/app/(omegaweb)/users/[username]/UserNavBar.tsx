@@ -1,6 +1,6 @@
 import { SubPageNavBar, SubPageNavBarItem } from '@/components/NavBar/SubPageNavBar/SubPageNavBar'
 import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { RenderSession } from '@/app/renderSession'
 import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDef'
 
 /**
@@ -9,7 +9,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  * administrators reach several of these pages for other people.
  */
 export default async function UserNavBar({ username, userId }: UserNavSubject) {
-    const session = await ServerSession.fromNextAuth()
+    const session = await RenderSession.fromNextAuth()
     const items = await userNavDef({ username, userId }).membership.visible(session)
 
     // only view one thing -> nav not needed

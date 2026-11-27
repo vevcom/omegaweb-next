@@ -111,6 +111,18 @@ describe('users', () => {
         expectNoPrivateFields(profile.user)
     })
 
+    test('a profile image is read by the user themselves and not by a member without USERS_USE', async () => {
+        const image = await userOperations.readProfileImage({
+            params: { username: target.username },
+            session: sessionOf(target, []),
+        })
+        expect(image.id).toEqual(expect.any(Number))
+        await expect(userOperations.readProfileImage({
+            params: { username: target.username },
+            session: sessionOf(viewer, []),
+        })).rejects.toThrow()
+    })
+
     test('the user themselves and USERS_ADMIN read the private fields', async () => {
         const sessions = [sessionOf(target, []), sessionOf(viewer, ['USERS_USE', 'USERS_ADMIN'])]
         const users = await Promise.all(sessions.map(session => userOperations.read({

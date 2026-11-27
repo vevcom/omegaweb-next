@@ -3,8 +3,8 @@ import LedgerAccountCard from './LedgerAccountCard'
 import LedgerAccountFreezeButton from './LedgerAccountFreezeButton'
 import DepositModal from '@/components/Ledger/Modals/DepositModal'
 import PayoutModal from '@/components/Ledger/Modals/PayoutModal'
-import { createStripeCustomerSessionAction } from '@/services/stripeCustomers/actions'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
+import { withFallback, withPageSession } from '@/app/ServerPage'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faWarning } from '@fortawesome/free-solid-svg-icons'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
@@ -23,20 +23,17 @@ type Props = {
     capabilities: Capabilities<'canDeposit' | 'canPayout' | 'canFreeze'>,
 }
 
-const getCustomerSessionClientSecret = async () => {
-    const { user } = await ServerSession.fromNextAuth()
-
+const getCustomerSessionClientSecret = () => withPageSession(async ({ user }) => {
     if (!user) {
         return undefined
     }
 
-    const customerSessionResult = await createStripeCustomerSessionAction({ params: { userId: user.id } })
-    if (!customerSessionResult.success) {
-        return undefined
-    }
-
-    return customerSessionResult.data.customerSessionClientSecret
-}
+    const customerSession = await withFallback(
+        stripeCustomerOperations.createSession({ params: { userId: user.id } }),
+        null,
+    )
+    return customerSession?.customerSessionClientSecret
+})
 
 export default async function LedgerAccountOverview({
     showFees,

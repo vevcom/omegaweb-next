@@ -163,6 +163,7 @@ export const userSchemas = {
         }).partial().extend({ id: coercedId }),
         readOrNull: userLookup.extend({ id: coercedId }),
         readProfile: username,
+        readProfileImage: username,
         readUserWithBalance: userLookup,
 
         readPage,

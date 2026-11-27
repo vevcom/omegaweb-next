@@ -186,7 +186,7 @@ export const eventVariantOperations = {
     readMany: defineOperation({
         paramsSchema: eventVariantSchemas.params.readMany,
         authorizer: async ({ params, prisma }) => eventVariantAuth.readMany.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         operation: async ({ prisma, params }): Promise<EventVariantExpanded[]> => {
             const variants = await prisma.eventVariant.findMany({

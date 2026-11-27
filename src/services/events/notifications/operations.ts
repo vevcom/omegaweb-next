@@ -44,7 +44,7 @@ export const eventNotificationOperations = {
     createPaymentReminder: defineOperation({
         paramsSchema: eventNotificationSchemas.params.createPaymentReminder,
         authorizer: async ({ params, prisma }) => eventNotificationAuth.createPaymentReminder.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         operation: async ({ prisma, params }): Promise<NotificationResult> => {
             const event = await prisma.event.findUniqueOrThrow({
@@ -177,7 +177,7 @@ function implementForEvents(
         authorizers: {
             readMany: () => eventNotificationAuth.readManyChannels,
             createNotification: async ({ prisma, implementationParams }) => eventNotificationAuth.createNotification.data(
-                await readEventAccess(prisma, implementationParams.eventId)
+                await readEventAccess.internalCall({ prisma, params: { id: implementationParams.eventId } })
             ),
         },
         ownershipCheck: async ({ prisma, channelId, implementationParams }) => {

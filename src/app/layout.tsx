@@ -1,5 +1,4 @@
 import { SessionProvider } from '@/auth/session/useSession'
-import { authOptions } from '@/auth/nextAuth/authOptions'
 import EditModeProvider from '@/contexts/EditMode'
 import PopUpProvider from '@/contexts/PopUp'
 import ClientDataProvider from '@/contexts/ClientData'
@@ -10,13 +9,13 @@ import { domainContextOfRequest } from '@/app/domainContextOfRequest'
 import { permissionOperations } from '@/services/permissions/operations'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { withFallback, withPageSession } from '@/app/ServerPage'
+import { RenderSession } from '@/app/renderSession'
 import ServiceWorkerRegister from '@/UI/ServiceWorkerRegister'
 import { Theme, lightThemes } from '@/lib/theme'
 import { Inter } from 'next/font/google'
 import '@/styles/tailwind.css'
 import '@/styles/globals.scss'
 import { config } from '@fortawesome/fontawesome-svg-core'
-import { getServerSession } from 'next-auth'
 import type { ReactNode } from 'react'
 import type { Metadata, Viewport } from 'next'
 
@@ -63,7 +62,7 @@ type PropTypes = {
  * their wrappers.
  */
 export default async function RootLayout({ children }: PropTypes) {
-    const nextAuthSession = await getServerSession(authOptions)
+    const nextAuthSession = await RenderSession.nextAuthSession()
     const domainContext = await domainContextOfRequest()
 
     const { serverSession, defaultPermissions, standardImages } = await withPageSession(async (session) => {

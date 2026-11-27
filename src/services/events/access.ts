@@ -1,31 +1,40 @@
 import '@ow-server-only'
+import { eventSchemas } from './schemas'
 import { passesVisibilityWhere } from '@/auth/visibility/passesVisibilityWhere'
 import { ServiceError } from '@/services/error'
+import { defineSubOperation } from '@/services/serviceOperation'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { EventAccess } from './types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
-/** Reads what the rules of eventAuth need to know about an event, for `.data()`. */
-export async function readEventAccess(prisma: PrismaPossibleTransaction<false>, eventId: number): Promise<EventAccess> {
-    const event = await prisma.event.findUniqueOrThrow({
-        where: { id: eventId },
-        select: {
-            published: true,
-            canBeViewedBy: true,
-            createdById: true,
-            visibilityAdmin: { include: visibilityIncluder },
-            variants: { select: { quotas: { select: { visibility: { include: visibilityIncluder } } } } },
-        },
-    })
-    return {
-        published: event.published,
-        canBeViewedBy: event.canBeViewedBy,
-        adminVisibility: toMatrix(event.visibilityAdmin),
-        creatorId: event.createdById,
-        quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => toMatrix(quota.visibility))),
-    }
-}
+/**
+ * Reads what the rules of eventAuth need to know about an event, for `.data()`. It is remembered,
+ * since a page asks once for each operation it calls.
+ */
+export const readEventAccess = defineSubOperation({
+    paramsSchema: () => eventSchemas.params.readAccess,
+    remember: true,
+    operation: () => async ({ prisma, params }): Promise<EventAccess> => {
+        const event = await prisma.event.findUniqueOrThrow({
+            where: { id: params.id },
+            select: {
+                published: true,
+                canBeViewedBy: true,
+                createdById: true,
+                visibilityAdmin: { include: visibilityIncluder },
+                variants: { select: { quotas: { select: { visibility: { include: visibilityIncluder } } } } },
+            },
+        })
+        return {
+            published: event.published,
+            canBeViewedBy: event.canBeViewedBy,
+            adminVisibility: toMatrix(event.visibilityAdmin),
+            creatorId: event.createdById,
+            quotaVisibilities: event.variants.flatMap(variant => variant.quotas.map(quota => toMatrix(quota.visibility))),
+        }
+    },
+})
 
 /** The event a variant belongs to. */
 export async function readEventIdOfVariant(prisma: PrismaPossibleTransaction<false>, variantId: number): Promise<number> {

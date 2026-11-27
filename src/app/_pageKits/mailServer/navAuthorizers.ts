@@ -10,8 +10,8 @@ import type { NavAuthorizer, NavAuthorizerContext } from '@/lib/navDef/navDef'
  */
 export async function mailServerNavAuthorizers({ prisma }: NavAuthorizerContext): Promise<NavAuthorizer[]> {
     const [aliasOwnerVisibilities, mailingListOwnerVisibilities] = await Promise.all([
-        readAliasOwnerMatrices({ prisma }),
-        readMailingListOwnerMatrices({ prisma }),
+        readAliasOwnerMatrices.internalCall({ prisma }),
+        readMailingListOwnerMatrices.internalCall({ prisma }),
     ])
     return [
         mailAliasAuth.readMany.data({ aliasOwnerVisibilities }),

@@ -21,7 +21,7 @@ export const mailAddressExternalOperations = {
 
     readTraversal: mailTraversalOperations.read.implement({
         authorizer: async ({ params, prisma }) => mailAddressExternalAuth.readTraversal.data({
-            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices.internalCall({ prisma }),
             markOwnedByUserId: params.markOwnedByUserId,
         }),
         ownershipCheck: () => true,
@@ -30,7 +30,7 @@ export const mailAddressExternalOperations = {
 
     readMany: defineOperation({
         authorizer: async ({ prisma }) => mailAddressExternalAuth.readMany.data({
-            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices.internalCall({ prisma }),
         }),
         operation: async ({ prisma }): Promise<MailAddressExternal[]> =>
             prisma.mailAddressExternal.findMany(),

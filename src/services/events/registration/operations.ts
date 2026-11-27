@@ -209,7 +209,7 @@ export const eventRegistrationOperations = {
     create: createRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.create.data({
             userId: params.userId,
-            ...await readEventAccess(prisma, params.eventId),
+            ...await readEventAccess.internalCall({ prisma, params: { id: params.eventId } }),
         }),
         ownershipCheck: () => true,
         paramsSchemaImplementationFields: { asAdmin: false },
@@ -218,7 +218,7 @@ export const eventRegistrationOperations = {
 
     createAsAdmin: createRegistration.implement({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.createAsAdmin.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         ownershipCheck: () => true,
         paramsSchemaImplementationFields: { asAdmin: true },
@@ -227,7 +227,7 @@ export const eventRegistrationOperations = {
 
     createGuest: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.createGuest.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         paramsSchema: eventRegistrationSchemas.params.createGuest,
         dataSchema: eventRegistrationSchemas.data.createGuest,
@@ -251,7 +251,7 @@ export const eventRegistrationOperations = {
     readOfUser: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readOfUser({
             userId: params.userId,
-            access: await readEventAccess(prisma, params.eventId),
+            access: await readEventAccess.internalCall({ prisma, params: { id: params.eventId } }),
         }),
         paramsSchema: eventRegistrationSchemas.params.readOfUser,
         operation: async ({ prisma, params }): Promise<EventRegistrationOfUser | null> => {
@@ -310,7 +310,7 @@ export const eventRegistrationOperations = {
 
     readPage: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPage.data(
-            await readEventAccess(prisma, params.paging.details.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.paging.details.eventId } })
         ),
         paramsSchema: eventRegistrationSchemas.params.readPage,
         operation: async ({ prisma, params }): Promise<EventRegistrationExpanded[]> => {
@@ -334,7 +334,7 @@ export const eventRegistrationOperations = {
 
     readPageDetailed: defineOperation({
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readPageDetailed.data(
-            await readEventAccess(prisma, params.paging.details.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.paging.details.eventId } })
         ),
         paramsSchema: eventRegistrationSchemas.params.readPageDetailed,
         operation: async ({ prisma, params }) => await prisma.eventRegistration.findMany({
@@ -542,7 +542,7 @@ export const eventRegistrationOperations = {
     registerAttendance: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.registerAttendance,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.registerAttendance.data({
-            ...await readEventAccess(prisma, params.eventId),
+            ...await readEventAccess.internalCall({ prisma, params: { id: params.eventId } }),
             userId: params.registeredById,
         }),
         operation: async ({ prisma, params }): Promise<EventAttendanceScan> => {
@@ -589,7 +589,7 @@ export const eventRegistrationOperations = {
     readAttendanceCounts: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readAttendanceCounts,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readAttendanceCounts.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         operation: async ({ prisma, params }): Promise<EventAttendanceCounts> =>
             await countAttendance(prisma, params.eventId),
@@ -599,7 +599,7 @@ export const eventRegistrationOperations = {
     readNotAttended: defineOperation({
         paramsSchema: eventRegistrationSchemas.params.readNotAttended,
         authorizer: async ({ params, prisma }) => eventRegistrationAuth.readNotAttended.data(
-            await readEventAccess(prisma, params.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
         operation: async ({ prisma, params }): Promise<EventRegistrationNotAttended[]> => {
             const registrations = await prisma.eventRegistration.findMany({
@@ -621,7 +621,7 @@ export const eventRegistrationOperations = {
     createDot: dotOperations.internal.createInternal.implement({
         implementationParamsSchema: eventRegistrationSchemas.params.createDot,
         authorizer: async ({ implementationParams, params, prisma }) => eventRegistrationAuth.createDot.data({
-            ...await readEventAccess(prisma, implementationParams.eventId),
+            ...await readEventAccess.internalCall({ prisma, params: { id: implementationParams.eventId } }),
             userId: params.accuserId,
         }),
         ownershipCheck: async ({ implementationParams, data, prisma }) =>
@@ -640,7 +640,7 @@ export const eventRegistrationOperations = {
         implementationParamsSchema: eventRegistrationSchemas.params.createDotsForNonattendingUsers,
         authorizer: async ({ implementationParams, params, prisma }) =>
             eventRegistrationAuth.createDotsForNonattendingUsers.data({
-                ...await readEventAccess(prisma, implementationParams.eventId),
+                ...await readEventAccess.internalCall({ prisma, params: { id: implementationParams.eventId } }),
                 userId: params.accuserId,
             }),
         ownershipCheck: async ({ implementationParams, data, prisma }) =>
@@ -964,7 +964,7 @@ async function registrationContext(prisma: PrismaPossibleTransaction<false>, reg
 
 async function registrationOwnerAndAccess(prisma: PrismaPossibleTransaction<false>, registrationId: number) {
     const { userId, eventId } = await registrationContext(prisma, registrationId)
-    return { userId, access: await readEventAccess(prisma, eventId) }
+    return { userId, access: await readEventAccess.internalCall({ prisma, params: { id: eventId } }) }
 }
 
 async function countAttendance(

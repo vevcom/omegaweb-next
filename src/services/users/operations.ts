@@ -226,6 +226,21 @@ export const userOperations = {
         }
     }),
 
+    /** The profile image of a user, or the default one. For the navigation, which shows nothing else of the profile. */
+    readProfileImage: defineOperation({
+        paramsSchema: userSchemas.params.readProfileImage,
+        authorizer: ({ params }) => userAuth.readProfileImage.data({ userField: { username: params.username } }),
+        operation: async ({ prisma, params }) => {
+            const user = await prisma.user.findUniqueOrThrow({
+                where: { username: params.username.toLowerCase(), ...userPartitions.unarchived },
+                select: { image: { include: expandedImageIncluder } },
+            })
+            return user.image ?? await standardImageCollectionOperations.readStandardImage({
+                params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
+            })
+        },
+    }),
+
     /**
      * A page of the user list, filtered by name and group memberships. The users carry their class,
      * study programme and omega membership, and their title and admin flag in the selected group.

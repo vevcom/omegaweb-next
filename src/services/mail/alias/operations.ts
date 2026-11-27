@@ -88,7 +88,7 @@ export const aliasOperations = {
     readMany: defineOperation({
         paramsSchema: mailAliasSchemas.params.readMany,
         authorizer: async ({ params, prisma }) => mailAliasAuth.readMany.data({
-            aliasOwnerVisibilities: await readAliasOwnerMatrices({ prisma }),
+            aliasOwnerVisibilities: await readAliasOwnerMatrices.internalCall({ prisma }),
             markOwnedByUserId: params.markOwnedByUserId,
         }),
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailAliasWithOwned[]> => {

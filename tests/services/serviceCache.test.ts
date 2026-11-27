@@ -2,12 +2,18 @@ import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
 import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
+import { Smorekopp } from '@/services/error'
+import { eventOperations } from '@/services/events/operations'
+import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { standardImageCollection } from '@/services/images/standard/standardImageCollection'
+import { standardImageCollectionOperations } from '@/services/images/standard/operations'
+import { readAliasOwnerMatrices, readMailingListOwnerMatrices } from '@/services/mail/owned'
 import { MapServiceCache, NoServiceCache, serviceCacheKey } from '@/services/serviceCache'
-import { defineOperation, defineSubOperation, isPrismaClient } from '@/services/serviceOperation'
+import { defineOperation, defineSubOperation, isPrismaClient, withServiceContext } from '@/services/serviceOperation'
 import { userOperations } from '@/services/users/operations'
 import { userPrivateSelection } from '@/services/users/constants'
 import logger from '@/lib/logger'
-import { testSession } from 'tests/utils'
+import { activeMembersOf, testSession } from 'tests/utils'
 import { afterAll, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { z } from 'zod'
 import type { KeysOfUnion } from '@/lib/keysOfUnion'
@@ -647,5 +653,103 @@ describe('the operations that are remembered', () => {
 
         expect(new Set(links.map(link => link.id)).size).toBe(1)
         expect(await prisma.cmsLink.count({ where: { special: 'CAREER_CONTACT' } })).toBe(1)
+    })
+
+    test('a standard image and its collection are read once in a context', async () => {
+        await withServiceContext({ session: visitor, cache: new MapServiceCache() }, 'NONE', async () => {
+            const readLogo = () => standardImageCollectionOperations.readStandardImage({
+                params: { standardImage: 'LOGO_SIMPLE' },
+            })
+            const logo = await readLogo()
+            const collection = await standardImageCollection.internal.read.internalCall({})
+
+            expect(await readLogo()).toBe(logo)
+            expect(await standardImageCollection.internal.read.internalCall({})).toBe(collection)
+        })
+    })
+
+    test('the owner matrices behind the mail server nav items are read once in a context', async () => {
+        await withServiceContext({ session: visitor, cache: new MapServiceCache() }, 'NONE', async () => {
+            expect(await readAliasOwnerMatrices.internalCall({})).toBe(await readAliasOwnerMatrices.internalCall({}))
+            expect(await readMailingListOwnerMatrices.internalCall({}))
+                .toBe(await readMailingListOwnerMatrices.internalCall({}))
+        })
+    })
+})
+
+describe('what the page of an event reads', () => {
+    const HOUR = 60 * 60 * 1000
+    let groupId: number
+    let committeeId: number
+    let committeeGroupId: number
+
+    beforeAll(async () => {
+        const { order } = await prisma.omegaOrder.findFirstOrThrow({ orderBy: { order: 'desc' } })
+        groupId = (await prisma.group.create({
+            data: {
+                groupType: 'MANUAL_GROUP',
+                order,
+                manualGroup: { create: { name: 'cache admins', shortName: 'cacheadm' } },
+            },
+        })).id
+        const committee = await prisma.committee.create({
+            data: {
+                name: 'Cache committee',
+                shortName: 'cachecom',
+                group: { create: { groupType: 'COMMITTEE', order } },
+                committeeArticle: { create: { name: 'cachecom', coverImage: { create: {} } } },
+                paragraph: { create: {} },
+            },
+        })
+        committeeId = committee.id
+        committeeGroupId = committee.groupId
+    })
+
+    const createDraft = (name: string) => eventOperations.create({
+        data: {
+            name,
+            location: 'Lophtet',
+            eventStart: new Date(Date.now() + 48 * HOUR),
+            eventEnd: new Date(Date.now() + 50 * HOUR),
+            takesRegistration: true,
+            places: 5,
+            waitingList: false,
+            registrationStart: new Date(Date.now() - HOUR),
+            registrationEnd: new Date(Date.now() + 24 * HOUR),
+            quotaVisibilityRequirements: [],
+            visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
+        },
+        bypassAuth: true,
+    })
+
+    test('the access of an event is remembered where a cache is handed in, and read fresh by a sign-up', async () => {
+        const event = await createDraft('Husket tilgang')
+        const cache = new MapServiceCache()
+        const signUp = { params: { eventId: event.id, userId: anne.id }, session: testSession({ user: anne }) }
+
+        await expect(eventRegistrationOperations.create({ ...signUp, cache })).rejects.toThrow(Smorekopp)
+        await prisma.event.update({ where: { id: event.id }, data: { published: true } })
+
+        await expect(eventRegistrationOperations.create({ ...signUp, cache })).rejects.toThrow(Smorekopp)
+        await expect(eventRegistrationOperations.create(signUp)).resolves.toMatchObject({ userId: anne.id })
+    })
+
+    test('the access is read fresh in the transaction of a save that changes who administrates the event', async () => {
+        const event = await createDraft('Uten administratorer')
+        const { order } = await prisma.group.findUniqueOrThrow({ where: { id: groupId } })
+        const administrator = testSession({ memberships: [{ groupId, order, active: true, admin: false }] })
+
+        // The save's authorizer reads the access before the save takes the administrators away. The
+        // host is adopted only if the save then sees that no one is left.
+        await eventOperations.saveSetup({
+            params: { id: event.id },
+            data: { adminRequirements: [{ conditions: [] }], hostedByCommitteeId: committeeId },
+            session: administrator,
+            cache: new MapServiceCache(),
+        })
+
+        const matrix = await eventOperations.adminVisibility.readMatrix({ params: { id: event.id }, bypassAuth: true })
+        expect(matrix.requirements.map(requirement => requirement.conditions.map(condition => condition.groupId)))
+            .toEqual([[committeeGroupId]])
     })
 })

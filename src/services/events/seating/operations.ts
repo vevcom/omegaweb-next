@@ -15,7 +15,7 @@ export const eventSeatingOperations = {
     readBoard: defineOperation({
         paramsSchema: eventSeatingSchemas.params.readBoard,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.readBoard.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.readBoard.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         operation: async ({ prisma, params }): Promise<SeatingBoard> => {
             const seating = await readSeating(prisma, params.id)
@@ -44,7 +44,7 @@ export const eventSeatingOperations = {
     readOwn: defineOperation({
         paramsSchema: eventSeatingSchemas.params.readOwn,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.readOwn.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.readOwn.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         operation: async ({ prisma, params, session }): Promise<OwnSeating | null> => {
             const { wishesEnd, publishedAt } = await readSeating(prisma, params.id)
@@ -75,7 +75,7 @@ export const eventSeatingOperations = {
         paramsSchema: eventSeatingSchemas.params.updateWishes,
         dataSchema: eventSeatingSchemas.data.updateWishes,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.updateWishes.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.updateWishes.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         transaction: 'OPENS',
         operation: async ({ prisma, params, data, session }) => {
@@ -111,7 +111,7 @@ export const eventSeatingOperations = {
         paramsSchema: eventSeatingSchemas.params.openWishes,
         dataSchema: eventSeatingSchemas.data.openWishes,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.openWishes.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.openWishes.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         operation: async ({ prisma, params, data }) => {
             if (data.wishesEnd < new Date()) throw new ServiceError('BAD PARAMETERS', 'Fristen må være frem i tid')
@@ -138,7 +138,7 @@ export const eventSeatingOperations = {
         paramsSchema: eventSeatingSchemas.params.savePlan,
         dataSchema: eventSeatingSchemas.data.savePlan,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.savePlan.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.savePlan.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         transaction: 'OPENS',
         operation: async ({ prisma, params, data }) => {
@@ -193,7 +193,7 @@ export const eventSeatingOperations = {
         paramsSchema: eventSeatingSchemas.params.setPublished,
         dataSchema: eventSeatingSchemas.data.setPublished,
         authorizer: async ({ params, prisma }) => (
-            eventSeatingAuth.setPublished.data(await readEventAccess(prisma, params.id))
+            eventSeatingAuth.setPublished.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         operation: async ({ prisma, params, data }) => {
             const publishedAt = data.published ? new Date() : null

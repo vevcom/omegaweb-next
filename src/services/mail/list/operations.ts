@@ -56,7 +56,7 @@ export const mailingListOperations = {
     readMany: defineOperation({
         paramsSchema: mailingListSchemas.params.readMany,
         authorizer: async ({ params, prisma }) => mailingListAuth.readMany.data({
-            mailingListOwnerVisibilities: await readMailingListOwnerMatrices({ prisma }),
+            mailingListOwnerVisibilities: await readMailingListOwnerMatrices.internalCall({ prisma }),
             markOwnedByUserId: params.markOwnedByUserId,
         }),
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailingListWithOwned[]> => {

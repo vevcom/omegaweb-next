@@ -4,7 +4,7 @@ import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
 import { RenderServiceCache } from '@/app/renderServiceCache'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { RenderSession } from '@/app/renderSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/pageKits/auth/authPagesOf'
@@ -203,7 +203,7 @@ export function serverPage<
             searchParams: SearchParams,
         }
         await redirectToServingDomain(servedOn)
-        const session = await ServerSession.fromNextAuth()
+        const session = await RenderSession.fromNextAuth()
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
             { session, cache: new RenderServiceCache() },
@@ -375,6 +375,6 @@ export async function withFallback<Data, Fallback>(
 export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
-    const session = await ServerSession.fromNextAuth()
+    const session = await RenderSession.fromNextAuth()
     return withServiceContext({ session, cache: new RenderServiceCache() }, 'NONE', () => callback(session))
 }
