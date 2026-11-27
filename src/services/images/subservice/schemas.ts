@@ -10,7 +10,6 @@ import { extensionForMimeType } from '@/services/store/fileExtensions'
 import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { zfd } from 'zod-form-data'
 import { z } from 'zod'
-import { File } from 'node:buffer'
 
 /**
  * Checks the file against everything the image system can store, not against what the individual

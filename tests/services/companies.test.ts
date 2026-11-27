@@ -3,7 +3,6 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { companyOperations } from '@/services/careers/companies/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
-import { File } from 'node:buffer'
 import type { CompanySponsorTier } from '@/prisma-generated-pn-types'
 import type { Page } from '@/lib/paging/types'
 
