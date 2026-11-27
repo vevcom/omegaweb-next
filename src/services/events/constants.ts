@@ -53,6 +53,7 @@ export const eventVariantSummarySelection = {
     name: true,
     description: true,
     order: true,
+    registrationType: true,
     registrationStart: true,
     registrationEnd: true,
     takesPayment: true,

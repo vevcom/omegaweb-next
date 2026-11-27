@@ -1,6 +1,8 @@
 import { eventQuotaSchemas } from '@/services/events/quotas/schemas'
+import { eventSlotSchemas } from '@/services/events/slots/schemas'
 import { Zpn } from '@/lib/fields/zpn'
 import { convertAmount } from '@/lib/currency/convert'
+import { EventRegistrationType } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
@@ -8,6 +10,7 @@ const dataFieldSchemas = z.object({
     registrationStart: Zpn.date({ label: 'Påmeldingsstart' }),
     description: z.string().trim().max(120, 'Maks 120 tegn').nullish()
         .transform(value => value || null),
+    registrationType: z.nativeEnum(EventRegistrationType).default('LIST'),
     registrationEnd: Zpn.date({ label: 'Påmeldingsslutt' }),
     takesPayment: Zpn.checkboxOrBoolean({ label: 'Tar betaling' }).default(false),
     price: z.coerce.number({ invalid_type_error: 'Prisen må være et tall' })
@@ -37,6 +40,7 @@ const paramsFieldSchemas = z.object({
 const variantFields = {
     name: true,
     description: true,
+    registrationType: true,
     registrationStart: true,
     registrationEnd: true,
     takesPayment: true,
@@ -46,10 +50,11 @@ const variantFields = {
     requeueUnpaidRegistrations: true,
 } as const
 
-// A variant with its quotas as a save of the whole event gives it. One without an id is new.
+// A variant with its quotas and its schedule as a save of the whole event gives it. One without an id is new.
 const variantSetup = {
     id: z.number().int().optional(),
     quotas: eventQuotaSchemas.data.saveSetup.shape.quotas,
+    slotSchedule: eventSlotSchemas.data.saveSchedule.shape.schedule.default(null),
 }
 
 const variantId = paramsFieldSchemas.pick({

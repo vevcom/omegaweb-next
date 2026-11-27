@@ -87,7 +87,6 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 eventEnd: endDate,
                 canBeViewedBy: 'ALL',
                 takesRegistration: true,
-                places: 8,
                 registrationStart: today,
                 registrationEnd: tomorrow,
                 waitingList: true,
@@ -95,7 +94,8 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 quotaVisibilityRequirements,
                 visibilityAdminRequirements,
             },
-            registrationCount: 3,
+            // Its variant is slotted, and a registration there must hold a slot.
+            registrationCount: 0,
         },
         {
             event: {
