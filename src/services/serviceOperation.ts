@@ -1,14 +1,14 @@
 import '@ow-server-only'
 import { ParseError, ServiceError, Smorekopp } from './error'
+import { parseData } from './parseData'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import logger from '@/lib/logger'
-import { zfd } from 'zod-form-data'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { AsyncLocalStorage } from 'async_hooks'
 import type { ServiceErrorCode } from './error'
-import type { ContractEntry, Marked, Rule } from './serviceContract'
+import type { ContractEntry, Marked, Rule, RuleData } from './serviceContract'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { RequireBuilder } from '@/auth/authorizer/Require'
 import type { z } from 'zod'
@@ -522,7 +522,7 @@ export function defineSubOperation<
                         'BAD PARAMETERS', 'Service operation recieved data, but has no data schema. 2'
                     )
                 }
-                const dataParse = zfd.formData(dataSchema).safeParse(args.data)
+                const dataParse = parseData(dataSchema, args.data)
                 if (!dataParse.success) {
                     if (process.env.NODE_ENV !== 'test') {
                         logger.debug('Service operation data failed validation.', { dataParse })
@@ -764,11 +764,6 @@ type AuthorizerDataConfig<
             args: ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, DataSchema, undefined>
         ) => Awaitable<RuleData<EntryRule> & { session?: never }>
     }
-
-/** The data a rule still needs before it can be run. */
-type RuleData<EntryRule extends Rule> =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Only the data is read, and any matches the rest.
-    EntryRule extends RequireBuilder<infer RequiredData, any, any, any> ? RequiredData : never
 
 /** The filter a rule hands its operation, as the second argument of `operation`. */
 type RuleFilter<EntryRule extends Rule> =

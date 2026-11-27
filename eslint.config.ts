@@ -35,6 +35,11 @@ const noContractOfAnotherService = {
     message: 'A contract is imported by its own service, as ./contract, and by its capabilities file. '
         + 'Everything else imports from @/capabilities.',
 }
+const noDeclaredFormInternals = {
+    group: ['**/Form/Declared/*', '!**/Form/Declared/Form', './Declared/*', '!./Declared/Form'],
+    message: 'Only Form is imported from Form/Declared. '
+        + 'The store and the rest of the folder are not for whoever declares a form.',
+}
 const noResolvedHrefTagging = {
     group: ['**/sites/href', '@/lib/sites/href'],
     importNames: ['domainContextResolvedHref'],
@@ -584,7 +589,9 @@ const eslintConfig = defineConfig([
             'no-restricted-imports': [
                 'error',
                 {
-                    patterns: [noRelativeImports, noResolvedHrefTagging, noContractOfAnotherService],
+                    patterns: [
+                        noRelativeImports, noResolvedHrefTagging, noContractOfAnotherService, noDeclaredFormInternals,
+                    ],
                     paths: [noNextLink, noNextRouter, noNextRedirect],
                 },
             ],
@@ -659,7 +666,23 @@ const eslintConfig = defineConfig([
         rules: {
             'no-restricted-imports': [
                 'error',
-                { patterns: [noRelativeImports, noResolvedHrefTagging], paths: [noNextLink, noNextRouter, noNextRedirect] },
+                {
+                    patterns: [noRelativeImports, noResolvedHrefTagging, noDeclaredFormInternals],
+                    paths: [noNextLink, noNextRouter, noNextRedirect],
+                },
+            ],
+        }
+    },
+    {
+        // The one place outside its folder the declared form's store is imported: its tests.
+        files: ['tests/components/form/**'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [noRelativeImports, noResolvedHrefTagging, noContractOfAnotherService],
+                    paths: [noNextLink, noNextRouter, noNextRedirect],
+                },
             ],
         }
     },
@@ -766,6 +789,17 @@ const eslintConfig = defineConfig([
                         + ":not(:has(Property[key.name='timeZone']))",
                     message: 'Pass an explicit timeZone (normally \'Europe/Oslo\') - formatting without one '
                         + 'depends on the host\'s local timezone and differs between server and client.'
+                },
+                // A server component cannot reach into an object exported from a 'use client' file, so a
+                // bound submitter behind a key fails when the page renders, with an error that does not
+                // say why. It is listed here since a file has one list of restricted syntax.
+                {
+                    selector: "CallExpression[callee.object.name='Form'][callee.property.name='Submitter']"
+                        + ":not(Program > ExportNamedDeclaration > VariableDeclaration[kind='const']"
+                        + " > VariableDeclarator[id.type='ArrayPattern']:not(:has(RestElement))"
+                        + ' > CallExpression.init)',
+                    message: 'Bind a submitter and its field as named exports of their own, at the top of a '
+                        + '\'use client\' file: export const [FooSubmitter, FooField] = Form.Submitter({ ... }).'
                 }
             ]
         }
