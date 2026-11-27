@@ -17,6 +17,7 @@ export const QueryParams = {
     search: new StringQueryParam('search'),
     token: new StringQueryParam('token'),
     callbackUrl: new LocalPathQueryParam('callbackUrl'),
+    destination: new LocalPathQueryParam('destination'),
     frontpageVersion: new EnumQueryParam('frontpage-version', ['logged-out', 'logged-in']),
 } as const satisfies Record<string, QueryParam<string | string[] | number | number[] | boolean>>
 

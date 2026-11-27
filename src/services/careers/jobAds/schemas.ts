@@ -19,6 +19,7 @@ const dataFieldSchemas = z.object({
 const paramsFieldSchemas = z.object({
     id: z.number(),
     jobAdId: z.number(),
+    companyId: z.number(),
     name: z.string().max(100).nullable(),
     type: z.nativeEnum(JobType).nullable(),
 })
@@ -50,6 +51,9 @@ export const jobAdSchemas = {
     },
     params: {
         read: id,
+        readOfCompany: paramsFieldSchemas.pick({
+            companyId: true,
+        }),
         readInactivePage: readPageInputSchemaObject(
             id,
             paramsFieldSchemas.pick({

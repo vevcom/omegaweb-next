@@ -1,5 +1,5 @@
 import { authPagePaths } from '@/pageKits/auth/paths'
-import { authLinks } from '@/pageKits/auth/links'
+import { authLinks, secondLoginCallbackUrl, secondLoginHref } from '@/pageKits/auth/links'
 import { omegaAuthPages } from '@/app/(omegaweb)/(auth)/config'
 import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
 import { appHref } from '@/lib/sites/href'
@@ -51,6 +51,27 @@ describe('the auth page kit', () => {
         expect(onOmega.verifyEmail('abc')).toBe('/verify-email?token=abc')
         expect(onCareers.terms()).toBe('/career/terms')
         expect(onCareers.afterLogin()).toBe('/career')
+    })
+
+    test('takes the page the visitor was going to along to the login form and on to the site\'s second login', () => {
+        const page = appHref('/career/job-ads')
+        const authorize = appHref('/api/oidc/authorize?state=abc')
+        expect(authLinks(careersAuthPages).loginForm({ callbackUrl: authorize, destination: page }))
+            .toBe('/career/login?callbackUrl=%2Fapi%2Foidc%2Fauthorize%3Fstate%3Dabc&destination=%2Fcareer%2Fjob-ads')
+        expect(secondLoginHref(careersAuthPages.secondLogin, { callbackUrl: page }))
+            .toBe('/career/company-login?callbackUrl=%2Fcareer%2Fjob-ads')
+        expect(secondLoginHref(careersAuthPages.secondLogin)).toBe('/career/company-login')
+        expect(omegaAuthPages.secondLogin).toBeNull()
+    })
+
+    test('has the switch carry the destination, or else the form\'s own callback', () => {
+        const authorize = '/api/oidc/authorize?state=abc'
+        expect(secondLoginCallbackUrl({ callbackUrl: authorize, destination: '/career/job-ads' })).toBe('/career/job-ads')
+        // On the auth domain itself the form is reached without the authorize endpoint and its callback is the page.
+        expect(secondLoginCallbackUrl({ callbackUrl: '/career/job-ads' })).toBe('/career/job-ads')
+        // Without a usable destination the authorization is carried, which the company login refuses.
+        expect(secondLoginCallbackUrl({ callbackUrl: authorize, destination: 'https://evil.example' })).toBe(authorize)
+        expect(secondLoginCallbackUrl({})).toBeNull()
     })
 
     test('says in its page factories which pages are served on the auth domain, never in a mount', () => {

@@ -39,6 +39,7 @@ export class Site {
             path === candidate.basePath
             || path.startsWith(`${candidate.basePath}/`)
             || path.startsWith(`${candidate.basePath}?`)
+            || path.startsWith(`${candidate.basePath}#`)
         ))
         return site ?? Site.root
     }

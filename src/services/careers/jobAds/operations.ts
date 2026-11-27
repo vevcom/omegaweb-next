@@ -11,12 +11,16 @@ import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { implementArticleOperations } from '@/cms/articles/implement'
 import { implementSearchOperation } from '@/services/search/implement'
 import type { ExpandedJobAd, SimpleJobAd } from './types'
+import type { Prisma } from '@/prisma-generated-pn-types'
 import type { SearchFindArgs } from '@/services/search/implement'
 import type { JobAdPagesConfig } from '@/pageKits/jobAds/config'
 
 const read = defineOperation({
     paramsSchema: jobAdSchemas.params.read,
-    authorizer: () => jobAdAuth.read,
+    authorizer: async ({ prisma, params }) => jobAdAuth.read.data(await prisma.jobAd.findUniqueOrThrow({
+        where: { id: params.id },
+        select: { companyId: true },
+    })),
     operation: async ({ prisma, params }): Promise<ExpandedJobAd> => await prisma.jobAd.findUniqueOrThrow({
         where: {
             id: params.id,
@@ -94,6 +98,21 @@ export const jobAdOperations = {
      * @returns ExpandedJobAd - the jobAd and its article
      */
     read,
+    /** Every job ad of the company, the active ones first. */
+    readOfCompany: defineOperation({
+        paramsSchema: jobAdSchemas.params.readOfCompany,
+        authorizer: ({ params }) => jobAdAuth.readOfCompany.data({ companyId: params.companyId }),
+        operation: async ({ prisma, params }): Promise<SimpleJobAd[]> => {
+            const jobAds = await prisma.jobAd.findMany({
+                orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
+                where: {
+                    companyId: params.companyId,
+                },
+                include: simpleArticleAndCompanyIncluder,
+            })
+            return jobAds.map(toSimpleJobAd)
+        }
+    }),
     /**
      * This handler reads all active jobAds
      * @returns SimpleJobAd[] - all jobAds with coverImage
@@ -108,12 +127,7 @@ export const jobAdOperations = {
                 },
                 include: simpleArticleAndCompanyIncluder,
             })
-            return jobAds.map(jobAd => ({
-                ...jobAd,
-                coverImage: jobAd.article.coverImage.image,
-                companyName: jobAd.company.name,
-                companySponsorTier: jobAd.company.sponsorTier,
-            }))
+            return jobAds.map(toSimpleJobAd)
         }
     }),
     /** The search for a site's job ad pages: the same matches on both sites, linking to the site's own. */
@@ -165,12 +179,7 @@ export const jobAdOperations = {
                 },
                 include: simpleArticleAndCompanyIncluder,
             })
-            return jobAds.map(jobAd => ({
-                ...jobAd,
-                coverImage: jobAd.article.coverImage.image,
-                companyName: jobAd.company.name,
-                companySponsorTier: jobAd.company.sponsorTier,
-            }))
+            return jobAds.map(toSimpleJobAd)
         }
     }),
     /**
@@ -200,3 +209,12 @@ export const jobAdOperations = {
         }
     }),
 } as const
+
+function toSimpleJobAd(jobAd: Prisma.JobAdGetPayload<{ include: typeof simpleArticleAndCompanyIncluder }>): SimpleJobAd {
+    return {
+        ...jobAd,
+        coverImage: jobAd.article.coverImage.image,
+        companyName: jobAd.company.name,
+        companySponsorTier: jobAd.company.sponsorTier,
+    }
+}

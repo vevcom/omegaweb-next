@@ -6,6 +6,7 @@ import { authorizeCompanyCredentials, companyLoginErrors } from '@/auth/nextAuth
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { hashAndEncryptPassword } from '@/auth/passwordHash'
 import { sessionFromCookie } from '@/auth/sso/session'
+import { companyLoginCallbackUrl } from '@/app/(careers)/career/(company-auth)/company-login/companyLoginCallbackUrl'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -213,5 +214,26 @@ describe('where the logins are offered', () => {
 
         const location = new URL(response.headers.get('location') ?? '')
         expect(location.origin + location.pathname).toBe('https://login.omega.ntnu.no/api/oidc/authorize')
+    })
+})
+
+describe('the page the company login lands on', () => {
+    const landing = (callbackUrl: string) => companyLoginCallbackUrl({ callbackUrl })
+
+    test('is a page of the career site', () => {
+        expect(landing('/career/job-ads/stilling-12')).toBe('/career/job-ads/stilling-12')
+        expect(landing('/career')).toBe('/career')
+        expect(landing('/career/companies?company-name=a#b')).toBe('/career/companies?company-name=a#b')
+        expect(landing('/career#jobs')).toBe('/career#jobs')
+        expect(companyLoginCallbackUrl({})).toBeNull()
+    })
+
+    test('is nothing that leaves the app or the career site, so the login lands on the frontpage', () => {
+        const refused = [
+            'https://evil.example/career', '//evil.example/career', '/\\evil.example/career', '/%2F%2Fevil.example',
+            '/users/me', '/revue', '/careers', '/career/../admin', '/career\\..\\admin', '/career/%2e%2e/admin',
+            '/career%2F..%2Fadmin', 'career/job-ads',
+        ]
+        refused.forEach(callbackUrl => expect(landing(callbackUrl)).toBeNull())
     })
 })

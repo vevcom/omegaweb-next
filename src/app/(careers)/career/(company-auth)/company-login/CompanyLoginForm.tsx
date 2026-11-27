@@ -1,15 +1,18 @@
 'use client'
 import { signInAsCompanyUser } from '@/app/(careers)/career/(company-auth)/companyLogin'
 import { careersAuthLinks } from '@/app/(careers)/career/(auth)/links'
+import { careersAuthPages } from '@/app/(careers)/career/(auth)/config'
 import { careerLinks } from '@/app/(careers)/links'
 import TextInput from '@/UI/TextInput'
 import SubmitButton from '@/UI/SubmitButton'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import LoginSwitch from '@/components/LoginSwitch/LoginSwitch'
 import { useSession } from '@/auth/session/useSession'
 import useDomainContext from '@/hooks/useDomainContext'
 import { useState } from 'react'
 import type { CompanyLoginError } from '@/app/(careers)/career/(company-auth)/companyLogin'
 import type { FormEvent } from 'react'
+import type { AppHref } from '@/lib/sites/href'
 
 const errorMessages: Record<CompanyLoginError, string> = {
     CredentialsSignin: 'Feil e-post eller passord.',
@@ -19,11 +22,12 @@ const errorMessages: Record<CompanyLoginError, string> = {
 
 /**
  * The login of a company user: email and password, and nothing else. It is only offered to a
- * visitor who is not signed in, as a user or as a company user.
+ * visitor who is not signed in, as a user or as a company user. It lands on `callbackUrl`, a page
+ * of the career site, or on the frontpage without one.
  */
-export default function CompanyLoginForm() {
+export default function CompanyLoginForm({ callbackUrl }: { callbackUrl: AppHref | null }) {
     const session = useSession()
-    const landOn = useDomainContext().resolveHref(careerLinks.frontpage())
+    const landOn = useDomainContext().resolveHref(callbackUrl ?? careerLinks.frontpage())
     const [error, setError] = useState<CompanyLoginError | null>(null)
     const [pending, setPending] = useState(false)
     const [signedIn, setSignedIn] = useState(false)
@@ -66,6 +70,11 @@ export default function CompanyLoginForm() {
     }
 
     return <>
+        <LoginSwitch
+            names={careersAuthPages.secondLogin.names}
+            current="second"
+            otherHref={careersAuthLinks.login({ callbackUrl: callbackUrl ?? undefined })}
+        />
         <h1>Bedriftsinnlogging</h1>
         {/* POST, so a submit before the page is hydrated never puts the password in the url. */}
         <form method="post" onSubmit={handleSignIn}>
@@ -87,9 +96,8 @@ export default function CompanyLoginForm() {
         </SiteLink>
 
         <p className="text-s text-base-content/80">
-            Denne innloggingen er for bedrifter. Er du student, logger du inn med{' '}
-            <SiteLink href={careersAuthLinks.login()}>brukeren din</SiteLink>. En ny bedriftsbruker får en
-            e-post fra Contactor eller fra en administrator i bedriften med en lenke for å velge passord.
+            En ny bedriftsbruker får en e-post fra Contactor eller fra en administrator i bedriften med en
+            lenke for å velge passord.
         </p>
     </>
 }
