@@ -1,7 +1,7 @@
 'use client'
 import { htmlContentClassName } from './htmlContentClassName'
 import { configureAction } from '@/services/configureAction'
-import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
+import { editorContentToMarkdown, paragraphEditorContent } from '@/lib/markdown/editorMarkdown'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import Button from '@/components/UI/Button'
 import { useEffect, useRef, useState } from 'react'
@@ -117,17 +117,22 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
     const { refresh } = useSiteRouter()
     const action = configureAction(updateCmsParagraphAction, { params: { paragraphId: cmsParagraph.id } })
     const [status, setStatus] = useState<keyof typeof statuses>('untouched')
-    // The change waiting to be saved, with the timer that will save it.
-    const pending = useRef<{ html: string, timer: ReturnType<typeof setTimeout> } | null>(null)
+    // Why the last save was refused, in the words the server answered with.
+    const [refusal, setRefusal] = useState('')
+    const [startingContent] = useState(() => paragraphEditorContent(cmsParagraph))
+    // The editor with a change waiting to be saved, and the timer that will save it. Its markdown is made when
+    // it is saved, and not on every change.
+    const pending = useRef<{ editor: Editor, timer: ReturnType<typeof setTimeout> } | null>(null)
     // Counts the saves, so an answer to an older one does not speak for a newer.
     const latestSave = useRef(0)
 
-    const save = async (html: string) => {
+    const save = async (markdown: string) => {
         const thisSave = ++latestSave.current
         setStatus('saving')
-        const result = await action({ data: { html } })
+        const result = await action({ data: { markdown } })
         if (thisSave !== latestSave.current) return
         setStatus(result.success ? 'saved' : 'failed')
+        if (!result.success) setRefusal(result.error?.[0]?.message ?? statuses.failed.label)
         // The page around the editor shows the text too, once edit mode is left.
         if (result.success) refresh()
     }
@@ -139,18 +144,17 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
     const savePendingNow = () => {
         if (!pending.current) return
         clearTimeout(pending.current.timer)
-        const { html } = pending.current
+        const { editor: changed } = pending.current
         pending.current = null
-        void saveRef.current(html)
+        void saveRef.current(editorContentToMarkdown(changed.getJSON()))
     }
     // Leaving edit mode takes the editor away, which must not take the last change with it.
     useEffect(() => savePendingNow, [])
 
     const editor = useEditor({
-        // The sanitizer drops <u>, so underlining would be lost on save.
+        // Markdown cannot say underline.
         extensions: [StarterKit.configure({ underline: false, link: { openOnClick: false } })],
-        // Older rows never passed the sanitizer, so the html is cleaned before the editor parses it.
-        content: sanitizeHtml(cmsParagraph.contentHtml),
+        content: startingContent,
         // The first render is on the server, where there is no document to mount the editor in.
         immediatelyRender: false,
         // The toolbar shows which marks the selection has, so it follows every change of it.
@@ -170,7 +174,7 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
         onUpdate: ({ editor: updated }) => {
             if (pending.current) clearTimeout(pending.current.timer)
             pending.current = {
-                html: updated.isEmpty ? '' : updated.getHTML(),
+                editor: updated,
                 timer: setTimeout(savePendingNow, autosaveDelayMs),
             }
             setStatus('unsaved')
@@ -219,6 +223,7 @@ export default function CmsParagraphEditorForm({ cmsParagraph, className, update
             >
                 {statuses[status] && <FontAwesomeIcon icon={statuses[status].icon} spin={status === 'saving'} />}
             </span>
+            {status === 'failed' && <div role="alert" className="mt-4 text-s text-error">{refusal}</div>}
         </div>
     )
 }

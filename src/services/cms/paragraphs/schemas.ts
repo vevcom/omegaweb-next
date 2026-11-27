@@ -1,10 +1,15 @@
+import { paragraphMarkdownLimits } from './constants'
+import { costlyMarkdownIssue } from '@/lib/markdown/markdownCost'
 import { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().optional(),
-    // Sanitized by the operation, so nothing is checked here but its size.
-    html: z.string().max(200_000),
+    // Rendered and sanitized by the operation, so nothing is checked here but the limits that lower what that costs.
+    markdown: z.string().superRefine((markdown, context) => {
+        const issue = costlyMarkdownIssue(markdown, paragraphMarkdownLimits)
+        if (issue) context.addIssue({ code: z.ZodIssueCode.custom, message: issue })
+    }),
 })
 
 const paramsFieldSchemas = z.object({
@@ -29,7 +34,7 @@ export const cmsParagraphSchemas = {
             name: true,
         }).partial(),
         updateContent: dataFieldSchemas.pick({
-            html: true,
+            markdown: true,
         }),
     },
     params: {

@@ -1,6 +1,7 @@
-import { markdownToSafeHtml } from '@/lib/html/safeHtml'
+import { HtmlTooLongError, htmlLengthAtLeast, markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
 import { describe, expect, test } from '@jest/globals'
+import { fromMarkdown } from 'mdast-util-from-markdown'
 
 // Everything a CMS editor or notification author could use to get script into a page or an email.
 const dangerousMarkdown = {
@@ -62,6 +63,53 @@ describe('markdownToSafeHtml', () => {
 
     test('leaves gfm syntax as text without gfm', async () => {
         expect(await markdownToSafeHtml('~~avlyst~~')).toContain('~~avlyst~~')
+    })
+
+    test('renders two tildes as strikethrough and leaves one as text with strikethrough', async () => {
+        expect(await markdownToSafeHtml('~~avlyst~~', { strikethrough: true })).toContain('<del>avlyst</del>')
+        expect(await markdownToSafeHtml('Kl. 18~20 og 21~22', { strikethrough: true }))
+            .toBe('\n<p>Kl. 18~20 og 21~22</p>\n')
+    })
+
+    test('refuses a markdown made to grow from the parsed markdown, before any html is made of it', async () => {
+        // The sanitizer drops these addresses, so the html written would be short. It is never written.
+        const markdown = `[a]: javascript:${'a'.repeat(2_000)}\n\n${'[a] '.repeat(1_000)}`
+        await expect(markdownToSafeHtml(markdown, { maxLength: 1_000_000 })).rejects.toBeInstanceOf(HtmlTooLongError)
+    })
+
+    test('refuses a markdown whose html is longer than the most once it is written', async () => {
+        await expect(markdownToSafeHtml('&'.repeat(1_000), { maxLength: 3_000 })).rejects.toBeInstanceOf(HtmlTooLongError)
+        expect(await markdownToSafeHtml('&'.repeat(400), { maxLength: 3_000 })).toHaveLength(2_409)
+    })
+})
+
+describe('the measure of the html before it is made', () => {
+    test('counts the titles of links, images and the definitions a reference uses', () => {
+        const title = 't'.repeat(1_000)
+        expect(htmlLengthAtLeast(fromMarkdown(`[a]: https://x.no "${title}"\n\n[a] [a] [a]`))).toBeGreaterThan(3 * 1_000)
+        expect(htmlLengthAtLeast(fromMarkdown(`[a](https://x.no "${title}") ![b](https://x.no/b.png "${title}")`)))
+            .toBeGreaterThan(2 * 1_000)
+    })
+
+    test('counts the first definition of a label, which is the one a reference uses', () => {
+        const long = `https://x.no/${'x'.repeat(1_000)}`
+        expect(htmlLengthAtLeast(fromMarkdown(`[a]: ${long}\n[a]: https://x.no\n\n[a]`))).toBeGreaterThan(1_000)
+        expect(htmlLengthAtLeast(fromMarkdown(`[a]: https://x.no\n[a]: ${long}\n\n[a]`))).toBeLessThan(100)
+    })
+
+    test('counts two spaces of indentation for every list, item and quote around a list, an item or a quote', () => {
+        // Quotes at 0, 2 and 4, the list at 6, the item at 8, and the text.
+        expect(htmlLengthAtLeast(fromMarkdown('> > > - a'))).toBe(0 + 2 + 4 + 6 + 8 + 1)
+    })
+
+    test.each([
+        ['prose', 'Omega har egen hytte, se [her](https://omega.ntnu.no "Hytta") og ![logo](https://x.no/a.png "Logo").'],
+        ['nested lists and quotes', '> - a\n>   - b\n>     > c\n>     > - d\n\n1. x\n   1. y\n      > z'],
+        ['references with titles', '[a]: https://x.no "tittel"\n\n[a] og [a] og ![b][a]'],
+        ['code', '```\n  <kode> & mer\n```\n\n    innrykket'],
+    ])('refuses nothing whose html is within the most, here for %s', async (_name, markdown) => {
+        const html = await markdownToSafeHtml(markdown, { strikethrough: true })
+        await expect(markdownToSafeHtml(markdown, { strikethrough: true, maxLength: html.length })).resolves.toBe(html)
     })
 })
 
