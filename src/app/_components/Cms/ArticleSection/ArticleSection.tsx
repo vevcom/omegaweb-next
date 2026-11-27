@@ -1,6 +1,6 @@
 import RemovePart from './RemovePart'
-import ImageControls from './ImageControls'
-import AddPartToArticleSection from './AddPartToArticleSection'
+import SectionToolbar from './SectionToolbar'
+import { sectionBackgrounds } from './sectionBackgrounds'
 import CmsLink from '@/cms/CmsLink/CmsLink'
 import CmsImage from '@/cms/CmsImage/CmsImage'
 import CmsParagraph from '@/cms/CmsParagraph/CmsParagraph'
@@ -34,6 +34,9 @@ type PropTypes = {
 export type ArticleSectionActions = PropTypes['actions']
 
 const removerClassName = 'absolute -top-[10px] -right-[10px] z-2'
+
+// The toolbar is only there in edit mode, so it is what keeps an empty section tall enough to point at.
+const editModeClassName = 'has-[>[data-section-toolbar]]:min-h-16'
 
 const imageFitClassNames = {
     cover: '[&>*:first-child_img]:object-cover',
@@ -75,15 +78,6 @@ export default function ArticleSection({
                         updateCmsImageAction={actions.updateCmsImage}
                         capabilities={capabilities}
                     />
-                    <ImageControls
-                        className="
-                            absolute top-0 left-0 w-full h-full translate-y-full
-                            max-mobile:hidden
-                        "
-                        articleSection={articleSection}
-                        updateArticleSectionAction={actions.updateArticleSection}
-                        capabilities={clientCapabilities}
-                    />
                 </span>
                 <div className={removerClassName}>
                     <RemovePart
@@ -103,37 +97,42 @@ export default function ArticleSection({
     )
 
     return (
-        <section className="isolate grid grid-cols-[minmax(0,1fr)]">
-            <AddPartToArticleSection
-                showParagraphAdd={!cmsParagraph}
-                showImageAdd={!cmsImage}
-                showLinkAdd={!cmsLink}
+        <section className={`
+            group/section relative isolate grid grid-cols-[minmax(0,1fr)]
+            ${editModeClassName}
+            ${sectionBackgrounds[articleSection.background].className}
+        `}>
+            <SectionToolbar
+                articleSection={articleSection}
+                has={{ cmsParagraph: Boolean(cmsParagraph), cmsImage: Boolean(cmsImage), cmsLink: Boolean(cmsLink) }}
+                updateArticleSectionAction={actions.updateArticleSection}
                 addPartToArticleSectionAction={configureAction(
                     actions.addPartToArticleSection,
                     { params: { articleSectionName: articleSection.name } }
                 )}
                 capabilities={clientCapabilities}
+            />
+            <span
+                className="
+                    flex flex-row flex-wrap gap-4
+                    max-mobile:flex-col max-mobile:flex-nowrap
+                    [&>*:first-child]:z-2
+                    [&>*:nth-child(2)]:z-1
+                "
             >
-                <span
-                    className="
-                        flex flex-row flex-wrap gap-4
-                        max-mobile:flex-col max-mobile:flex-nowrap
-                        [&>*:first-child]:z-2
-                        [&>*:nth-child(2)]:z-1
-                    "
-                >
-                    {
-                        cmsImage && articleSection.imagePosition === 'LEFT' &&
+                {
+                    cmsImage && articleSection.imagePosition === 'LEFT' &&
                         cmsImageContent
-                    }
-                    <div className="
-                        min-h-full min-w-0 flex-1 flex flex-col mb-2
-                        max-mobile:min-h-auto max-mobile:order-1
-                    ">
-                        {
-                            cmsParagraph &&
+                }
+                <div className="
+                    min-h-full min-w-0 flex-1 flex flex-col mb-2
+                    max-mobile:min-h-auto max-mobile:order-1
+                ">
+                    {
+                        cmsParagraph &&
                         <span className="
                             relative isolate flex-[1_1_100%]
+                            [&_[data-save-status]]:right-[26px]
                             max-mobile:mr-2
                         ">
                             <div className={removerClassName}>
@@ -155,9 +154,9 @@ export default function ArticleSection({
                                 capabilities={capabilities}
                             />
                         </span>
-                        }
-                        {
-                            cmsLink &&
+                    }
+                    {
+                        cmsLink &&
                         <div className="relative isolate mt-2 max-w-[200px]">
                             <div className={removerClassName}>
                                 <RemovePart
@@ -178,14 +177,13 @@ export default function ArticleSection({
                                 updateCmsLinkAction={actions.updateCmsLink}
                             />
                         </div>
-                        }
-                    </div>
-                    {
-                        cmsImage && articleSection.imagePosition === 'RIGHT' &&
-                        cmsImageContent
                     }
-                </span>
-            </AddPartToArticleSection>
+                </div>
+                {
+                    cmsImage && articleSection.imagePosition === 'RIGHT' &&
+                        cmsImageContent
+                }
+            </span>
         </section>
     )
 }

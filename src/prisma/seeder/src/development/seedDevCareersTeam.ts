@@ -1,4 +1,5 @@
 import { careersTeamOperations } from '@/services/careers/team/operations'
+import { markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { careersTeamPersonOperations } from '@/services/careers/team/persons/operations'
 import { defineSeedOperation } from '@/seeder/src/defineSeedOperation'
 import { upsert } from '@/seeder/src/upsert'
@@ -63,7 +64,7 @@ export const seedDevCareersTeam = defineSeedOperation(async (prisma: PrismaClien
                 const created = await careersTeamOperations.createDepartment({ data: { name: department.name } })
                 await careersTeamOperations.updateDepartmentParagraph({
                     params: { paragraphId: created.paragraphId },
-                    data: { markdown: department.description },
+                    data: { html: await markdownToSafeHtml(department.description) },
                 })
                 for (let index = 0; index < department.titles.length; index++) {
                     const title = department.titles[index]

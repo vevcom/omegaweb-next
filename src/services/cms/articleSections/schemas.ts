@@ -1,5 +1,5 @@
 import { maxImageSize, minImageSize } from './constants'
-import { Position } from '@/prisma-generated-pn-types'
+import { Position, SectionBackground } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 export const articleSectionDataFieldSchemas = z.object({
@@ -10,6 +10,7 @@ export const articleSectionDataFieldSchemas = z.object({
         return val
     }),
     position: z.nativeEnum(Position),
+    background: z.nativeEnum(SectionBackground),
     part: z.union([z.literal('cmsLink'), z.literal('cmsImage'), z.literal('cmsParagraph')])
 })
 
@@ -41,7 +42,8 @@ export const articleSectionSchemas = {
         }),
         update: articleSectionDataFieldSchemas.pick({
             imageSize: true,
-            position: true
+            position: true,
+            background: true,
         }).partial(),
         addPart: part,
         removePart: part,

@@ -89,6 +89,14 @@ enum Position {
   RIGHT
 }
 
+// The surface a section is laid on. NONE leaves it on whatever the page has behind it.
+enum SectionBackground {
+  NONE
+  BASE_100
+  BASE_200
+  BASE_300
+}
+
 model ArticleSection {
   id        Int      @id @default(autoincrement())
   name      String   @unique @default(cuid())
@@ -97,6 +105,7 @@ model ArticleSection {
 
   imagePosition Position @default(RIGHT)
   imageSize     Int      @default(200)
+  background    SectionBackground @default(NONE)
   article       Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
   articleId     Int?
 

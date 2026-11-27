@@ -9,12 +9,13 @@ const name = (maxLength: number) => z.string()
 const dataFieldSchemas = z.object({
     name: name(30),
     includeParts: z.record(articleSectionDataFieldSchemas.shape.part, z.boolean()),
-    direction: z.union([z.literal('UP'), z.literal('DOWN')])
+    sectionIds: z.array(z.number()),
+    // The section the new one comes after, or null to put it first. Left out, it comes last.
+    afterSectionId: z.number().nullable().optional(),
 })
 
 const paramsFieldSchemas = z.object({
     articleId: z.number(),
-    sectionId: z.number(),
     special: z.nativeEnum(SpecialCmsArticle),
 })
 
@@ -36,10 +37,11 @@ export const articleSchemas = {
             name: true,
         }).partial(),
         addSection: dataFieldSchemas.pick({
-            includeParts: true
+            includeParts: true,
+            afterSectionId: true,
         }),
         reorderSections: dataFieldSchemas.pick({
-            direction: true
+            sectionIds: true
         }),
     },
     params: {
@@ -48,10 +50,7 @@ export const articleSchemas = {
         destroy: articleId,
         update: articleId,
         addSection: articleId,
-        reorderSections: paramsFieldSchemas.pick({
-            articleId: true,
-            sectionId: true,
-        }),
+        reorderSections: articleId,
         read: articleId,
     },
 }

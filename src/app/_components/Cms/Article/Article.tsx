@@ -1,10 +1,8 @@
 import styles from './Article.module.scss'
-import AddSection from './AddSection'
-import SectionMover from './SectionMover'
+import ReorderableSections from './ReorderableSections'
 import ChangeName from './ChangeName'
 import EmptyArticle from './EmptyArticle'
 import CmsImage from '@/cms/CmsImage/CmsImage'
-import SlideInOnView from '@/components/SlideInOnView/SlideInOnView'
 import { configureAction } from '@/services/configureAction'
 import { capabilitiesToJsObject } from '@/auth/authorizer/capabilities'
 import ArticleSection, {
@@ -25,10 +23,11 @@ export type PropTypes = {
     coverImageClass?: string,
     hideCoverImage?: boolean
     noMargin?: boolean
+    /** For a page without a panel behind it: the sections reach its edges as the cover image does, which is rounded. */
+    islands?: boolean
     sideBarContent?: ReactNode
     sideBarClassName?: string
     articleClassName?: string
-    addSectionClassName?: string
     /** Shows "Denne artikkelen er tom" in edit mode only, to the one who may fill the article. */
     emptyTextOnlyInEditMode?: boolean
     actions: {
@@ -46,10 +45,10 @@ export default function Article({
     coverImageClass,
     hideCoverImage = false,
     noMargin = false,
+    islands = false,
     sideBarContent,
     sideBarClassName,
     articleClassName,
-    addSectionClassName,
     emptyTextOnlyInEditMode = false,
     actions,
     capabilities,
@@ -58,16 +57,16 @@ export default function Article({
 
     return (
         <span className="
-            h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr_auto]
-            [grid-template-areas:'coverImage_coverImage'_'article_sideBar'_'addSection_sideBar']
-            max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto_auto]
-            max-mobile:[grid-template-areas:'coverImage'_'article'_'addSection'_'sideBar']
+            h-full grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr]
+            [grid-template-areas:'coverImage_coverImage'_'article_sideBar']
+            max-mobile:grid-cols-[minmax(0,1fr)] max-mobile:grid-rows-[auto_1fr_auto]
+            max-mobile:[grid-template-areas:'coverImage'_'article'_'sideBar']
         ">
             {hideCoverImage ? <></> : (
                 <span className={`
                     ${coverImageClass}
-                    rounded-t-round [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)]
-                    relative
+                    ${islands ? 'rounded-round' : 'rounded-t-round'}
+                    [grid-area:coverImage] overflow-hidden isolate block w-full h-[min(300px,40vh)] relative
                     [&>*:nth-child(3)]:absolute [&>*:nth-child(3)]:left-4 [&>*:nth-child(3)]:bottom-4
                     [&>*:nth-child(3)]:right-4 [&>*:nth-child(3)]:wrap-anywhere
                 `}>
@@ -86,67 +85,61 @@ export default function Article({
                         capabilities={capabilities}
                     />
                     <div className="absolute top-0 left-0 w-full h-full bg-black/30 object-cover pointer-events-none" ></div>
-                    <SlideInOnView direction="bottom">
-                        <ChangeName
-                            article={article}
-                            updateArticleAction={
-                                configureAction(
-                                    actions.updateArticleAction,
-                                    { params: { articleId: article.id } }
-                                )
-                            }
-                            capabilities={clientCapabilities}
-                        />
-                    </SlideInOnView>
+                    <ChangeName
+                        article={article}
+                        updateArticleAction={
+                            configureAction(
+                                actions.updateArticleAction,
+                                { params: { articleId: article.id } }
+                            )
+                        }
+                        capabilities={clientCapabilities}
+                    />
                 </span>
             )}
             <article
                 className={`
-                    [grid-area:article] isolate p-4
+                    [grid-area:article] isolate
+                    ${islands ? '[&>*]:my-2' : 'p-4'}
                     [&>*]:isolate [&>*]:relative
                     ${styles.article}
-                    ${noMargin ? '[&>*]:m-0' : `
+                    ${noMargin || islands ? '' : `
                         [&>*]:my-4
                         [&>*:last-child]:mb-0
                     `}
+                    ${noMargin ? '[&>*]:m-0' : ''}
                     ${hideCoverImage && 'rounded-t-round'}
                     ${articleClassName ?? ''}
                 `}
             >
                 {
-                    article.articleSections.length ? (
-                        article.articleSections.sort((a, b) => (a.order - b.order)).map((section, i) => (
-                            <SlideInOnView direction="left" key={section.id}>
-                                <span className="relative block">
-                                    <ArticleSection
-                                        actions={actions.articleSections}
-                                        articleSection={section}
-                                        capabilities={capabilities}
-                                    />
-                                    <SectionMover
-                                        capabilities={clientCapabilities}
-                                        showUp={i !== 0}
-                                        showDown={i !== article.articleSections.length - 1}
-                                        className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[40%] z-2"
-                                        reorderArticleSectionsAction={
-                                            configureAction(
-                                                actions.reorderArticleSectionsAction,
-                                                {
-                                                    params: {
-                                                        articleId: article.id,
-                                                        sectionId: section.id
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    />
-                                </span>
-                            </SlideInOnView>
-                        ))
-                    ) : (
+                    article.articleSections.length === 0 &&
                         <EmptyArticle onlyInEditMode={emptyTextOnlyInEditMode} capabilities={clientCapabilities} />
-                    )
                 }
+                <ReorderableSections
+                    capabilities={clientCapabilities}
+                    reorderArticleSectionsAction={
+                        configureAction(
+                            actions.reorderArticleSectionsAction,
+                            { params: { articleId: article.id } }
+                        )
+                    }
+                    addSectionToArticleAction={
+                        configureAction(
+                            actions.addSectionToArticleAction,
+                            { params: { articleId: article.id } }
+                        )
+                    }
+                    sections={article.articleSections.toSorted((a, b) => a.order - b.order).map(section => ({
+                        id: section.id,
+                        node: <ArticleSection
+                            actions={actions.articleSections}
+                            articleSection={section}
+                            capabilities={capabilities}
+                        />,
+                    }))}
+                />
+
             </article>
             {sideBarContent && (
                 <aside className={`
@@ -156,21 +149,6 @@ export default function Article({
                     {sideBarContent}
                 </aside>
             )}
-            <div className={`
-                [grid-area:addSection] my-0 mx-[min(4rem,4vw)]
-                ${addSectionClassName ?? ''}
-            `}>
-                <AddSection
-                    capabilities={clientCapabilities}
-                    currentNumberSections={article.articleSections.length}
-                    addSectionToArticleAction={
-                        configureAction(
-                            actions.addSectionToArticleAction,
-                            { params: { articleId: article.id } }
-                        )
-                    }
-                />
-            </div>
         </span>
     )
 }

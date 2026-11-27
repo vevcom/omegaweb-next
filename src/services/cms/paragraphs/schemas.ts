@@ -3,7 +3,8 @@ import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
     name: z.string().optional(),
-    markdown: z.string()
+    // Sanitized by the operation, so nothing is checked here but its size.
+    html: z.string().max(200_000),
 })
 
 const paramsFieldSchemas = z.object({
@@ -28,7 +29,7 @@ export const cmsParagraphSchemas = {
             name: true,
         }).partial(),
         updateContent: dataFieldSchemas.pick({
-            markdown: true,
+            html: true,
         }),
     },
     params: {
