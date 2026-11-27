@@ -7,6 +7,7 @@ import {
     eventRegistrationSelection,
     maxDotsForNotShowingUp,
     REGISTRATION_READER_TYPE,
+    registrationQueueTransaction,
     upcomingRegistrationOfUserSelection,
 } from './constants'
 import { eventRegistrationAuth } from './auth'
@@ -94,12 +95,14 @@ const createRegistration = defineSubOperation({
     transaction: 'OPENS',
     operation: ({ asAdmin }: { asAdmin: boolean }) =>
         async ({ prisma, params, session }) => {
+            // The dots do not depend on the event, so they are read before its lock is taken.
+            const delayMs = asAdmin ? 0 : await delayOf(prisma, params.userId)
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
                 await assertMayJoin(tx, variant, params.userId)
                 const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
-                if (!asAdmin) assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
+                if (!asAdmin) assertOpenForUser(variant, session.memberships, delayMs)
                 const placed = asAdmin
                     ? await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId)
                     : await joinVariant(tx, variant, { userId: params.userId })
@@ -108,7 +111,7 @@ const createRegistration = defineSubOperation({
                     params: { eventId: params.eventId, userId: params.userId },
                 })
                 return placed
-            })
+            }, registrationQueueTransaction)
 
             await notifyPromoted(prisma, params.eventId, promoted)
             return registration
@@ -199,7 +202,7 @@ const destroyRegistration = defineSubOperation({
                 })
                 await tx.eventRegistration.delete({ where: { id: params.registrationId } })
                 return await fixVariantPlaces(tx, variantId)
-            })
+            }, registrationQueueTransaction)
 
             await notifyPromoted(prisma, eventId, promoted)
         },
@@ -876,8 +879,8 @@ async function assertMayJoin(tx: Prisma.TransactionClient, variant: ResolvedVari
 }
 
 /** How long the user's dots push the registration start back for them, in milliseconds; bans throw. */
-async function delayOf(tx: Prisma.TransactionClient, userId: number) {
-    const punishment = await readDotPunishmentOfUser({ params: { userId }, prisma: tx, bypassAuth: true })
+async function delayOf(prisma: PrismaPossibleTransaction<false>, userId: number) {
+    const punishment = await readDotPunishmentOfUser({ params: { userId }, prisma, bypassAuth: true })
     if (punishment.type === 'ban') {
         throw new Smorekopp('BAD PARAMETERS', 'Du har for mange prikker til å melde deg på arrangementer.')
     }
@@ -912,6 +915,12 @@ async function joinVariant(tx: Prisma.TransactionClient, variant: ResolvedVarian
     const created = await tx.eventRegistration.create({
         data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, ...registrant },
     })
+    // With every quota exactly full nothing can move, which is every sign-up once an event has filled.
+    // The pass would read all the registrations of the variant to find that out.
+    if (variant.quotas.every(quota => quota._count.registrations === quota.places)) {
+        if (!variant.event.waitingList) throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')
+        return { registration: created, promoted: [] }
+    }
     const promoted = await fixVariantPlaces(tx, variant.id, created.id)
     const registration = await tx.eventRegistration.findUniqueOrThrow({ where: { id: created.id } })
     if (registration.state === 'WAITING_LIST' && !variant.event.waitingList) {
