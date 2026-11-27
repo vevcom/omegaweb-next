@@ -21,6 +21,7 @@ import TextInput from '@/components/UI/TextInput'
 import { saveEventSetupAction } from '@/services/events/actions'
 import { eventCanBeViewedByOptions } from '@/services/events/constants'
 import { eventSetupChecks, setupStatuses } from '@/services/events/publishProblems'
+import { firstRegistrationPeriod } from '@/services/events/firstSetup'
 import { nameVariantInErrors } from '@/services/events/setupErrors'
 import { useTabs } from '@/components/UI/Tabs'
 import { configureAction } from '@/services/configureAction'
@@ -55,7 +56,7 @@ const tabOfPart = {
 
 export type PropTypes = {
     event: Pick<EventDetailed,
-        'id' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
+        'id' | 'kind' | 'name' | 'location' | 'eventStart' | 'eventEnd' | 'canBeViewedBy' | 'hostedByCommitteeId'
         | 'waitingList' | 'bindingRegistration' | 'allowRegistrationInMultipleVariants' | 'updatedAt'
         | 'tags' | 'locationMap' | 'variants' | 'ledgerAccount' | 'company'
     >,
@@ -109,6 +110,8 @@ function SetupForm({
         canBeViewedBy: event.canBeViewedBy,
         adminRequirements: access.adminVisibility.requirements,
     })
+    // The time as the form has it, so a first variant gets the period of the kind from the start just set.
+    const [time, setTime] = useState({ eventStart: event.eventStart, eventEnd: event.eventEnd })
     const { variants } = useEventVariantsField()
     const companySelection = useContext(CompanySelectionContext)
     const shownAccess = {
@@ -140,6 +143,7 @@ function SetupForm({
         reportDots(setupStatuses(eventSetupChecks(setup), tabOfPart))
         setWaitingList(values.getAll('waitingList').includes('on'))
         setShown({ canBeViewedBy: setup.canBeViewedBy, adminRequirements: setup.adminVisibility.requirements })
+        setTime({ eventStart: setup.eventStart, eventEnd: setup.eventEnd })
     }
 
     return <Form
@@ -226,7 +230,11 @@ function SetupForm({
 
         <FormTab tab="registration">
             <EventVariantsFieldInput />
-            <EventRegistrationFields waitingList={waitingList} eventStart={event.eventStart} />
+            <EventRegistrationFields
+                waitingList={waitingList}
+                eventStart={event.eventStart}
+                firstPeriod={firstRegistrationPeriod(event.kind, time)}
+            />
         </FormTab>
 
         <FormTab tab="payment">

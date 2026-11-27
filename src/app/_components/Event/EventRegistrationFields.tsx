@@ -3,7 +3,7 @@ import AdminSection from './AdminSection'
 import { eventQuotaVisibility } from './eventVisibility'
 import EventQuotaBar from './EventQuotaBar'
 import { useEventVariantsField } from './EventVariantsField'
-import { hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
+import { firstVariantDraft, hasRegistrants, newQuotaDraft, newVariantDraft } from '@/services/events/setupDraft'
 import Button from '@/components/UI/Button'
 import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { useState } from 'react'
 import type { QuotaDraft, VariantDraft } from '@/services/events/setupDraft'
+import type { RegistrationPeriod } from '@/services/events/firstSetup'
 import type { ReactNode } from 'react'
 
 const flowStepClassName = 'm-0 py-1 pl-3 text-s text-base-content/80'
@@ -216,9 +217,15 @@ function blockedReason(shape: Shape, variants: VariantDraft[]) {
     return null
 }
 
-function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Date): VariantDraft[] {
+function variantsInShape(
+    shape: Shape,
+    variants: VariantDraft[],
+    eventStart: Date,
+    firstPeriod: RegistrationPeriod | null,
+): VariantDraft[] {
     if (shape === 'NONE') return []
-    const first = variants.at(0) ?? newVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, [])
+    const first = variants.at(0)
+        ?? firstVariantDraft(shape === 'VARIANTS' ? 'Variant 1' : 'Påmelding', eventStart, firstPeriod)
     if (shape === 'VARIANTS') {
         return variants.length > 1 ? variants : [first, newVariantDraft('Variant 2', eventStart, [first], first)]
     }
@@ -242,9 +249,11 @@ function variantsInShape(shape: Shape, variants: VariantDraft[], eventStart: Dat
  * form. Nothing here is saved until the form is, so the buttons at the top only change what the
  * form will send.
  */
-export default function EventRegistrationFields({ waitingList, eventStart }: {
+export default function EventRegistrationFields({ waitingList, eventStart, firstPeriod }: {
     waitingList: boolean,
     eventStart: Date,
+    /** The period the kind of the event gives the first variant, if it gives one. */
+    firstPeriod: RegistrationPeriod | null,
 }) {
     const { variants, setVariants, changeVariant } = useEventVariantsField()
     const current = shapeOf(variants)
@@ -253,7 +262,7 @@ export default function EventRegistrationFields({ waitingList, eventStart }: {
         <OptionCards
             options={shapes.map(shape => ({ ...shape, blocked: blockedReason(shape.value, variants) }))}
             value={current}
-            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart))}
+            onChange={shape => setVariants(variantsInShape(shape, variants, eventStart, firstPeriod))}
         />
 
         {current === 'NONE' && <p className="m-0 text-base-content/80">Arrangementet vises uten påmelding.</p>}
