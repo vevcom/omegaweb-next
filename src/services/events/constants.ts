@@ -17,6 +17,7 @@ export const eventFieldsToExpose = [
     'id',
     'kind',
     'name',
+    'published',
     'location',
     'eventStart',
     'eventEnd',

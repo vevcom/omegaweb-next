@@ -46,6 +46,7 @@ export default function EventCard({ event, config }: PropTypes) {
             <h2>{event.name}</h2>
             {event.company && <CompanyLogoAndName company={event.company} />}
             <div className="flex items-center gap-2 list-none">
+                {!event.published && <span className="text-sm font-semibold text-warning">Utkast</span>}
                 {showsSeveralKinds(config) && (
                     <span className="text-sm text-base-content/70">{eventKinds[event.kind].name}</span>
                 )}
