@@ -20,15 +20,15 @@ const admin = testSession({
 })
 const jobAdReader = testSession({ memberships: [], permissions: ['JOBAD_USE'], user: null })
 
-let companyPresentationTagId: number
 let companyId: number
 let adminGroupId: number
 
-async function createEvent({ tagged = true, published = true, startsIn = 10, endsIn = 12 }: {
-    tagged?: boolean, published?: boolean, startsIn?: number, endsIn?: number,
+async function createEvent({ presentation = true, published = true, startsIn = 10, endsIn = 12 }: {
+    presentation?: boolean, published?: boolean, startsIn?: number, endsIn?: number,
 } = {}) {
     const event = await eventOperations.create({
         data: {
+            kind: presentation ? 'COMPANY_PRESENTATION' : 'ORDINARY',
             name: 'Bedpress hos Vevcom',
             location: 'Lophtet',
             eventStart: hoursFromNow(startsIn),
@@ -36,7 +36,6 @@ async function createEvent({ tagged = true, published = true, startsIn = 10, end
             canBeViewedBy: 'ALL',
             takesRegistration: false,
             waitingList: false,
-            tagIds: tagged ? [companyPresentationTagId] : [],
             visibilityAdminRequirements: [{ conditions: [activeMembersOf(adminGroupId)] }],
         },
         bypassAuth: true,
@@ -74,8 +73,6 @@ const readCurrentIds = async (session: AnySession = Session.empty()) => (
 ).map(highlight => highlight.id)
 
 beforeAll(async () => {
-    const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
-    companyPresentationTagId = tag.id
     const company = await prisma.company.create({
         data: { name: 'Vevcom Highlight AS', description: 'Bakeri' },
     })
@@ -137,9 +134,9 @@ describe('career frontpage highlights', () => {
 
     test('only published company presentations can be highlighted', async () => {
         const message = 'Bare publiserte bedriftspresentasjoner kan fremheves'
-        const untagged = await createEvent({ tagged: false })
+        const ordinary = await createEvent({ presentation: false })
         const draft = await createEvent({ published: false })
-        await expect(createHighlight({ eventId: untagged.id }))
+        await expect(createHighlight({ eventId: ordinary.id }))
             .rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
         await expect(createHighlight({ eventId: draft.id }))
             .rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
@@ -160,7 +157,7 @@ describe('career frontpage highlights', () => {
         expect(await readCurrentIds()).toEqual([current.id])
     })
 
-    test('stops showing when the event is moved earlier, unpublished or untagged', async () => {
+    test('stops showing when the event is moved earlier or unpublished', async () => {
         const moved = await createEvent()
         await createHighlight({ eventId: moved.id })
         await prisma.event.update({
@@ -171,10 +168,6 @@ describe('career frontpage highlights', () => {
         const unpublished = await createEvent()
         await createHighlight({ eventId: unpublished.id })
         await prisma.event.update({ where: { id: unpublished.id }, data: { published: false } })
-
-        const untagged = await createEvent()
-        await createHighlight({ eventId: untagged.id })
-        await prisma.eventTagEvent.deleteMany({ where: { eventId: untagged.id } })
 
         expect(await readCurrentIds()).toEqual([])
     })
@@ -244,9 +237,6 @@ describe('career frontpage highlights', () => {
         const unpublished = await createEvent()
         await createHighlight({ eventId: unpublished.id })
         await prisma.event.update({ where: { id: unpublished.id }, data: { published: false } })
-        const untagged = await createEvent()
-        await createHighlight({ eventId: untagged.id })
-        await prisma.eventTagEvent.deleteMany({ where: { eventId: untagged.id } })
         const moved = await createEvent()
         await createHighlight({ eventId: moved.id })
         await prisma.event.update({
@@ -273,13 +263,13 @@ describe('career frontpage highlights', () => {
     test('offers the admin only what can be highlighted', async () => {
         const offered = await createEvent()
         const draft = await createEvent({ published: false })
-        const untagged = await createEvent({ tagged: false })
+        const ordinary = await createEvent({ presentation: false })
         const jobAd = await createJobAd()
         const { events, jobAds } = await careerFrontpageHighlightOperations.readTargets({ session: admin })
         const eventIds = events.map(event => event.id)
         expect(eventIds).toContain(offered.id)
         expect(eventIds).not.toContain(draft.id)
-        expect(eventIds).not.toContain(untagged.id)
+        expect(eventIds).not.toContain(ordinary.id)
         expect(jobAds.map(ad => ad.id)).toContain(jobAd.id)
     })
 

@@ -1,5 +1,7 @@
 import styles from './EventPage.module.scss'
 import { eventLinks } from '@/pageKits/events/links'
+import { filterableKinds } from '@/pageKits/events/filter'
+import { eventKinds } from '@/services/events/kinds'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import ShowAndEditName from '@/components/Event/ShowAndEditName'
 import RegistrationUI from '@/components/Event/RegistrationUI'
@@ -66,7 +68,7 @@ export function eventPage(config: EventPagesConfig) {
                 }
             })
 
-            if (config.lockedTag && !event.tags.some(tag => tag.special === config.lockedTag)) notFound()
+            if (!config.kindsToShow.includes(event.kind)) notFound()
 
             const tags = await eventTagOperations.readAll({})
 
@@ -215,6 +217,7 @@ export function eventPage(config: EventPagesConfig) {
             const attendanceTakerId = capabilities.canTakeAttendance.authorized && session.user ? session.user.id : null
             const dotGiverId = capabilities.canGiveDots.authorized && session.user ? session.user.id : null
             const severalVariants = event.variants.length > 1
+            const kindTag = eventKinds[event.kind].tag
 
             return (
                 <div className="w-full flex flex-wrap items-stretch gap-2">
@@ -256,15 +259,24 @@ export function eventPage(config: EventPagesConfig) {
                                 list-none flex flex-wrap gap-x-[1em] gap-y-0
                                 [&_a]:no-underline
                             ">
-                                {/* Under a locked tag the list takes no other tag filter, so the tags are not links. */}
+                                {kindTag && <li>
+                                    {filterableKinds(config).includes(event.kind) ? (
+                                        <SiteLink href={links.list({ kinds: [event.kind] })}>
+                                            <EventTag eventTag={kindTag} />
+                                        </SiteLink>
+                                    ) : (
+                                        <EventTag eventTag={kindTag} />
+                                    )}
+                                </li>}
+                                {/* Where the list takes no tag filter, the tags are not links. */}
                                 {event.tags.map(tag => (
                                     <li key={tag.id}>
-                                        {config.lockedTag ? (
-                                            <EventTag eventTag={tag} />
-                                        ) : (
-                                            <SiteLink href={links.list([tag.name])}>
+                                        {config.tagFilter ? (
+                                            <SiteLink href={links.list({ tagNames: [tag.name] })}>
                                                 <EventTag eventTag={tag} />
                                             </SiteLink>
+                                        ) : (
+                                            <EventTag eventTag={tag} />
                                         )}
                                     </li>
                                 ))}

@@ -1,7 +1,7 @@
-import type { EventTag } from '@/prisma-generated-pn-types'
+import type { EventTagLook } from '@/services/events/kinds'
 
 type PropTypes = {
-    eventTag: EventTag
+    eventTag: EventTagLook
 }
 
 export default function EventTag({ eventTag }: PropTypes) {

@@ -1,5 +1,7 @@
 import EventTag from './EventTag'
 import { eventLinks } from '@/pageKits/events/links'
+import { filterableKinds } from '@/pageKits/events/filter'
+import { eventKinds } from '@/services/events/kinds'
 import Form from '@/components/Form/Form'
 import { SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import TextInput from '@/UI/TextInput'
@@ -11,38 +13,43 @@ import SiteLink from '@/components/SiteLink/SiteLink'
 import type { EventTag as EventTagT } from '@/prisma-generated-pn-types'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
 import type { EventPagesConfig } from '@/pageKits/events/config'
+import type { EventListFilter } from '@/pageKits/events/links'
 
 type PropTypes = {
     eventTags: EventTagT[]
     capabilities: Capabilities<'canCreateTags' | 'canUpdateTags' | 'canDestroyTags'>
-    selectedTags: EventTagT[]
+    /** What the list is narrowed to now. Picking a tag or a kind links to the list with it added or removed. */
+    filter: EventListFilter
     config: EventPagesConfig
     /** Whether the tags filter the archive rather than the coming events. */
     archive: boolean
-    search?: string
 }
 
+const pickedClassName = `
+    relative
+    hover:after:content-['✖'] hover:after:text-[length:4em] hover:after:text-base-content hover:after:absolute
+    hover:after:left-1/2 hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
+`
+
+const toggled = <Item, >(items: Item[], item: Item) => (
+    items.includes(item) ? items.filter(other => other !== item) : [...items, item]
+)
+
 /**
- * Component that displays tags and admin for admins.
- * @param eventTags - the tags to display
- * @param capabilities - which of creating, updating and destroying tags to offer
- * @returns
+ * The tags to narrow a list of events by, with the kinds the pages can be narrowed to before them,
+ * and the administration of the tags for those who may.
  */
 export default function EventTagsAdmin({
     eventTags,
-    selectedTags,
+    filter,
     capabilities,
     config,
     archive,
-    search,
 }: PropTypes) {
     const links = eventLinks(config)
     const listHref = archive ? links.archive : links.list
-    const removeFromUrl = (tag: string) => listHref(
-        selectedTags.filter(tagItem => tagItem.name !== tag).map(tagItem => tagItem.name),
-        search,
-    )
-    const addToUrl = (tag: string) => listHref([...selectedTags.map(tagItem => tagItem.name), tag], search)
+    const pickedTagNames = filter.tagNames ?? []
+    const pickedKinds = filter.kinds ?? []
     return (
         <div className="max-h-[80svh]">
             <h1>Tagger</h1>
@@ -68,22 +75,23 @@ export default function EventTagsAdmin({
                 [&_li]:flex [&_li]:items-center [&_li]:z-1
                 [&_li:hover]:z-2
             ">
+                {filterableKinds(config).map(kind => {
+                    const tag = eventKinds[kind].tag
+                    return tag && <li key={kind}>
+                        <SiteLink
+                            className={pickedKinds.includes(kind) ? pickedClassName : ''}
+                            href={listHref({ ...filter, kinds: toggled(pickedKinds, kind) })}
+                        >
+                            <EventTag eventTag={tag} />
+                        </SiteLink>
+                    </li>
+                })}
                 {
                     eventTags.map((tag, index) => (
                         <li key={index} >
                             <SiteLink
-                                className={
-                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ? `
-                                        relative
-                                        hover:after:content-['✖'] hover:after:text-[length:4em]
-                                        hover:after:text-base-content hover:after:absolute hover:after:left-1/2
-                                        hover:after:top-1/2 hover:after:-translate-x-1/2 hover:after:-translate-y-1/2
-                                    ` : ''
-                                }
-                                href={
-                                    selectedTags.map(tagItem => tagItem.name).includes(tag.name) ?
-                                        removeFromUrl(tag.name) : addToUrl(tag.name)
-                                }
+                                className={pickedTagNames.includes(tag.name) ? pickedClassName : ''}
+                                href={listHref({ ...filter, tagNames: toggled(pickedTagNames, tag.name) })}
                             >
                                 <EventTag eventTag={tag} />
                             </SiteLink>

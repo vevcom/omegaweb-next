@@ -352,7 +352,7 @@ async function notifyGuests(
     if (userIds.length === 0) return
     const event = await prisma.event.findUniqueOrThrow({
         where: { id: eventId },
-        select: { id: true, name: true, infoNotificationChannelId: true },
+        select: { id: true, kind: true, name: true, infoNotificationChannelId: true },
     })
     await eventNotificationOperations.internal.createInfoNotification.internalCall({
         params: { channelId: event.infoNotificationChannelId },

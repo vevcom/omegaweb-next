@@ -498,3 +498,30 @@ describe('who administrates, and the account', () => {
             .resolves.toMatchObject({ ledgerAccountId: null })
     })
 })
+
+describe('the kind of an event', () => {
+    const kindOf = async (id: number) => (await prisma.event.findUniqueOrThrow({ where: { id } })).kind
+
+    test('is ordinary unless the event is created as another', async () => {
+        expect(await kindOf(await createEvent('Et vanlig arrangement'))).toBe('ORDINARY')
+
+        const presentation = await eventOperations.create({
+            data: {
+                name: 'En bedriftspresentasjon',
+                kind: 'COMPANY_PRESENTATION',
+                visibilityAdminRequirements: [{ conditions: [activeMembersOf(groupId)] }],
+            },
+            bypassAuth: true,
+        })
+        expect(presentation.kind).toBe('COMPANY_PRESENTATION')
+    })
+
+    test('is not changed by a save', async () => {
+        const id = await createEvent('Blir det det var')
+        await save(id, { name: 'Blir det det var, med nytt navn', kind: 'COMPANY_PRESENTATION' } as never)
+
+        const event = await prisma.event.findUniqueOrThrow({ where: { id } })
+        expect(event.name).toBe('Blir det det var, med nytt navn')
+        expect(event.kind).toBe('ORDINARY')
+    })
+})

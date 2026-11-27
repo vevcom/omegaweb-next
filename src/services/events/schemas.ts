@@ -5,10 +5,11 @@ import { readPageInputSchemaObject } from '@/lib/paging/schema'
 import { convertAmount } from '@/lib/currency/convert'
 import { visibilityRequirementsSchema } from '@/services/visibility/schemas'
 import { searchMaxLength } from '@/services/search/constants'
-import { EventCanView } from '@/prisma-generated-pn-types'
+import { EventCanView, EventKind } from '@/prisma-generated-pn-types'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({
+    kind: z.nativeEnum(EventKind),
     name: z.string().min(5, 'Navnet må være minst 5 tegn').max(70, 'Navnet må være maks 70 tegn'),
     location: z.string().min(2, 'Stedet må være minst 2 tegn').max(100, 'Stedet må være maks 100 tegn')
         .or(z.literal('').transform(() => null)),
@@ -92,6 +93,8 @@ const paramsFieldSchemas = z.object({
     eventId: z.number(),
     name: z.string().trim().max(searchMaxLength).optional(),
     tags: z.array(z.string()).nullable(),
+    // Every kind when left out.
+    kinds: z.array(z.nativeEnum(EventKind)).optional(),
 })
 
 const waitingListRefiner = (data: {
@@ -135,6 +138,7 @@ export const eventSchemas = {
     data: {
         create: dataFieldSchemas.pick({
             ...eventFields,
+            kind: true,
             takesRegistration: true,
             places: true,
             registrationStart: true,
@@ -148,6 +152,7 @@ export const eventSchemas = {
             visibilityAdminRequirements: true,
         })
             .partial({
+                kind: true,
                 location: true,
                 eventStart: true,
                 eventEnd: true,
@@ -188,6 +193,7 @@ export const eventSchemas = {
         readStatistics: eventId,
         readManyCurrent: paramsFieldSchemas.pick({
             tags: true,
+            kinds: true,
             name: true,
         }),
         readManyArchivedPage: readPageInputSchemaObject(
@@ -197,6 +203,7 @@ export const eventSchemas = {
             paramsFieldSchemas.pick({
                 name: true,
                 tags: true,
+                kinds: true,
             }),
         ),
         update: eventId,

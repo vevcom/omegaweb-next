@@ -5,6 +5,7 @@ import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
+import type { EventKind } from '@/prisma-generated-pn-types'
 
 /**
  * Tells the ones whose registrations were promoted from the waiting list of an event to one of its
@@ -12,7 +13,7 @@ import { escapeHtml } from '@/lib/html/escapeHtml'
  * if any. Call it only once the change that promoted them is saved.
  */
 export async function notifyPromotedFromWaitingList(
-    event: { id: number, name: string, infoNotificationChannelId: number },
+    event: { id: number, kind: EventKind, name: string, infoNotificationChannelId: number },
     registrations: { userId: number | null, contact: { email: string | null } | null }[],
 ) {
     const title = 'Opprykk fra venteliste ved Omegas nettsider'

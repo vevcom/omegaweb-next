@@ -18,6 +18,7 @@ import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { Session } from '@/auth/session/Session'
 import type { MembershipFiltered } from '@/services/groups/types'
+import type { EventKind } from '@/prisma-generated-pn-types'
 
 const COMPANY_NAME = 'Søketest Bedrift AS'
 const OTHER_COMPANY_NAME = 'Søketest Konsern AS'
@@ -161,6 +162,24 @@ describe('global search', () => {
         expect(events.map(event => event.name)).toEqual(['Søketest Julebord'])
     })
 
+    test('the current events can be narrowed to kinds', async () => {
+        const group = await prisma.group.findFirstOrThrow()
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
+            data: { kind, name, visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }] },
+            bypassAuth: true,
+        })
+        await createEvent('Typetest Bedpres', 'COMPANY_PRESENTATION')
+        await createEvent('Typetest Fest', 'ORDINARY')
+
+        const namesOf = async (kinds?: EventKind[]) => (await eventOperations.readManyCurrent({
+            params: { tags: null, kinds, name: 'typetest' },
+            bypassAuth: true,
+        })).map(event => event.name).sort()
+        expect(await namesOf(['COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres'])
+        expect(await namesOf(['ORDINARY', 'COMPANY_PRESENTATION'])).toEqual(['Typetest Bedpres', 'Typetest Fest'])
+        expect(await namesOf()).toEqual(['Typetest Bedpres', 'Typetest Fest'])
+    })
+
     test('a single category the session may not search gives no sections', async () => {
         const sections = await omegawebSearchOperations.searchAll({
             params: { query: 'søketest', category: 'companies' },
@@ -182,10 +201,10 @@ describe('global search', () => {
 
     test('the career site finds only the company presentations, linking to its own pages', async () => {
         const group = await prisma.group.findFirstOrThrow()
-        const tag = await prisma.eventTag.findUniqueOrThrow({ where: { special: 'COMPANY_PRESENTATION' } })
         const HOUR = 60 * 60 * 1000
-        const createEvent = (name: string, tagIds: number[]) => eventOperations.create({
+        const createEvent = (name: string, kind: EventKind) => eventOperations.create({
             data: {
+                kind,
                 name,
                 location: 'Lophtet',
                 eventStart: new Date(Date.now() + 7 * 24 * HOUR),
@@ -193,13 +212,12 @@ describe('global search', () => {
                 canBeViewedBy: 'ALL',
                 takesRegistration: false,
                 waitingList: false,
-                tagIds,
                 visibilityAdminRequirements: [{ conditions: [activeMembersOf(group.id)] }],
             },
             bypassAuth: true,
         })
-        const presentation = await createEvent('Søketest Bedpres', [tag.id])
-        await createEvent('Søketest Fest', [])
+        const presentation = await createEvent('Søketest Bedpres', 'COMPANY_PRESENTATION')
+        await createEvent('Søketest Fest', 'ORDINARY')
 
         const params = { query: 'søketest', category: 'events' as const }
         const session = sessionOf(['EVENT_ADMIN'])

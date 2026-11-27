@@ -92,6 +92,7 @@ export const eventRegistrationAttendanceSelection = {
 /** What a user's list of their coming events shows of each event. */
 export const upcomingEventSelection = {
     id: true,
+    kind: true,
     name: true,
     eventStart: true,
     eventEnd: true,
