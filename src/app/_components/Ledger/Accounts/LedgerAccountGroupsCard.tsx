@@ -1,5 +1,6 @@
 import LedgerAccountGroupList from './LedgerAccountGroupList'
 import AddGroupToLedgerAccount from './AddGroupToLedgerAccount'
+import Card from '@/components/UI/Card'
 import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
 import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { withPageSession } from '@/app/ServerPage'
@@ -16,7 +17,7 @@ export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupId
     const currentGroups = allGroups.filter(group => groupIds.includes(group.id))
     const availableGroups = allGroups.filter(group => !groupIds.includes(group.id))
 
-    return <div className="bg-base-100 text-base-content rounded-round p-(--card-padding)">
+    return <Card className="text-base-content">
         <h2 className="text-base-content">Grupper</h2>
         <LedgerAccountGroupList
             ledgerAccountId={ledgerAccountId}
@@ -26,5 +27,5 @@ export default async function LedgerAccountGroupsCard({ ledgerAccountId, groupId
         {capabilities.canChangeGroups.authorized &&
             <AddGroupToLedgerAccount ledgerAccountId={ledgerAccountId} availableGroups={availableGroups} />
         }
-    </div>
+    </Card>
 }

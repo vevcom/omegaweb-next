@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import TransactionList from '@/components/Ledger/Transactions/LedgerTransactionList'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
@@ -11,9 +12,9 @@ const { page, generateMetadata } = serverPage({
         return ledgerAccountOperations.read({ params: { userId: profile.user.id } })
     },
     render: ({ data: ledgerAccount }) => (
-        <div className="bg-base-100 rounded-round p-(--card-padding) overflow-x-auto">
+        <Card className="overflow-x-auto">
             <TransactionList accountId={ledgerAccount.id} />
-        </div>
+        </Card>
     ),
 })
 

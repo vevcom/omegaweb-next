@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import ButtonLink from '@/components/UI/ButtonLink'
 import LedgerTransactionRow from '@/components/Ledger/Transactions/LedgerTransactionRow'
 import LedgerTransactionTable, { emptyTransactionsText } from '@/components/Ledger/Transactions/LedgerTransactionTable'
@@ -17,7 +18,7 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
         params: { paging: { page: { page: 0, pageSize: 5, cursor: null }, details: { accountId } } },
     }))
 
-    return <div className="bg-base-100 rounded-round p-(--card-padding)">
+    return <Card>
         <h2 className="text-base-content">Transaksjoner</h2>
         {
             transactions.length > 0 ? (
@@ -36,5 +37,5 @@ export default async function LedgerAccountTransactionSummary({ accountId, trans
                 Se alle transaksjoner <FontAwesomeIcon icon={faArrowRight} />
             </ButtonLink>
         }
-    </div>
+    </Card>
 }

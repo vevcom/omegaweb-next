@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { aliasOperations } from '@/services/mail/alias/operations'
 import { validMailAddressDomains } from '@/services/mail/constants'
@@ -48,7 +49,7 @@ const { page, generateMetadata } = serverPage({
     }),
     render: ({ data: { userId, email, aliases, vevenMailAddress, domains, webmail }, capabilities }) => (
         <div className="flex flex-col gap-4">
-            {vevenMailAddress && <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+            {vevenMailAddress && <Card className="flex flex-col gap-3">
                 <h2 className="m-0">E-postadresse</h2>
                 <div className="flex flex-row flex-wrap items-baseline gap-x-3 gap-y-1">
                     <span className="font-medium">{vevenMailAddress.address}</span>
@@ -87,9 +88,9 @@ const { page, generateMetadata } = serverPage({
                     address={vevenMailAddress.address}
                     domains={domains}
                 />}
-            </div>}
+            </Card>}
 
-            {aliases && <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+            {aliases && <Card className="flex flex-col gap-3">
                 <h2 className="m-0">Aliaser</h2>
                 <p className="m-0">
                     E-post til disse aliasene når deg, gjennom e-postlistene du og gruppene dine står på.
@@ -110,7 +111,7 @@ const { page, generateMetadata } = serverPage({
                         ))}
                     </ul>
                 }
-            </div>}
+            </Card>}
         </div>
     ),
 })

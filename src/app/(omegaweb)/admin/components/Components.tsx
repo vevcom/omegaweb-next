@@ -14,6 +14,7 @@ import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import ColorInput from '@/components/UI/ColorInput'
 import { SelectString, SelectNumber } from '@/components/UI/Select'
 import ProgressBar from '@/components/ProgressBar/ProgressBar'
+import Card from '@/components/UI/Card'
 import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
@@ -204,6 +205,18 @@ export default function Components() {
                         options={selectOptions}
                         disabled
                     />
+                </div>
+            </section>
+
+            <section className="
+                flex flex-col gap-2 pb-4 border-b border-base-300
+                last:border-b-0
+            ">
+                <h2>Cards</h2>
+                <div className="flex flex-wrap items-start gap-2">
+                    {(['base100', 'base200', 'base300'] as const).map(surface => (
+                        <Card key={surface} surface={surface}>{surface}</Card>
+                    ))}
                 </div>
             </section>
 

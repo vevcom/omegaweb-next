@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
 import { chatUserOperations } from '@/services/chat/users/operations'
 import { manualChatSpaceOperations } from '@/services/manualChat/operations'
@@ -70,7 +71,7 @@ const { page, generateMetadata } = serverPage({
 
         return (
             <div className="flex flex-col gap-4">
-                <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+                <Card className="flex flex-col gap-3">
                     <h2 className="m-0">Chat</h2>
                     <p className="m-0">
                         {hasChatAccount
@@ -78,9 +79,9 @@ const { page, generateMetadata } = serverPage({
                             : 'Du får en konto på chatten første gang du logger inn der, med samme innlogging som her.'}
                     </p>
                     {chat && <SiteLink href={externalHref(chat)} target="_blank">Åpne chatten</SiteLink>}
-                </div>
+                </Card>
 
-                <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col">
+                <Card className="flex flex-col">
                     <h2 className="m-0">Varsler</h2>
                     <p className="m-0 mt-3 text-base-content/80">
                         Kanalen Chat gjelder alt på chatten, til du har valgt noe annet for en kanal under den.
@@ -88,9 +89,9 @@ const { page, generateMetadata } = serverPage({
                     </p>
                     {subscriptionTo(data.chatChannel, { hasChildren: true })}
                     {subscriptionTo(data.directAndGroupChannel, { depth: 1 })}
-                </div>
+                </Card>
 
-                <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+                <Card className="flex flex-col gap-3">
                     <h2 className="m-0">Chatområder</h2>
                     {spaces.length === 0
                         ? <p className="m-0 text-base-content/80">Du er ikke med i noe chatområde.</p>
@@ -121,10 +122,10 @@ const { page, generateMetadata } = serverPage({
                             </ul>
                         </>
                     }
-                </div>
+                </Card>
 
                 {administeredSpaces.length > 0 && (
-                    <div className="bg-base-100 rounded-round p-(--card-padding) flex flex-col gap-3">
+                    <Card className="flex flex-col gap-3">
                         <h2 className="m-0">Chatområder du styrer</h2>
                         <ul className="m-0 p-0 list-none flex flex-col gap-2">
                             {administeredSpaces.map(space => (
@@ -133,7 +134,7 @@ const { page, generateMetadata } = serverPage({
                                 </li>
                             ))}
                         </ul>
-                    </div>
+                    </Card>
                 )}
             </div>
         )

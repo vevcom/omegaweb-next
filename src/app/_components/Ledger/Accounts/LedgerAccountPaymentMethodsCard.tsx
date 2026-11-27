@@ -1,3 +1,4 @@
+import Card from '@/components/UI/Card'
 import PaymentMethodList from '@/components/Ledger/Accounts/PaymentMethodList'
 import PaymentMethodModal from '@/components/Ledger/Modals/PaymentMethodModal'
 import DisconnectStudentCardButton from '@/components/Ledger/Accounts/DisconnectStudentCardButton'
@@ -22,7 +23,7 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
     const hasBankCard = savedPaymentMethods.length > 0
     const hasStudentCard = user.studentCard !== null
 
-    return <div className="bg-base-100 rounded-round p-(--card-padding)">
+    return <Card>
         <h2>Betalingsalternativer</h2>
         <div className="flex flex-col gap-2">
             <h3>Bankkort <BooleanIndicator value={hasBankCard} /></h3>
@@ -42,5 +43,5 @@ export default async function LedgerAccountPaymentMethods({ userId }: Props) {
             <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
             {hasStudentCard && <DisconnectStudentCardButton userId={userId} />}
         </div>
-    </div>
+    </Card>
 }
