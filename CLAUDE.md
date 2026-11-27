@@ -116,13 +116,57 @@ const update = defineOperation({
 export const updateFooAction = makeAction(fooOperations.update)
 ```
 
+A service is written in one of two forms while the services are moved from the one above to the contract form. In the contract form an operation is declared once, as an entry of `contract.ts`, and its operation, its action and what the frontend imports are made from that entry. Its actions and capabilities are not in the service: they are how the frontend reaches it, as an API route is, and live under `src/app/_capabilities/`, in a tree that mirrors `src/services/`. See `src/services/omegaquotes/` and `src/app/_capabilities/omegaquotes/`.
+
+**Contract form:**
+```typescript
+// schemas.ts
+export const fooDataFieldSchemas = z.object({ name: z.string().trim().min(2).max(40) })
+export const fooParamsFieldSchemas = z.object({ id: z.number() })
+
+// contract.ts
+export const fooContract = defineContract({
+  update: {
+    params: fooParamsFieldSchemas.pick({ id: true }),
+    data: fooDataFieldSchemas.pick({ name: true }),
+    authorizer: Require.permission('FOO_ADMIN').or().userId(),
+  },
+})
+
+// operations.ts
+export const fooOperations = {
+  update: defineOperation(fooContract.update, {
+    authorizerData: async ({ params, prisma }) => {
+      const foo = await prisma.foo.findUniqueOrThrow({ where: { id: params.id }, select: { ownerId: true } })
+      return { userId: foo.ownerId }
+    },
+    operation: async ({ params, data, session, prisma }) => {
+      // Business logic here
+    },
+  }),
+} as const
+
+// src/app/_capabilities/foo/actions.ts
+export const updateFooAction = makeAction(fooOperations.update)
+
+// src/app/_capabilities/foo/capabilities.ts
+export const fooCapabilities = defineCapabilities(fooContract, {
+  update: updateFooAction,
+})
+```
+
+- **`defineContract`**, from `src/services/serviceContract.ts`, takes an entry per operation: its `params` schema and its `data` schema, each left out when the operation takes none, and `authorizer`, its rule. `contract.ts` imports nothing of the server, so the browser can import it too.
+- **`defineOperation(entry, { authorizerData?, operation })`** makes the operation of an entry. Its schemas and its rule are the entry's, so it cannot run another rule than its own. `authorizerData` returns the data the rule still needs, and may read the database. Leaving it out is a type error when the rule needs data, and so is giving it when the rule needs none. It may return more than the rule needs, but never a `session`. The entry form takes no `transaction` flag yet.
+- **`defineCapabilities(contract, actions)`** joins the contract with its actions, by key. An action made from another entry, from another contract or from no entry is a type error, except between two contracts of the very same type, such as two with only a `readAll` behind a permission, which the compiler cannot tell apart. The result has every key of the contract, each with `authorizer` and `action`, which is `undefined` for an operation given no action.
+- A service's `contract.ts` is imported by the service's own files and by its capabilities file under `_capabilities`, and by nothing else. The frontend imports from `@/capabilities/...`: a page, a component or the navigation reads a rule as `fooCapabilities.update.authorizer` and an action as `fooCapabilities.update.action`. An action given to no capability, such as the read a paging context calls, is imported from the `actions.ts` beside it.
+
 ### Authorizers
 
-Rules are written once in a service's `auth.ts` as `Require` chains. The same rule runs on the server, inside the operation, and on the frontend, with `useAuthorizer`. `operations.ts` only supplies data to a rule with `.data({...})`. It never builds a `Require` chain itself.
+Rules are written once as `Require` chains, in a service's `auth.ts` or in the entries of its `contract.ts`. The same rule runs on the server, inside the operation, and on the frontend, with `useAuthorizer`. `operations.ts` only supplies data to a rule, with `.data({...})` or through `authorizerData`. It never builds a `Require` chain itself.
 
 - **Conditions:** `.permission('X')`, `.user()`, and `.userField()` take no extra data. `.userId()` needs `{ userId }`. `.groupAdmin()` needs `{ groupId }`. `.companyUser()` takes none, `.companyUserId()` needs `{ companyUserId }`, and `.companyMember()` and `.companyAdmin()` need `{ companyId }`; see [Company users](#company-users). `.levelOfDoubleVisibility({ level })` needs `{ visibility }`. `.ownership<Data>(check)` and `.custom<Data>(check)` let the caller define the check. `.visibilityFilter()` attaches a Prisma `where` filter to a list query instead of denying it. `.nothing()` means the operation has no access rule.
 - **Combining:** conditions in a chain are ANDed; `.or()` starts a new OR'd group. `.anyOf(...)` and `.allOf(...)` combine already-built chains. `chain.allOf(extra)` only extends the last group of `chain`; use `Require.allOf(chain, extra)` to require `extra` on every branch.
-- **Data:** a chain that needs data, such as `userId` or `groupId`, is a type error until `.data({...})` has supplied all of it. Rules that need data from the database fetch it in the operation's `authorizer`. The authorizer may be async and receives `prisma`; it then calls `.data()`.
+- **Data:** a chain that needs data, such as `userId` or `groupId`, is a type error until `.data({...})` has supplied all of it. Rules that need data from the database fetch it in the operation's `authorizer`. The authorizer may be async and receives `prisma`; it then calls `.data()`. An operation made from a contract entry returns the data from `authorizerData` instead. A `session` among the data is never used: a rule checks the session it is run for.
 
 ### Sub-operations, ownership checks and internal calls
 
@@ -151,20 +195,26 @@ Each service domain follows a standard file layout. See `src/services/omegaquote
 
 ```
 src/services/[domain]/
-├── actions.ts      # 'use server': makeAction() wrappers, one per operation
-├── auth.ts         # Authorizer definitions: `Require` chains, shared with the frontend
 ├── constants.ts    # Domain constants and config values: env vars, field selections
+├── contract.ts     # defineContract(): the schemas and the rule of each operation
 ├── operations.ts   # defineOperation() calls, exported as `{ ... } as const`
-├── schemas.ts      # Plain Zod schemas: `fooSchemas.data` and `fooSchemas.params`, keyed by operation
+├── schemas.ts      # Plain Zod schemas: the field objects the contract picks from
 └── types.ts        # TypeScript types specific to this domain, if needed
+
+src/app/_capabilities/[domain]/
+├── actions.ts      # 'use server': makeAction() wrappers, one per operation
+└── capabilities.ts # defineCapabilities(): the contract joined with its actions, for the frontend
 ```
+
+A service not yet moved to the contract form has no `contract.ts` and no `capabilities.ts`. Its `actions.ts` is in the service's own folder, its rules are in `auth.ts`, as `Require` chains shared with the frontend, and its `schemas.ts` also exports `fooSchemas.data` and `fooSchemas.params`, keyed by operation. See [Service Layer Pattern](#service-layer-pattern).
 
 Rules:
 - **`constants.ts`**: not `ConfigVars.ts` or any other name
 - **`operations.ts`**: the exported object must end with `as const`
-- **`schemas.ts`**: holds every `dataSchema` and `paramsSchema` the service's operations use. See [Operation Naming Conventions](#operation-naming-conventions). None are defined inline in `operations.ts`.
+- **`schemas.ts`**: holds every `dataSchema` and `paramsSchema` the service's operations use, or in the contract form the field objects its entries pick from. See [Operation Naming Conventions](#operation-naming-conventions). No schema is defined inline in `operations.ts`.
+- **`contract.ts`**: imported only by the files of its own service, as `./contract`, and by its capabilities file. ESLint refuses `@/services/.../contract` anywhere else.
 - **`actions.ts`**: must have `'use server'` at the top; only calls `makeAction()`
-- Sub-domains, such as `mail/alias/`, follow the same layout within their subfolder
+- Sub-domains, such as `mail/alias/`, follow the same layout within their subfolder, also under `_capabilities`
 
 ### Background Workers
 
@@ -250,6 +300,7 @@ A company user is a person who acts for a company on the career site. It is an a
 The project uses extensive TypeScript path aliases. See `tsconfig.json`:
 - `@/lib/*` → `src/lib/*`
 - `@/components/*` → `src/app/_components/*`
+- `@/capabilities/*` → `src/app/_capabilities/*`
 - `@/services/*` → `src/services/*`
 - `@/prisma-pn-client-instance` → `src/prisma/client.ts`
 - `@/prisma-generated-pn-client` → `generated/pn-prisma/client.ts`
@@ -262,6 +313,7 @@ src/
 ├── app/                    # Next.js app directory: pages, routes, layouts
 │   ├── layout.tsx          # The document and the shared providers, no navigation or theme
 │   ├── _components/        # Shared React components
+│   ├── _capabilities/      # Actions and capabilities of the services in the contract form, in a tree that mirrors services/
 │   ├── api/                # API routes, e.g. NextAuth
 │   ├── (omegaweb)/         # Omega's site: its navigation and the user's theme
 │   │   ├── admin/          # Admin pages
@@ -378,7 +430,7 @@ reach for a stronger one "just in case" once a simpler one already works.
 
 ### Calling Services from the Frontend
 
-**IMPORTANT**: client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`. Operations are server-only: they build on `serviceOperation.ts`, which imports `'@ow-server-only'`.
+**IMPORTANT**: client components (`'use client'`) must NEVER import from `operations.ts`. They call server actions from `actions.ts`, which is in the service's folder, or for a service in the contract form in `src/app/_capabilities/[domain]/`, where `capabilities.ts` beside it holds each action with its rule. Operations are server-only: they build on `serviceOperation.ts`, which imports `'@ow-server-only'`.
 
 Server components do the opposite: pages, layouts and other server components import from `operations.ts` and call operations directly, not through actions. A read action exists only when a client component needs it, so don't add one for a page.
 
@@ -464,6 +516,8 @@ import { someAuth } from '@/services/some/auth'
 const canDoThing = useAuthorizer({ authorizer: someAuth.operation.data({ userId }) }).authorized
 ```
 
+For a service in the contract form the rule is `someCapabilities.operation.authorizer`, from `@/capabilities/some/capabilities`.
+
 Never do this manually in client components:
 ```typescript
 const session = useSession()
@@ -472,7 +526,7 @@ const canDoThing = !session.loading && someAuth.operation.data({ userId }).auth(
 
 ### Capabilities
 
-What the user may do on a page is declared as capabilities: `can[Something]` keys mapped to authorizers, run against the session into `AuthResult`s. The types and helpers live in `src/auth/authorizer/capabilities.ts`.
+What the user may do on a page is declared as capabilities: `can[Something]` keys mapped to authorizers, run against the session into `AuthResult`s. The types and helpers live in `src/auth/authorizer/capabilities.ts`. A `capabilities.ts` under `src/app/_capabilities/` is not this: it holds what a service declares for each of its operations, and a page takes a rule from it, as in `canCreate: fooCapabilities.create.authorizer`.
 
 - Pages and layouts declare capabilities in `serverPage`/`serverLayout`'s `capabilities: (data, session) => ({ canEdit: fooAuth.update.data({ ... }) })`, and read them in `render` as `capabilities.canEdit.authorized`. A rule that needs the session's own user takes the `session` argument, for example `session.user ? fooAuth.create.data({ userId: session.user.id }) : Require.user()`. Don't run `.auth(session)` inline in `render`.
 - Server components take one `capabilities: Capabilities<'canEdit' | 'canDestroy'>` prop and read `capabilities.canEdit.authorized`. Never destructure it, and never take `session` to run authorizers in the component, and never take a boolean per ability. A parent passes its own object on when the keys match, as in `capabilities={capabilities}`. It maps them otherwise, as in `capabilities={{ canEdit: capabilities.canEditParagraph }}`. It builds them per item of a list with `runCapabilities(session, { ... })`.
@@ -480,12 +534,12 @@ What the user may do on a page is declared as capabilities: `can[Something]` key
 
 ### Operation Naming Conventions
 
-For every `defineOperation()` call, the operation key must align with its schema and authorizer keys:
+In the contract form an operation is made from the entry of its own key, as in `update: defineOperation(fooContract.update, { ... })`, and its schemas and its rule are that entry's. For every `defineOperation({ ... })` call in the other form, the operation key must align with its schema and authorizer keys:
 
 - `dataSchema` comes from `fooSchemas.data` and `paramsSchema` from `fooSchemas.params`, one `fooSchemas` object exported from `schemas.ts`. The key must match the operation name exactly. For example, operation `destroyFoo` uses `fooSchemas.data.destroyFoo` and `fooSchemas.params.destroyFoo`, not `fooSchemas.data.createFoo`. The `implementationParamsSchema` of an implemented sub-operation goes in `fooSchemas.params` too, under the key of the operation it implements. Sub-operations whose schemas are built from implementation fields are the exception: those stay in `defineSubOperation`. A service with no data schemas has no `data` key, and vice versa.
 - `authorizer` must reference the same operation name. For example, `fooAuth.destroyFoo`, not `fooAuth.createFoo`.
 
-Data and params are different kinds of input and have separate field objects in `schemas.ts`: `fooSchemas.data` picks from `dataFieldSchemas`, what a user writes, trimmed, length-checked and form-coerced, and `fooSchemas.params` picks from `paramsFieldSchemas`, what identifies the thing acted on, such as ids, names used as keys, or cursors. Params have looser rules, since a lookup that finds nothing is a NOT FOUND, not a validation error. A field such as `name` may appear in both with different rules; never pick a params schema from `dataFieldSchemas` or the other way round. When operations share the same shape, define a shared variable and reference it from each key:
+Data and params are different kinds of input and have separate field objects in `schemas.ts`: `fooSchemas.data` picks from `dataFieldSchemas`, what a user writes, trimmed, length-checked and form-coerced, and `fooSchemas.params` picks from `paramsFieldSchemas`, what identifies the thing acted on, such as ids, names used as keys, or cursors. In the contract form an entry's `data` and `params` pick from the same two field objects, exported as `fooDataFieldSchemas` and `fooParamsFieldSchemas`. Params have looser rules, since a lookup that finds nothing is a NOT FOUND, not a validation error. A field such as `name` may appear in both with different rules; never pick a params schema from `dataFieldSchemas` or the other way round. When operations share the same shape, define a shared variable and reference it from each key:
 
 ```typescript
 // schemas.ts

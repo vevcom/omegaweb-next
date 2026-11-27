@@ -420,11 +420,12 @@ export class RequireBuilder<
 
     /** Supplies everything this chain still needs. Can be called anywhere in the chain - before or
      * after further conditions are added - as long as everything is supplied by the time
-     * `.auth()` is called. */
+     * `.auth()` is called. The session is never the caller's to supply: a `session` among the
+     * data is not handed to the checks. */
     data(this: RequireBuilder<Data, PrismaWhereFilter, EarlierUser, LastUser>, data: Data):
         RequireBuilder<NoData, PrismaWhereFilter, EarlierUser, LastUser> {
         const groups = this.groups.map(group => group.map(check =>
-            (args: { session: SessionMaybeUser }) => check({ ...args, ...data })
+            (args: { session: SessionMaybeUser }) => check({ ...args, ...data, session: args.session })
         ))
         return new RequireBuilder<NoData, PrismaWhereFilter, EarlierUser, LastUser>(groups)
     }

@@ -14,7 +14,7 @@ import { articleCategoryAuth } from '@/services/articleCategories/auth'
 import { eventAuth } from '@/services/events/auth'
 import { ombulAuth } from '@/services/ombul/auth'
 import { newsAuth } from '@/services/news/auth'
-import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
+import { omegaquoteCapabilities } from '@/capabilities/omegaquotes/capabilities'
 import { dynamicImageAuth } from '@/services/images/dynamic/auth'
 import { cabinArticleAuth } from '@/services/cabin/article/auth'
 import { revueFrontpageAuth } from '@/services/revue/frontpage/auth'
@@ -86,7 +86,7 @@ export const navDef = defineNavDef([
         name: 'Omegaquotes',
         href: appHref('/omegaquotes'),
         icon: faComment,
-        authorizers: () => [omegaQuotesAuth.readPage],
+        authorizers: () => [omegaquoteCapabilities.readPage.authorizer],
     },
     {
         key: 'news',

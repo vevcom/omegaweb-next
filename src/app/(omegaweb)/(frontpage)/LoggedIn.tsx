@@ -24,7 +24,7 @@ import { eventOperations } from '@/services/events/operations'
 import { ombulOperations } from '@/services/ombul/operations'
 import { omegaquoteOperations } from '@/services/omegaquotes/operations'
 import { ombulAuth } from '@/services/ombul/auth'
-import { omegaQuotesAuth } from '@/services/omegaquotes/auth'
+import { omegaquoteCapabilities } from '@/capabilities/omegaquotes/capabilities'
 import { withPageSession } from '@/app/ServerPage'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import Footer from '@/components/Footer/Footer'
@@ -58,7 +58,7 @@ export default async function LoggedInLandingPage() {
         // in user without them gets the islands left out entirely instead of an error page.
         const sessionCapabilities = runCapabilities(session, {
             canReadOmbul: ombulAuth.readAll,
-            canReadOmegaquotes: omegaQuotesAuth.readPage,
+            canReadOmegaquotes: omegaquoteCapabilities.readPage.authorizer,
         })
         const ombulsRead = sessionCapabilities.canReadOmbul.authorized
             ? (await ombulOperations.readAll({})).slice(0, MAX_NUMBER_OF_ELEMENTS)
