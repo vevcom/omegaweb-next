@@ -1,7 +1,7 @@
 import '@ow-server-only'
 import { PAYMENT_HOURS_AFTER_PROMOTION } from './paymentDeadline'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
-import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { eventHomeLinks } from '@/pageKits/events/links'
 import { sendMailOperations } from '@/services/mail/send/operations'
 import logger from '@/lib/logger'
 import { escapeHtml } from '@/lib/html/escapeHtml'
@@ -36,7 +36,7 @@ export async function notifyPromotedFromWaitingList(
             data: {
                 title,
                 message,
-                url: omegaEventLinks.event(event),
+                url: eventHomeLinks(event).event(event),
                 audience: { userIds },
             },
         })

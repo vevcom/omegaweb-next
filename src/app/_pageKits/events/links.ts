@@ -38,3 +38,6 @@ export const eventLinks = defineLinks<EventPagesConfig, EventLinks>((href, confi
         attendance: event => (shows(event) ? href(`${eventPath(event)}/attendance`) : home(event).attendance(event)),
     }
 })
+
+/** The links of the home pages of the event's kind, for what is rendered on no pages, as a notification is. */
+export const eventHomeLinks = (event: EventRef) => eventLinks(eventHomePages[event.kind])

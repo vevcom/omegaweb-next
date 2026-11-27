@@ -4,6 +4,7 @@ import CreateEventForm from '@/components/Event/CreateEventForm'
 import TagHeaderItem from '@/components/Event/TagHeaderItem'
 import EventCard from '@/components/Event/EventCard'
 import PickedEventFilters from '@/components/Event/PickedEventFilters'
+import EventKindFilter from '@/components/Event/EventKindFilter'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
 import ArchiveLink from '@/components/HeaderItems/ArchiveLink'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
@@ -67,7 +68,10 @@ export function eventsPage(config: EventPagesConfig) {
             return (
                 <PageWrapper search={{ value: filter.search, label: 'Søk etter arrangement' }} headerItem={
                     <div className="flex justify-between items-center w-full gap-[1em]">
-                        <PickedEventFilters config={config} filter={filter} eventTags={eventTags} />
+                        <div className="flex flex-wrap items-center gap-[1em]">
+                            <EventKindFilter config={config} filter={filter} />
+                            <PickedEventFilters config={config} filter={filter} eventTags={eventTags} />
+                        </div>
                         <div className="flex items-center gap-[1em]">
                             {config.tagFilter && (
                                 <TagHeaderItem

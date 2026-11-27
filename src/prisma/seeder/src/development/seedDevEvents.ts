@@ -71,6 +71,25 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
         },
         {
             event: {
+                kind: 'SPEED_INTERVIEW',
+                name: 'Speedintervju med Kongsberg',
+                location: 'EL5',
+                eventStart: startDate,
+                eventEnd: endDate,
+                canBeViewedBy: 'ALL',
+                takesRegistration: true,
+                places: 8,
+                registrationStart: today,
+                registrationEnd: tomorrow,
+                waitingList: true,
+                tagIds: [],
+                quotaVisibilityRequirements,
+                visibilityAdminRequirements,
+            },
+            registrationCount: 3,
+        },
+        {
+            event: {
                 name: 'Stresset eksamenslesing',
                 location: 'Lesesal',
                 eventStart: startDate,

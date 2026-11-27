@@ -14,6 +14,7 @@ import { careerJobAdLinks } from '@/app/(careers)/career/job-ads/links'
 import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
 import { omegaEventPages } from '@/app/(omegaweb)/events/config'
 import { companyPresentationLinks } from '@/app/(careers)/career/company-presentations/links'
+import { speedInterviewLinks } from '@/app/(careers)/career/speed-interviews/links'
 import { testSession, activeMembersOf } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
 import type { Session } from '@/auth/session/Session'
@@ -199,7 +200,7 @@ describe('global search', () => {
         expect(omega.map(section => section.category)).toContain('committees')
     })
 
-    test('the career site finds only the company presentations, linking to its own pages', async () => {
+    test('the career site finds the kinds it has pages for, each linked to on the pages of its kind', async () => {
         const group = await prisma.group.findFirstOrThrow()
         const HOUR = 60 * 60 * 1000
         const createEvent = (name: string, kind: EventKind) => eventOperations.create({
@@ -217,6 +218,7 @@ describe('global search', () => {
             bypassAuth: true,
         })
         const presentation = await createEvent('Søketest Bedpres', 'COMPANY_PRESENTATION')
+        const speedInterview = await createEvent('Søketest Speedintervju', 'SPEED_INTERVIEW')
         await createEvent('Søketest Fest', 'ORDINARY')
 
         const params = { query: 'søketest', category: 'events' as const }
@@ -226,9 +228,16 @@ describe('global search', () => {
             careersSearchOperations.searchAll({ params, session }),
         ])
         const labelsOf = (sections: typeof omega) => sections[0]?.results.map(result => result.label) ?? []
-        expect(labelsOf(omega)).toEqual(expect.arrayContaining(['Søketest Bedpres', 'Søketest Fest']))
-        expect(labelsOf(careers)).toEqual(['Søketest Bedpres'])
-        expect(careers[0]?.results[0]?.href).toBe(companyPresentationLinks.event(presentation))
+        const hrefOf = (sections: typeof omega, label: string) => (
+            sections[0]?.results.find(result => result.label === label)?.href
+        )
+        expect(labelsOf(omega)).toEqual(
+            expect.arrayContaining(['Søketest Bedpres', 'Søketest Fest', 'Søketest Speedintervju'])
+        )
+        expect(labelsOf(careers).sort()).toEqual(['Søketest Bedpres', 'Søketest Speedintervju'])
+        expect(hrefOf(careers, 'Søketest Bedpres')).toBe(companyPresentationLinks.event(presentation))
+        expect(hrefOf(careers, 'Søketest Speedintervju')).toBe(speedInterviewLinks.event(speedInterview))
+        expect(hrefOf(omega, 'Søketest Speedintervju')).toBe(omegaEventLinks.event(speedInterview))
         expect(omega[0]?.results.find(result => result.label === 'Søketest Bedpres')?.href)
             .toBe(omegaEventLinks.event(presentation))
     })
@@ -321,19 +330,19 @@ describe('search respects a provider\'s own visibility filter', () => {
         })
         await eventOperations.setPublished({ params: { id: event.id }, data: { published: true }, bypassAuth: true })
 
-        const { rows: memberRows } = await eventOperations.search(omegaEventPages)({
+        const { rows: memberRows } = await eventOperations.search([omegaEventPages])({
             params: { query: 'søketest begrenset' },
             session: sessionInMemberGroup(),
         })
         expect(memberRows.map(row => row.id)).toContain(event.id)
 
-        const { rows: outsiderRows } = await eventOperations.search(omegaEventPages)({
+        const { rows: outsiderRows } = await eventOperations.search([omegaEventPages])({
             params: { query: 'søketest begrenset' },
             session: sessionOf([]),
         })
         expect(outsiderRows.map(row => row.id)).not.toContain(event.id)
 
-        const { rows: adminRows } = await eventOperations.search(omegaEventPages)({
+        const { rows: adminRows } = await eventOperations.search([omegaEventPages])({
             params: { query: 'søketest begrenset' },
             session: sessionOf(['EVENT_ADMIN']),
         })

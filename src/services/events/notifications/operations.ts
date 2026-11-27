@@ -2,9 +2,10 @@ import '@ow-server-only'
 import { eventNotificationAuth } from './auth'
 import { eventNotificationSchemas } from './schemas'
 import { eventChannelDescriptions, eventChannelNames, eventInfoChannelMethods } from './constants'
-import { eventNotificationChannel } from '@/services/events/eventNotificationChannel'
+import { eventKinds } from '@/services/events/kinds'
+import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
 import { readEventAccess } from '@/services/events/access'
-import { omegaEventLinks } from '@/app/(omegaweb)/events/links'
+import { eventHomeLinks } from '@/pageKits/events/links'
 import { implementNotificationChannelsForPurpose } from '@/services/notifications/channels/implementForPurpose'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
@@ -15,11 +16,11 @@ import type { NotificationResult } from '@/services/notifications/types'
 
 /** The channel operations per purpose of the channels an event owns. An event owns only its own. */
 const channels = {
+    // Sits under the channel of the event's kind, which is named when it is made.
     own: implementForEvents('EVENT', 'notificationChannelId', {
-        parent: eventNotificationChannel,
         description: eventChannelDescriptions.own,
     }),
-    // The two sit under the event's own channel, which is named when they are made.
+    // The two sit under the event's own channel.
     info: implementForEvents('EVENT_INFO', 'infoNotificationChannelId', {
         description: eventChannelDescriptions.info,
         availableMethods: eventInfoChannelMethods,
@@ -71,7 +72,7 @@ export const eventNotificationOperations = {
                     title: `Husk å betale for ${event.name}`,
                     message: `Du har plass på ${event.name}, men har ikke betalt for den ennå. `
                         + 'Betal på arrangementets side.',
-                    url: omegaEventLinks.event(event),
+                    url: eventHomeLinks(event).event(event),
                     audience: { userIds },
                 },
             })
@@ -83,17 +84,22 @@ export const eventNotificationOperations = {
         createInfoNotification: channels.info.internal.createNotification,
 
         /**
-         * The three channels of an event, under the EVENT channel. The event's id must be known
+         * The three channels of an event, under the channel of its kind. The event's id must be known
          * already, since the channels are named after it, so reserve it before the event is inserted.
          */
         createChannels: defineSubOperation({
             paramsSchema: () => eventNotificationSchemas.params.createChannels,
             dataSchema: () => eventNotificationSchemas.data.createChannels,
             transaction: 'RUNS_IN',
-            operation: () => async ({ params, data }): Promise<EventChannelIds> => {
+            operation: () => async ({ prisma, params, data }): Promise<EventChannelIds> => {
                 const names = eventChannelNames(data.name, params.eventId)
+                const { notificationChannel } = eventKinds[data.kind]
+                const parent = await specialNotificationChannelOperations.channels[notificationChannel]
+                    .internal.read.internalCall({ prisma })
 
-                const own = await channels.own.internal.createAsConfigured.internalCall({ data: { name: names.own } })
+                const own = await channels.own.internal.createAsConfigured.internalCall({
+                    data: { name: names.own, parentId: parent.id },
+                })
                 const [info, general] = await Promise.all([
                     channels.info.internal.createAsConfigured.internalCall({
                         data: { name: names.info, parentId: own.id },

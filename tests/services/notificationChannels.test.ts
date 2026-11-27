@@ -1,7 +1,7 @@
 import { prisma } from '@/prisma-pn-client-instance'
 import { manualNotificationChannelOperations } from '@/services/notifications/channels/manual/operations'
 import { specialNotificationChannelOperations } from '@/services/notifications/channels/special/operations'
-import { contactorNotificationChannel } from '@/services/careers/contactorNotificationChannel'
+import { speedInterviewNotificationChannel } from '@/services/careers/speedInterviewNotificationChannel'
 import { eventNotificationChannel } from '@/services/events/eventNotificationChannel'
 import { eventNotificationOperations } from '@/services/events/notifications/operations'
 import { eventOperations } from '@/services/events/operations'
@@ -13,6 +13,7 @@ import { Smorekopp } from '@/services/error'
 import { activeMembersOf } from 'tests/utils'
 import { afterAll, afterEach, beforeAll, describe, expect, jest, test } from '@jest/globals'
 import type { VisibilityRequirement } from '@/services/visibility/types'
+import type { EventKind } from '@/prisma-generated-pn-types'
 
 const createdChannelIds: number[] = []
 
@@ -137,14 +138,15 @@ describe('the special and the manual notification channels', () => {
     })
 
     test('a special channel is created from its config when it is missing', async () => {
-        const before = await contactorNotificationChannel.read({ bypassAuth: true })
+        // One with nothing under it, which can be deleted.
+        const before = await speedInterviewNotificationChannel.read({ bypassAuth: true })
         await prisma.notificationChannel.delete({ where: { id: before.id } })
         await prisma.notificationMethod.delete({ where: { id: before.availableMethodsId } })
 
-        const recreated = await contactorNotificationChannel.read({ bypassAuth: true })
+        const recreated = await speedInterviewNotificationChannel.read({ bypassAuth: true })
         expect(recreated.id).not.toBe(before.id)
         expect(recreated).toMatchObject({
-            special: 'CONTACTOR',
+            special: 'SPEED_INTERVIEW',
             purpose: 'SPECIAL',
             name: before.name,
             description: before.description,
@@ -225,6 +227,29 @@ describe('the channels an event owns', () => {
         expect(general.availableMethods).toMatchObject(parent.availableMethods)
     })
 
+    test('the own channel of an event sits under the channel of its kind, and those under Contactor\'s', async () => {
+        const special = specialNotificationChannelOperations.channels
+        const [contactor, presentations, speedInterviews] = await Promise.all([
+            special.CONTACTOR.read({ bypassAuth: true }),
+            special.COMPANY_PRESENTATION.read({ bypassAuth: true }),
+            special.SPEED_INTERVIEW.read({ bypassAuth: true }),
+        ])
+        expect(presentations.parentId).toBe(contactor.id)
+        expect(speedInterviews.parentId).toBe(contactor.id)
+
+        const ownChannelOf = async (kind: EventKind) => {
+            const event = await eventOperations.create({
+                data: { kind, name: `Kanaltest ${kind}`, visibilityAdminRequirements: [{ conditions: [] }] },
+                bypassAuth: true,
+            })
+            const [own, info] = await readChannelsOfEvent(event.id)
+            expect(info.parentId).toBe(own.id)
+            return own
+        }
+        expect((await ownChannelOf('COMPANY_PRESENTATION')).parentId).toBe(presentations.id)
+        expect((await ownChannelOf('SPEED_INTERVIEW')).parentId).toBe(speedInterviews.id)
+    })
+
     test('registering subscribes to the info channel with every method it offers', async () => {
         await eventRegistrationOperations.createAsAdmin({ params: { userId, eventId }, bypassAuth: true })
         const [, info] = await readChannelsOfEvent(eventId)
@@ -299,7 +324,7 @@ describe('the channels an event owns', () => {
         })
         const created = await eventNotificationOperations.internal.createChannels.internalCall({
             params: { eventId },
-            data: { name: 'test-inherited-subscribers' },
+            data: { name: 'test-inherited-subscribers', kind: 'ORDINARY' },
         })
         const ids = [created.notificationChannelId, created.infoNotificationChannelId, created.generalNotificationChannelId]
         expect(await prisma.notificationSubscription.count({ where: { channelId: { in: ids } } })).toBe(0)
