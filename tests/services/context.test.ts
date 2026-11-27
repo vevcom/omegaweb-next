@@ -27,7 +27,7 @@ describe('context', () => {
     })
     const emptySession = Session.empty()
 
-    const contexts: ServiceOperationContext[] = [
+    const contexts: Omit<ServiceOperationContext, 'cache'>[] = [
         { session: emptySession, prisma: globalPrisma, bypassAuth: false },
         { session: apiKeySession, prisma: globalPrisma, bypassAuth: false },
         { session: emptySession, prisma: globalPrisma, bypassAuth: true },

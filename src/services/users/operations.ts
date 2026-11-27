@@ -131,10 +131,14 @@ export const userOperations = {
 
     /**
      * Everything the profile page of a user shows: the user, the groups they are in, their class and
-     * their omega membership.
+     * their omega membership. Remembered, since on a user's own pages the navigation, the layout and
+     * the page each ask for it. It may be, though it writes on its way: `readUserLevel` repairs a
+     * broken omega membership before anything else of the profile is read, so the answer kept is the
+     * repaired one.
      */
     readProfile: defineOperation({
         paramsSchema: userSchemas.params.readProfile,
+        remember: true,
         authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
