@@ -17,6 +17,7 @@ export const destroyEventRegistrationAction = makeAction(eventRegistrationOperat
 export const destroyEventRegistrationAsAdminAction = makeAction(eventRegistrationOperations.destroyAsAdmin)
 export const moveEventRegistrationAction = makeAction(eventRegistrationOperations.move)
 export const moveEventRegistrationToQuotaAction = makeAction(eventRegistrationOperations.moveToQuota)
+export const moveEventRegistrationToSlotAction = makeAction(eventRegistrationOperations.moveToSlot)
 export const setEventRegistrationManuallyPaidAction = makeAction(eventRegistrationOperations.setManuallyPaid)
 export const createEventRegistrationPaymentAction = makeAction(eventRegistrationOperations.createPayment)
 

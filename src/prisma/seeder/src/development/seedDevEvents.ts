@@ -94,8 +94,7 @@ export const seedDevEvents = defineSeedOperation(async (prisma: PrismaClient) =>
                 quotaVisibilityRequirements,
                 visibilityAdminRequirements,
             },
-            // Its variant is slotted, and a registration there must hold a slot.
-            registrationCount: 0,
+            registrationCount: 10,
         },
         {
             event: {
@@ -179,11 +178,16 @@ async function createEvent(
             id: true
         }
     })
+    const slots = await prisma.eventSlot.findMany({
+        where: { variantId: quota.variantId },
+        orderBy: { start: 'asc' },
+        select: { id: true },
+    })
 
-    // The first ones fill the quota, the rest queue on the waiting list.
+    // The first ones fill the quota, in a slot each on a slotted variant, and the rest queue on the waiting list.
     await prisma.eventRegistration.createMany({
         data: users.map((user, index) => (index < quota.places
-            ? { state: 'IN_QUOTA' as const, quotaId: quota.id, userId: user.id }
+            ? { state: 'IN_QUOTA' as const, quotaId: quota.id, userId: user.id, slotId: slots[index]?.id ?? null }
             : { state: 'WAITING_LIST' as const, waitingListVariantId: quota.variantId, userId: user.id }
         ))
     })

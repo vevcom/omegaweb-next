@@ -32,6 +32,7 @@ import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
 import { notificationSubscriptionOperations } from '@/services/notifications/subscription/operations'
 import { eventSeatingOperations } from '@/services/events/seating/operations'
+import { eventSlotOperations } from '@/services/events/slots/operations'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
@@ -109,11 +110,18 @@ export function eventPage(config: EventPagesConfig) {
                     params: { eventId: event.id, userId, variantId: variant.id },
                 })))
                 : event.variants.map(() => null)
+            // Only a user is shown the slots, with the registration.
+            const slots = await Promise.all(event.variants.map(async variant => (
+                variant.registrationType === 'SLOTTED' && session.user
+                    ? await eventSlotOperations.readOfVariant({ params: { variantId: variant.id } })
+                    : null
+            )))
             const variantViews = event.variants.map((variant, index) => {
                 const eligibleQuotas = variant.quotas.filter(quota => checkVisibility(session.memberships, quota.visibility))
                 return {
                     variant,
                     registration: registrations[index],
+                    slots: slots[index],
                     eligibleQuotaIds: session.user ? eligibleQuotas.map(quota => quota.id) : null,
                     eligibility: {
                         passesAnyQuota: eligibleQuotas.length > 0,
@@ -307,6 +315,9 @@ export function eventPage(config: EventPagesConfig) {
                                         }
                                         statistics={data.statistics}
                                         seatingBoard={data.seatingBoard}
+                                        slotsOfVariants={Object.fromEntries(data.variantViews.flatMap(view => (
+                                            view.slots ? [[view.variant.id, view.slots]] : []
+                                        )))}
                                         capabilities={capabilitiesToJsObject({
                                             canUpdate: capabilities.canUpdate,
                                             canSetPublished: capabilities.canSetPublished,
@@ -394,6 +405,7 @@ export function eventPage(config: EventPagesConfig) {
                                         event={event}
                                         variant={view.variant}
                                         registration={view.registration}
+                                        slots={view.slots}
                                         dotPunishment={dotPunishment}
                                         eligibility={view.eligibility}
                                         capabilities={{

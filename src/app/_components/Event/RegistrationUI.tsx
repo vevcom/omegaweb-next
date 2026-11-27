@@ -1,4 +1,5 @@
 'use client'
+import EventSlotPicker from './EventSlotPicker'
 import CountDown from '@/components/CountDown/CountDown'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
@@ -8,17 +9,20 @@ import {
     createEventRegistrationAsAdminAction,
     destroyEventRegistrationAction,
     destroyEventRegistrationAsAdminAction,
+    moveEventRegistrationToSlotAction,
     updateEventRegistrationNotesAction
 } from '@/services/events/registration/actions'
+import { displaySlot, slotClock } from '@/services/events/slots/display'
 import { configureAction } from '@/services/configureAction'
 import { authLinks } from '@/pageKits/auth/links'
 import { eventLinks } from '@/pageKits/events/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import useSiteRouter from '@/hooks/useSiteRouter'
-import { useEffect, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import type { EventExpanded, EventVariantSummary } from '@/services/events/types'
 import type { DotPunishment } from '@/services/events/registration/types'
+import type { SlotOfVariant } from '@/services/events/slots/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { EventRegistration } from '@/prisma-generated-pn-types'
 import type { EventPagesConfig } from '@/pageKits/events/config'
@@ -29,7 +33,7 @@ export type RegistrationEligibility = {
     placeAvailable: boolean,
 }
 
-type OwnRegistration = Pick<EventRegistration, 'id' | 'state' | 'note'>
+type OwnRegistration = Pick<EventRegistration, 'id' | 'state' | 'note' | 'slotId'>
 
 enum RegistrationButtonState {
     NOT_REGISTERED = 'NOT_REGISTERED',
@@ -49,6 +53,7 @@ export default function RegistrationUI({
     event,
     variant,
     registration,
+    slots,
     dotPunishment,
     eligibility,
     capabilities,
@@ -56,10 +61,10 @@ export default function RegistrationUI({
     /** The event pages the registration sits in, whose site's login a visitor is sent to. */
     config: EventPagesConfig,
     event: Pick<EventExpanded, 'id' | 'kind' | 'name' | 'waitingList' | 'bindingRegistration'>,
-    variant: Pick<EventVariantSummary,
-        'id' | 'registrationType' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'
-    >,
+    variant: Pick<EventVariantSummary, 'id' | 'registrationStart' | 'registrationEnd' | 'takesRegistration'>,
     registration: OwnRegistration | null,
+    /** The slots of a slotted variant, which a registration with a place holds one of. Null for a list. */
+    slots: SlotOfVariant[] | null,
     dotPunishment: DotPunishment | null,
     eligibility: RegistrationEligibility,
     capabilities: CapabilitiesJsObject<'canRegister' | 'canRegisterAsAdmin' | 'canUnregisterAsAdmin'>,
@@ -98,10 +103,20 @@ export default function RegistrationUI({
 
     const [errorText, setErrorText] = useState('')
     const [registrationState, setRegistrationState] = useState<OwnRegistration | null>(registration)
+    // A refresh brings the registration, the places and the slots as they are now, and the state follows them.
+    const [registrationShown, setRegistrationShown] = useState(registration)
+    if (registration !== registrationShown) {
+        setRegistrationShown(registration)
+        setRegistrationState(registration)
+    }
 
-    const [btnState, setBtnState] = useState(getInitialBtnState(registration))
+    const [failed, setFailed] = useState(false)
+    const btnState = failed ? RegistrationButtonState.ERROR : getInitialBtnState(registrationState)
+    const [, renderAgain] = useReducer((renders: number) => renders + 1, 0)
     const [btnPending, setBtnPending] = useState(false)
     const [btnKey, setBtnKey] = useState(1)
+    const [pickedSlotId, setPickedSlotId] = useState<number | null>(null)
+    const [slotError, setSlotError] = useState('')
 
     const session = useSession()
 
@@ -113,9 +128,7 @@ export default function RegistrationUI({
         const timeUntilRegistration = registrationStart.getTime() - Date.now()
         let timeoutId: ReturnType<typeof setTimeout>
         if (timeUntilRegistration > 0) {
-            timeoutId = setTimeout(() => {
-                setBtnState(getInitialBtnState(registrationState))
-            }, timeUntilRegistration)
+            timeoutId = setTimeout(renderAgain, timeUntilRegistration)
         }
 
         return () => {
@@ -125,9 +138,6 @@ export default function RegistrationUI({
         }
     })
 
-    if (variant.registrationType === 'SLOTTED') {
-        return <p className="m-0 text-base-content/80">Påmelding til tidsluker er ikke mulig ennå.</p>
-    }
     // Only a user registers for an event. A company user is signed in already, so only a visitor is offered the login.
     if (session.data?.companyUser) {
         return <p className="m-0 text-base-content/80">Du kan ikke melde deg på som bedrift.</p>
@@ -138,31 +148,43 @@ export default function RegistrationUI({
     }
 
     const userId = session.data.user.id
+    // A free place on a slotted variant is taken in the slot picked, and one waits for any slot.
+    const mustPickSlot = slots !== null && btnState === RegistrationButtonState.NOT_REGISTERED
+    // A slot taken since it was picked is picked no longer.
+    const pickedSlot = slots?.find(slot => slot.id === pickedSlotId && slot.free) ?? null
 
     const register = async (
         // Separate implementations of one sub-operation, which may diverge.
         // eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
-        createAction: typeof createEventRegistrationAction | typeof createEventRegistrationAsAdminAction
+        createAction: typeof createEventRegistrationAction | typeof createEventRegistrationAsAdminAction,
+        slotId: number | undefined,
     ) => {
         const result = await createAction({
             params: {
                 userId,
                 eventId: event.id,
                 variantId: variant.id,
+                slotId,
             }
         })
 
         if (result.success) {
-            setBtnState(getInitialBtnState(result.data))
             setRegistrationState(result.data)
+            setPickedSlotId(null)
+            setSlotError('')
+            refresh()
+        } else if (slots) {
+            // The slot may have been taken meanwhile, so the slots are read again to pick another.
+            setSlotError(result.error?.[0]?.message ?? 'Kunne ikke melde deg på.')
+            setPickedSlotId(null)
             refresh()
         } else if (result.error && result.error.length > 0) {
             const message = result.error[0].message
             setErrorText(message)
-            setBtnState(RegistrationButtonState.ERROR)
+            setFailed(true)
         } else {
             setErrorText('Kunne ikke melde deg på.')
-            setBtnState(RegistrationButtonState.ERROR)
+            setFailed(true)
         }
     }
 
@@ -177,17 +199,34 @@ export default function RegistrationUI({
         })
 
         if (result.success) {
-            setBtnState(getInitialBtnState(null))
             setRegistrationState(null)
             refresh()
         } else if (result.error && result.error.length > 0) {
             const message = result.error[0].message
             setErrorText(message)
-            setBtnState(RegistrationButtonState.ERROR)
+            setFailed(true)
         } else {
             setErrorText('Kunne ikke melde deg av.')
-            setBtnState(RegistrationButtonState.ERROR)
+            setFailed(true)
         }
+    }
+
+    const moveToSlot = async () => {
+        if (!registrationState || !pickedSlot) return
+        setBtnPending(true)
+        const result = await moveEventRegistrationToSlotAction(
+            { params: { registrationId: registrationState.id } },
+            { data: { slotId: pickedSlot.id } },
+        )
+        if (result.success) {
+            setRegistrationState({ ...registrationState, slotId: pickedSlot.id })
+            setSlotError('')
+        } else {
+            setSlotError(result.error?.[0]?.message ?? 'Kunne ikke bytte tidsluke.')
+        }
+        setPickedSlotId(null)
+        refresh()
+        setBtnPending(false)
     }
 
     const buttonOnClick = async () => {
@@ -195,7 +234,7 @@ export default function RegistrationUI({
         if (registrationState) {
             await unregister(destroyEventRegistrationAction)
         } else {
-            await register(createEventRegistrationAction)
+            await register(createEventRegistrationAction, mustPickSlot ? pickedSlot?.id : undefined)
         }
         setBtnPending(false)
         setBtnKey(btnKey + 1)
@@ -209,7 +248,7 @@ export default function RegistrationUI({
         if (registrationState) {
             await unregister(destroyEventRegistrationAsAdminAction)
         } else {
-            await register(createEventRegistrationAsAdminAction)
+            await register(createEventRegistrationAsAdminAction, pickedSlot?.id)
         }
         setBtnPending(false)
         setBtnKey(btnKey + 1)
@@ -217,14 +256,18 @@ export default function RegistrationUI({
 
     const isRegistered = btnState === RegistrationButtonState.REGISTERED ||
         btnState === RegistrationButtonState.ON_WAITING_LIST
-    const mayRegister = btnState === RegistrationButtonState.NOT_REGISTERED ||
-        btnState === RegistrationButtonState.WAITING_LIST_OPEN
+    const mayRegister = (btnState === RegistrationButtonState.NOT_REGISTERED && !(mustPickSlot && !pickedSlot))
+        || btnState === RegistrationButtonState.WAITING_LIST_OPEN
     // A place is given up within the registration period; the waiting list is left at any time. A
     // binding registration, or one past the deadline, is only taken back by those who administrate
     // the event. The note, though, closes with the deadline for everyone registered.
     const deadlinePassed = variant.registrationEnd < new Date()
     const registrationClosed = registrationState?.state === 'IN_QUOTA' && deadlinePassed
     const mayUnregister = isRegistered && !event.bindingRegistration && !registrationClosed
+    const heldSlotId = registrationState?.slotId ?? null
+    const heldSlot = slots?.find(slot => slot.id === heldSlotId)
+    const registrationOpen = variant.registrationStart <= new Date() && !deadlinePassed
+    const maySwitchSlot = heldSlotId !== null && registrationOpen
 
     const confirmation = () => {
         if (mayUnregister) {
@@ -237,6 +280,28 @@ export default function RegistrationUI({
     }
 
     return <>
+        {slots && <EventSlotPicker
+            slots={slots}
+            heldSlotId={heldSlotId}
+            pickedSlotId={pickedSlot?.id ?? null}
+            onPick={setPickedSlotId}
+            picking={mustPickSlot || maySwitchSlot || (!registrationState && capabilities.canRegisterAsAdmin.authorized)}
+        />}
+        {heldSlot && <p className="m-0">Din tidsluke: <strong>{displaySlot(heldSlot)}</strong></p>}
+        {slotError && <p className="m-0 text-error">{slotError}</p>}
+        {maySwitchSlot && pickedSlot && pickedSlot.id !== heldSlotId && (
+            <SubmitButton
+                success={false}
+                color="secondary"
+                className="w-full! m-0!"
+                onClick={moveToSlot}
+                pending={btnPending}
+                key={`switch-${btnKey}`}
+            >
+                Bytt til {slotClock(pickedSlot)}
+            </SubmitButton>
+        )}
+
         <SubmitButton
             success={false}
             confirmation={confirmation()}
@@ -247,10 +312,10 @@ export default function RegistrationUI({
             pending={btnPending}
             key={btnKey}
         >
-            {(
-                btnState === RegistrationButtonState.NOT_REGISTERED ||
-                btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN
-            ) && 'Meld meg på'}
+            {btnState === RegistrationButtonState.NOT_REGISTERED && (
+                mustPickSlot && !pickedSlot ? 'Velg en tidsluke' : 'Meld meg på'
+            )}
+            {btnState === RegistrationButtonState.REGISTRATION_NOT_OPEN && 'Meld meg på'}
             {btnState === RegistrationButtonState.REGISTERED && (mayUnregister ? 'Meld meg av' : 'Påmeldt')}
             {btnState === RegistrationButtonState.ON_WAITING_LIST && (
                 mayUnregister ? 'Meld meg av ventelisten' : 'På ventelisten'

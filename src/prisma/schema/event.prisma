@@ -175,6 +175,8 @@ model EventSlot {
   start     DateTime
   end       DateTime
 
+  registration EventRegistration?
+
   @@unique([variantId, start])
 }
 
@@ -277,6 +279,10 @@ model EventRegistration {
   seatLocked  Boolean     @default(false)
   seatingWishes     EventSeatingWish[] @relation(name: "wishFrom")
   seatingWishedBy   EventSeatingWish[] @relation(name: "wishFor")
+
+  // Held exactly while the registration has a place in a slotted variant. A held slot is not deleted.
+  slot   EventSlot? @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  slotId Int?       @unique
 
   ledgerTransactions LedgerTransaction[]
 

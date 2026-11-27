@@ -43,7 +43,7 @@ import { ledgerTransactionOperations } from '@/services/ledger/transactions/oper
 import { refundOperations } from '@/services/ledger/refunds/operations'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import type { Prisma } from '@/prisma-generated-pn-types'
+import type { EventRegistrationState, Prisma } from '@/prisma-generated-pn-types'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { ExpandedPayment } from '@/services/ledger/payments/types'
 import type { ExpandedLedgerTransaction } from '@/services/ledger/transactions/types'
@@ -85,7 +85,8 @@ type CreateParamsSchema =
  * Registers a user to a variant of an event. A user registers themselves within the registration
  * period and held back by their dots; an administrator registers anyone, at any time, into the
  * quota they name. Either way the registration joins the waiting list and `fixVariantPlaces`
- * seats it if a place is free, so no one passes those already waiting.
+ * seats it if a place is free, so no one passes those already waiting. On a slotted variant the
+ * registration names the free slot it is to hold, or none to wait for one, see `joinVariant`.
  */
 const createRegistration = defineSubOperation({
     paramsSchema: ({ asAdmin }: { asAdmin: boolean }): CreateParamsSchema => (asAdmin
@@ -97,13 +98,13 @@ const createRegistration = defineSubOperation({
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
-                assertHandsOutByList(variant)
                 await assertMayJoin(tx, variant, params.userId)
                 const pickedQuotaId = 'quotaId' in params && typeof params.quotaId === 'number' ? params.quotaId : null
+                const slotId = await pickedSlot(tx, variant, params.slotId)
                 if (!asAdmin) assertOpenForUser(variant, session.memberships, await delayOf(tx, params.userId))
                 const placed = asAdmin
-                    ? await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId)
-                    : await joinVariant(tx, variant, { userId: params.userId })
+                    ? await placeAsAdmin(tx, variant, { userId: params.userId }, pickedQuotaId, slotId)
+                    : await joinVariant(tx, variant, { userId: params.userId }, slotId)
                 await eventNotificationOperations.internal.subscribeToInfoChannel.internalCall({
                     prisma: tx,
                     params: { eventId: params.eventId, userId: params.userId },
@@ -117,9 +118,9 @@ const createRegistration = defineSubOperation({
 })
 
 /**
- * Unregisters, and lets `fixVariantPlaces` give the freed place on. A user unregisters within the
- * registration period of the variant and never from a binding registration; an administrator
- * removes any registration at any time.
+ * Unregisters, and lets `fixVariantPlaces` give the freed place on, with the slot it held. A user
+ * unregisters within the registration period of the variant and never from a binding registration;
+ * an administrator removes any registration at any time.
  */
 const destroyRegistration = defineSubOperation({
     paramsSchema: () => eventRegistrationSchemas.params.destroy,
@@ -135,7 +136,7 @@ const destroyRegistration = defineSubOperation({
                 await tx.$queryRaw`SELECT id FROM "EventRegistration" WHERE id = ${params.registrationId} FOR UPDATE`
                 const registration = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { id: true, userId: true, state: true },
+                    select: { id: true, userId: true, state: true, slotId: true },
                 })
                 const [event, variant] = await Promise.all([
                     tx.event.findUniqueOrThrow({ where: { id: eventId }, select: { bindingRegistration: true } }),
@@ -199,7 +200,7 @@ const destroyRegistration = defineSubOperation({
                     params: { registrationId: params.registrationId },
                 })
                 await tx.eventRegistration.delete({ where: { id: params.registrationId } })
-                return await fixVariantPlaces(tx, variantId)
+                return await fixVariantPlaces(tx, variantId, { freedSlotId: registration.slotId })
             })
 
             await notifyPromoted(prisma, eventId, promoted)
@@ -237,9 +238,15 @@ export const eventRegistrationOperations = {
             const { registration, promoted } = await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.eventId)
                 const variant = await resolveVariant(tx, params.eventId, params.variantId)
-                assertHandsOutByList(variant)
+                const slotId = await pickedSlot(tx, variant, params.slotId)
                 const contact = await tx.contactDetails.create({ data: { name: data.name } })
-                return await placeAsAdmin(tx, variant, { contactId: contact.id, note: data.note }, params.quotaId ?? null)
+                return await placeAsAdmin(
+                    tx,
+                    variant,
+                    { contactId: contact.id, note: data.note },
+                    params.quotaId ?? null,
+                    slotId,
+                )
             })
 
             await notifyPromoted(prisma, params.eventId, promoted)
@@ -495,7 +502,7 @@ export const eventRegistrationOperations = {
                 // and may take the registration itself back. Then the move did nothing.
                 const moved = await tx.eventRegistration.findUniqueOrThrow({
                     where: { id: params.registrationId },
-                    select: { quotaId: true },
+                    select: { quotaId: true, slot: { select: { start: true, end: true } } },
                 })
                 if (moved.quotaId !== data.quotaId) {
                     throw new Smorekopp(
@@ -503,10 +510,56 @@ export const eventRegistrationOperations = {
                         'En kvote foran har ledig plass og tar påmeldingen tilbake. Fyll den plassen først.'
                     )
                 }
-                return registration.state === 'WAITING_LIST' ? [...promotedByMove, registration] : promotedByMove
+                return registration.state === 'WAITING_LIST'
+                    ? [...promotedByMove, { ...registration, slot: moved.slot }]
+                    : promotedByMove
             })
 
             await notifyPromoted(prisma, eventId, promoted)
+        },
+    }),
+
+    /**
+     * Gives the slot a registration holds up for another free one of its variant, while
+     * registration to the variant is open. The registration keeps its place, its payment and
+     * its attendance.
+     */
+    moveToSlot: defineOperation({
+        authorizer: async ({ params, prisma }) => eventRegistrationAuth.moveToSlot(
+            await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { userId: true },
+            })
+        ),
+        paramsSchema: eventRegistrationSchemas.params.moveToSlot,
+        dataSchema: eventRegistrationSchemas.data.moveToSlot,
+        transaction: 'RUNS_IN',
+        operation: async ({ prisma, params, data }) => {
+            const { eventId, variantId } = await registrationContext(prisma, params.registrationId)
+
+            await lockEvent(prisma, eventId)
+            const registration = await prisma.eventRegistration.findUniqueOrThrow({
+                where: { id: params.registrationId },
+                select: { slotId: true },
+            })
+            if (registration.slotId === null) {
+                throw new Smorekopp('BAD PARAMETERS', 'Påmeldingen har ingen tidsluke å bytte.')
+            }
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: variantId },
+                select: { registrationStart: true, registrationEnd: true },
+            })
+            const now = new Date()
+            if (now < variant.registrationStart || variant.registrationEnd < now) {
+                throw new Smorekopp('BAD PARAMETERS', 'Tidsluken kan bare byttes mens påmeldingen er åpen.')
+            }
+            if (data.slotId === registration.slotId) return
+
+            await assertSlotFree(prisma, variantId, data.slotId)
+            await prisma.eventRegistration.update({
+                where: { id: params.registrationId },
+                data: { slotId: data.slotId },
+            })
         },
     }),
 
@@ -849,10 +902,52 @@ async function resolveVariant(prisma: PrismaPossibleTransaction<false>, eventId:
 
 type ResolvedVariant = Awaited<ReturnType<typeof resolveVariant>>
 
-/** A registration on a slotted variant holds a slot, and nothing hands one out yet. */
-function assertHandsOutByList(variant: ResolvedVariant) {
-    if (variant.registrationType === 'SLOTTED') {
-        throw new Smorekopp('BAD PARAMETERS', 'Påmelding til tidsluker er ikke mulig ennå.')
+/** The slot a registration is to hold, which only a slotted variant has, and which must be free. */
+async function pickedSlot(tx: Prisma.TransactionClient, variant: ResolvedVariant, slotId: number | undefined) {
+    if (slotId === undefined) return null
+    if (variant.registrationType !== 'SLOTTED') {
+        throw new Smorekopp('BAD PARAMETERS', 'Varianten har ikke tidsluker.')
+    }
+    await assertSlotFree(tx, variant.id, slotId)
+    return slotId
+}
+
+/**
+ * Refuses a slot of another variant and a slot someone holds. Run it under `lockEvent`, which every
+ * change to who holds a slot takes, so of two who pick the same slot at once the second is told
+ * here that it is taken. The unique slot of a registration holds it in the database too.
+ */
+async function assertSlotFree(tx: Prisma.TransactionClient, variantId: number, slotId: number) {
+    const slot = await tx.eventSlot.findUnique({
+        where: { id: slotId },
+        select: { variantId: true, registration: { select: { id: true } } },
+    })
+    if (slot?.variantId !== variantId) {
+        throw new Smorekopp('BAD PARAMETERS', 'Tidsluken hører ikke til varianten.')
+    }
+    if (slot.registration) {
+        throw new Smorekopp('BAD PARAMETERS', 'Tidsluken er tatt. Velg en annen.')
+    }
+}
+
+/**
+ * On a slotted variant a registration with a place holds the slot it picked, so it may not be
+ * seated without one, and one that picked a slot may not be left waiting.
+ */
+function assertHoldsPickedSlot(
+    variant: ResolvedVariant,
+    registration: { state: EventRegistrationState },
+    slotId: number | null,
+) {
+    if (variant.registrationType !== 'SLOTTED') return
+    if (registration.state === 'IN_QUOTA' && slotId === null) {
+        throw new Smorekopp('BAD PARAMETERS', 'Det er ledige tidsluker. Velg en av dem.')
+    }
+    if (registration.state === 'WAITING_LIST' && slotId !== null) {
+        throw new Smorekopp(
+            'BAD PARAMETERS',
+            'Ingen av kvotene med ledig plass er åpne for deg, så du kan bare stå på venteliste.'
+        )
     }
 }
 
@@ -914,26 +1009,37 @@ function assertOpenForUser(variant: ResolvedVariant, memberships: MembershipFilt
 
 /**
  * Joins the waiting list of the variant and lets `fixVariantPlaces` seat the registration if a
- * place is free. Left waiting at an event without a waiting list, it is refused instead.
+ * place is free, in the slot it picked on a slotted variant. Left waiting at an event without a
+ * waiting list, it is refused instead.
  */
-async function joinVariant(tx: Prisma.TransactionClient, variant: ResolvedVariant, registrant: Registrant) {
+async function joinVariant(
+    tx: Prisma.TransactionClient,
+    variant: ResolvedVariant,
+    registrant: Registrant,
+    slotId: number | null,
+) {
     const created = await tx.eventRegistration.create({
         data: { state: 'WAITING_LIST', waitingListVariantId: variant.id, ...registrant },
     })
-    const promoted = await fixVariantPlaces(tx, variant.id, created.id)
+    const promoted = await fixVariantPlaces(tx, variant.id, { joining: { id: created.id, slotId } })
     const registration = await tx.eventRegistration.findUniqueOrThrow({ where: { id: created.id } })
+    assertHoldsPickedSlot(variant, registration, slotId)
     if (registration.state === 'WAITING_LIST' && !variant.event.waitingList) {
         throw new Smorekopp('BAD PARAMETERS', 'Arrangementet er fullt.')
     }
     return { registration, promoted }
 }
 
-/** An administrator seats the registrant in the quota they name, or the first with a place, regardless of visibility. */
+/**
+ * An administrator seats the registrant in the quota they name, or the first with a place,
+ * regardless of visibility, and on a slotted variant in the slot they name.
+ */
 async function placeAsAdmin(
     tx: Prisma.TransactionClient,
     variant: ResolvedVariant,
     registrant: Registrant,
     quotaId: number | null,
+    slotId: number | null,
 ) {
     const hasPlace = (quota: ResolvedVariant['quotas'][number]) => quota._count.registrations < quota.places
     const named = quotaId === null ? undefined : variant.quotas.find(quota => quota.id === quotaId)
@@ -944,10 +1050,11 @@ async function placeAsAdmin(
         throw new Smorekopp('BAD PARAMETERS', 'Kvoten er full.')
     }
     const quota = named ?? variant.quotas.find(hasPlace)
-    if (!quota) return await joinVariant(tx, variant, registrant)
+    if (!quota) return await joinVariant(tx, variant, registrant, slotId)
 
+    assertHoldsPickedSlot(variant, { state: 'IN_QUOTA' }, slotId)
     const registration = await tx.eventRegistration.create({
-        data: { state: 'IN_QUOTA', quotaId: quota.id, ...registrant },
+        data: { state: 'IN_QUOTA', quotaId: quota.id, slotId, ...registrant },
     })
     await leaveOtherWaitingLists(tx, variant, ['userId' in registrant ? registrant.userId : null])
     return { registration, promoted: await fixVariantPlaces(tx, variant.id) }

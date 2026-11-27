@@ -11,11 +11,24 @@ import { membershipFilterSelection } from '@/services/groups/constants'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
+import type { Slot } from '@/services/events/slots/types'
 
 export type PromotedRegistration = {
     id: number,
     userId: number | null,
     contact: { email: string | null } | null,
+    slot: Slot | null,
+}
+
+/** What a change to the registrations of a variant tells the pass that puts them in place. */
+export type PlaceChange = {
+    /**
+     * A registration only just made, so seating it is an ordinary sign-up and not a promotion. On
+     * a slotted variant it holds the slot it picked once seated, or none, which its maker refuses.
+     */
+    joining?: { id: number, slotId: number | null },
+    /** A slot the change gave up, which the first one seated gets before any other free slot. */
+    freedSlotId?: number | null,
 }
 
 /**
@@ -26,19 +39,24 @@ export type PromotedRegistration = {
  * queue order who passes it. Someone taken off the waiting list loses their places on the waiting
  * lists of the other variants, unless the event allows registering for several.
  *
+ * On a slotted variant everyone with a place holds a slot of their own, and no one waiting holds
+ * one: whoever goes back to the waiting list gives their slot up, and whoever is seated without
+ * one is given a free slot, see `slotsForSeated`. The places of a slotted variant are as many as
+ * its slots, so there is a free slot for each free place.
+ *
  * Run it under `lockEvent` after whatever changed the places or the registrations, and tell the
- * ones taken off the waiting list once the change is saved; see `notifyPromoted`. A registration
- * that is `joining` was only just made, so seating it is an ordinary sign-up and not a promotion.
+ * ones taken off the waiting list once the change is saved; see `notifyPromoted`.
  */
 export async function fixVariantPlaces(
     tx: Prisma.TransactionClient,
     variantId: number,
-    joining?: number,
+    change: PlaceChange = {},
 ): Promise<PromotedRegistration[]> {
     const variant = await tx.eventVariant.findUniqueOrThrow({
         where: { id: variantId },
         select: {
             eventId: true,
+            registrationType: true,
             event: { select: { allowRegistrationInMultipleVariants: true } },
             quotas: {
                 orderBy: eventQuotaOrder,
@@ -54,6 +72,7 @@ export async function fixVariantPlaces(
             userId: true,
             quotaId: true,
             state: true,
+            slotId: true,
             queuedAt: true,
             manuallyPaid: true,
             ledgerTransactions: { where: validTransactionFilter, select: { id: true }, take: 1 },
@@ -119,6 +138,7 @@ export async function fixVariantPlaces(
         })
     }
 
+    const joiningId = change.joining?.id
     await Promise.all([
         ...moves.map(({ registration, quotaId }) => tx.eventRegistration.update({
             where: { id: registration.id },
@@ -126,18 +146,82 @@ export async function fixVariantPlaces(
                 state: 'IN_QUOTA',
                 quotaId,
                 waitingListVariantId: null,
-                promotedAt: promoted.includes(registration) && registration.id !== joining ? now : undefined,
+                promotedAt: promoted.includes(registration) && registration.id !== joiningId ? now : undefined,
             },
         })),
         ...requeued.map(registration => tx.eventRegistration.update({
             where: { id: registration.id },
-            data: { state: 'WAITING_LIST', quotaId: null, waitingListVariantId: variantId, promotedAt: null },
+            data: {
+                state: 'WAITING_LIST',
+                quotaId: null,
+                waitingListVariantId: variantId,
+                promotedAt: null,
+                slotId: null,
+            },
         })),
     ])
 
+    const slots = variant.registrationType === 'SLOTTED'
+        ? await tx.eventSlot.findMany({
+            where: { variantId },
+            orderBy: { start: 'asc' },
+            select: { id: true, start: true, end: true },
+        })
+        : []
+    const slotsGiven = variant.registrationType === 'SLOTTED'
+        ? slotsForSeated(slots, quotas.flatMap(quota => quota.members), {
+            joining: change.joining,
+            freedSlotIds: [change.freedSlotId ?? null, ...requeued.map(registration => registration.slotId)],
+        })
+        : new Map<number, number>()
+    await Promise.all(Array.from(slotsGiven).map(([registrationId, slotId]) => tx.eventRegistration.update({
+        where: { id: registrationId },
+        data: { slotId },
+    })))
+
     await leaveOtherWaitingLists(tx, { id: variantId, ...variant }, promoted.map(registration => registration.userId))
 
-    return promoted.flatMap(({ id, userId, contact }) => (id === joining ? [] : [{ id, userId, contact }]))
+    const slotOf = (registrationId: number) => {
+        const slot = slots.find(candidate => candidate.id === slotsGiven.get(registrationId))
+        return slot ? { start: slot.start, end: slot.end } : null
+    }
+    return promoted.flatMap(({ id, userId, contact }) => (
+        id === joiningId ? [] : [{ id, userId, contact, slot: slotOf(id) }]
+    ))
+}
+
+/**
+ * The slots of those seated who hold none yet: the joining one the slot it picked, and each of the
+ * others a free one, the slots freed by the change first and then the earliest.
+ */
+function slotsForSeated(
+    slots: { id: number }[],
+    seated: { id: number, slotId: number | null }[],
+    { joining, freedSlotIds }: { joining?: PlaceChange['joining'], freedSlotIds: (number | null)[] },
+): Map<number, number> {
+    const given = new Map<number, number>()
+    const unslotted = seated.filter(registration => registration.slotId === null)
+    const joiningSeated = unslotted.find(registration => registration.id === joining?.id)
+    const joiningSlotId = joining?.slotId ?? null
+    if (joiningSeated && joiningSlotId !== null) given.set(joiningSeated.id, joiningSlotId)
+    const held = new Set([
+        ...seated.flatMap(registration => (registration.slotId === null ? [] : [registration.slotId])),
+        ...Array.from(given.values()),
+    ])
+    const free = [
+        ...slots.filter(slot => freedSlotIds.includes(slot.id)),
+        ...slots.filter(slot => !freedSlotIds.includes(slot.id)),
+    ].filter(slot => !held.has(slot.id))
+
+    for (const registration of unslotted) {
+        if (registration.id === joining?.id) continue
+        const slot = free.shift()
+        if (!slot) {
+            throw new Smorekopp('SERVER ERROR', 'Varianten har flere plasser enn ledige tidsluker.')
+        }
+        given.set(registration.id, slot.id)
+    }
+    return given
 }
 
 /**

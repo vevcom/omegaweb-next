@@ -10,6 +10,7 @@ import { publishProblems } from '@/services/events/publishProblems'
 import type { PropTypes as SetupFormPropTypes } from './EventSetupForm'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 import type { SeatingBoard } from '@/services/events/seating/types'
+import type { SlotOfVariant } from '@/services/events/slots/types'
 import type { VariantStatistics } from '@/services/events/statistics'
 import type { EventDetailed } from '@/services/events/types'
 import type { AppHref } from '@/lib/sites/href'
@@ -24,13 +25,23 @@ type PropTypes = Omit<SetupFormPropTypes, 'event'> & {
     /** Null when the event takes no registration, or they could not be read. */
     statistics: VariantStatistics[] | null,
     seatingBoard: SeatingBoard | null,
+    /** The slots of each slotted variant, by its id. */
+    slotsOfVariants: Record<number, SlotOfVariant[]>,
 }
 
 /**
  * Everything those who administrate an event can do with it, on one set of tabs. Setting it up is
  * one form over several tabs. Registering others, publishing and deleting are done on the spot, next to the statistics.
  */
-export default function EventAdmin({ event, eventHref, capabilities, statistics, seatingBoard, ...setup }: PropTypes) {
+export default function EventAdmin({
+    event,
+    eventHref,
+    capabilities,
+    statistics,
+    seatingBoard,
+    slotsOfVariants,
+    ...setup
+}: PropTypes) {
     const canUpdate = capabilities.canUpdate.authorized
     const canRegisterOthers = capabilities.canRegisterAsAdmin.authorized || capabilities.canRegisterGuest.authorized
     const showRegisterOthers = event.takesRegistration && canRegisterOthers
@@ -67,6 +78,7 @@ export default function EventAdmin({ event, eventHref, capabilities, statistics,
                 <ManualRegistrationForm
                     eventId={event.id}
                     variants={event.variants}
+                    slotsOfVariants={slotsOfVariants}
                     capabilities={{
                         canRegisterAsAdmin: capabilities.canRegisterAsAdmin,
                         canRegisterGuest: capabilities.canRegisterGuest,

@@ -4,29 +4,27 @@ import DateInput from '@/components/UI/DateInput'
 import NumberInput from '@/components/UI/NumberInput'
 import { slotsOrProblem } from '@/services/events/slots/schedule'
 import { defaultLongBreak, slotScheduleLimits } from '@/services/events/slots/constants'
-import { osloDateTime } from '@/lib/dates/oslo'
+import { slotClock, slotDay, slotTime } from '@/services/events/slots/display'
 import type { Slot, SlotScheduleDraft } from '@/services/events/slots/types'
 
 export const slotsInWords = (count: number) => (count === 1 ? '1 tidsluke' : `${count} tidsluker`)
-
-const timeOf = (date: Date) => osloDateTime(date).toFormat('HH:mm')
-const dayOf = (date: Date) => osloDateTime(date).toFormat('dd.MM.')
 
 /** The slots as they will be saved, in Oslo time, the day written out where it is not the first slot's. */
 function SlotsPreview({ slots }: { slots: Slot[] }) {
     const first = slots[0]
     const last = slots[slots.length - 1]
-    const onOtherDay = (date: Date) => (dayOf(date) === dayOf(first.start) ? '' : `${dayOf(date)} `)
+    const onOtherDay = (date: Date) => (slotDay(date) === slotDay(first.start) ? '' : `${slotDay(date)} `)
 
     return <div className="flex flex-col gap-1">
         <p className="m-0 text-s text-base-content/80">
-            {slotsInWords(slots.length)}, {dayOf(first.start)} {timeOf(first.start)}–{onOtherDay(last.end)}{timeOf(last.end)}
+            {slotsInWords(slots.length)}, {slotDay(first.start)} {slotTime(first.start)}–
+            {onOtherDay(last.end)}{slotTime(last.end)}
         </p>
         <ol className="m-0 p-0 list-none flex flex-wrap gap-1">
             {slots.map(slot => <li key={slot.start.getTime()} className="
                 px-2 py-0.5 rounded-inner bg-base-100 text-s tabular-nums
             ">
-                {onOtherDay(slot.start)}{timeOf(slot.start)}–{timeOf(slot.end)}
+                {onOtherDay(slot.start)}{slotClock(slot)}
             </li>)}
         </ol>
     </div>
