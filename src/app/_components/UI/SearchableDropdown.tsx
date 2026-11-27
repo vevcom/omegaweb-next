@@ -1,4 +1,5 @@
 'use client'
+import { fieldBackgroundClassNames, fieldWrapperClassName } from './fieldClassNames'
 import {
     DropdownPanel,
     dropdownChevronClassName,
@@ -23,19 +24,6 @@ export type SearchableDropdownOption<ValueType> = {
 export type PropTypes<ValueType> = Omit<DropdownPropTypes<ValueType>, 'options'> & {
     options: SearchableDropdownOption<ValueType>[],
 }
-
-export const backgroundClassNames = {
-    base100: `
-        bg-base-100
-        hover:bg-base-200
-        focus:bg-base-200
-    `,
-    base200: `
-        bg-base-200
-        hover:bg-base-300
-        focus:bg-base-300
-    `,
-} as const
 
 /**
  * A Dropdown whose trigger is a text field, which narrows the options down to the ones whose label
@@ -95,7 +83,7 @@ export default function SearchableDropdown<ValueType extends string | number>({
             ref={ref}
             className={
                 `
-                    relative mt-2 w-full max-w-[320px]
+                    ${fieldWrapperClassName}
                     ${className ?? ''}
                 `
             }
@@ -111,7 +99,7 @@ export default function SearchableDropdown<ValueType extends string | number>({
                     disabled:cursor-not-allowed disabled:opacity-60
                     ${dropdownColorClassNames[color]}
                     ${dropdownBorderClassNames[color]}
-                    ${backgroundClassNames[background]}
+                    ${fieldBackgroundClassNames[background]}
                 `}
                 autoComplete="off"
                 disabled={disabled}

@@ -7,7 +7,7 @@ import {
     dropdownLabelClassName,
     useDropdown,
 } from './Dropdown'
-import { backgroundClassNames } from './SearchableDropdown'
+import { fieldBackgroundClassNames } from './fieldClassNames'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -103,7 +103,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                         disabled:cursor-not-allowed disabled:opacity-60
                         ${dropdownColorClassNames[color]}
                         ${dropdownBorderClassNames[color]}
-                        ${backgroundClassNames[background]}
+                        ${fieldBackgroundClassNames[background]}
                     `}
                     autoComplete="off"
                     disabled={disabled}

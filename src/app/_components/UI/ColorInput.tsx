@@ -1,5 +1,7 @@
 'use client'
+import { fieldPeerBackgroundClassNames, fieldWrapperClassName } from './fieldClassNames'
 import { useId, useState } from 'react'
+import type { FieldBackground } from './fieldClassNames'
 import type { InputHTMLAttributes, ChangeEvent } from 'react'
 
 export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
@@ -10,21 +12,8 @@ export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'na
         blue: number
     }
     label: string,
-    background?: 'base' | 'raised',
+    background?: FieldBackground,
 }
-
-const backgroundClassNames = {
-    base: `
-        bg-base-200
-        hover:bg-base-300
-        peer-focus:bg-base-300
-    `,
-    raised: `
-        bg-base-300
-        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-        peer-focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-    `,
-} as const
 
 const rgbToHex = (red: number, green: number, blue: number): string => {
     const toHex = (value: number) => {
@@ -42,7 +31,7 @@ const rgbToHex = (red: number, green: number, blue: number): string => {
  * @param label - the label of the input (displayed to user)
  * @param className - the class name of the input
  * @param defaultValueRGB - the default value of the input in RGB format
- * @param background - 'raised' when the field sits on a raised surface
+ * @param background - The surface the field is drawn as, see `FieldBackground`
  * @prop name - the name of the input
  * @returns
  */
@@ -50,7 +39,7 @@ export default function ColorInput({
     label,
     className,
     defaultValueRGB,
-    background = 'base',
+    background = 'base200',
     onChange,
     ...props
 }: PropTypes) {
@@ -73,7 +62,7 @@ export default function ColorInput({
         <div
             className={
                 `
-                    relative w-full max-w-[320px] mt-2
+                    ${fieldWrapperClassName}
                     ${className ?? ''}
                 `
             }
@@ -93,7 +82,7 @@ export default function ColorInput({
                 transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                 peer-focus:border-primary
                 peer-disabled:cursor-not-allowed peer-disabled:opacity-60
-                ${backgroundClassNames[background]}
+                ${fieldPeerBackgroundClassNames[background]}
             `}>
                 <span
                     className="

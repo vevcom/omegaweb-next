@@ -1,26 +1,15 @@
+import { fieldBackgroundClassNames } from './fieldClassNames'
 import { useId } from 'react'
+import type { FieldBackground } from './fieldClassNames'
 import type { TextareaHTMLAttributes } from 'react'
 
 type PropTypes = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'name'> & {
     name: string,
     label?: string,
-    background?: 'base' | 'raised',
+    background?: FieldBackground,
 }
 
-const backgroundClassNames = {
-    base: `
-        bg-base-200
-        hover:bg-base-300
-        focus:bg-base-300
-    `,
-    raised: `
-        bg-base-300
-        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-        focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-    `,
-} as const
-
-export default function Textarea({ label, background = 'base', className, id, ...props }: PropTypes) {
+export default function Textarea({ label, background = 'base200', className, id, ...props }: PropTypes) {
     const domId = useId()
     const inputId = id ?? domId
 
@@ -39,7 +28,7 @@ export default function Textarea({ label, background = 'base', className, id, ..
                     focus:ring-3 focus:ring-primary/25
                     rounded-inner py-3 px-4 transition-[border-color,background-color,box-shadow] duration-300
                     focus:outline-0 focus:border-primary
-                    ${backgroundClassNames[background]}
+                    ${fieldBackgroundClassNames[background]}
                 `}
             ></textarea>
         </div>

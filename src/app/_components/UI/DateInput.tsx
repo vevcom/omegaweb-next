@@ -1,4 +1,5 @@
 'use client'
+import { fieldBackgroundClassNames, fieldWrapperClassName } from './fieldClassNames'
 import { useFormReset, useInputEvent } from '@/components/Form/JsonFieldInput'
 import { utcInputValue } from '@/lib/dates/dateInputValue'
 import { displayDefaultInputValue } from '@/lib/dates/displayDefaultInputValue'
@@ -16,19 +17,6 @@ const colorClassNames = {
     primary: 'text-primary',
     secondary: 'text-secondary',
     error: 'text-error',
-} as const
-
-const backgroundClassNames = {
-    base100: `
-        bg-base-100
-        hover:bg-base-200
-        focus:bg-base-200
-    `,
-    base200: `
-        bg-base-200
-        hover:bg-base-300
-        focus:bg-base-300
-    `,
 } as const
 
 /**
@@ -70,7 +58,7 @@ export default function DateInput({
         <div
             className={
                 `
-                    relative mt-2 w-full max-w-[320px]
+                    ${fieldWrapperClassName}
                     ${colorClassNames[color]}
                     ${className}
                 `
@@ -91,7 +79,7 @@ export default function DateInput({
                     [&::-webkit-calendar-picker-indicator]:transition-colors
                     [&::-webkit-calendar-picker-indicator]:duration-300
                     [&::-webkit-calendar-picker-indicator]:hover:bg-base-300
-                    ${backgroundClassNames[background]}
+                    ${fieldBackgroundClassNames[background]}
                 `}
                 {...props}
                 id={inputId}

@@ -1,52 +1,39 @@
 'use client'
+import { fieldPeerBackgroundClassNames, fieldWrapperClassName } from './fieldClassNames'
 import { useId, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPaperclip } from '@fortawesome/free-solid-svg-icons'
+import type { FieldBackground } from './fieldClassNames'
 import type { InputHTMLAttributes, ChangeEvent } from 'react'
 
 export type PropTypes = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'name'> & {
     name: string,
     label: string,
-    color?: 'primary' | 'secondary' | 'red' | 'black' | 'white',
-    background?: 'base' | 'raised',
+    color?: 'base' | 'primary' | 'error',
+    background?: FieldBackground,
 }
 
 const valueColorClassNames = {
-    black: 'text-base-content',
+    base: 'text-base-content',
     primary: 'text-primary',
-    secondary: 'text-base-content',
-    red: 'text-error',
-    white: 'text-white',
+    error: 'text-error',
 } as const
 
 const focusClassNames = {
-    blue: {
+    primary: {
         trigger: `
             peer-focus:border-primary
             peer-focus:[&_svg]:text-primary
         `,
         label: 'peer-focus:text-primary',
     },
-    red: {
+    error: {
         trigger: `
             peer-focus:border-error
             peer-focus:[&_svg]:text-error
         `,
         label: 'peer-focus:text-error',
     },
-} as const
-
-const backgroundClassNames = {
-    base: `
-        bg-base-200
-        hover:bg-base-300
-        peer-focus:bg-base-300
-    `,
-    raised: `
-        bg-base-300
-        hover:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-        peer-focus:bg-[color-mix(in_srgb,var(--color-base-300),white_10%)]
-    `,
 } as const
 
 /**
@@ -56,12 +43,12 @@ const backgroundClassNames = {
  * the floating label behaves exactly as it does in TextInput.
  * @param label - The label shown to the user
  * @param color - Colours the file name, like the other fields
- * @param background - 'raised' when the field sits on a raised surface
+ * @param background - The surface the field is drawn as, see `FieldBackground`
  */
 export default function FileInput({
     label,
-    color = 'black',
-    background = 'base',
+    color = 'base',
+    background = 'base200',
     className,
     onChange,
     ...props
@@ -79,11 +66,11 @@ export default function FileInput({
         ? `${fileNames.length} filer valgt`
         : fileNames[0] ?? ''
 
-    const focus = focusClassNames[color === 'red' ? 'red' : 'blue']
+    const focus = focusClassNames[color === 'error' ? 'error' : 'primary']
 
     return (
         <div className={`
-            relative w-full max-w-[320px] mt-2
+            ${fieldWrapperClassName}
             ${className ?? ''}
         `}>
             <input
@@ -102,7 +89,7 @@ export default function FileInput({
                     rounded-inner outline-0 text-m text-left text-base-content pt-6 pr-10 pb-2.5 pl-4
                     transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                     peer-disabled:cursor-not-allowed peer-disabled:opacity-60
-                    ${backgroundClassNames[background]}
+                    ${fieldPeerBackgroundClassNames[background]}
                     ${focus.trigger}
                 `}
             >
