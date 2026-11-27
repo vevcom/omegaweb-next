@@ -7,6 +7,7 @@ import { readUserSessionToken, sessionFromCookie } from '@/auth/sso/session'
 import { authLinks } from '@/pageKits/auth/links'
 import { authPagesOf } from '@/pageKits/auth/authPagesOf'
 import { DomainContext } from '@/lib/sites/context'
+import { QueryParams } from '@/lib/queryParams/queryParams'
 import { appHref } from '@/lib/sites/href'
 import { Site, siteNameSchema } from '@/lib/sites/site'
 import { Smorekopp } from '@/services/error'
@@ -71,7 +72,10 @@ function respondAuthorizeError(error: ApiError, request: NextRequest): Response 
             ? Site.of(requestedSite.data)
             : client.site
         const here = appHref(`${request.nextUrl.pathname}${request.nextUrl.search}`)
-        const form = authLinks(authPagesOf(site)).loginForm({ callbackUrl: here })
+        // Handed on to the form and nothing else: it never decides where a code goes.
+        const destinationParam = query.get(QueryParams.destination.name) ?? undefined
+        const destination = QueryParams.destination.decodeValue(destinationParam) ?? undefined
+        const form = authLinks(authPagesOf(site)).loginForm({ callbackUrl: here, destination })
         return NextResponse.redirect(DomainContext.authDomainUrl(form))
     }
     const { error: code, description } = oauthErrorOf(error)

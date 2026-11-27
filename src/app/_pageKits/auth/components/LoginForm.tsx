@@ -4,9 +4,10 @@ import Button from '@/UI/Button'
 import SubmitButton from '@/UI/SubmitButton'
 import { useSession } from '@/auth/session/useSession'
 import useDomainContext from '@/hooks/useDomainContext'
-import { authLinks } from '@/pageKits/auth/links'
+import { authLinks, secondLoginHref } from '@/pageKits/auth/links'
 import { ssoStartHref } from '@/auth/sso/links'
 import SiteLink from '@/components/SiteLink/SiteLink'
+import LoginSwitch from '@/components/LoginSwitch/LoginSwitch'
 import { signIn } from 'next-auth/react'
 import { useState } from 'react'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
@@ -16,6 +17,8 @@ import type { AppHref } from '@/lib/sites/href'
 type PropTypes = {
     config: AuthPagesConfig,
     callbackUrl: AppHref,
+    /** The page the visitor was going to, which the switch to the site's second login carries. */
+    destination: AppHref | null,
     initialError: string | null,
 }
 
@@ -33,7 +36,7 @@ const errorMessages: Record<string, string> = {
     UserArchived: 'Brukeren er arkivert. Ta kontakt med en administrator dersom dette er feil.',
 }
 
-export default function LoginForm({ config, callbackUrl: callbackAppPath, initialError }: PropTypes) {
+export default function LoginForm({ config, callbackUrl: callbackAppPath, destination, initialError }: PropTypes) {
     const session = useSession()
     // NextAuth sends the browser there once signed in here: the start route, which takes the session
     // to the domain the page is on. It must be a url of the domain the visitor is on.
@@ -88,6 +91,11 @@ export default function LoginForm({ config, callbackUrl: callbackAppPath, initia
     }
 
     return <>
+        {config.secondLogin && <LoginSwitch
+            names={config.secondLogin.names}
+            current="user"
+            otherHref={secondLoginHref(config.secondLogin, { callbackUrl: destination ?? undefined })}
+        />}
         {/* POST, so a submit before the page is hydrated never puts the password in the url. */}
         <form method="post" onSubmit={handleSignIn}>
             <TextInput className="max-w-[unset] mb-4" label="Brukernavn" name="username" type="text"/>

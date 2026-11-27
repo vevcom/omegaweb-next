@@ -1,5 +1,5 @@
 import LoginForm from '@/pageKits/auth/components/LoginForm'
-import { authLinks } from '@/pageKits/auth/links'
+import { authLinks, secondLoginCallbackUrl } from '@/pageKits/auth/links'
 import { QueryParams } from '@/lib/queryParams/queryParams'
 import { serverPage } from '@/app/ServerPage'
 import type { AuthPagesConfig } from '@/pageKits/auth/config'
@@ -17,8 +17,14 @@ export function loginPage(config: AuthPagesConfig) {
         operation: ({ searchParams }: PageOperationArgs) => ({
             error: typeof searchParams.error === 'string' ? searchParams.error : null,
             callbackUrl: QueryParams.callbackUrl.decode(searchParams) ?? links.afterLogin(),
+            destination: secondLoginCallbackUrl(searchParams),
         }),
         metadata: () => ({ title: 'Logg inn' }),
-        render: ({ data }) => <LoginForm config={config} callbackUrl={data.callbackUrl} initialError={data.error} />,
+        render: ({ data }) => <LoginForm
+            config={config}
+            callbackUrl={data.callbackUrl}
+            destination={data.destination}
+            initialError={data.error}
+        />,
     })
 }

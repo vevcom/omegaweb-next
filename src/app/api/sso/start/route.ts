@@ -1,5 +1,5 @@
 import { domainContextOf, redirectUrlFor } from '@/app/domainContextOfRequest'
-import { SSO_SCOPE } from '@/auth/sso/constants'
+import { SSO_DESTINATION_MAX_ENCODED_LENGTH, SSO_SCOPE } from '@/auth/sso/constants'
 import { ssoStartHref } from '@/auth/sso/links'
 import { readUserSessionToken } from '@/auth/sso/session'
 import { codeChallengeOf, newSsoState, setSsoStateCookie } from '@/auth/sso/stateCookie'
@@ -53,8 +53,12 @@ export async function GET(request: NextRequest) {
             codeChallenge: codeChallengeOf(state.codeVerifier),
             codeChallengeMethod: oidcProtocol.codeChallengeMethod,
         }),
-        // Our own parameter: the login renders in the layout of the site the visitor was on.
+        // Our own parameters: the login renders in the layout of the site the visitor was on, and
+        // knows the page they were going to, for the site's second login, unless it is too long to carry.
         site: site.name,
+        ...(encodeURIComponent(callbackUrl).length <= SSO_DESTINATION_MAX_ENCODED_LENGTH
+            ? { [QueryParams.destination.name]: callbackUrl }
+            : {}),
     }).toString()
     const response = NextResponse.redirect(authorize)
     setSsoStateCookie(response, sessionCookieOf(request.headers).secure, state)

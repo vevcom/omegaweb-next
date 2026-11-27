@@ -5,6 +5,7 @@ import { authOptions } from '@/auth/nextAuth/authOptions'
 import { sessionTokenOf } from '@/auth/nextAuth/sessionToken'
 import { sessionCookieChunks } from '@/auth/nextAuth/sessionCookie'
 import { endSession, readSessionToken, startSession } from '@/auth/sso/session'
+import { SSO_DESTINATION_MAX_ENCODED_LENGTH } from '@/auth/sso/constants'
 import { DomainConfig } from '@/lib/sites/domainConfig'
 import { DomainContext } from '@/lib/sites/context'
 import { prisma } from '@/prisma-pn-client-instance'
@@ -128,6 +129,7 @@ describe('signing in on a site through the auth domain', () => {
             scope: 'openid',
             code_challenge_method: 'S256',
             site: 'CAREERS',
+            destination: '/career/job-ads',
         })
         expect(authorizeUrl.searchParams.get('state')).toMatch(/^[A-Za-z0-9_-]{43}$/)
         expect(cookieOf(response, STATE_COOKIE)).toBeDefined()
@@ -166,12 +168,57 @@ describe('signing in on a site through the auth domain', () => {
         const form = location(anonymous)
         expect(form.pathname).toBe('/career/login')
         expect(form.searchParams.get('callbackUrl')).toBe(`${authorizeUrl.pathname}${authorizeUrl.search}`)
+        expect(form.searchParams.get('destination')).toBe('/career/job-ads')
 
         const signedIn = await authorize(request(authorizeUrl.href, { [SESSION_COOKIE]: await sessionCookieFor(user.id) }))
         const back = location(signedIn)
         expect(back.origin + back.pathname).toBe('https://contactor.no/api/sso/callback')
         expect(back.searchParams.get('state')).toBe(authorizeUrl.searchParams.get('state'))
         expect(back.searchParams.get('code')).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    })
+
+    test('the start route hands on no page too long to carry, so the sign in never fails on it', async () => {
+        const pageOfEncodedLength = (length: number) =>
+            `/career/${'a'.repeat(length - encodeURIComponent('/career/').length)}`
+        const longest = pageOfEncodedLength(SSO_DESTINATION_MAX_ENCODED_LENGTH)
+        const tooLong = pageOfEncodedLength(SSO_DESTINATION_MAX_ENCODED_LENGTH + 1)
+        const startAt = (page: string) =>
+            start(request(`https://contactor.no/api/sso/start?callbackUrl=${encodeURIComponent(page)}`))
+
+        expect(location(await startAt(longest)).searchParams.get('destination')).toBe(longest)
+        const without = await startAt(tooLong)
+        expect(location(without).searchParams.has('destination')).toBe(false)
+        expect(location(without).pathname).toBe('/api/oidc/authorize')
+    })
+
+    test('authorize reads a destination given twice by its first value, as every parameter', async () => {
+        const authorizeUrl = location(await start(request('https://contactor.no/api/sso/start?callbackUrl=%2Fcareer')))
+        authorizeUrl.searchParams.delete('destination')
+        const formWith = async (...destinations: string[]) => {
+            const url = new URL(authorizeUrl)
+            destinations.forEach(destination => url.searchParams.append('destination', destination))
+            return location(await authorize(request(url.href))).searchParams.get('destination')
+        }
+        expect(await formWith('/career/first', 'https://evil.example')).toBe('/career/first')
+        expect(await formWith('https://evil.example', '/career/second')).toBeNull()
+    })
+
+    test('authorize hands the form only a destination of the app, and never sends a code by it', async () => {
+        const user = await createUser('destination')
+        const authorizeUrl = location(await start(request('https://contactor.no/api/sso/start?callbackUrl=%2Fcareer')))
+        const forged = ['https://evil.example/career', '//evil.example/career', '/\\evil.example', 'career']
+        for (const destination of forged) {
+            authorizeUrl.searchParams.set('destination', destination)
+            const form = location(await authorize(request(authorizeUrl.href)))
+            expect(form.pathname).toBe('/career/login')
+            expect(form.searchParams.has('destination')).toBe(false)
+
+            const signedIn = location(await authorize(request(authorizeUrl.href, {
+                [SESSION_COOKIE]: await sessionCookieFor(user.id),
+            })))
+            expect(signedIn.origin + signedIn.pathname).toBe('https://contactor.no/api/sso/callback')
+            expect(signedIn.searchParams.has('destination')).toBe(false)
+        }
     })
 
     test('the callback exchanges the code for a session on the site and lands where the visitor was going', async () => {

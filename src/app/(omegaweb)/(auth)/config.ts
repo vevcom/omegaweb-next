@@ -9,4 +9,5 @@ export const omegaAuthPages: AuthPagesConfig = {
     afterLogoutPath: '',
     accountNotice: null,
     asksSex: true,
+    secondLogin: null,
 }

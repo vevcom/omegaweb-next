@@ -14,6 +14,8 @@ describe('Site', () => {
         expect(Site.ofPath('/career/job-ads')).toBe(Site.CAREERS)
         expect(Site.ofPath('/career')).toBe(Site.CAREERS)
         expect(Site.ofPath('/career?event-tags=x')).toBe(Site.CAREERS)
+        expect(Site.ofPath('/career#jobs')).toBe(Site.CAREERS)
+        expect(Site.ofPath('/careers#jobs')).toBe(Site.OMEGAWEB)
         expect(Site.ofPath('/careers-day')).toBe(Site.OMEGAWEB)
         expect(Site.ofPath('/revue/login')).toBe(Site.REVUE)
         expect(Site.ofPath('/')).toBe(Site.OMEGAWEB)

@@ -10,4 +10,5 @@ export const revueAuthPages: AuthPagesConfig = {
     accountNotice: 'Omegarevyen er revyen til linjeforeningen Omega ved NTNU, og brukeren du lager her er en bruker '
         + 'på Omegas nettsider. Den samme brukeren gjelder både på Omegarevyen og på Omegaveven.',
     asksSex: true,
+    secondLogin: null,
 }

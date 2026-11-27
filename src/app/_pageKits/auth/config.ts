@@ -1,4 +1,5 @@
 import type { PagesMount } from '@/lib/sites/defineLinks'
+import type { AppHref } from '@/lib/sites/href'
 
 /**
  * How a site renders the sign in and sign up flow. Its pages sit at the site's root, at the sub
@@ -14,4 +15,16 @@ export type AuthPagesConfig = PagesMount<''> & {
     accountNotice: string | null,
     /** Whether sign up asks the user's sex, which Omega's own site does and a site for companies has no use for. */
     asksSex: boolean,
+    /** A login of the site for an account that is no user's, offered at the top of the login form. null for none. */
+    secondLogin: SecondLogin | null,
+}
+
+/**
+ * The site's own login for another kind of account. The login form links to it with the page the
+ * visitor was going to as `QueryParams.callbackUrl`, and it offers the user's login back.
+ */
+export type SecondLogin = {
+    href: AppHref,
+    /** What the switch between the two logins calls each of them, on both sides. */
+    names: { user: string, second: string },
 }
