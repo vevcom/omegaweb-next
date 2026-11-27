@@ -441,9 +441,72 @@ A layout needs it even when every page under it uses `serverPage`: an error thro
 
 The root layout is the exception. It renders the document itself, so it has nothing to show an error view in. It uses `withPageSession` and wraps every read in `withFallback`.
 
+#### Sections of a page: `Suspendful`
+
+A section of a page that loads on its own is a `Suspendful` from `@/app/Suspendful`. It is `serverPage` in component form: it loads the section with an operation and renders it behind a Suspense boundary of its own, so the page around it is sent without waiting for it. The example below is trimmed from `src/app/(omegaweb)/admin/accounts/[accountId]/page.tsx`, where it stands in the page's own `render`:
+
+```tsx
+<Suspendful
+    operation={async () => ({ allGroups: flattenExpandedGroups(await readExpandedOfAllTypes({})) })}
+    section={LedgerAccountGroupsCard}
+    props={{
+        ledgerAccountId: ledgerAccount.id,
+        groupIds: ledgerAccount.groupIds,
+        capabilities: { canChangeGroups: capabilities.canChangeGroups },
+    }}
+/>
+```
+
+- A page or a layout places it, with the page's data in scope. Shared components stay synchronous and take data: a card does not load for itself, the page that places it wraps it in a `Suspendful`. A client component cannot render one, but can be handed one as `children`.
+- The page's own `operation` keeps what decides the page: the thing itself, access, the title and the main content. A section is a card or the like with a read of its own that the page is still a page without. One whose read is fast arrives with the page and shows no skeleton. A section does not set the page's title.
+- `operation` runs in a service context seeded with the request's session, and receives the `session`.
+- `section` is a component with its skeleton, made by `componentWithSkeleton`, see below. Its skeleton is the fallback, `props` is what is known before the read, and `operation` returns the component's read props. Where what it returns holds a key of `props`, `props` win. What the user may do in it is the page's to say, handed in `props` as above.
+- A section that is not one such component is given with `fallback` and `render` instead of `section` and `props`. `fallback` is a skeleton in the section's own size, since a smaller one moves the page when the section arrives. `render` receives `data`, `capabilities` and `session`, with `capabilities` declared as on `serverPage`.
+- `params` is optional: what the operation reads by, such as a filter or a page number. The operation receives it, and it is the boundary's key, so the fallback shows again when it changes. It is an object or left out, so a filter that may not be set is `params={{ filter }}`. On a page with a filter, the section that reads by it has `params`. A slower section without `params` on the same page holds the navigation back, so such a page gives every slow section `params` or keeps the slow ones off it.
+- `router.refresh()`, which is what a form with `refreshOnSuccess` does, loads every section again without showing a fallback.
+- The page is already sent when a section fails. `errors` says what a service error thrown by `operation` or `render` becomes, by its code: `'hide'` leaves the section out, and `'show'` shows the error where the section would have been, in the fallback's shape with a button that loads it again. `NOT FOUND`, `UNAUTHENTICATED` and `UNAUTHORIZED` are hidden unless `errors` says otherwise, and every other code is shown. A bug is caught by the section's own boundary, and the rest of the page stands. So is a service error thrown by a section's component or by a component under `render`, which `errors` does not reach.
+- `notFound()` and a redirect are not caught by a section. They act on the whole page, after it has shown. So a section's operation does not call them, nor a helper that does, such as `siteRedirect`.
+- A hidden section leaves a hole that closes, which moves the page. A section that is often not for the visitor is not placed for them: the page checks with its capabilities first.
+- `errors={{ UNAUTHENTICATED: 'login' }}` sends a visitor who is not logged in to the login, but only after the page has shown for as long as the section took to load. No page uses it. A page that needs a login says so in its own `operation`, which redirects before anything shows.
+- A pop-up or a hidden tab does not make a section lazy: it loads with the page and holds the response open.
+
+#### A component with its skeleton: `componentWithSkeleton`
+
+`componentWithSkeleton` from `@/app/componentWithSkeleton` makes a component and its skeleton from one body, so the skeleton is the component with blocks where the read data goes. The example below is trimmed from `src/app/_components/Ledger/Accounts/LedgerAccountTransactionSummaryCard.tsx`:
+
+```tsx
+type Known = { accountId: number, transactionsHref?: AppHref }
+type Read = { transactions: ExpandedLedgerTransaction[] }
+
+export const LedgerAccountTransactionSummary = componentWithSkeleton<Known, Read>(
+    ({ accountId, transactionsHref, loaded, Skeleton, transactions }) => (
+        <LedgerAccountCard title="Transaksjoner">
+            <LedgerTransactionTable>
+                {loaded ? transactions.map(transaction => (
+                    <LedgerTransactionRow key={transaction.id} accountId={accountId} transaction={transaction} />
+                )) : Array.from({ length: transactionSummarySize }, (_, row) => (
+                    <tr key={row}>
+                        <td colSpan={5}><Skeleton className="h-lh w-full" /></td>
+                    </tr>
+                ))}
+            </LedgerTransactionTable>
+            {transactionsHref && <SiteLink href={transactionsHref}>Se alle transaksjoner</SiteLink>}
+        </LedgerAccountCard>
+    )
+)
+```
+
+- `Known` is what is known before the read, and `Read` is what is read. The two share no key. The body gets both in one props object, with `loaded` and `Skeleton`. With `loaded: true` the read props are there and `Skeleton` is `null`. With `loaded: false` the read props are not there, and `Skeleton` is the block from `@/components/UI/Skeleton`. The compiler refuses read data where `loaded` is false, and the block where it is true.
+- The block has no size of its own. Its `className` gives it the size of what it stands for, and `h-lh` is one line of the text size it is given. Its colour is the text colour of the surface it stands on, faded.
+- What the page already knows of the section's size goes in `props`, as the account's `groupIds` do above. What only the read can tell, such as the number of rows, the body guesses.
+- The body is plain markup: no hooks, not async, in a file without `'use client'`. The module is server-only, so a `'use client'` file that calls it does not build. A part that needs a hook is a client component of its own, which the loaded branch renders and hands the data.
+- The loading branch of the body must not fail. A `Suspendful` makes the skeleton where the page places the section, outside the section's boundary, so a bug there takes the page and not the section.
+- The result is one object. A `Suspendful` takes it whole as `section`. A server component that has the data already renders `.Component`, as in `<LedgerAccountTransactionSummary.Component accountId={accountId} transactions={transactions} />`.
+- A client component cannot import a card made with it, since the module is server-only. A card that a client component renders is a plain component that takes its data, and a section of it is given with `fallback` and `render`.
+
 #### Other server components: `withPageSession`
 
-Server components rendered inside a page, such as cards or sections, wrap their operation calls in `withPageSession(async session => ...)` from `@/app/ServerPage`. This sets up the same service context. Errors are not handled there. Wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary.
+A server component that is neither a page, a layout nor a section of a page wraps its operation calls in `withPageSession(async session => ...)` from `@/app/ServerPage`, as the footer and the root layout do. This sets up the same service context. Errors are not handled there. Wrap calls in `withFallback`, catch them with `handleServiceError`, or let them reach the error boundary. A section of a page is a `Suspendful`, which handles them. The sections that are not yet moved to it still use `withPageSession`.
 
 #### Actions in client components
 

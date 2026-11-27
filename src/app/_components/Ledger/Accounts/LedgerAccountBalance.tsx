@@ -1,7 +1,6 @@
 import { displayAmount } from '@/lib/currency/convert'
 import { currencySymbol } from '@/lib/currency/config'
-import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
-import { withPageSession } from '@/app/ServerPage'
+import type { Balance } from '@/services/ledger/accounts/types'
 
 const currencyClassName = `
     text-left text-base-content/80
@@ -9,15 +8,11 @@ const currencyClassName = `
 `
 
 type Props = {
-    ledgerAccountId: number,
+    balance: Balance,
     showFees?: boolean,
 }
 
-export default async function LedgerAccountBalance({ ledgerAccountId: accountId, showFees }: Props) {
-    const balance = await withPageSession(
-        () => ledgerAccountOperations.calculateBalance({ params: { ledgerAccountId: accountId } })
-    )
-
+export default function LedgerAccountBalance({ balance, showFees }: Props) {
     return <div className="
         grid grid-cols-[auto_1fr_auto] grid-flow-row auto-cols-max items-baseline gap-x-4 whitespace-nowrap
         overflow-hidden
