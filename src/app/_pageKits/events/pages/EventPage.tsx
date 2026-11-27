@@ -11,6 +11,7 @@ import EventQuotaList from '@/components/Event/EventQuotaList'
 import EventPaymentSection from '@/components/Event/EventPaymentSection'
 import EventSeatingWishes from '@/components/Event/EventSeatingWishes'
 import EventSection from '@/components/Event/EventSection'
+import CompanySlotSchedule from '@/components/Event/CompanySlotSchedule'
 import EventInfoRow from '@/components/Event/EventInfoRow'
 import NotificationSubscriptionTree from '@/components/Notifications/NotificationSubscriptionTree'
 import EventLocationMap from '@/components/Event/EventLocationMap'
@@ -38,6 +39,7 @@ import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
 import { configureAction } from '@/services/configureAction'
 import { decodeVevenUriHandleError } from '@/lib/urlEncoding'
 import { eventAuth } from '@/services/events/auth'
+import { eventSlotAuth } from '@/services/events/slots/auth'
 import { hasNoTime } from '@/services/events/publishProblems'
 import { canRegisterSelf, eventRegistrationAuth } from '@/services/events/registration/auth'
 import { eventNotificationAuth } from '@/services/events/notifications/auth'
@@ -193,6 +195,16 @@ export function eventPage(config: EventPagesConfig) {
                 boards.map(([id, board]) => [id, board.slots])
             )
             const savedWaiting = Object.fromEntries(boards.map(([id, board]) => [id, board.waiting]))
+            const companySchedules = eventSlotAuth.readCompanySchedule.data({ companyId: event.companyId, kind: event.kind })
+                .auth(session).authorized
+                ? await Promise.all(event.variants
+                    .filter(variant => variant.registrationType === 'SLOTTED')
+                    .map(async variant => ({
+                        id: variant.id,
+                        name: variant.name,
+                        schedule: await eventSlotOperations.readCompanySchedule({ params: { variantId: variant.id } }),
+                    })))
+                : null
             const ownSeating = event.takesRegistration && session.user
                 ? await withFallback(eventSeatingOperations.readOwn({ params: { id: event.id } }), null)
                 : null
@@ -216,6 +228,7 @@ export function eventPage(config: EventPagesConfig) {
                 seatingBoard,
                 savedSlots,
                 savedWaiting,
+                companySchedules,
                 ownSeating,
             }
         },
@@ -512,6 +525,10 @@ export function eventPage(config: EventPagesConfig) {
                             </section>}
                         </main>
                     </div>
+
+                    {data.companySchedules && <div className="flex-[0_0_100%] flex flex-col gap-2">
+                        <CompanySlotSchedule variants={data.companySchedules} namesVariants={severalVariants} />
+                    </div>}
 
                     {event.takesRegistration && capabilities.canReadRegistrations.authorized && (
                         <div className="

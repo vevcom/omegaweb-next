@@ -1,7 +1,7 @@
 import '@ow-server-only'
 import { eventSlotSchemas } from './schemas'
 import { slotsOfSchedule } from './schedule'
-import { slotScheduleSelection } from './constants'
+import { slotHolderForCompanySelection, slotScheduleSelection } from './constants'
 import { eventSlotAuth } from './auth'
 import { readEventAccess } from '@/services/events/access'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
@@ -12,7 +12,7 @@ import { changedFields } from '@/lib/changedFields'
 import { validTransactionFilter } from '@/services/ledger/transactions/constants'
 import { ServiceError } from '@/services/error'
 import { defineOperation, defineSubOperation } from '@/services/serviceOperation'
-import type { Slot, SlotBoard, SlotChange, SlotOfVariant } from './types'
+import type { CompanySchedule, Slot, SlotBoard, SlotChange, SlotHolderForCompany, SlotOfVariant } from './types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { z } from 'zod'
 
@@ -228,6 +228,20 @@ async function replaceSlots(
     ]
 }
 
+function holderForCompany(
+    { user, contact }: Prisma.EventRegistrationGetPayload<{ select: typeof slotHolderForCompanySelection }>,
+): SlotHolderForCompany {
+    const groups = user?.memberships.map(membership => membership.group) ?? []
+    const programmes = groups.flatMap(group => (group.studyProgramme ? [group.studyProgramme.name] : []))
+    return {
+        name: registrantName({ user, contact }),
+        email: user ? user.email : contact?.email ?? null,
+        class: groups.find(group => group.class)?.class?.level ?? null,
+        // A programme a user is a member of in several orders is named once.
+        studyProgrammes: Array.from(new Set(programmes)),
+    }
+}
+
 export const eventSlotOperations = {
     /** The slots of a variant in order, with which are free. A list variant has none. */
     readOfVariant: defineOperation({
@@ -293,6 +307,45 @@ export const eventSlotOperations = {
                     },
                 })),
                 waiting: waiting.map(({ id }) => id),
+            }
+        },
+    }),
+
+    /**
+     * The slots of a variant in order, with who holds each, and how many wait, for the users of the
+     * event's company when its kind shows them that.
+     */
+    readCompanySchedule: defineOperation({
+        paramsSchema: eventSlotSchemas.params.readCompanySchedule,
+        authorizer: async ({ params, prisma }) => {
+            const { event } = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: { event: { select: { companyId: true, kind: true } } },
+            })
+            return eventSlotAuth.readCompanySchedule.data(event)
+        },
+        operation: async ({ prisma, params }): Promise<CompanySchedule> => {
+            const variant = await prisma.eventVariant.findUniqueOrThrow({
+                where: { id: params.variantId },
+                select: {
+                    slots: {
+                        orderBy: { start: 'asc' },
+                        select: {
+                            id: true,
+                            start: true,
+                            end: true,
+                            registration: { select: slotHolderForCompanySelection },
+                        },
+                    },
+                    _count: { select: { waitingListRegistrations: true } },
+                },
+            })
+            return {
+                slots: variant.slots.map(({ registration, ...slot }) => ({
+                    ...slot,
+                    holder: registration && holderForCompany(registration),
+                })),
+                waiting: variant._count.waitingListRegistrations,
             }
         },
     }),
