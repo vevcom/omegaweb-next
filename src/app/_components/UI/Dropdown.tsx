@@ -1,4 +1,5 @@
 'use client'
+import { fieldWrapperClassName } from './fieldClassNames'
 import useClickOutsideRef from '@/hooks/useClickOutsideRef'
 import useKeyPress from '@/hooks/useKeyPress'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -29,18 +30,6 @@ export type PropTypes<ValueType> = {
 }
 
 export const dropdownBorderClassNames = {
-    base: 'focus:border-base-300',
-    primary: 'focus:border-primary',
-    secondary: 'focus:border-secondary',
-    accent: 'focus:border-accent',
-    neutral: 'focus:border-neutral',
-    info: 'focus:border-info',
-    success: 'focus:border-success',
-    warning: 'focus:border-warning',
-    error: 'focus:border-error',
-}
-
-export const dropdownColorClassNames = {
     base: 'focus:border-base-300',
     primary: 'focus:border-primary',
     secondary: 'focus:border-secondary',
@@ -268,7 +257,7 @@ export default function Dropdown<ValueType extends string | number>({
             ref={ref}
             className={
                 `
-                    relative mt-2 w-full max-w-[320px]
+                    ${fieldWrapperClassName}
                     ${className ?? ''}
                 `
             }
@@ -281,7 +270,7 @@ export default function Dropdown<ValueType extends string | number>({
                     pl-4 transition-[border-color,background-color,box-shadow] duration-300 cursor-pointer
                     disabled:cursor-not-allowed disabled:opacity-60
                     focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/25
-                    ${dropdownColorClassNames[color]}
+                    ${dropdownBorderClassNames[color]}
                     ${open ? 'border-primary ring-3 ring-primary/25' : 'border-base-300'}
                     ${triggerBackgroundClassNames[background][open ? 'open' : 'closed']}
                 `}
@@ -293,10 +282,7 @@ export default function Dropdown<ValueType extends string | number>({
                 onKeyDown={handleKeyDown}
             >
                 <span
-                    className={`
-                        overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]
-                        ${dropdownColorClassNames[color]}
-                    `}
+                    className="overflow-hidden text-ellipsis whitespace-nowrap min-h-[calc(var(--text-m)*1.25)]"
                 >
                     {selectedOption?.label ?? selectedOption?.value ?? ''}
                 </span>

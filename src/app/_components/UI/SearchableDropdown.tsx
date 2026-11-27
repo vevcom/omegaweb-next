@@ -3,7 +3,6 @@ import { fieldBackgroundClassNames, fieldWrapperClassName } from './fieldClassNa
 import {
     DropdownPanel,
     dropdownChevronClassName,
-    dropdownColorClassNames,
     dropdownLabelClassName,
     dropdownBorderClassNames,
     useDropdown,
@@ -97,7 +96,6 @@ export default function SearchableDropdown<ValueType extends string | number>({
                     rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
                     transition-[border-color,background-color,box-shadow] duration-300
                     disabled:cursor-not-allowed disabled:opacity-60
-                    ${dropdownColorClassNames[color]}
                     ${dropdownBorderClassNames[color]}
                     ${fieldBackgroundClassNames[background]}
                 `}

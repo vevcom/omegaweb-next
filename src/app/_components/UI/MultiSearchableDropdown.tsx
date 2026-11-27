@@ -3,11 +3,10 @@ import {
     DropdownPanel,
     dropdownBorderClassNames,
     dropdownChevronClassName,
-    dropdownColorClassNames,
     dropdownLabelClassName,
     useDropdown,
 } from './Dropdown'
-import { fieldBackgroundClassNames } from './fieldClassNames'
+import { fieldBackgroundClassNames, fieldWrapperClassName } from './fieldClassNames'
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faXmark } from '@fortawesome/free-solid-svg-icons'
@@ -88,7 +87,7 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
 
     return (
         <div className={`
-            mt-2 w-full max-w-[320px]
+            ${fieldWrapperClassName}
             ${className ?? ''}
         `}>
             <div ref={ref} className="relative">
@@ -101,7 +100,6 @@ export default function MultiSearchableDropdown<ValueType extends string | numbe
                         rounded-inner outline-0 text-m leading-[calc(var(--text-m)*1.25)] pt-6 pr-10 pb-2.5 pl-4
                         transition-[border-color,background-color,box-shadow] duration-300
                         disabled:cursor-not-allowed disabled:opacity-60
-                        ${dropdownColorClassNames[color]}
                         ${dropdownBorderClassNames[color]}
                         ${fieldBackgroundClassNames[background]}
                     `}
