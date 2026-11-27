@@ -1,20 +1,30 @@
 import { getCompany } from './getCompany'
+import CompanyJobAds from './CompanyJobAds'
 import Image from '@/components/Image/Image'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { hrefOf } from '@/lib/sites/href'
-import { serverPage } from '@/app/ServerPage'
+import { jobAdOperations } from '@/services/careers/jobAds/operations'
+import { serverPage, withFallback } from '@/app/ServerPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
 const LOGO_WIDTH = 320
 
-/** What the public is told about a company. */
+/** A company's own page: what it says about itself, and its job ads. */
 const { page, generateMetadata } = serverPage({
-    operation: ({ params }: PageOperationArgs<{ nameAndId: string }>) => getCompany(params.nameAndId),
-    metadata: company => ({
+    operation: async ({ params }: PageOperationArgs<{ nameAndId: string }>) => {
+        const company = await getCompany(params.nameAndId)
+        const jobAds = await withFallback(
+            jobAdOperations.readOfCompany({ params: { companyId: company.id } }),
+            [],
+            ['UNAUTHENTICATED', 'UNAUTHORIZED']
+        )
+        return { company, jobAds }
+    },
+    metadata: ({ company }) => ({
         title: company.name,
         description: company.description || undefined,
     }),
-    render: ({ data: company }) => (
+    render: ({ data: { company, jobAds } }) => <>
         <section className="
             flex flex-row items-start gap-8 p-8 bg-base-200 border border-careers-line
             max-mobile:flex-col max-mobile:p-6
@@ -49,7 +59,8 @@ const { page, generateMetadata } = serverPage({
                 )}
             </div>
         </section>
-    ),
+        <CompanyJobAds jobAds={jobAds} />
+    </>,
 })
 
 export default page
