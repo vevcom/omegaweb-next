@@ -10,7 +10,6 @@ import { imageSourceForResolution, srcSetForImage } from '@/lib/images/imageSour
 import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { access, unlink } from 'fs/promises'
 import { join } from 'path'
-import { File } from 'node:buffer'
 
 let collectionId: number
 

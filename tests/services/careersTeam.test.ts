@@ -4,7 +4,6 @@ import { prisma } from '@/prisma-pn-client-instance'
 import { careersTeamOperations } from '@/services/careers/team/operations'
 import { careersTeamPersonOperations } from '@/services/careers/team/persons/operations'
 import { beforeAll, describe, expect, test } from '@jest/globals'
-import { File } from 'node:buffer'
 
 const teamEditor = Session.fromJsObject({ user: null, permissions: ['JOBAD_ADMIN'], memberships: [] })
 

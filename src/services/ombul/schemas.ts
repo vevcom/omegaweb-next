@@ -1,7 +1,6 @@
 import { maxOmbulFileSize, ombulFileSizeMb } from './constants'
 import { imageFileSchema, imageSchemas } from '@/services/images/subservice/schemas'
 import { z } from 'zod'
-import { File } from 'node:buffer'
 
 const dataFieldSchemas = z.object({
     ombulFile: z.instanceof(File).refine(
