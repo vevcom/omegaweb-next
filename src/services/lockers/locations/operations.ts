@@ -1,7 +1,6 @@
 import '@ow-server-only'
-import { lockerLocationAuth } from './auth'
 import { lockerLocationIncluder } from './constants'
-import { lockerLocationSchemas } from './schemas'
+import { lockerLocationContract } from './contract'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 
@@ -13,9 +12,7 @@ export const lockerLocationOperations = {
      *
      * @returns The newly created locker location object.
      */
-    create: defineOperation({
-        authorizer: () => lockerLocationAuth.create,
-        dataSchema: lockerLocationSchemas.data.create,
+    create: defineOperation(lockerLocationContract.create, {
         operation: async ({ prisma, data }) => prisma.lockerLocation.create({
             data: {
                 building: data.building,
@@ -29,8 +26,7 @@ export const lockerLocationOperations = {
      *
      * @returns All locker location objects.
      */
-    readAll: defineOperation({
-        authorizer: () => lockerLocationAuth.readAll,
+    readAll: defineOperation(lockerLocationContract.readAll, {
         operation: async ({ prisma }) => prisma.lockerLocation.findMany({
             include: lockerLocationIncluder,
         })
@@ -45,10 +41,7 @@ export const lockerLocationOperations = {
      *
      * @returns The updated locker location object.
      */
-    update: defineOperation({
-        authorizer: () => lockerLocationAuth.update,
-        paramsSchema: lockerLocationSchemas.params.update,
-        dataSchema: lockerLocationSchemas.data.update,
+    update: defineOperation(lockerLocationContract.update, {
         operation: async ({ prisma, params, data }) => prisma.lockerLocation.update({
             where: {
                 id: params.id,
@@ -67,9 +60,7 @@ export const lockerLocationOperations = {
      *
      * @param id - The location to delete.
      */
-    destroy: defineOperation({
-        authorizer: () => lockerLocationAuth.destroy,
-        paramsSchema: lockerLocationSchemas.params.destroy,
+    destroy: defineOperation(lockerLocationContract.destroy, {
         operation: async ({ prisma, params }) => {
             const location = await prisma.lockerLocation.findUniqueOrThrow({
                 where: {

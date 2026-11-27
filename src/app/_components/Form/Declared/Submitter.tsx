@@ -14,6 +14,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import type { FieldOf } from './Field'
 import type { FormStore, FormValues } from './formStore'
 import type { SpecsOf } from './Kinds/kind'
+import type { Colors, Confirmation } from '@/components/UI/SubmitButton'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 import type { CallableCapability, CapabilityInput, DecidedCapability } from '@/hooks/useCapability'
 import type { ActionReturn } from '@/services/actionTypes'
@@ -29,24 +30,38 @@ const GENERAL_ERROR = 'Noe gikk galt. Prøv igjen.'
  * that is where the schema of the capability can be imported, and gives the submitter and its
  * field. The submitter is rendered around the fields: it holds the values, checks them with the
  * schema of the capability and submits them to its action. It renders nothing for a user who may
- * not submit. The field takes the names of that schema, and writes to that submitter alone.
+ * not submit. The field takes the names of that schema, and writes to that submitter alone. With
+ * no field in it, the submitter is a button that calls the action.
  *
  * The submitter takes no function as a prop. What happens after a save is one of its props.
  */
-export function makeSubmitter<Params = never, Data = never, EntryRule extends Rule = Rule>({ capability }: {
+export function makeSubmitter<Params = never, Data extends FormValues = never, EntryRule extends Rule = Rule>({
+    capability,
+}: {
     capability: CallableCapability<Params, Data, EntryRule>,
-}): [(props: SubmitterProps<Params, EntryRule>) => ReactNode, FieldOf<Data, SpecsOf<typeof kinds>>] {
+}): [(props: SubmitterProps<Params, Data, EntryRule>) => ReactNode, FieldOf<Data, SpecsOf<typeof kinds>>] {
     // One context for each call, so that the field made here reads the store of the submitter made here.
     const OwnStoreContext = createContext<FormStore | null>(null)
 
     return [Submitter, makeField(OwnStoreContext, kinds)]
 
-    function Submitter(props: SubmitterProps<Params, EntryRule>) {
-        const { title, submitText = 'Opprett', refreshOnSuccess, closePopUpOnSuccess, className, children } = props
+    function Submitter(props: SubmitterProps<Params, Data, EntryRule>) {
+        const {
+            title,
+            submitText = 'Opprett',
+            submitColor = 'primary',
+            confirmation,
+            refreshOnSuccess,
+            closePopUpOnSuccess,
+            defaultValues,
+            className,
+            children,
+        } = props
         const insideAnother = useContext(InsideSubmitterContext)
         const decided = useCapability(capability, props)
         const [store] = useState(() => createFormStore(
-            values => (capability.data === undefined ? [] : checkValues(capability.data, values))
+            values => (capability.data === undefined ? [] : checkValues(capability.data, values)),
+            defaultValues,
         ))
         const submitState = useSyncExternalStore(store.subscribeToForm, store.submitState, store.submitState)
         const generalErrors = useSyncExternalStore(store.subscribeToForm, store.generalErrors, store.generalErrors)
@@ -94,7 +109,8 @@ export function makeSubmitter<Params = never, Data = never, EntryRule extends Ru
                     {title && <h2 className="text-base-content">{title}</h2>}
                     {children}
                     <SubmitButton
-                        color="primary"
+                        color={submitColor}
+                        confirmation={confirmation}
                         success={submitState === 'succeeded'}
                         pending={submitState === 'pending'}
                         generalErrors={generalErrors}
@@ -107,11 +123,15 @@ export function makeSubmitter<Params = never, Data = never, EntryRule extends Ru
     }
 }
 
-type SubmitterProps<Params, EntryRule extends Rule> = CapabilityInput<Params, EntryRule> & {
+type SubmitterProps<Params, Data, EntryRule extends Rule> = CapabilityInput<Params, EntryRule> & {
     title?: string,
     submitText?: string,
+    submitColor?: Colors,
+    confirmation?: Confirmation,
     refreshOnSuccess?: boolean,
     closePopUpOnSuccess?: PopUpKeyType,
+    /** What the fields start as. They are read once, when the form is first rendered. */
+    defaultValues?: Partial<Data>,
     className?: string,
     children?: ReactNode,
 }

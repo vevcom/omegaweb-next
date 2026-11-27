@@ -16,6 +16,15 @@ describe('the store of a declared form', () => {
         expect(store.startSubmit()).toEqual({ quote: 'Det ordner seg', author: '' })
     })
 
+    test('a field starts as its default value, and as the empty value of its kind without one', () => {
+        const store = createFormStore(nothingRefused, { building: 'Realfagbygget', gone: 'ikke med' })
+        store.mount('building', '')
+        store.mount('floor', undefined)
+
+        expect(store.value('building')).toBe('Realfagbygget')
+        expect(store.startSubmit()).toEqual({ building: 'Realfagbygget', floor: undefined })
+    })
+
     test('shows an issue at the field it names, and with the general ones when no mounted field has that name', () => {
         const store = createFormStore(nothingRefused)
         store.mount('quote', '')

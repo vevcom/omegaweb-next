@@ -5,10 +5,10 @@ const NO_ERRORS: ErrorMessage[] = []
 /**
  * What one rendered submitter holds. A field subscribes to its own name, so setting the value of
  * one field notifies no other. `check` gives the issues that stand in the way of submitting the
- * values, and none when they may be submitted.
+ * values, and none when they may be submitted. `defaultValues` are what the fields start as.
  */
-export function createFormStore(check: (values: FormValues) => ErrorMessage[]) {
-    const values = new Map<string, unknown>()
+export function createFormStore(check: (values: FormValues) => ErrorMessage[], defaultValues: FormValues = {}) {
+    const values = new Map<string, unknown>(Object.entries(defaultValues))
     const mountCounts = new Map<string, number>()
     const fieldErrors = new Map<string, ErrorMessage[]>()
     const fieldListeners = new Map<string, Set<Listener>>()

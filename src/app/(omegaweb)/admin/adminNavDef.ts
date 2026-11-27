@@ -27,7 +27,7 @@ import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
 import { lockerAuth } from '@/services/lockers/auth'
-import { lockerLocationAuth } from '@/services/lockers/locations/auth'
+import { lockerLocationCapabilities } from '@/capabilities/lockers/locations/capabilities'
 import { defineGroupedNavDef } from '@/lib/navDef/groupedNavDef'
 import { appHref } from '@/lib/sites/href'
 import {
@@ -326,7 +326,7 @@ export const adminNavDef = defineGroupedNavDef([
                 href: appHref('/admin/lockers'),
                 authorizers: () => [
                     lockerAuth.create,
-                    lockerLocationAuth.create,
+                    lockerLocationCapabilities.create.authorizer,
                 ],
             },
             {
