@@ -1,4 +1,5 @@
 import LedgerAccountBalance from './LedgerAccountBalance'
+import LedgerAccountCard from './LedgerAccountCard'
 import LedgerAccountFreezeButton from './LedgerAccountFreezeButton'
 import DepositModal from '@/components/Ledger/Modals/DepositModal'
 import PayoutModal from '@/components/Ledger/Modals/PayoutModal'
@@ -9,9 +10,11 @@ import { faWarning } from '@fortawesome/free-solid-svg-icons'
 import type { LedgerAccount } from '@/prisma-generated-pn-types'
 import type { LedgerTransactionPaymentMethod } from '@/components/Ledger/Modals/LedgerTransactionModal'
 import type { Capabilities } from '@/auth/authorizer/capabilities'
+import type { Balance } from '@/services/ledger/accounts/types'
 
 type Props = {
     ledgerAccount: LedgerAccount,
+    balance: Balance,
     showFees?: boolean,
     // Restricts the deposit methods offered. Used by the admin accounts page, where a Stripe
     // checkout would incorrectly charge the viewing admin's own card rather than the viewed
@@ -38,6 +41,7 @@ const getCustomerSessionClientSecret = async () => {
 export default async function LedgerAccountOverview({
     showFees,
     ledgerAccount,
+    balance,
     depositPaymentMethods,
     capabilities,
 }: Props) {
@@ -46,9 +50,8 @@ export default async function LedgerAccountOverview({
         ? await getCustomerSessionClientSecret()
         : undefined
 
-    return <div className="bg-base-100 text-base-content rounded-round p-(--card-padding)">
-        <h2 className="text-base-content">Kontooversikt</h2>
-        <LedgerAccountBalance ledgerAccountId={ledgerAccount.id} showFees={showFees} />
+    return <LedgerAccountCard title="Kontooversikt">
+        <LedgerAccountBalance balance={balance} showFees={showFees} />
         {
             ledgerAccount.frozen &&
             <p className="text-error">
@@ -75,5 +78,5 @@ export default async function LedgerAccountOverview({
                 <LedgerAccountFreezeButton ledgerAccount={ledgerAccount} className="ml-auto" />
             }
         </div>
-    </div>
+    </LedgerAccountCard>
 }

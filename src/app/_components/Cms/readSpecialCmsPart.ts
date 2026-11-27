@@ -1,7 +1,5 @@
 import '@ow-server-only'
-import { withPageSession } from '@/app/ServerPage'
-import { Smorekopp } from '@/services/error'
-import { unstable_rethrow as unstableRethrow } from 'next/navigation'
+import { serviceErrorOf, withPageSession } from '@/app/ServerPage'
 
 type SpecialCmsPartRead<Part> = { success: true, part: Part } | { success: false, message: string }
 
@@ -14,8 +12,7 @@ export async function readSpecialCmsPart<Part>(read: () => Promise<Part>): Promi
     try {
         return { success: true, part: await withPageSession(read) }
     } catch (error) {
-        unstableRethrow(error)
-        if (!(error instanceof Smorekopp)) throw error
-        return { success: false, message: error.errors[0]?.message ?? error.errorCode }
+        const serviceError = serviceErrorOf(error)
+        return { success: false, message: serviceError.errors[0]?.message ?? serviceError.errorCode }
     }
 }

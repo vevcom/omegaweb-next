@@ -1,14 +1,21 @@
-import LedgerAccountGroupsCard from '@/components/Ledger/Accounts/LedgerAccountGroupsCard'
+import { LedgerAccountGroupsCard } from '@/components/Ledger/Accounts/LedgerAccountGroupsCard'
 import EditLedgerAccountDetailsForm from '@/components/Ledger/Accounts/EditLedgerAccountDetailsForm'
 import PopUp from '@/components/PopUp/PopUp'
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
-import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
+import {
+    LedgerAccountTransactionSummary,
+    transactionSummarySize,
+} from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
+import { readExpandedOfAllTypes } from '@/services/groups/readExpandedOfAllTypes'
+import { flattenExpandedGroups } from '@/services/groups/flattenExpandedGroups'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { paymentAuth } from '@/services/ledger/payments/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { serverPage } from '@/app/ServerPage'
+import { Suspendful } from '@/app/Suspendful'
 import { appHref } from '@/lib/sites/href'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
@@ -23,9 +30,11 @@ const { page, generateMetadata } = serverPage({
             notFound()
         }
 
-        return ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
+        const ledgerAccount = await ledgerAccountOperations.read({ params: { ledgerAccountId: accountId } })
+        const balance = await ledgerAccountOperations.calculateBalance({ params: { ledgerAccountId: accountId } })
+        return { ledgerAccount, balance }
     },
-    capabilities: (ledgerAccount) => ({
+    capabilities: ({ ledgerAccount }) => ({
         canUpdate: ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
         canChangeGroups: ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] }),
         // Only MANUAL deposits are offered here, and those take the payment rule on top.
@@ -45,7 +54,7 @@ const { page, generateMetadata } = serverPage({
             ? ledgerAccountAuth.updateAsAdmin({ accounts: [ledgerAccount.ownership] })
             : ledgerAccountAuth.update({ accounts: [ledgerAccount.ownership] }),
     }),
-    render: ({ data: ledgerAccount, capabilities }) => (
+    render: ({ data: { ledgerAccount, balance }, capabilities }) => (
         <div className="flex flex-col gap-2">
             {ledgerAccount.type === 'GROUP' && capabilities.canUpdate.authorized && (
                 <PopUp
@@ -64,22 +73,40 @@ const { page, generateMetadata } = serverPage({
                 </PopUp>
             )}
             {ledgerAccount.type === 'GROUP' && (
-                <LedgerAccountGroupsCard
-                    ledgerAccountId={ledgerAccount.id}
-                    groupIds={ledgerAccount.groupIds}
-                    capabilities={{ canChangeGroups: capabilities.canChangeGroups }}
+                <Suspendful
+                    operation={async () => ({ allGroups: flattenExpandedGroups(await readExpandedOfAllTypes({})) })}
+                    section={LedgerAccountGroupsCard}
+                    props={{
+                        ledgerAccountId: ledgerAccount.id,
+                        groupIds: ledgerAccount.groupIds,
+                        capabilities: { canChangeGroups: capabilities.canChangeGroups },
+                    }}
                 />
             )}
             <LedgerAccountOverview
                 ledgerAccount={ledgerAccount}
+                balance={balance}
                 depositPaymentMethods={['MANUAL']}
                 capabilities={capabilities}
                 showFees
             />
             {/* Add link to products overview */}
-            <LedgerAccountTransactionSummary
-                accountId={ledgerAccount.id}
-                transactionsHref={appHref(`/admin/accounts/${ledgerAccount.id}/transactions`)}
+            <Suspendful
+                operation={async () => ({
+                    transactions: await ledgerTransactionOperations.readPage({
+                        params: {
+                            paging: {
+                                page: { page: 0, pageSize: transactionSummarySize, cursor: null },
+                                details: { accountId: ledgerAccount.id },
+                            },
+                        },
+                    }),
+                })}
+                section={LedgerAccountTransactionSummary}
+                props={{
+                    accountId: ledgerAccount.id,
+                    transactionsHref: appHref(`/admin/accounts/${ledgerAccount.id}/transactions`),
+                }}
             />
         </div>
     ),

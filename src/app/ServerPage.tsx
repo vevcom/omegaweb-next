@@ -39,11 +39,11 @@ type PageProps<Params extends object> = {
 }
 
 /** The capabilities a page or layout declares, built from its data and the session of the request. */
-type CapabilitiesOf<Data, Authorizers> = (data: Data, session: ServerPageSession) => Authorizers
+export type CapabilitiesOf<Data, Authorizers> = (data: Data, session: ServerPageSession) => Authorizers
 
-type PageCapabilities<Authorizers> = Capabilities<Extract<keyof Authorizers, CapabilityKey>>
+export type PageCapabilities<Authorizers> = Capabilities<Extract<keyof Authorizers, CapabilityKey>>
 
-function pageCapabilities<Data, Authorizers extends CapabilityAuthorizers<Authorizers>>(
+export function pageCapabilities<Data, Authorizers extends CapabilityAuthorizers<Authorizers>>(
     capabilities: CapabilitiesOf<Data, Authorizers> | undefined,
     data: Data,
     session: ServerPageSession,
@@ -60,11 +60,26 @@ function pageCapabilities<Data, Authorizers extends CapabilityAuthorizers<Author
  * the user to login. Every other service error is returned for the caller to display.
  */
 export async function handleServiceError(error: unknown): Promise<Smorekopp> {
+    const serviceError = serviceErrorOf(error)
+    if (serviceError.errorCode === 'NOT FOUND') notFound()
+    if (serviceError.errorCode === 'UNAUTHENTICATED') await siteRedirect(await authPathWithCallback('login'))
+    return serviceError
+}
+
+/**
+ * Tells a service error from everything else that can be thrown while loading. Next.js control
+ * flow, which is redirect and notFound, and errors that are no service error, which are bugs, are
+ * thrown on. A service error is returned for the caller to handle.
+ */
+export function serviceErrorOf(error: unknown): Smorekopp {
     unstableRethrow(error)
-    if (!(error instanceof Smorekopp)) throw error
-    if (error.errorCode === 'NOT FOUND') notFound()
-    if (error.errorCode === 'UNAUTHENTICATED') await siteRedirect(await authPathWithCallback('login'))
+    if (!isServiceError(error)) throw error
     return error
+}
+
+// `instanceof` narrows to `Smorekopp<any>`, which eslint's no-unsafe-return refuses to return.
+function isServiceError(error: unknown): error is Smorekopp {
+    return error instanceof Smorekopp
 }
 
 /**
@@ -340,20 +355,20 @@ export async function withFallback<Data, Fallback>(
     try {
         return await operationPromise
     } catch (error) {
-        unstableRethrow(error)
-        if (!(error instanceof Smorekopp)) throw error
-        if (fallbackOn && !fallbackOn.some(errorCode => errorCode === error.errorCode)) throw error
+        const serviceError = serviceErrorOf(error)
+        if (fallbackOn && !fallbackOn.some(errorCode => errorCode === serviceError.errorCode)) throw error
         return fallbackValue
     }
 }
 
 /**
- * For server components that are neither pages nor layouts (cards rendered inside a page's
- * tree), and for the root layout: loads the session of the request and runs the callback inside
+ * For server components that are neither pages, layouts nor sections of a page, such as the
+ * footer, and for the root layout: loads the session of the request and runs the callback inside
  * a service context seeded with it, so service operations called within pick the session up
  * automatically - the same environment a serverPage operation runs in. Errors are not handled
  * here; wrap calls in {@link withFallback}, catch them with {@link handleServiceError}, or let
- * them hit the error boundary. Layouts use {@link serverLayout}, which handles them.
+ * them hit the error boundary. Layouts use {@link serverLayout}, which handles them, and a section
+ * of a page is a `Suspendful`, which loads behind a boundary of its own.
  */
 export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>

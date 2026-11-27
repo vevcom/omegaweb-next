@@ -1,12 +1,19 @@
 import LedgerAccountOverview from '@/components/Ledger/Accounts/LedgerAccountOverviewCard'
-import LedgerAccountPaymentMethods from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
-import LedgerAccountTransactionSummary from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
+import { LedgerAccountPaymentMethods } from '@/components/Ledger/Accounts/LedgerAccountPaymentMethodsCard'
+import {
+    LedgerAccountTransactionSummary,
+    transactionSummarySize,
+} from '@/components/Ledger/Accounts/LedgerAccountTransactionSummaryCard'
 import { ledgerAccountOperations } from '@/services/ledger/accounts/operations'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
 import { ledgerMovementAuth } from '@/services/ledger/movements/auth'
+import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
+import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
+import { userOperations } from '@/services/users/operations'
 import { Require } from '@/auth/authorizer/Require'
 import { getProfileForUserPage } from '@/app/(omegaweb)/users/[username]/(user-pages)/getProfileForUserPage'
-import { serverPage } from '@/app/ServerPage'
+import { serverPage, withFallback } from '@/app/ServerPage'
+import { Suspendful } from '@/app/Suspendful'
 import { appHref } from '@/lib/sites/href'
 import type { PageOperationArgs } from '@/app/ServerPage'
 
@@ -15,7 +22,8 @@ const { page, generateMetadata } = serverPage({
         const { profile } = await getProfileForUserPage(params, 'account', session)
 
         const ledgerAccount = await ledgerAccountOperations.read({ params: { userId: profile.user.id } })
-        return { ledgerAccount, userId: profile.user.id, username: profile.user.username }
+        const balance = await ledgerAccountOperations.calculateBalance({ params: { ledgerAccountId: ledgerAccount.id } })
+        return { ledgerAccount, balance, userId: profile.user.id, username: profile.user.username }
     },
     capabilities: (data) => ({
         canDeposit: ledgerMovementAuth.createDeposit.data({ accounts: [data.ledgerAccount.ownership] }),
@@ -34,13 +42,38 @@ const { page, generateMetadata } = serverPage({
         <div className="flex flex-col gap-2">
             <LedgerAccountOverview
                 ledgerAccount={data.ledgerAccount}
+                balance={data.balance}
                 capabilities={capabilities}
                 showFees={capabilities.canSeeFees.authorized}
             />
-            <LedgerAccountPaymentMethods userId={data.userId} />
-            <LedgerAccountTransactionSummary
-                accountId={data.ledgerAccount.id}
-                transactionsHref={appHref(`/users/${data.username}/account/transactions`)}
+            <Suspendful
+                operation={async () => {
+                    const user = await userOperations.read({ params: { id: data.userId } }) // TODO: Change to better method
+                    const savedPaymentMethods = await withFallback(
+                        stripeCustomerOperations.readSavedPaymentMethods({ params: { userId: data.userId } }),
+                        []
+                    )
+                    return { studentCard: user.studentCard, savedPaymentMethods }
+                }}
+                section={LedgerAccountPaymentMethods}
+                props={{ userId: data.userId }}
+            />
+            <Suspendful
+                operation={async () => ({
+                    transactions: await ledgerTransactionOperations.readPage({
+                        params: {
+                            paging: {
+                                page: { page: 0, pageSize: transactionSummarySize, cursor: null },
+                                details: { accountId: data.ledgerAccount.id },
+                            },
+                        },
+                    }),
+                })}
+                section={LedgerAccountTransactionSummary}
+                props={{
+                    accountId: data.ledgerAccount.id,
+                    transactionsHref: appHref(`/users/${data.username}/account/transactions`),
+                }}
             />
         </div>
     ),

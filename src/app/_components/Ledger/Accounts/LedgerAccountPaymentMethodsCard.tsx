@@ -1,46 +1,55 @@
+import LedgerAccountCard from './LedgerAccountCard'
 import PaymentMethodList from '@/components/Ledger/Accounts/PaymentMethodList'
 import PaymentMethodModal from '@/components/Ledger/Modals/PaymentMethodModal'
 import DisconnectStudentCardButton from '@/components/Ledger/Accounts/DisconnectStudentCardButton'
-import { userOperations } from '@/services/users/operations'
 import BooleanIndicator from '@/components/UI/BooleanIndicator'
-import { stripeCustomerOperations } from '@/services/stripeCustomers/operations'
-import { withFallback, withPageSession } from '@/app/ServerPage'
+import { componentWithSkeleton } from '@/app/componentWithSkeleton'
+import type { FilteredPaymentMethod } from '@/services/stripeCustomers/types'
 
-type Props = {
+type Known = {
     userId: number,
 }
 
-export default async function LedgerAccountPaymentMethods({ userId }: Props) {
-    const { user, savedPaymentMethods } = await withPageSession(async () => ({
-        user: await userOperations.read({ params: { id: userId } }), // TODO: Change to better method
-        savedPaymentMethods: await withFallback(
-            stripeCustomerOperations.readSavedPaymentMethods({ params: { userId } }),
-            []
-        ),
-    }))
-
-    const hasBankCard = savedPaymentMethods.length > 0
-    const hasStudentCard = user.studentCard !== null
-
-    return <div className="bg-base-100 rounded-round p-(--card-padding)">
-        <h2>Betalingsalternativer</h2>
-        <div className="flex flex-col gap-2">
-            <h3>Bankkort <BooleanIndicator value={hasBankCard} /></h3>
-            <p>
-                Du kan lagre kortinformasjonen din for senere betalinger.
-                Kortinformasjonen lagres kun hos betalingsleverandøren vår, Stripe, og ikke på våre tjenere.
-            </p>
-            <PaymentMethodList userId={userId} paymentMethods={savedPaymentMethods} />
-            <PaymentMethodModal userId={userId} />
-        </div>
-        <div className="flex flex-col gap-2 mt-6">
-            <h3>NTNU-kort <BooleanIndicator value={hasStudentCard} /></h3>
-            <p>
-                For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.
-                Dette kan gjøres på Kiogeskabet på Lophtet.
-            </p>
-            <p>Kortnummer: <strong>{hasStudentCard ? user.studentCard : 'ikke registrert'}</strong></p>
-            {hasStudentCard && <DisconnectStudentCardButton userId={userId} />}
-        </div>
-    </div>
+type Read = {
+    studentCard: string | null,
+    savedPaymentMethods: FilteredPaymentMethod[],
 }
+
+/**
+ * While it loads, the card is as it is for an owner with a student card and no saved bank card. A
+ * block of a line and 2rem is a button, and the last one has the room a form keeps under its button.
+ */
+export const LedgerAccountPaymentMethods = componentWithSkeleton<Known, Read>(
+    ({ userId, loaded, Skeleton, studentCard, savedPaymentMethods }) => (
+        <LedgerAccountCard title="Betalingsalternativer">
+            <div className="flex flex-col gap-2">
+                <h3>Bankkort {loaded && <BooleanIndicator value={savedPaymentMethods.length > 0} />}</h3>
+                <p>
+                    Du kan lagre kortinformasjonen din for senere betalinger.
+                    Kortinformasjonen lagres kun hos betalingsleverandøren vår, Stripe, og ikke på våre tjenere.
+                </p>
+                {loaded ? <>
+                    <PaymentMethodList userId={userId} paymentMethods={savedPaymentMethods} />
+                    <PaymentMethodModal userId={userId} />
+                </> : <>
+                    <Skeleton className="h-lh w-64 text-s" />
+                    <Skeleton className="m-2 h-[calc(1lh+2rem)] w-40 text-m" />
+                </>}
+            </div>
+            <div className="mt-6 flex flex-col gap-2">
+                <h3>NTNU-kort {loaded && <BooleanIndicator value={studentCard !== null} />}</h3>
+                <p>
+                    For å benytte Kiogeskabet på Lophtet må et NTNU-kort være registrert.
+                    Dette kan gjøres på Kiogeskabet på Lophtet.
+                </p>
+                {loaded ? <>
+                    <p>Kortnummer: <strong>{studentCard ?? 'ikke registrert'}</strong></p>
+                    {studentCard !== null && <DisconnectStudentCardButton userId={userId} />}
+                </> : <>
+                    <Skeleton className="h-lh w-64 text-m" />
+                    <Skeleton className="mb-[calc(1.15em+3px)] h-[calc(1lh+2rem)] w-40 text-m" />
+                </>}
+            </div>
+        </LedgerAccountCard>
+    )
+)
