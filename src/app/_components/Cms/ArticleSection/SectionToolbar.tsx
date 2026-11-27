@@ -3,6 +3,7 @@ import { sectionBackgrounds } from './sectionBackgrounds'
 import { SectionHandleContext } from './sectionHandleContext'
 import useEditMode from '@/hooks/useEditMode'
 import useSiteRouter from '@/hooks/useSiteRouter'
+import Button from '@/components/UI/Button'
 import { imageSizeIncrement, maxImageSize, minImageSize } from '@/cms/articleSections/constants'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -37,12 +38,6 @@ const parts: { part: ArticleSectionPart, label: string, icon: IconDefinition }[]
     { part: 'cmsImage', label: 'Legg til bilde', icon: faImage },
     { part: 'cmsLink', label: 'Legg til lenke', icon: faLink },
 ]
-
-const buttonClassName = `
-    size-8 shrink-0 rounded-inner border-none bg-transparent text-base-content grid place-items-center cursor-pointer
-    enabled:hover:bg-base-100
-    disabled:opacity-40 disabled:cursor-not-allowed
-`
 
 const dividerClassName = 'w-px self-stretch bg-base-content/20'
 
@@ -119,52 +114,50 @@ export default function SectionToolbar({
             ))}
             {has.cmsImage && <>
                 <span className={dividerClassName} />
-                <button
-                    type="button"
+                <Button
+                    variant="icon"
+                    color="neutral"
                     title="Flytt bildet til den andre siden"
                     aria-label="Flytt bildet til den andre siden"
-                    className={buttonClassName}
                     onClick={() => update({ position: articleSection.imagePosition === 'LEFT' ? 'RIGHT' : 'LEFT' })}
                 >
                     <FontAwesomeIcon icon={faArrowRightArrowLeft} />
-                </button>
-                <button
-                    type="button"
+                </Button>
+                <Button
+                    variant="icon"
+                    color="neutral"
                     title="Mindre bilde"
                     aria-label="Mindre bilde"
-                    className={buttonClassName}
                     disabled={articleSection.imageSize - imageSizeIncrement < minImageSize}
                     onClick={() => update({ imageSize: articleSection.imageSize - imageSizeIncrement })}
                 >
                     <FontAwesomeIcon icon={faMinimize} />
-                </button>
-                <button
-                    type="button"
+                </Button>
+                <Button
+                    variant="icon"
+                    color="neutral"
                     title="Større bilde"
                     aria-label="Større bilde"
-                    className={buttonClassName}
                     disabled={articleSection.imageSize + imageSizeIncrement > maxImageSize}
                     onClick={() => update({ imageSize: articleSection.imageSize + imageSizeIncrement })}
                 >
                     <FontAwesomeIcon icon={faMaximize} />
-                </button>
+                </Button>
             </>}
             {missingParts.length > 0 && <span className={dividerClassName} />}
             {missingParts.map(({ part, label, icon }) => (
-                <button
+                <Button
                     key={part}
-                    type="button"
+                    variant="icon"
+                    color="neutral"
                     title={label}
                     aria-label={label}
-                    className={`
-                        ${buttonClassName}
-                        w-auto! px-2 grid-flow-col gap-1
-                    `}
+                    className="w-auto! px-2 grid-flow-col gap-1"
                     onClick={() => addPart(part)}
                 >
                     <FontAwesomeIcon icon={faPlus} className="text-xs" />
                     <FontAwesomeIcon icon={icon} />
-                </button>
+                </Button>
             ))}
         </div>
     )

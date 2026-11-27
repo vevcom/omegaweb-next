@@ -1,4 +1,5 @@
 'use client'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
@@ -194,7 +195,7 @@ export default function ManageGroupMembers({
                     "
                     buttonClassName="w-[5.5rem]!"
                     submitText="Lagre"
-                    submitColor="secondary"
+                    submitColor="neutral"
                     action={configureAction(setMemberTitleAction, { params: { groupId, order: selectedOrder } })}
                     refreshOnSuccess
                 >
@@ -227,7 +228,7 @@ export default function ManageGroupMembers({
                 ">
                     <Form
                         submitText={member.admin ? 'Fjern admin' : 'Gjør til admin'}
-                        submitColor="secondary"
+                        submitColor="neutral"
                         action={configureAction(setMemberAdminAction, { params: { groupId, order: selectedOrder } })}
                         refreshOnSuccess
                     >
@@ -245,7 +246,7 @@ export default function ManageGroupMembers({
                     {removeMembersAction && member.active && (
                         <Form
                             submitText="Fjern"
-                            submitColor="red"
+                            submitColor="error"
                             action={configureAction(removeMembersAction, { params: { groupId, order: selectedOrder } })}
                             refreshOnSuccess
                             confirmation={{
@@ -260,7 +261,7 @@ export default function ManageGroupMembers({
                     {destroyMembershipAction && (
                         <Form
                             submitText="Slett"
-                            submitColor="secondary"
+                            submitColor="neutral"
                             action={configureAction(destroyMembershipAction, { params: { groupId, order: selectedOrder } })}
                             refreshOnSuccess
                             confirmation={{ confirm: true, text: destroyConfirmation(member, selectedOrder) }}
@@ -310,7 +311,7 @@ export default function ManageGroupMembers({
                     <PopUp
                         key={selectedOrder}
                         popUpKey={addPopUpKey}
-                        showButtonClass="btn-neutral py-2 px-4 text-s"
+                        showButtonClass={buttonClassName({ color: 'neutral', size: 's' })}
                         showButtonContent={<>Legg til medlemmer i orden {selectedOrder}</>}
                     >
                         <UserPagingProvider
@@ -330,7 +331,7 @@ export default function ManageGroupMembers({
                     </PopUp>
                     <PopUp
                         popUpKey={addAtTypedOrderPopUpKey}
-                        showButtonClass="btn-neutral py-2 px-4 text-s"
+                        showButtonClass={buttonClassName({ color: 'neutral', size: 's' })}
                         showButtonContent={<>Legg til medlemmer i en annen orden</>}
                     >
                         <AddMembersAtTypedOrder

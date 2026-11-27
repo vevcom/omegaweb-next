@@ -93,7 +93,7 @@ const { page, generateMetadata } = serverPage({
                 {capabilities.canDestroy.authorized && (
                     <Form
                         submitText="Slett chatområdet"
-                        submitColor="red"
+                        submitColor="error"
                         action={configureAction(configureAction(destroyCommitteeChatSpaceAction, ofCommittee), {
                             params: { spaceId: space.id },
                         })}

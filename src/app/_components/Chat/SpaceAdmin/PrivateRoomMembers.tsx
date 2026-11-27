@@ -39,7 +39,7 @@ export default function PrivateRoomMembers({ spaceId, room, spaceMembers, action
                         <Form
                             className="w-auto!"
                             submitText="Fjern"
-                            submitColor="red"
+                            submitColor="error"
                             action={configureAction(removeRoomMembers, ofRoom)}
                             refreshOnSuccess
                         >
@@ -54,7 +54,7 @@ export default function PrivateRoomMembers({ spaceId, room, spaceMembers, action
                     key={spaceMembersNotPicked.length}
                     className="flex flex-row items-center gap-2 w-auto!"
                     submitText="Legg til"
-                    submitColor="secondary"
+                    submitColor="neutral"
                     action={configureAction(addRoomMembers, ofRoom)}
                     refreshOnSuccess
                 >

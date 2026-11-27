@@ -135,7 +135,7 @@ function DetailedTable({
                                             { params: { registrationId: row.id } }
                                         )}
                                         submitText={row.manuallyPaid ? 'Fjern betalt' : 'Marker betalt'}
-                                        submitColor={row.manuallyPaid ? 'red' : 'green'}
+                                        submitColor={row.manuallyPaid ? 'error' : 'success'}
                                         buttonClassName="w-auto!"
                                         refreshOnSuccess
                                     >
@@ -153,7 +153,7 @@ function DetailedTable({
                                             { params: { registrationId: row.id, registeredById: attendanceTakerId } }
                                         )}
                                         submitText={row.attendedAt ? 'Fjern møtt' : 'Møtt'}
-                                        submitColor={row.attendedAt ? 'red' : 'green'}
+                                        submitColor={row.attendedAt ? 'error' : 'success'}
                                         refreshOnSuccess
                                     >
                                         <input
@@ -178,7 +178,7 @@ function DetailedTable({
                                             { params: { registrationId: row.id } }
                                         )}
                                         submitText="Slett"
-                                        submitColor="red"
+                                        submitColor="error"
                                         confirmation={{
                                             confirm: true,
                                             text: 'Er du sikker på at du vil slette denne påmeldingen?'

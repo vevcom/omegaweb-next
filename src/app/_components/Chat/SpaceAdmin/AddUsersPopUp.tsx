@@ -1,4 +1,5 @@
 'use client'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import UserList from '@/components/User/UserList/UserList'
@@ -34,7 +35,7 @@ export default function AddUsersPopUp({ spaceId, addUsers, buttonText, whoCanBeA
     return (
         <PopUp
             popUpKey={popUpKey}
-            showButtonClass="btn-neutral self-start py-2 px-4 text-s"
+            showButtonClass={buttonClassName({ color: 'neutral', size: 's', className: 'self-start' })}
             showButtonContent={<>{buttonText}</>}
         >
             <UserPagingProvider

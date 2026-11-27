@@ -330,11 +330,11 @@ export const adminNavDef = defineGroupedNavDef([
                 ],
             },
             {
-                key: 'component-test',
+                key: 'components',
                 // A showcase with nothing of its own to administer: it is for whoever administers
                 // anything else, and must not be what puts the admin button in front of someone.
                 name: 'Komponenter',
-                href: appHref('/admin/component-test'),
+                href: appHref('/admin/components'),
                 authorizers: () => authorizersOfOtherPages(),
             },
         ],
@@ -342,5 +342,5 @@ export const adminNavDef = defineGroupedNavDef([
 ])
 
 function authorizersOfOtherPages(): Promise<NavAuthorizer[]> {
-    return adminNavDef.authorizers({ except: 'component-test' })
+    return adminNavDef.authorizers({ except: 'components' })
 }

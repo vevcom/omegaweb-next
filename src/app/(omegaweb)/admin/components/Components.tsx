@@ -1,5 +1,6 @@
 'use client'
 import Button from '@/components/UI/Button'
+import ButtonLink from '@/components/UI/ButtonLink'
 import SubmitButton from '@/components/UI/SubmitButton'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -12,7 +13,11 @@ import SearchableDropdown from '@/components/UI/SearchableDropdown'
 import ColorInput from '@/components/UI/ColorInput'
 import { SelectString, SelectNumber } from '@/components/UI/Select'
 import ProgressBar from '@/components/ProgressBar/ProgressBar'
+import { appHref } from '@/lib/sites/href'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPencil, faPlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 
+const buttonColors = ['primary', 'neutral', 'success', 'error'] as const
 const textInputColors = ['base', 'secondary', 'error'] as const
 const sliderColors = ['base', 'primary', 'secondary', 'error'] as const
 const fileInputColors = ['primary', 'secondary', 'red', 'black', 'white'] as const
@@ -29,7 +34,7 @@ const selectOptions = dropdownOptions.map(option => ({ ...option, key: option.va
 
 const yearOptions = [2020, 2021, 2022, 2023].map(year => ({ value: year, key: String(year) }))
 
-export default function ComponentTest() {
+export default function Components() {
     return (
         <div className="
             p-4 flex flex-col gap-4
@@ -43,16 +48,54 @@ export default function ComponentTest() {
                 last:border-b-0
             ">
                 <h2>Buttons</h2>
-                <div className="flex flex-wrap items-start gap-4">
-                    <Button color="primary">Primary</Button>
-                    <Button color="secondary">Secondary</Button>
-                    <Button color="green">Green</Button>
-                    <Button color="red">Red</Button>
-                    <Button color="secondary" disabled>Disabled</Button>
+                <h3>Filled</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                    {buttonColors.map(color => <Button key={color} color={color}>{color}</Button>)}
+                    <Button color="neutral" disabled>Disabled</Button>
                 </div>
+                <h3>Filled, small</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                    {buttonColors.map(color => <Button key={color} color={color} size="s">{color}</Button>)}
+                    <Button color="neutral" size="s" disabled>Disabled</Button>
+                </div>
+                <h3>Text</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                    {buttonColors.map(color => <Button key={color} color={color} variant="text">{color}</Button>)}
+                    <Button variant="text" disabled>Disabled</Button>
+                </div>
+                <h3>Icon</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                    <Button variant="icon" color="neutral" aria-label="Rediger">
+                        <FontAwesomeIcon icon={faPencil} />
+                    </Button>
+                    <Button variant="icon" aria-label="Legg til">
+                        <FontAwesomeIcon icon={faPlus} />
+                    </Button>
+                    <Button variant="icon" color="error" aria-label="Fjern">
+                        <FontAwesomeIcon icon={faTrash} />
+                    </Button>
+                    <Button variant="icon" color="neutral" aria-label="Valgt" aria-pressed>
+                        <FontAwesomeIcon icon={faPencil} />
+                    </Button>
+                    <Button variant="icon" color="neutral" size="s" aria-label="Liten">
+                        <FontAwesomeIcon icon={faPencil} />
+                    </Button>
+                    <Button variant="icon" color="neutral" aria-label="Disabled" disabled>
+                        <FontAwesomeIcon icon={faPencil} />
+                    </Button>
+                </div>
+                <h3>Links that look like buttons</h3>
+                <div className="flex flex-wrap items-center gap-4">
+                    <ButtonLink href={appHref('/admin/components')}>ButtonLink</ButtonLink>
+                    <ButtonLink href={appHref('/admin/components')} color="neutral" size="s">
+                        Small ButtonLink
+                    </ButtonLink>
+                    <ButtonLink href={appHref('/admin/components')} variant="text">Text ButtonLink</ButtonLink>
+                </div>
+                <h3>Submit</h3>
                 <form className="flex flex-wrap items-start gap-4">
                     <SubmitButton color="primary" success={false}>Submit</SubmitButton>
-                    <SubmitButton color="green" success={true}>Success</SubmitButton>
+                    <SubmitButton color="success" success={true}>Success</SubmitButton>
                 </form>
             </section>
 

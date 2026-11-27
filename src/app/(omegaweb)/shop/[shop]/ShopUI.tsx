@@ -140,7 +140,7 @@ export default function ShopUI({ shop, userId, capabilities }: {
                             <span>Gjenstående saldo</span>
                             <span className="tabular-nums">{displayAmount(receipt.remainingBalance, false)}</span>
                         </p>
-                        <Button color="secondary" className="m-0!" onClick={() => setReceipt(null)}>Handle mer</Button>
+                        <Button color="neutral" className="m-0!" onClick={() => setReceipt(null)}>Handle mer</Button>
                     </>
                 ) : (
                     <>

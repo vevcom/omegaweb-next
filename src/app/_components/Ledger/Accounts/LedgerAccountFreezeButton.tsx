@@ -25,7 +25,7 @@ export default function LedgerAccountFreezeButton({
                 ${className ?? ''}
             `}
             submitText={ledgerAccount.frozen ? 'Tin konto' : 'Frys konto'}
-            submitColor="secondary"
+            submitColor="neutral"
             confirmation={{ confirm: !ledgerAccount.frozen, text: freezeWarning }}
             refreshOnSuccess
             action={ledgerAccount.frozen

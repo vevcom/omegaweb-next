@@ -12,7 +12,7 @@ export default function CreateOrder({ allRequirementsFulfilled }: PropTypes) {
             action={createOmegaOrderAction}
             refreshOnSuccess
             submitText="Inkrementer Omega"
-            submitColor={allRequirementsFulfilled ? 'primary' : 'red'}
+            submitColor={allRequirementsFulfilled ? 'primary' : 'error'}
             confirmation={{
                 confirm: true,
                 text: 'Dette er en alvorlig operasjon. Er du sikker på at du vil fortsette?'

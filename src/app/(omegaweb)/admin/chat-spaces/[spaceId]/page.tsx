@@ -74,7 +74,7 @@ const { page, generateMetadata } = serverPage({
                     {capabilities.canDestroy.authorized && (
                         <Form
                             submitText="Slett chatområdet"
-                            submitColor="red"
+                            submitColor="error"
                             action={configureAction(destroyManualChatSpaceAction, ofSpace)}
                             navigateOnSuccess={appHref('/admin/chat-spaces')}
                             confirmation={{

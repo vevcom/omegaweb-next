@@ -1,6 +1,7 @@
 'use client'
 import ChangeImage from './ChangeImage'
 import ChangeImageForm from './ChangeImageForm'
+import ButtonLink from '@/components/UI/ButtonLink'
 import EditOverlay from '@/cms/EditOverlay'
 import PopUp from '@/components/PopUp/PopUp'
 import EndlessScroll from '@/components/PagingWrappers/EndlessScroll'
@@ -15,7 +16,6 @@ import PopUpProvider from '@/contexts/PopUp'
 import { useSpecialCollections } from '@/contexts/ClientData'
 import { specialImagePanels } from '@/components/Image/ImagePanel/specialImagePanels'
 import { readImagesPageInDynamicCollectionAction } from '@/services/images/dynamic/actions'
-import SiteLink from '@/components/SiteLink/SiteLink'
 import { appHref } from '@/lib/sites/href'
 import { useMemo, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -222,16 +222,16 @@ export default function CmsImageEditor({ cmsImage, updateCmsImageAction, capabil
                             </DynamicImageCollectionPagingProvider>
                         </div>
                     </div>
-                    <SiteLink
+                    <ButtonLink
                         className="
-                            absolute w-[10em] btn-primary
+                            absolute w-[10em]
                             mobile:-top-[2%] mobile:-right-[2%]
                             max-mobile:top-[2%] max-mobile:left-[2%]
                         "
                         href={appHref('/image-collections/')}
                     >
                         Gå til bilder
-                    </SiteLink>
+                    </ButtonLink>
                 </div>
             </PopUpProvider>
         </PopUp>

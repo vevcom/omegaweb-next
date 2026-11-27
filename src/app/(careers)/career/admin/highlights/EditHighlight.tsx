@@ -1,5 +1,6 @@
 'use client'
 import HighlightForm from './HighlightForm'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
 import { configureAction } from '@/services/configureAction'
@@ -26,10 +27,11 @@ export default function EditHighlight({ highlight, targets, name }: PropTypes) {
     return (
         <PopUp
             popUpKey={popUpKey}
-            showButtonClass="
-                grid place-items-center size-8 rounded-full border-none bg-base-300 text-base-content cursor-pointer
-                hover:bg-base-300
-            "
+            showButtonClass={buttonClassName({
+                variant: 'icon',
+                color: 'neutral',
+                className: 'bg-base-300! rounded-full!',
+            })}
             showButtonContent={<FontAwesomeIcon icon={faPencil} />}
             ariaLabel={`Rediger ${name}`}
         >
@@ -45,7 +47,7 @@ export default function EditHighlight({ highlight, targets, name }: PropTypes) {
                 <Form
                     action={configureAction(destroyCareerFrontpageHighlightAction, params)}
                     submitText="Fjern fremheving"
-                    submitColor="red"
+                    submitColor="error"
                     refreshOnSuccess
                     closePopUpOnSuccess={popUpKey}
                     confirmation={{

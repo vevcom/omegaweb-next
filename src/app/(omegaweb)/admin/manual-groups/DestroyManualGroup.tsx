@@ -13,7 +13,7 @@ export default function DestroyManualGroup({ id, name }: PropTypes) {
             action={configureAction(destroyManualGroupAction, { params: { id } })}
             refreshOnSuccess
             submitText="Slett"
-            submitColor="red"
+            submitColor="error"
             confirmation={{
                 confirm: true,
                 text: `Er du sikker på at du vil slette gruppen ${name}? Alle medlemskap forsvinner med den.`

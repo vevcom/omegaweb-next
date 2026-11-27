@@ -1,6 +1,7 @@
 'use client'
 
 import Button from '@/components/UI/Button'
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import { useEffect, useRef, useState } from 'react'
 
 export type MapProps = {
@@ -45,8 +46,8 @@ export default function Map({ height, src, href, title, invertColors = false }: 
                 aria-label="Aktiver kartet for interaksjon"
             />}
         </div>
-        {href && <a href={href} target="_blank" rel="noopener noreferrer" className="btn-primary">Åpne i {title}</a>}
-        {active && <Button type="button" color="secondary" onClick={() => setActive(false)}>
+        {href && <a href={href} target="_blank" rel="noopener noreferrer" className={buttonClassName()}>Åpne i {title}</a>}
+        {active && <Button type="button" color="neutral" onClick={() => setActive(false)}>
             Deaktiver kartet
         </Button>}
     </div>

@@ -64,7 +64,7 @@ export default function InterestGroupSettings({
                         closePopUpOnSuccess={popUpKey}
                         action={configureAction(destroyInterestGroupAction, { params: { id: interestGroupId } })}
                         submitText="Slett"
-                        submitColor="red"
+                        submitColor="error"
                         confirmation={{
                             confirm: true,
                             text: `Er du sikker på at du vil slette ${interestGroupName}?`

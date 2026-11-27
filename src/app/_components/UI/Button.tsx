@@ -1,45 +1,20 @@
+import { buttonClassName } from './buttonClassName'
 import React from 'react'
+import type { ButtonLooks } from './buttonClassName'
 import type { ButtonHTMLAttributes, Ref } from 'react'
 
-
-export type PropTypes = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type PropTypes = ButtonHTMLAttributes<HTMLButtonElement> & ButtonLooks & {
     children: React.ReactNode,
     ref?: Ref<HTMLButtonElement>,
-    color?: 'primary' | 'secondary' | 'green' | 'red',
-    /** `text` reads as a link, for an action inside a row or next to a heading, where a filled button is too much. */
-    variant?: 'filled' | 'text',
-}
+} & (
+    // An icon says nothing to a screen reader, so a button of one alone must be named.
+    | { variant: 'icon', 'aria-label': string }
+    | { variant?: 'filled' | 'text' }
+)
 
-const colorClassNames = {
-    primary: 'btn-primary',
-    secondary: 'btn-neutral',
-    green: 'btn-success',
-    red: 'btn-error',
-} as const
-
-const textColorClassNames = {
-    primary: 'text-primary',
-    secondary: 'text-base-content',
-    green: 'text-success',
-    red: 'text-error',
-} as const
-
-export default function Button({ color = 'primary', variant = 'filled', children, className, ...props }: PropTypes) {
+export default function Button({ color, variant, size, children, className, ...props }: PropTypes) {
     return (
-        <button
-            className={variant === 'text' ? `
-                shrink-0 border-none bg-transparent p-0 text-s cursor-pointer
-                enabled:hover:underline
-                disabled:text-base-content/80 disabled:cursor-not-allowed
-                ${textColorClassNames[color]}
-                ${className ?? ''}
-            ` : `
-                ${colorClassNames[color]}
-                ${className ?? ''}
-                disabled:bg-base-300 disabled:text-base-content/80
-            `}
-            {...props}
-        >
+        <button className={buttonClassName({ color, variant, size, className })} {...props}>
             { children }
         </button>
     )

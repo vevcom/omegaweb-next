@@ -39,7 +39,7 @@ export default function SpaceAdmins({ spaceId, admins, actions }: PropTypes) {
                         <Form
                             className="w-auto!"
                             submitText="Fjern"
-                            submitColor="red"
+                            submitColor="error"
                             action={configureAction(actions.removeAdmins, { params: { spaceId } })}
                             refreshOnSuccess
                         >

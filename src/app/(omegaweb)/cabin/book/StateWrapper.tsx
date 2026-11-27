@@ -301,7 +301,7 @@ export default function StateWrapper({
                 })}
                 successCallback={startOver}
                 submitText="Avbryt og start på nytt"
-                submitColor="red"
+                submitColor="error"
             />
         </>
     }

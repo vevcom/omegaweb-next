@@ -44,7 +44,7 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
                 action={() => setPublished({ data: { published: !event.published } })}
                 refreshOnSuccess
                 submitText={event.published ? 'Avpubliser' : 'Publiser'}
-                submitColor={event.published ? 'red' : 'green'}
+                submitColor={event.published ? 'error' : 'success'}
                 disabled={!event.published && problems.length > 0}
                 className="w-auto!"
             />
@@ -59,7 +59,7 @@ export default function EventPublishing({ event, adminVisibility, config, capabi
                 action={configureAction(destroyEventAction, { params: { id: event.id } })}
                 navigateOnSuccess={eventLinks(config).list()}
                 submitText="Slett arrangementet"
-                submitColor="red"
+                submitColor="error"
                 confirmation={{
                     confirm: true,
                     text: 'Er du sikker på at du vil slette dette arrangementet?'

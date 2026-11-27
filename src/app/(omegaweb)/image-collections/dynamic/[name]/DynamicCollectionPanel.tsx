@@ -1,6 +1,6 @@
 'use client'
-import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import CollectionAdmin from './CollectionAdmin'
+import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import ImagePanel from '@/components/Image/ImagePanel/ImagePanel'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'

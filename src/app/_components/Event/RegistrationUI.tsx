@@ -233,7 +233,7 @@ export default function RegistrationUI({
             success={false}
             confirmation={confirmation()}
             disabled={!mayRegister && !mayUnregister}
-            color={mayUnregister ? 'red' : 'primary'}
+            color={mayUnregister ? 'error' : 'primary'}
             className="w-full! m-0!"
             onClick={buttonOnClick}
             pending={btnPending}
@@ -269,7 +269,7 @@ export default function RegistrationUI({
         {!registrationState && capabilities.canRegisterAsAdmin.authorized && (
             <SubmitButton
                 success={false}
-                color="secondary"
+                color="neutral"
                 className="w-full! m-0!"
                 onClick={adminButtonOnClick}
                 pending={btnPending}
@@ -282,7 +282,7 @@ export default function RegistrationUI({
         {registrationState && !mayUnregister && capabilities.canUnregisterAsAdmin.authorized && (
             <SubmitButton
                 success={false}
-                color="secondary"
+                color="neutral"
                 confirmation={{ confirm: true, text: 'Er du sikker på at du vil melde deg av?' }}
                 className="w-full! m-0!"
                 onClick={adminButtonOnClick}

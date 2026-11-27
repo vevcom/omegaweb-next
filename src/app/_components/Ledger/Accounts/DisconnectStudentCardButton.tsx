@@ -12,7 +12,7 @@ export default function DisconnectStudentCardButton({ userId }: { userId: number
         <Form
             className="w-fit!"
             submitText="Koble fra kort"
-            submitColor="red"
+            submitColor="error"
             confirmation={{ confirm: true, text: disconnectWarning }}
             refreshOnSuccess
             action={configureAction(disconnectStudentCardAction, { params: { id: userId } })}

@@ -110,7 +110,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                                 confirm: true,
                                 text: 'Er du sikker på at du vil slette denne nyheten? Dette kan ikke angres.'
                             }}
-                            submitColor="red"
+                            submitColor="error"
                         >
                         </Form>
                     )
@@ -143,7 +143,7 @@ export default function EditNews({ news, doubleLevelVisibility, children }: Prop
                             action={() => setPublishedAction({ data: { published: !news.published } })}
                             refreshOnSuccess
                             submitText={news.published ? 'Avpubliser' : 'Publiser'}
-                            submitColor={news.published ? 'red' : 'green'}
+                            submitColor={news.published ? 'error' : 'success'}
                             confirmation={{
                                 confirm: true,
                                 text: news.published

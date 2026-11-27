@@ -118,7 +118,7 @@ export default function OmbulAdmin({ ombul }: PropTypes) {
                             refreshOnSuccess
                             navigateOnSuccess={appHref('/ombul')}
                             submitText="Slett"
-                            submitColor="red"
+                            submitColor="error"
                             confirmation={{
                                 confirm: true,
                                 text: 'Er du sikker på at du vil slette ombulen? Dette kan ikke angres.',

@@ -43,7 +43,7 @@ export default function SpaceMembers({ spaceId, members, actions }: PropTypes) {
                             <Form
                                 className="w-auto!"
                                 submitText="Fjern"
-                                submitColor="red"
+                                submitColor="error"
                                 action={configureAction(removeMembers, { params: { spaceId } })}
                                 refreshOnSuccess
                                 confirmation={{ confirm: true, text: `Fjerne ${name} fra chatområdet og rommene i det?` }}

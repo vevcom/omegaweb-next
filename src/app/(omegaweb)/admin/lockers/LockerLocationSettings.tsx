@@ -47,7 +47,7 @@ export default function LockerLocationSettings({ location, capabilities }: PropT
                 ) : (
                     <Form
                         submitText="Slett lokasjonen"
-                        submitColor="red"
+                        submitColor="error"
                         action={configureAction(destroyLockerLocationAction, { params: { id: location.id } })}
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}

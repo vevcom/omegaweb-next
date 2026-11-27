@@ -124,7 +124,7 @@ const { page, generateMetadata } = serverPage({
                             <Form
                                 className="mt-4"
                                 submitText="Frigi skapet"
-                                submitColor="red"
+                                submitColor="error"
                                 refreshOnSuccess
                                 action={configureAction(deactivateLockerReservationAction, {
                                     params: { id: reservation.id },
@@ -176,7 +176,7 @@ const { page, generateMetadata } = serverPage({
                                 <Form
                                     className="mt-4"
                                     submitText="Slett skapet"
-                                    submitColor="red"
+                                    submitColor="error"
                                     navigateOnSuccess={appHref('/lockers')}
                                     action={configureAction(destroyLockerAction, { params: { id: lockerId } })}
                                     confirmation={{

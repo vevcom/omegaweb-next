@@ -148,7 +148,7 @@ const { page, generateMetadata } = serverPage({
                                     )}
                                     {isOwnProfile && (
                                         <SiteLink href={appHref('/logout')}>
-                                            <Button color="secondary" className="flex! items-center! gap-[0.5em]!">
+                                            <Button color="neutral" className="flex! items-center! gap-[0.5em]!">
                                                 <FontAwesomeIcon icon={faSignOut} />
                                                 <p className="w-[8em]">Logg ut</p>
                                             </Button>

@@ -43,7 +43,7 @@ const { page, generateMetadata } = serverPage({
                 submitText="Slett flair"
                 action={configureAction(destroyFlairAction, { params: { flairId: flair.id } })}
                 navigateOnSuccess={appHref('/admin/flairs')}
-                submitColor="red"
+                submitColor="error"
                 confirmation={{
                     confirm: true,
                     text: `

@@ -32,7 +32,7 @@ export default function RevueGroupMetaForms({ group, closePopUpOnSuccess, hrefOf
             <Form
                 action={configureAction(destroyRevueGroupAction, params)}
                 submitText="Slett gruppen"
-                submitColor="red"
+                submitColor="error"
                 closePopUpOnSuccess={closePopUpOnSuccess}
                 navigateOnSuccess={hrefAfterDestroy}
                 confirmation={{

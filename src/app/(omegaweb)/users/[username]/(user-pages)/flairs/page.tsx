@@ -57,7 +57,7 @@ const { page, generateMetadata } = serverPage({
                                         <Form
                                             submitText={flair.assignedToUser ? 'Fjern' : 'Tildel'}
                                             refreshOnSuccess
-                                            submitColor={flair.assignedToUser ? 'red' : 'green'}
+                                            submitColor={flair.assignedToUser ? 'error' : 'success'}
                                             action={
                                                 flair.assignedToUser
                                                     ? configureAction(

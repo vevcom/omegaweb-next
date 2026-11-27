@@ -1,6 +1,6 @@
 'use client'
-import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import CollectionAdminUpload from './CollectionAdminUpload'
+import { imageCollectionVisibility } from '@/app/(omegaweb)/image-collections/imageCollectionVisibility'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import ImageUploader from '@/components/Image/ImageUploader'
@@ -97,7 +97,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                         className="self-start m-0!"
                                         onClick={() =>
                                             setUploadOption(uploadOption === 'MANY' ? 'ONE' : 'MANY')}
-                                        color="secondary"
+                                        color="neutral"
                                     >
                                         {uploadOption === 'MANY' ? 'Last opp ett bilde' : 'Last opp mange'}
                                     </Button>
@@ -148,7 +148,7 @@ export default function CollectionAdmin({ collection, doubleLevelVisibility, ref
                                         destroyDynamicImageCollectionAction,
                                         { params: { collectionId } }
                                     )}
-                                    submitColor="red"
+                                    submitColor="error"
                                     confirmation={{
                                         confirm: true,
                                         text:

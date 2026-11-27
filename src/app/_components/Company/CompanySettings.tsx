@@ -86,7 +86,7 @@ export default function CompanySettings({ company, closePopUpOnSuccess, navigate
                     navigateOnSuccess={navigateOnDestroy}
                     closePopUpOnSuccess={closePopUpOnSuccess}
                     submitText="Slett"
-                    submitColor="red"
+                    submitColor="error"
                     confirmation={{
                         confirm: true,
                         text: 'Er du sikker på at du vil slette denne bedriften?'

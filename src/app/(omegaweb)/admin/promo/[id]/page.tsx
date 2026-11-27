@@ -1,3 +1,4 @@
+import { buttonClassName } from '@/components/UI/buttonClassName'
 import Form from '@/components/Form/Form'
 import TextInput from '@/components/UI/TextInput'
 import Textarea from '@/components/UI/Textarea'
@@ -35,7 +36,11 @@ const { page, generateMetadata } = serverPage({
                 <PopUp
                     popUpKey="EditPromoImage"
                     showButtonContent="Endre bilde"
-                    showButtonClass="btn-neutral block py-[0.25em]! px-[0.5em]! text-s! whitespace-nowrap"
+                    showButtonClass={buttonClassName({
+                        color: 'neutral',
+                        size: 's',
+                        className: 'block whitespace-nowrap',
+                    })}
                 >
                     <ImageUploader
                         title="Endre bilde for promo"
@@ -69,7 +74,7 @@ const { page, generateMetadata } = serverPage({
                 submitText="Slett promo"
                 action={configureAction(destroyPromoAction, { params: { promoId: promo.id } })}
                 navigateOnSuccess={appHref('/admin/promo')}
-                submitColor="red"
+                submitColor="error"
                 confirmation={{
                     confirm: true,
                     text: `

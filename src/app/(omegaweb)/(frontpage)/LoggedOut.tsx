@@ -10,6 +10,7 @@ import {
     taktlausePartClassName,
     wrapperClassName,
 } from './frontpageClassNames'
+import ButtonLink from '@/components/UI/ButtonLink'
 import { MazeMapLophtet } from '@/components/MazeMap/MazeMap'
 import SocialIcons from '@/components/SocialIcons/SocialIcons'
 import StandardImageServer from '@/components/Image/StandardImageServer'
@@ -25,7 +26,7 @@ import { appHref, externalHref } from '@/lib/sites/href'
 import { faAngleDown } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
-// Important flags: btn/btn-neutral set their own margin and padding at the same specificity.
+// Important flags: a button sets its own margin and padding at the same specificity.
 const ctaLayout = 'w-full m-0! py-5! px-6!'
 
 export default async function LoggedOutLandingPage() {
@@ -53,18 +54,18 @@ export default async function LoggedOutLandingPage() {
                             />
                         </div>
 
-                        <SiteLink className={`
-                            btn-neutral font-medium
+                        <ButtonLink color="neutral" className={`
+                            font-medium
                             ${ctaLayout}
-                        `} href={omegaAuthLinks.login()}>Logg inn</SiteLink>
-                        <SiteLink className={`
-                            btn-primary font-bold
+                        `} href={omegaAuthLinks.login()}>Logg inn</ButtonLink>
+                        <ButtonLink className={`
+                            font-bold
                             ${ctaLayout}
-                        `} href={appHref('/new-student')}>Ny student</SiteLink>
-                        <SiteLink className={`
-                            btn-neutral font-medium
+                        `} href={appHref('/new-student')}>Ny student</ButtonLink>
+                        <ButtonLink color="neutral" className={`
+                            font-medium
                             ${ctaLayout}
-                        `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</SiteLink>
+                        `} href={careerLinks.frontpage()} toMainDomainServingSite>For bedrifter</ButtonLink>
 
                         <SiteLink className={scrollDownClassName} href={externalHref('#firstSection')}>
                             <FontAwesomeIcon icon={faAngleDown} />

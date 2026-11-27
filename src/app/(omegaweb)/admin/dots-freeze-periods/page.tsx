@@ -134,7 +134,7 @@ const { page, generateMetadata } = serverPage({
                                                                 params: { id: freezePeriod.id },
                                                             })}
                                                             submitText="Slett"
-                                                            submitColor="red"
+                                                            submitColor="error"
                                                             confirmation={{
                                                                 confirm: true,
                                                                 text: 'Er du sikker på at du vil slette denne ' +
