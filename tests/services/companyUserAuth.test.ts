@@ -270,6 +270,8 @@ describe('changing the email of a company user', () => {
         const first = verifyEmailToken(companyUser.id, 'epost-brukt-forste@example.com')
         const second = verifyEmailToken(companyUser.id, 'epost-brukt-andre@example.com')
 
+        // A link is spent by a verification later than it to the millisecond, so one must pass.
+        await new Promise(resolve => setTimeout(resolve, 2))
         await companyUserAuthOperations.verifyEmail({ params: { token: second } })
         await expect(companyUserAuthOperations.verifyEmail({ params: { token: first } }))
             .rejects.toThrow(new Smorekopp('JWT INVALID'))
