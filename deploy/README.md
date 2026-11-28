@@ -8,7 +8,7 @@ compose files stay for development and tests.
 
 ```
 deploy/
-├── base/              # The app, the worker, the migrate job and the database
+├── base/              # The app, the worker, the migrate job, the database and Redis
 │   └── postgres.env   # The Postgres version, read here and by the compose files
 ├── overlays/
 │   └── local/         # k3d on a workstation: locally built images, no TLS, store on the volume or S3
@@ -27,8 +27,9 @@ An overlay includes `base` and fills in what it leaves open:
 - **The ingress host.** `ingress.yaml` routes `placeholder.invalid`. The overlay patches in its
   hosts and TLS.
 - **The environment.** Every pod reads the `omegaweb-next-env` secret, with the variables of
-  `.env.default`, and the `omegaweb-next-config` ConfigMap generated here, whose keys win.
-  How the secret gets there is up to the overlay. The local one builds it from `.env`.
+  `.env.default`, and the `omegaweb-next-config` ConfigMap generated here, whose keys win. The app
+  and the worker first read the `omegaweb-next-defaults` ConfigMap, whose keys the secret's win
+  over. How the secret gets there is up to the overlay. The local one builds it from `.env`.
 - **The sites.** Every pod mounts the `omegaweb-next-sites` ConfigMap as `sites.json`, which
   maps hosts to sites, and none start without it. The overlay generates it from its own file. A
   changed file rolls the pods. The ingress has to list the same hosts, aliases included, since
@@ -37,6 +38,19 @@ An overlay includes `base` and fills in what it leaves open:
 - **The database.** `database.yaml` is a CloudNativePG Cluster, so the operator has to be
   installed. It creates the `omegaweb-next-db-app` secret, whose `uri` key the pods read as
   `DB_URI`. Storage size and backups are patched in by the overlay.
+- **Redis.** `redis.yaml` is the shared cache, which the app and the worker reach as
+  `REDIS_URL` through the `omegaweb-next-defaults` ConfigMap. That one is read before the secret,
+  so a `REDIS_URL` in the secret wins: an installation with a Redis of its own puts its url there,
+  password and all. Redis keeps nothing on disk and runs with `volatile-lru`, which the cache needs:
+  an answer expires and may be dropped, the count of writes it is judged by never is. The overlay
+  sets its size, `--maxmemory` in the container's args and the memory limit above it. Whoever can
+  write to Redis decides what every visitor is given, and base's has no password, so its
+  NetworkPolicy lets only the app and the worker reach it. That holds only where the cluster's
+  network enforces policies. Where it does not, run Redis with a password and put it in the url in
+  the secret. Two installations on one Redis give each other's answers, so each has a Redis of its
+  own, or a database index of its own in the url. With `REDIS_URL` empty in the secret, each pod
+  keeps a cache in its memory, where a write in another pod or the worker is seen only after a
+  minute.
 - **The webmail.** `EMAIL_WEBMAIL_URL` is the origin of the mail server's webmail, whose host
   is also the mail domain the aliases' mailboxes are on, and the client id the webmail signs in
   through the provider with. Left unset, no alias keeps a mailbox. The mail server's own settings

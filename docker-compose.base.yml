@@ -21,6 +21,16 @@ services:
                 condition: service_healthy
                 required: false
 
+    redis:
+        # The same image and settings as deploy/base/redis.yaml. It is a cache, so it keeps nothing on disk.
+        image: redis:8.12.0-alpine
+        command: ["redis-server", "--maxmemory", "64mb", "--maxmemory-policy", "volatile-lru", "--save", "", "--appendonly", "no"]
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 0.5s
+            timeout: 0.5s
+            retries: 60
+
     db:
         # The version lives in deploy/base/postgres.env, which every compose command is given.
         image: postgres:${POSTGRES_VERSION:?pass --env-file deploy/base/postgres.env}-alpine

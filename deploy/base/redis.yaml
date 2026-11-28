@@ -1,0 +1,67 @@
+# The shared cache, which every pod of the app and the worker reach as REDIS_URL. It is a cache, so
+# it keeps nothing on disk, and a restart only empties it. `volatile-lru` drops the answers, which
+# expire, and never the count of writes they are judged by, which does not. The overlay sets the
+# size: `--maxmemory` here, and the memory limit above it. It has no password, so only the app and
+# the worker may reach it: whoever can write to it decides what every visitor is given.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: omegaweb-next-redis
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: omegaweb-next-redis
+    template:
+        metadata:
+            labels:
+                app.kubernetes.io/name: omegaweb-next-redis
+        spec:
+            containers:
+                - name: redis
+                  image: redis:8.12.0-alpine
+                  args: [--maxmemory, 64mb, --maxmemory-policy, volatile-lru, --save, "", --appendonly, "no"]
+                  ports:
+                      - name: redis
+                        containerPort: 6379
+                  readinessProbe:
+                      exec:
+                          command: [redis-cli, ping]
+                      periodSeconds: 10
+                  resources:
+                      requests:
+                          cpu: 20m
+                          memory: 32Mi
+                      limits:
+                          memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: omegaweb-next-redis
+spec:
+    selector:
+        app.kubernetes.io/name: omegaweb-next-redis
+    ports:
+        - name: redis
+          port: 6379
+          targetPort: redis
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+    name: omegaweb-next-redis
+spec:
+    podSelector:
+        matchLabels:
+            app.kubernetes.io/name: omegaweb-next-redis
+    policyTypes: [Ingress]
+    ingress:
+        - from:
+              - podSelector:
+                    matchExpressions:
+                        - key: app.kubernetes.io/name
+                          operator: In
+                          values: [omegaweb-next, omegaweb-next-worker]
+          ports:
+              - port: redis
