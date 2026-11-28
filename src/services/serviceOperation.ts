@@ -322,8 +322,13 @@ export type ServiceOperationContext<OpensTransaction extends boolean = boolean> 
  * inherit the context of the parent service operation, unless explicitly overridden.
  *
  * Read more about async local storage here: https://nodejs.org/api/async_context.html
+ *
+ * It is one for the process, hung on `globalThis`, since the one Prisma client logs who asks with
+ * the copy of this module in the runtime that made it.
  */
-const asyncLocalStorage = new AsyncLocalStorage<ServiceOperationContext>()
+const contextKey = Symbol.for('omegaweb.serviceContext')
+const processWide: typeof globalThis & { [contextKey]?: AsyncLocalStorage<ServiceOperationContext> } = globalThis
+const asyncLocalStorage = processWide[contextKey] ??= new AsyncLocalStorage<ServiceOperationContext>()
 
 
 /**

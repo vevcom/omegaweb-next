@@ -4,9 +4,11 @@ import { getContext } from '@/services/serviceOperation'
 import { tableWatch } from '@/prisma/tableWatch/watch'
 import { PrismaPg } from '@prisma/adapter-pg'
 
-// To prevent hot reloading from creating new instances of PrismaClient it is stored in the global object.
-// Read more about it in the section 'Prevent hot reloading from creating new instances of PrismaClient' here:
+// The client is one for the process, so it is stored in the global object. In development that keeps hot
+// reloading from creating new instances, see 'Prevent hot reloading from creating new instances of PrismaClient':
 // https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections
+// In production it keeps each runtime of the build, one for the pages and one for the route handlers, from
+// creating a client and a pool of its own.
 
 function newPrisma() {
     const prisma = new PrismaClient({
@@ -101,6 +103,4 @@ const globalForPrisma = global as unknown as {
     prisma: ReturnType<typeof newPrisma>
 }
 
-export const prisma = globalForPrisma.prisma || newPrisma()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = globalForPrisma.prisma ||= newPrisma()

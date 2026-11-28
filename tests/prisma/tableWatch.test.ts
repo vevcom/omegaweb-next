@@ -6,7 +6,7 @@ import { onTablesWritten, watchTablesRead } from '@/prisma/tableWatch/watch'
 import { expandedImageCollectionIncluder, expandedImageIncluder } from '@/services/images/subservice/constants'
 import { groupsExpandedIncluder } from '@/services/groups/constants'
 import { flairOperations } from '@/services/flairs/operations'
-import { describe, expect, test } from '@jest/globals'
+import { describe, expect, jest, test } from '@jest/globals'
 import type { Tables } from '@/prisma/tableWatch/tablesOfQuery'
 
 const sorted = (tables: Tables) => (tables === 'unknown' ? tables : Array.from(tables).sort())
@@ -241,5 +241,23 @@ describe('the watcher on the client', () => {
 
         expect(told).toEqual([['OmegaQuote'], ['Flair', 'OmegaQuote']])
         stop()
+    })
+
+    test('is one for the process, also in a copy of the module, as each runtime of a production build has', async () => {
+        jest.resetModules()
+        const copy = await import('@/prisma/tableWatch/watch')
+        const { prisma: clientOfTheCopy } = await import('@/prisma-pn-client-instance')
+        expect(copy.watchTablesRead).not.toBe(watchTablesRead)
+        expect(clientOfTheCopy).toBe(prisma)
+
+        const told: (string[] | 'unknown')[] = []
+        const stop = copy.onTablesWritten(tables => told.push(sorted(tables)))
+        const read = copy.watchTablesRead(async () => await prisma.omegaQuote.count())
+        await read.result
+        await prisma.omegaQuote.updateMany({ where: { id: -1 }, data: { quote: 'none' } })
+        stop()
+
+        expect(sorted(read.seen.tables)).toEqual(['OmegaQuote'])
+        expect(told).toEqual([['OmegaQuote']])
     })
 })
