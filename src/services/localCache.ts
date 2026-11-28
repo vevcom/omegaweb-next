@@ -1,24 +1,56 @@
 import '@ow-server-only'
+import { AsyncLocalStorage } from 'async_hooks'
+
+const cacheInForce = new AsyncLocalStorage<LocalCache | undefined>()
 
 /**
- * What a service context remembers of the calls made in it. Only an operation that says
- * `read: true` asks it, so a read that many callers make in one context runs once. Every other
- * operation may write, so it clears the cache when it ends, and what is read after it is read
- * again. Whoever opens a context hands it its cache, and so decides how long an answer lives.
+ * What is remembered of the calls made while it is in force. A caller begins one around a callback,
+ * `MapLocalCache.begin(() => ...)`, and it is in force for everything that callback runs. It is not
+ * part of the service context, so no call sets it. Only an operation that says `read: true` asks
+ * it, so a read that many callers make runs once. Every other operation may write, so it clears the
+ * cache in force when it ends, and what is read after it is read again.
+ *
+ * One begun inside another is the one in force there, and the only one a read inside it asks. A
+ * write inside it clears it and every one it was begun inside of, since their answers may be from
+ * before the write too.
  */
-export type ServiceCache = {
+export abstract class LocalCache {
+    private upstream: LocalCache | undefined
+
     /**
      * The answer kept for this operation and this key, or `read` run and its answer kept. What is
      * kept is the promise, so calls made at the same time share one run, and a call that throws is
      * remembered as well: a refusal, and also a failure that would have passed on a second try.
      */
-    remember(operation: object, key: string, read: () => Promise<unknown>): Promise<unknown>
-    /** Forgets every answer, since something that may have written has run. */
-    clear(): void
+    public abstract remember(operation: object, key: string, read: () => Promise<unknown>): Promise<unknown>
+    /** Forgets every answer of this cache alone. */
+    protected abstract clearOwn(): void
+
+    /** Forgets every answer, here and in every cache this one was begun inside of. */
+    public clear(): void {
+        this.clearOwn()
+        this.upstream?.clear()
+    }
+
+    /** Runs the callback with a new cache of this kind in force. */
+    public static begin<Result>(this: new () => LocalCache, callback: () => Result): Result {
+        const cache = new this()
+        cache.upstream = cacheInForce.getStore()
+        return cacheInForce.run(cache, callback)
+    }
+
+    public static inForce(): LocalCache | undefined {
+        return cacheInForce.getStore()
+    }
+
+    /** Runs the callback with no cache in force, so what it reads is read fresh and never kept. */
+    public static withNone<Result>(callback: () => Result): Result {
+        return cacheInForce.run(undefined, callback)
+    }
 }
 
-/** Keeps its answers in a map of its own, so it lives for as long as whoever made it keeps it. */
-export class MapServiceCache implements ServiceCache {
+/** Keeps its answers in a map of its own, so they live for the callback it was begun around. */
+export class MapLocalCache extends LocalCache {
     private readonly answers = new Map<object, Map<string, Promise<unknown>>>()
 
     public remember(operation: object, key: string, read: () => Promise<unknown>) {
@@ -33,18 +65,9 @@ export class MapServiceCache implements ServiceCache {
         return answer
     }
 
-    public clear() {
+    protected clearOwn() {
         this.answers.clear()
     }
-}
-
-/** Remembers nothing. It is what a context has when it is handed no cache, and inside a transaction. */
-export class NoServiceCache implements ServiceCache {
-    public remember(operation: object, key: string, read: () => Promise<unknown>) {
-        return read()
-    }
-
-    public clear() {}
 }
 
 /**
@@ -53,7 +76,7 @@ export class NoServiceCache implements ServiceCache {
  * so, such as a class instance, a function, an object with a symbol for a field or one that holds
  * itself, has no key, and a call with one is not remembered.
  */
-export function serviceCacheKey(value: unknown): string | undefined {
+export function localCacheKey(value: unknown): string | undefined {
     return keyOf(value, [])
 }
 

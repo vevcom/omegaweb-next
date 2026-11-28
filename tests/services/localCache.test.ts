@@ -11,7 +11,7 @@ import { eventTagOperations } from '@/services/events/tags/operations'
 import { standardImageCollection } from '@/services/images/standard/standardImageCollection'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { readAliasOwnerMatrices, readMailingListOwnerMatrices } from '@/services/mail/owned'
-import { MapServiceCache, NoServiceCache, serviceCacheKey } from '@/services/serviceCache'
+import { LocalCache, MapLocalCache, localCacheKey } from '@/services/localCache'
 import { defineOperation, defineSubOperation, isPrismaClient, withServiceContext } from '@/services/serviceOperation'
 import { userOperations } from '@/services/users/operations'
 import { userPrivateSelection } from '@/services/users/constants'
@@ -20,7 +20,7 @@ import { activeMembersOf, testSession } from 'tests/utils'
 import { afterAll, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { z } from 'zod'
 import type { KeysOfUnion } from '@/lib/keysOfUnion'
-import type { ServiceCache } from '@/services/serviceCache'
+import type { Prisma } from '@/prisma-generated-pn-client'
 import type { UserFiltered } from '@/services/users/types'
 
 const authorizerRuns = jest.fn()
@@ -59,6 +59,7 @@ const readThingTwice = defineOperation({
 })
 
 const reader = Session.fromJsObject({ user: null, permissions: ['USERS_USE'], memberships: [] })
+const readThingOnce = () => readThing({ params: { id: 1 }, session: reader })
 const visitor = Session.fromJsObject({ user: null, permissions: [], memberships: [] })
 const unauthenticated = { errorCode: 'UNAUTHENTICATED' }
 
@@ -88,18 +89,18 @@ beforeEach(() => {
 
 describe('a read', () => {
     test('runs once for calls that are equal by value, and again for other params', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            const first = await readThing({ params: { id: 1, filter: { tag: 'a', limit: 5 } }, session: reader })
+            const second = await readThing({ params: { filter: { limit: 5, tag: 'a' }, id: 1 }, session: reader })
+            expect(runs).toHaveBeenCalledTimes(1)
+            expect(authorizerRuns).toHaveBeenCalledTimes(1)
+            expect(second).toBe(first)
 
-        const first = await readThing({ params: { id: 1, filter: { tag: 'a', limit: 5 } }, session: reader, cache })
-        const second = await readThing({ params: { filter: { limit: 5, tag: 'a' }, id: 1 }, session: reader, cache })
-        expect(runs).toHaveBeenCalledTimes(1)
-        expect(authorizerRuns).toHaveBeenCalledTimes(1)
-        expect(second).toBe(first)
-
-        await readThing({ params: { id: 1, filter: { tag: 'b', limit: 5 } }, session: reader, cache })
-        await readThing({ params: { id: 1 }, session: reader, cache })
-        await readThing({ params: { id: 2 }, session: reader, cache })
-        expect(runs).toHaveBeenCalledTimes(4)
+            await readThing({ params: { id: 1, filter: { tag: 'b', limit: 5 } }, session: reader })
+            await readThing({ params: { id: 1 }, session: reader })
+            await readThing({ params: { id: 2 }, session: reader })
+            expect(runs).toHaveBeenCalledTimes(4)
+        })
     })
 
     test('is never given the answer of another operation', async () => {
@@ -109,26 +110,25 @@ describe('a read', () => {
             authorizer: () => Require.nothing(),
             operation: () => 'another thing',
         })
-        const cache = new MapServiceCache()
 
-        const thing = await readThing({ params: { id: 1 }, session: reader, cache })
-        const otherThing = await readOtherThing({ params: { id: 1 }, session: reader, cache })
+        await MapLocalCache.begin(async () => {
+            const thing = await readThing({ params: { id: 1 }, session: reader })
+            const otherThing = await readOtherThing({ params: { id: 1 }, session: reader })
 
-        expect(thing).toMatchObject({ id: 1 })
-        expect(otherThing).toBe('another thing')
+            expect(thing).toMatchObject({ id: 1 })
+            expect(otherThing).toBe('another thing')
+        })
     })
 
     test('runs once for calls made at the same time', async () => {
-        const cache = new MapServiceCache()
-
-        await Promise.all([1, 2, 3].map(() => readThing({ params: { id: 1 }, session: reader, cache })))
+        await MapLocalCache.begin(() => Promise.all([1, 2, 3].map(() => readThingOnce())))
 
         expect(runs).toHaveBeenCalledTimes(1)
     })
 
-    test('runs every time when the context is handed no cache', async () => {
-        await readThing({ params: { id: 1 }, session: reader })
-        await readThing({ params: { id: 1 }, session: reader })
+    test('runs every time when no local cache is in force', async () => {
+        await readThingOnce()
+        await readThingOnce()
         expect(runs).toHaveBeenCalledTimes(2)
 
         await readThingTwice({ session: reader })
@@ -136,25 +136,26 @@ describe('a read', () => {
     })
 
     test('a refusal is remembered and thrown again', async () => {
-        const cache = new MapServiceCache()
-
-        await expect(readThing({ params: { id: 1 }, session: visitor, cache })).rejects.toMatchObject(unauthenticated)
-        await expect(readThing({ params: { id: 1 }, session: visitor, cache })).rejects.toMatchObject(unauthenticated)
+        await MapLocalCache.begin(async () => {
+            await expect(readThing({ params: { id: 1 }, session: visitor })).rejects.toMatchObject(unauthenticated)
+            await expect(readThing({ params: { id: 1 }, session: visitor })).rejects.toMatchObject(unauthenticated)
+        })
 
         expect(authorizerRuns).toHaveBeenCalledTimes(1)
         expect(runs).not.toHaveBeenCalled()
     })
 
     test('a call that bypasses auth is not given a refusal, nor a call that does not what one that did read', async () => {
-        const refusedFirst = new MapServiceCache()
-        await expect(readThing({ params: { id: 1 }, session: visitor, cache: refusedFirst })).rejects.toThrow()
-        await expect(readThing({ params: { id: 1 }, session: visitor, cache: refusedFirst, bypassAuth: true }))
-            .resolves.toMatchObject({ id: 1, bypassAuth: true })
+        await MapLocalCache.begin(async () => {
+            await expect(readThing({ params: { id: 1 }, session: visitor })).rejects.toThrow()
+            await expect(readThing({ params: { id: 1 }, session: visitor, bypassAuth: true }))
+                .resolves.toMatchObject({ id: 1, bypassAuth: true })
+        })
 
-        const bypassedFirst = new MapServiceCache()
-        await readThing({ params: { id: 1 }, session: visitor, cache: bypassedFirst, bypassAuth: true })
-        await expect(readThing({ params: { id: 1 }, session: visitor, cache: bypassedFirst }))
-            .rejects.toMatchObject(unauthenticated)
+        await MapLocalCache.begin(async () => {
+            await readThing({ params: { id: 1 }, session: visitor, bypassAuth: true })
+            await expect(readThing({ params: { id: 1 }, session: visitor })).rejects.toMatchObject(unauthenticated)
+        })
     })
 
     test('params that cannot be compared by value are read every time, and the operation warns of it once', async () => {
@@ -167,11 +168,12 @@ describe('a read', () => {
                 return Array.from(params.tags)
             },
         })
-        const cache = new MapServiceCache()
         const warn = jest.spyOn(logger, 'warn').mockImplementation(() => logger)
 
-        expect(await readByTags({ params: { id: 1, tags: new Set(['a']) }, cache })).toEqual(['a'])
-        expect(await readByTags({ params: { id: 1, tags: new Set(['b']) }, cache })).toEqual(['b'])
+        await MapLocalCache.begin(async () => {
+            expect(await readByTags({ params: { id: 1, tags: new Set(['a']) } })).toEqual(['a'])
+            expect(await readByTags({ params: { id: 1, tags: new Set(['b']) } })).toEqual(['b'])
+        })
 
         expect(runs).toHaveBeenCalledTimes(2)
         expect(warn.mock.calls).toEqual([[expect.any(String), { params: ['tags'], implementationParams: [] }]])
@@ -180,11 +182,11 @@ describe('a read', () => {
 })
 
 describe('an operation that is not a read', () => {
-    test('runs every time, also in a context with a cache', async () => {
-        const cache = new MapServiceCache()
-
-        await writeThing({ params: { id: 1 }, session: reader, cache })
-        await writeThing({ params: { id: 1 }, session: reader, cache })
+    test('runs every time, also with a local cache in force', async () => {
+        await MapLocalCache.begin(async () => {
+            await writeThing({ params: { id: 1 }, session: reader })
+            await writeThing({ params: { id: 1 }, session: reader })
+        })
 
         expect(runs).toHaveBeenCalledTimes(2)
     })
@@ -194,37 +196,36 @@ describe('an answer and the session it was read for', () => {
     const readerOf = (user: UserFiltered) => testSession({ user, permissions: ['USERS_USE'] })
 
     test('a session that is equal by value is given the answer', async () => {
-        const cache = new MapServiceCache()
-
-        await readThing({ params: { id: 1 }, session: readerOf(anne), cache })
-        await readThing({ params: { id: 1 }, session: readerOf({ ...anne }), cache })
+        await MapLocalCache.begin(async () => {
+            await readThing({ params: { id: 1 }, session: readerOf(anne) })
+            await readThing({ params: { id: 1 }, session: readerOf({ ...anne }) })
+        })
 
         expect(runs).toHaveBeenCalledTimes(1)
     })
 
     test('another user is never given it', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            const forAnne = await readThing({ params: { id: 1 }, session: readerOf(anne) })
+            const forBerit = await readThing({ params: { id: 1 }, session: readerOf(berit) })
 
-        const forAnne = await readThing({ params: { id: 1 }, session: readerOf(anne), cache })
-        const forBerit = await readThing({ params: { id: 1 }, session: readerOf(berit), cache })
-
-        expect(forAnne.readFor).toBe('cache-anne')
-        expect(forBerit.readFor).toBe('cache-berit')
+            expect(forAnne.readFor).toBe('cache-anne')
+            expect(forBerit.readFor).toBe('cache-berit')
+        })
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
     test('the same user with other permissions is never given it, and is refused', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            await readThing({ params: { id: 1 }, session: readerOf(anne) })
 
-        await readThing({ params: { id: 1 }, session: readerOf(anne), cache })
-
-        await expect(readThing({ params: { id: 1 }, session: testSession({ user: anne, permissions: [] }), cache }))
-            .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+            await expect(readThing({ params: { id: 1 }, session: testSession({ user: anne, permissions: [] }) }))
+                .rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+        })
         expect(authorizerRuns).toHaveBeenCalledTimes(2)
     })
 
     test('a session that differs in any other field is never given it', async () => {
-        const cache = new MapServiceCache()
         const membership = { groupId: 1, order: 1, admin: false, active: true, title: 'Medlem', userId: anne.id }
         const sessions = [
             reader,
@@ -245,7 +246,9 @@ describe('an answer and the session it was read for', () => {
             }),
         ]
 
-        for (const session of sessions) await readThing({ params: { id: 1 }, session, cache })
+        await MapLocalCache.begin(async () => {
+            for (const session of sessions) await readThing({ params: { id: 1 }, session })
+        })
 
         expect(runs).toHaveBeenCalledTimes(sessions.length)
     })
@@ -265,35 +268,34 @@ describe('what a context hands the call of a read', () => {
     const admin = Session.fromJsObject({ user: null, permissions: ['USERS_ADMIN'], memberships: [] })
 
     test('its session is in the key, so a visitor is refused what an admin\'s context read', async () => {
-        const cache = new MapServiceCache()
-
-        await expect(readSecretInside({ session: admin, cache })).resolves.toBe('secret')
-        await expect(readSecretInside({ session: visitor, cache })).rejects.toMatchObject(unauthenticated)
+        await MapLocalCache.begin(async () => {
+            await expect(readSecretInside({ session: admin })).resolves.toBe('secret')
+            await expect(readSecretInside({ session: visitor })).rejects.toMatchObject(unauthenticated)
+        })
     })
 
     test('its bypassAuth is in the key, so a visitor is refused what trusted code read for them', async () => {
-        const cache = new MapServiceCache()
-
-        await expect(readSecretInside({ session: visitor, bypassAuth: true, cache })).resolves.toBe('secret')
-        await expect(readSecret({ session: visitor, cache })).rejects.toMatchObject(unauthenticated)
+        await MapLocalCache.begin(async () => {
+            await expect(readSecretInside({ session: visitor, bypassAuth: true })).resolves.toBe('secret')
+            await expect(readSecret({ session: visitor })).rejects.toMatchObject(unauthenticated)
+        })
     })
 })
 
-describe('the cache of a context', () => {
-    test('is shared by the contexts opened inside it', async () => {
+describe('the local cache in force', () => {
+    test('is in force for everything called inside what began it', async () => {
         const readThingThroughOthers = defineOperation({
             read: true,
             authorizer: () => Require.nothing(),
             operation: async () => [await readThingTwice({}), await readThing({ params: { id: 1 } })],
         })
 
-        await readThingThroughOthers({ session: reader, cache: new MapServiceCache() })
+        await MapLocalCache.begin(() => readThingThroughOthers({ session: reader }))
 
         expect(runs).toHaveBeenCalledTimes(1)
     })
 
-    test('is not asked inside a transaction, whether the cache was handed in or inherited', async () => {
-        const cache = new MapServiceCache()
+    test('is not asked inside a transaction, whether it was begun outside the transaction or inside it', async () => {
         const readThingInTransaction = defineOperation({
             read: true,
             authorizer: () => Require.nothing(),
@@ -306,54 +308,102 @@ describe('the cache of a context', () => {
                 await readThing({ params: { id: 1 } })
             },
         })
+        const readTwiceIn = (tx: Prisma.TransactionClient) => async () => {
+            await readThing({ params: { id: 1 }, session: reader, prisma: tx })
+            await readThing({ params: { id: 1 }, session: reader, prisma: tx })
+        }
 
-        await prisma.$transaction(async tx => {
-            await readThing({ params: { id: 1 }, session: reader, prisma: tx, cache })
-            await readThing({ params: { id: 1 }, session: reader, prisma: tx, cache })
-        })
+        await MapLocalCache.begin(() => prisma.$transaction(tx => readTwiceIn(tx)()))
         expect(runs).toHaveBeenCalledTimes(2)
+
+        await prisma.$transaction(tx => MapLocalCache.begin(readTwiceIn(tx)))
+        expect(runs).toHaveBeenCalledTimes(4)
 
         // Once outside the transaction and remembered there, and twice inside it.
-        await readThingInTransaction({ session: reader, cache })
-        expect(runs).toHaveBeenCalledTimes(5)
-    })
-
-    test('is replaced by a call that sets its own, for that call and what it calls', async () => {
-        const readThingAroundACacheOfItsOwn = defineOperation({
-            read: true,
-            authorizer: () => Require.nothing(),
-            operation: async () => {
-                await readThing({ params: { id: 1 } })
-                await readThingTwice({ cache: new MapServiceCache() })
-                await readThing({ params: { id: 1 } })
-            },
-        })
-
-        await readThingAroundACacheOfItsOwn({ session: reader, cache: new MapServiceCache() })
-
-        expect(runs).toHaveBeenCalledTimes(2)
+        await MapLocalCache.begin(() => readThingInTransaction({ session: reader }))
+        expect(runs).toHaveBeenCalledTimes(7)
     })
 
     test('is refused when it answers with what the operation never read', async () => {
-        const answersForAnother: ServiceCache = {
-            remember: () => Promise.resolve({ id: 1, readFor: 'cache-berit' }),
-            clear: () => {},
+        class AnswersForAnother extends LocalCache {
+            public remember() {
+                return Promise.resolve({ id: 1, readFor: 'cache-berit' })
+            }
+
+            protected clearOwn() {}
         }
 
-        await expect(readThing({ params: { id: 1 }, session: reader, cache: answersForAnother }))
+        await expect(AnswersForAnother.begin(readThingOnce))
             .rejects.toMatchObject({ errorCode: 'SERVER ERROR' })
         expect(runs).not.toHaveBeenCalled()
     })
 
-    test('is left alone by a call that sets NoServiceCache, which reads fresh', async () => {
-        const cache = new MapServiceCache()
+    test('is left alone by what runs with none in force, which reads fresh and clears nothing', async () => {
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await LocalCache.withNone(async () => {
+                await readThingOnce()
+                await writeThing({ params: { id: 2 }, session: reader })
+            })
+            expect(runs).toHaveBeenCalledTimes(3)
 
-        await readThing({ params: { id: 1 }, session: reader, cache })
-        await readThing({ params: { id: 1 }, session: reader, cache: new NoServiceCache() })
-        expect(runs).toHaveBeenCalledTimes(2)
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(3)
+        })
+    })
+})
 
-        await readThing({ params: { id: 1 }, session: reader, cache })
+describe('a local cache begun inside another', () => {
+    const write = defineOperation({
+        read: false,
+        authorizer: () => Require.nothing(),
+        operation: () => null,
+    })
+
+    test('answers the reads inside it, and the outer one those around it', async () => {
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await MapLocalCache.begin(() => readThingTwice({ session: reader }))
+            await readThingOnce()
+        })
+
         expect(runs).toHaveBeenCalledTimes(2)
+    })
+
+    test('is cleared by a write inside it, with every one it was begun inside of', async () => {
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await MapLocalCache.begin(async () => {
+                await readThingOnce()
+                await MapLocalCache.begin(async () => {
+                    await readThingOnce()
+                    await write({})
+                })
+                expect(runs).toHaveBeenCalledTimes(3)
+                await readThingOnce()
+            })
+            expect(runs).toHaveBeenCalledTimes(4)
+            await readThingOnce()
+        })
+
+        expect(runs).toHaveBeenCalledTimes(5)
+    })
+
+    test('is not cleared by a write outside it, once it has ended', async () => {
+        const cleared = jest.fn()
+        class CountsClearings extends MapLocalCache {
+            protected clearOwn() {
+                cleared()
+                super.clearOwn()
+            }
+        }
+
+        await MapLocalCache.begin(async () => {
+            await CountsClearings.begin(readThingOnce)
+            await write({})
+        })
+
+        expect(cleared).not.toHaveBeenCalled()
     })
 })
 
@@ -383,23 +433,23 @@ describe('a sub-operation', () => {
     })
 
     test('is a read to the implementation that says so, with its ownership check, and to no other', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 } })
+            await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 } })
+            expect(runs).toHaveBeenCalledTimes(1)
+            expect(ownershipChecks).toHaveBeenCalledTimes(1)
 
-        await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
-        await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
-        expect(runs).toHaveBeenCalledTimes(1)
-        expect(ownershipChecks).toHaveBeenCalledTimes(1)
-
-        await fresh({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
-        await fresh({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
-        expect(runs).toHaveBeenCalledTimes(3)
+            await fresh({ params: { id: 1 }, implementationParams: { ownerId: 1 } })
+            await fresh({ params: { id: 1 }, implementationParams: { ownerId: 1 } })
+            expect(runs).toHaveBeenCalledTimes(3)
+        })
     })
 
     test('is read again for other implementation params', async () => {
-        const cache = new MapServiceCache()
-
-        await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
-        await remembered({ params: { id: 1 }, implementationParams: { ownerId: 2 }, cache })
+        await MapLocalCache.begin(async () => {
+            await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 } })
+            await remembered({ params: { id: 1 }, implementationParams: { ownerId: 2 } })
+        })
 
         expect(runs).toHaveBeenCalledTimes(2)
     })
@@ -418,52 +468,55 @@ describe('a sub-operation that says it is a read where it is defined', () => {
     const once = { operationImplementationFields: undefined, params: { id: 1 } }
 
     test('is remembered by its internal calls, which share their answers with no implementation', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            expect(await readPart.internalCall(once)).toBe(await readPart.internalCall(once))
+            expect(runs).toHaveBeenCalledTimes(1)
 
-        expect(await readPart.internalCall({ ...once, cache })).toBe(await readPart.internalCall({ ...once, cache }))
-        expect(runs).toHaveBeenCalledTimes(1)
-
-        await readPart.internalCall({ ...once, params: { id: 2 }, cache })
-        const implemented = readPart.implement({ ...implementation, operationImplementationFields: undefined })
-        await implemented({ params: { id: 1 }, cache })
-        expect(runs).toHaveBeenCalledTimes(3)
+            await readPart.internalCall({ ...once, params: { id: 2 } })
+            const implemented = readPart.implement({ ...implementation, operationImplementationFields: undefined })
+            await implemented({ params: { id: 1 } })
+            expect(runs).toHaveBeenCalledTimes(3)
+        })
     })
 
-    test('is read every time by an internal call with no cache, and by one handed a transaction', async () => {
+    test('is read every time by an internal call with no cache in force, and by one handed a transaction', async () => {
         await readPart.internalCall(once)
         await readPart.internalCall(once)
         expect(runs).toHaveBeenCalledTimes(2)
 
-        const cache = new MapServiceCache()
-        await readPart.internalCall({ ...once, cache })
-        await prisma.$transaction(async tx => {
-            expect(await readPart.internalCall({ ...once, cache, prisma: tx })).toMatchObject({ inTransaction: true })
+        await MapLocalCache.begin(async () => {
+            await readPart.internalCall(once)
+            await prisma.$transaction(async tx => {
+                expect(await readPart.internalCall({ ...once, prisma: tx })).toMatchObject({ inTransaction: true })
+            })
         })
         expect(runs).toHaveBeenCalledTimes(4)
     })
 
     test('internal calls implemented with other fields do not share an answer', async () => {
-        const cache = new MapServiceCache()
-        const twice = { ...once, operationImplementationFields: { times: 2 }, cache }
+        const twice = { ...once, operationImplementationFields: { times: 2 } }
 
-        expect(await readPart.internalCall(twice)).toMatchObject({ answer: 2 })
-        expect(await readPart.internalCall({ ...once, cache })).toMatchObject({ answer: 1 })
-        expect(await readPart.internalCall(twice)).toMatchObject({ answer: 2 })
+        await MapLocalCache.begin(async () => {
+            expect(await readPart.internalCall(twice)).toMatchObject({ answer: 2 })
+            expect(await readPart.internalCall(once)).toMatchObject({ answer: 1 })
+            expect(await readPart.internalCall(twice)).toMatchObject({ answer: 2 })
+        })
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
     test('the implementation decides: one that says no reads every time, one that says nothing is a read', async () => {
-        const cache = new MapServiceCache()
         const fresh = readPart.implement({ ...implementation, operationImplementationFields: undefined, read: false })
         const asDefined = readPart.implement({ ...implementation, operationImplementationFields: undefined })
 
-        await fresh({ params: { id: 1 }, cache })
-        await fresh({ params: { id: 1 }, cache })
-        expect(runs).toHaveBeenCalledTimes(2)
+        await MapLocalCache.begin(async () => {
+            await fresh({ params: { id: 1 } })
+            await fresh({ params: { id: 1 } })
+            expect(runs).toHaveBeenCalledTimes(2)
 
-        await asDefined({ params: { id: 1 }, cache })
-        await asDefined({ params: { id: 1 }, cache })
-        expect(runs).toHaveBeenCalledTimes(3)
+            await asDefined({ params: { id: 1 } })
+            await asDefined({ params: { id: 1 } })
+            expect(runs).toHaveBeenCalledTimes(3)
+        })
     })
 })
 
@@ -494,38 +547,37 @@ describe('a call that is not a read', () => {
             await write({ params: { fails: false } })
         },
     })
-    const readThingIn = (cache: ServiceCache) => readThing({ params: { id: 1 }, session: reader, cache })
 
-    test('clears the cache when it ends, so what is read after a write is read again', async () => {
-        const cache = new MapServiceCache()
+    test('clears the cache in force when it ends, so what is read after a write is read again', async () => {
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(1)
 
-        await readThingIn(cache)
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(1)
-
-        await write({ params: { fails: false }, cache })
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(2)
+            await write({ params: { fails: false } })
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(2)
+        })
     })
 
     test('clears the cache when it throws, and when it runs in a transaction of its own', async () => {
-        const cache = new MapServiceCache()
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await expect(write({ params: { fails: true } })).rejects.toMatchObject({ errorCode: 'UNKNOWN ERROR' })
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(2)
 
-        await readThingIn(cache)
-        await expect(write({ params: { fails: true }, cache })).rejects.toMatchObject({ errorCode: 'UNKNOWN ERROR' })
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(2)
-
-        expect(await writeInItsOwnTransaction({ cache })).toBe(true)
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(3)
+            expect(await writeInItsOwnTransaction({})).toBe(true)
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(3)
+        })
     })
 
-    test('clears the cache of the context it is called in, also what the read that called it was kept as', async () => {
-        const cache = new MapServiceCache()
-
-        await readThenWrite({ cache })
-        await readThenWrite({ cache })
+    test('clears also what the read that called it was kept as', async () => {
+        await MapLocalCache.begin(async () => {
+            await readThenWrite({})
+            await readThenWrite({})
+        })
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
@@ -547,20 +599,21 @@ describe('a call that is not a read', () => {
             authorizer: () => Require.nothing(),
             operation: () => writing.opened,
         })
-        const cache = new MapServiceCache()
 
-        const startedBefore = readSlowly({ params: { started: 'before the write' }, cache })
-        const written = writeSlowly({ cache })
-        const startedDuring = readSlowly({ params: { started: 'during the write' }, cache })
-        writing.open()
-        await written
+        await MapLocalCache.begin(async () => {
+            const startedBefore = readSlowly({ params: { started: 'before the write' } })
+            const written = writeSlowly({})
+            const startedDuring = readSlowly({ params: { started: 'during the write' } })
+            writing.open()
+            await written
 
-        const after = [
-            readSlowly({ params: { started: 'before the write' }, cache }),
-            readSlowly({ params: { started: 'during the write' }, cache }),
-        ]
-        reading.open()
-        await Promise.all([startedBefore, startedDuring, ...after])
+            const after = [
+                readSlowly({ params: { started: 'before the write' } }),
+                readSlowly({ params: { started: 'during the write' } }),
+            ]
+            reading.open()
+            await Promise.all([startedBefore, startedDuring, ...after])
+        })
 
         expect(runs).toHaveBeenCalledTimes(4)
     })
@@ -574,15 +627,16 @@ describe('a call that is not a read', () => {
                 await readThing({ params: { id: 1 } })
             },
         })
-        const cache = new MapServiceCache()
 
-        await readThingIn(cache)
-        await readWriteRead({ session: reader, cache })
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await readWriteRead({ session: reader })
+        })
 
         expect(runs).toHaveBeenCalledTimes(3)
     })
 
-    test('in a transaction clears the cache of the context that opened the transaction', async () => {
+    test('in a transaction clears the cache in force, whether a call or the context holds the transaction', async () => {
         const repairInTransaction = defineOperation({
             read: true,
             authorizer: () => Require.nothing(),
@@ -594,42 +648,21 @@ describe('a call that is not a read', () => {
             authorizer: () => Require.nothing(),
             operation: ({ prisma: client }) => client.$transaction(tx => writePart.internalCall({ prisma: tx })),
         })
-        const cache = new MapServiceCache()
 
-        await readThingIn(cache)
-        await repairInTransaction({ cache })
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(2)
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            await repairInTransaction({})
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(2)
 
-        await writeInTransaction({ cache })
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(3)
-    })
+            await writeInTransaction({})
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(3)
 
-    test('clears the cache it is handed and the cache of the context it is called in', async () => {
-        const ofContext = new MapServiceCache()
-        const handed = new MapServiceCache()
-        const readInBoth = async () => {
-            await readThingIn(ofContext)
-            await readThingIn(handed)
-        }
-
-        await readInBoth()
-        await withServiceContext({ cache: ofContext }, 'NONE', () => write({ params: { fails: false }, cache: handed }))
-        await readInBoth()
-
-        expect(runs).toHaveBeenCalledTimes(4)
-    })
-
-    test('handed NoServiceCache clears the cache of the context, and outside every context it clears none', async () => {
-        const cache = new MapServiceCache()
-
-        await readThingIn(cache)
-        await withServiceContext({ cache }, 'NONE', () => write({ params: { fails: false }, cache: new NoServiceCache() }))
-        await readThingIn(cache)
-        expect(runs).toHaveBeenCalledTimes(2)
-
-        await expect(write({ params: { fails: false } })).resolves.toBeUndefined()
+            await prisma.$transaction(tx => withServiceContext({ prisma: tx }, 'NONE', () => writePart.internalCall({})))
+            await readThingOnce()
+            expect(runs).toHaveBeenCalledTimes(4)
+        })
     })
 
     test('is not what a read with params that cannot be compared is: such a read clears nothing', async () => {
@@ -639,12 +672,13 @@ describe('a call that is not a read', () => {
             authorizer: () => Require.nothing(),
             operation: ({ params }) => params.tags.size,
         })
-        const cache = new MapServiceCache()
         const warn = jest.spyOn(logger, 'warn').mockImplementation(() => logger)
 
-        await readThingIn(cache)
-        expect(await readByTags({ params: { tags: new Set(['a']) }, cache })).toBe(1)
-        await readThingIn(cache)
+        await MapLocalCache.begin(async () => {
+            await readThingOnce()
+            expect(await readByTags({ params: { tags: new Set(['a']) } })).toBe(1)
+            await readThingOnce()
+        })
 
         expect(runs).toHaveBeenCalledTimes(1)
         warn.mockRestore()
@@ -684,31 +718,29 @@ describe('what is read after a write', () => {
             stored = data.value
         },
     })
-    const writes: [string, (data: { value: number }, cache?: ServiceCache) => Promise<unknown>][] = [
-        ['an operation', (data, cache) => store({ data, cache })],
-        ['an implemented sub-operation', (data, cache) => storeImplemented({ data, cache })],
-        ['an internal call', (data, cache) => storePart.internalCall({ data, cache })],
-        ['an operation that runs in a transaction', (data, cache) => storeInTransaction({ data, cache })],
+    const writes: [string, (data: { value: number }) => Promise<unknown>][] = [
+        ['an operation', data => store({ data })],
+        ['an implemented sub-operation', data => storeImplemented({ data })],
+        ['an internal call', data => storePart.internalCall({ data })],
+        ['an operation that runs in a transaction', data => storeInTransaction({ data })],
     ]
 
-    test.each(writes)('is what was written by %s, handed the cache or called in its context', async (kind, write) => {
-        const cache = new MapServiceCache()
+    test.each(writes)('is what was written by %s', async (kind, write) => {
         stored = 1
 
-        expect(await readStored({ cache })).toEqual({ stored: 1 })
-        await write({ value: 2 }, cache)
-        expect(await readStored({ cache })).toEqual({ stored: 2 })
-
-        await withServiceContext({ cache }, 'NONE', () => write({ value: 3 }))
-        expect(await readStored({ cache })).toEqual({ stored: 3 })
+        await MapLocalCache.begin(async () => {
+            expect(await readStored({})).toEqual({ stored: 1 })
+            await write({ value: 2 })
+            expect(await readStored({})).toEqual({ stored: 2 })
+        })
     })
 })
 
 describe('the key of a call', () => {
     test('is the same for values that are equal, whatever order their fields were written in', () => {
-        const key = serviceCacheKey({ id: 1, filter: { tag: 'a', from: new Date(5) }, ids: [1, 2] })
+        const key = localCacheKey({ id: 1, filter: { tag: 'a', from: new Date(5) }, ids: [1, 2] })
 
-        expect(serviceCacheKey({ ids: [1, 2], filter: { from: new Date(5), tag: 'a' }, id: 1 })).toBe(key)
+        expect(localCacheKey({ ids: [1, 2], filter: { from: new Date(5), tag: 'a' }, id: 1 })).toBe(key)
         expect(key).toBeDefined()
     })
 
@@ -720,7 +752,7 @@ describe('the key of a call', () => {
             [1, [2]], [[1], 2], [1, 2], ['1,2'], ['1', '2'], { id: { tag: 1 } }, { 'id.tag': 1 }, { id: 1, tag: 1 },
         ]
 
-        const keys = different.map(serviceCacheKey)
+        const keys = different.map(localCacheKey)
 
         expect(keys).not.toContain(undefined)
         expect(new Set(keys).size).toBe(different.length)
@@ -735,7 +767,7 @@ describe('the key of a call', () => {
             new Map(), new Set([1]), new Thing(), () => 1, Symbol('id'), [new Thing()], { id: { thing: new Thing() } },
         ]
 
-        expect(incomparable.map(serviceCacheKey)).toEqual(incomparable.map(() => undefined))
+        expect(incomparable.map(localCacheKey)).toEqual(incomparable.map(() => undefined))
     })
 
     test('is missing for a value that holds itself or has a symbol for a field, and not for one held twice', () => {
@@ -743,10 +775,10 @@ describe('the key of a call', () => {
         holdsItself.self = [holdsItself]
         const heldTwice = { tag: 'a' }
 
-        expect(serviceCacheKey(holdsItself)).toBeUndefined()
-        expect(serviceCacheKey({ id: 1, [Symbol('hidden')]: 2 })).toBeUndefined()
-        expect(serviceCacheKey({ first: heldTwice, second: heldTwice }))
-            .toBe(serviceCacheKey({ first: { tag: 'a' }, second: { tag: 'a' } }))
+        expect(localCacheKey(holdsItself)).toBeUndefined()
+        expect(localCacheKey({ id: 1, [Symbol('hidden')]: 2 })).toBeUndefined()
+        expect(localCacheKey({ first: heldTwice, second: heldTwice }))
+            .toBe(localCacheKey({ first: { tag: 'a' }, second: { tag: 'a' } }))
     })
 })
 
@@ -770,12 +802,13 @@ describe('the types of read', () => {
         const unsaidPart = defineSubOperation({
             operation: () => () => runs(),
         })
-        const cache = new MapServiceCache()
 
-        await unsaid({ cache })
-        await unsaid({ cache })
-        await unsaidPart.internalCall({ cache })
-        await unsaidPart.internalCall({ cache })
+        await MapLocalCache.begin(async () => {
+            await unsaid({})
+            await unsaid({})
+            await unsaidPart.internalCall({})
+            await unsaidPart.internalCall({})
+        })
 
         expect(runs).toHaveBeenCalledTimes(4)
     })
@@ -797,12 +830,13 @@ describe('the types of read', () => {
             // @ts-expect-error - an operation that takes data is no read
             read: true,
         })
-        const cache = new MapServiceCache()
 
-        for (const write of [writeName, writeNameOfPart]) {
-            expect(await write({ data: { name: 'first' }, cache })).toBe('first')
-            expect(await write({ data: { name: 'second' }, cache })).toBe('second')
-        }
+        await MapLocalCache.begin(async () => {
+            for (const write of [writeName, writeNameOfPart]) {
+                expect(await write({ data: { name: 'first' } })).toBe('first')
+                expect(await write({ data: { name: 'second' } })).toBe('second')
+            }
+        })
     })
 
     test('it does not compile as true on an operation that opens or runs in a transaction, which keeps it', async () => {
@@ -829,12 +863,13 @@ describe('the types of read', () => {
             authorizer: () => Require.nothing(),
             operation: () => runs(),
         })
-        const cache = new MapServiceCache()
 
-        expect(await inTransaction({ cache })).toBe(true)
-        expect(await inTransactionOfPart({ cache })).toBe(true)
-        await opensTransaction({ cache })
-        await opensTransaction({ cache })
+        await MapLocalCache.begin(async () => {
+            expect(await inTransaction({})).toBe(true)
+            expect(await inTransactionOfPart({})).toBe(true)
+            await opensTransaction({})
+            await opensTransaction({})
+        })
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
@@ -876,13 +911,14 @@ describe('the types of read', () => {
                 return 1
             },
         })
-        const cache = new MapServiceCache()
-        const args = { cache, read: true }
+        const args = { read: true }
 
-        // @ts-expect-error - an internal call does not say whether it is a read
-        await write.internalCall(args)
-        // @ts-expect-error - an internal call does not say whether it is a read
-        await write.internalCall(args)
+        await MapLocalCache.begin(async () => {
+            // @ts-expect-error - an internal call does not say whether it is a read
+            await write.internalCall(args)
+            // @ts-expect-error - an internal call does not say whether it is a read
+            await write.internalCall(args)
+        })
 
         expect(runs).toHaveBeenCalledTimes(2)
     })
@@ -899,36 +935,33 @@ describe('the types of read', () => {
 
 describe('the reads of the services', () => {
     test('a profile is read again after the read that repaired its omega membership, and then once', async () => {
-        const cache = new MapServiceCache()
-        const asAnne = testSession({ user: anne })
-
-        const repaired = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
-        const profile = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
-        expect(profile).not.toBe(repaired)
-        expect(profile).toEqual(repaired)
-
-        await prisma.user.update({ where: { id: anne.id }, data: { firstname: 'Anne Etterpå' } })
-        const again = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
-        const fresh = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne })
-
-        expect(again).toBe(profile)
-        expect(fresh.user.firstname).toBe('Anne Etterpå')
-        await expect(userOperations.readProfile({
+        const readProfileAs = (user: UserFiltered) => userOperations.readProfile({
             params: { username: anne.username },
-            session: testSession({ user: berit }),
-            cache,
-        })).rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+            session: testSession({ user }),
+        })
+
+        await MapLocalCache.begin(async () => {
+            const repaired = await readProfileAs(anne)
+            const profile = await readProfileAs(anne)
+            expect(profile).not.toBe(repaired)
+            expect(profile).toEqual(repaired)
+
+            await prisma.user.update({ where: { id: anne.id }, data: { firstname: 'Anne Etterpå' } })
+            const again = await readProfileAs(anne)
+            const fresh = await LocalCache.withNone(() => readProfileAs(anne))
+
+            expect(again).toBe(profile)
+            expect(fresh.user.firstname).toBe('Anne Etterpå')
+            await expect(readProfileAs(berit)).rejects.toMatchObject({ errorCode: 'UNAUTHORIZED' })
+        })
     })
 
     test('a special link that is missing is created once by reads made at the same time', async () => {
         await prisma.cmsLink.deleteMany({ where: { special: 'CAREER_CONTACT' } })
-        const cache = new MapServiceCache()
 
-        const links = await Promise.all([1, 2, 3].map(() => careersFrontpageOperations.cmsLinks.read({
-            params: { special: 'CAREER_CONTACT' },
-            session: visitor,
-            cache,
-        })))
+        const links = await MapLocalCache.begin(() => Promise.all([1, 2, 3].map(() => (
+            careersFrontpageOperations.cmsLinks.read({ params: { special: 'CAREER_CONTACT' }, session: visitor })
+        ))))
 
         expect(new Set(links.map(link => link.id)).size).toBe(1)
         expect(await prisma.cmsLink.count({ where: { special: 'CAREER_CONTACT' } })).toBe(1)
@@ -937,40 +970,40 @@ describe('the reads of the services', () => {
     test('a special event tag that is missing is made by a read, which clears what was read before it', async () => {
         await prisma.eventTagEvent.deleteMany({ where: { tag: { special: 'COMPANY_PRESENTATION' } } })
         await prisma.eventTag.deleteMany({ where: { special: 'COMPANY_PRESENTATION' } })
-        const cache = new MapServiceCache()
         const readSpecial = () => eventTagOperations.readSpecial({
             params: { special: 'COMPANY_PRESENTATION' },
             bypassAuth: true,
-            cache,
         })
 
-        const tagsBefore = await eventTagOperations.readAll({ bypassAuth: true, cache })
-        const made = await readSpecial()
-        const tagsAfter = await eventTagOperations.readAll({ bypassAuth: true, cache })
+        await MapLocalCache.begin(async () => {
+            const tagsBefore = await eventTagOperations.readAll({ bypassAuth: true })
+            const made = await readSpecial()
+            const tagsAfter = await eventTagOperations.readAll({ bypassAuth: true })
 
-        expect(tagsBefore.map(tag => tag.id)).not.toContain(made.id)
-        expect(tagsAfter.map(tag => tag.id)).toContain(made.id)
-        expect(await readSpecial()).toBe(await readSpecial())
+            expect(tagsBefore.map(tag => tag.id)).not.toContain(made.id)
+            expect(tagsAfter.map(tag => tag.id)).toContain(made.id)
+            expect(await readSpecial()).toBe(await readSpecial())
+        })
     })
 
     test('an api key is read once, and again after the read that deactivated it as expired', async () => {
         const { id } = await prisma.apiKey.create({ data: { name: 'cache key', keyHashEncrypted: 'none', active: true } })
-        const readIn = (cache: ServiceCache) => apiKeyOperations.read({ params: { id }, bypassAuth: true, cache })
-        const before = new MapServiceCache()
-        const after = new MapServiceCache()
+        const read = () => apiKeyOperations.read({ params: { id }, bypassAuth: true })
 
-        expect(await readIn(before)).toBe(await readIn(before))
+        await MapLocalCache.begin(async () => expect(await read()).toBe(await read()))
         await prisma.apiKey.update({ where: { id }, data: { expiresAt: new Date(Date.now() - 1000) } })
 
-        const deactivated = await readIn(after)
-        const again = await readIn(after)
-        expect(deactivated.active).toBe(false)
-        expect(again).not.toBe(deactivated)
-        expect(await readIn(after)).toBe(again)
+        await MapLocalCache.begin(async () => {
+            const deactivated = await read()
+            const again = await read()
+            expect(deactivated.active).toBe(false)
+            expect(again).not.toBe(deactivated)
+            expect(await read()).toBe(again)
+        })
     })
 
-    test('a standard image and its collection are read once in a context', async () => {
-        await withServiceContext({ session: visitor, cache: new MapServiceCache() }, 'NONE', async () => {
+    test('a standard image and its collection are read once under a local cache', async () => {
+        await MapLocalCache.begin(() => withServiceContext({ session: visitor }, 'NONE', async () => {
             const readLogo = () => standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'LOGO_SIMPLE' },
             })
@@ -979,15 +1012,15 @@ describe('the reads of the services', () => {
 
             expect(await readLogo()).toBe(logo)
             expect(await standardImageCollection.internal.read.internalCall({})).toBe(collection)
-        })
+        }))
     })
 
-    test('the owner matrices behind the mail server nav items are read once in a context', async () => {
-        await withServiceContext({ session: visitor, cache: new MapServiceCache() }, 'NONE', async () => {
+    test('the owner matrices behind the mail server nav items are read once under a local cache', async () => {
+        await MapLocalCache.begin(() => withServiceContext({ session: visitor }, 'NONE', async () => {
             expect(await readAliasOwnerMatrices.internalCall({})).toBe(await readAliasOwnerMatrices.internalCall({}))
             expect(await readMailingListOwnerMatrices.internalCall({}))
                 .toBe(await readMailingListOwnerMatrices.internalCall({}))
-        })
+        }))
     })
 })
 
@@ -1036,17 +1069,20 @@ describe('what the page of an event reads', () => {
         bypassAuth: true,
     })
 
-    test('the access of an event is remembered where a cache is handed in, and read fresh by a sign-up', async () => {
+    test('the access of an event is remembered where a local cache is in force, and read fresh by a sign-up', async () => {
         const event = await createDraft('Husket tilgang')
-        const cache = new MapServiceCache()
         const signUp = { params: { eventId: event.id, userId: anne.id }, session: testSession({ user: anne }) }
+        const readAccess = () => readEventAccess.internalCall({ params: { id: event.id } })
 
-        const access = await readEventAccess.internalCall({ params: { id: event.id }, cache })
-        await expect(eventRegistrationOperations.create(signUp)).rejects.toThrow(Smorekopp)
-        await prisma.event.update({ where: { id: event.id }, data: { published: true } })
+        await MapLocalCache.begin(async () => {
+            const access = await readAccess()
+            // Run with no cache in force, so the refused sign-up does not clear the access just read.
+            await expect(LocalCache.withNone(() => eventRegistrationOperations.create(signUp))).rejects.toThrow(Smorekopp)
+            await prisma.event.update({ where: { id: event.id }, data: { published: true } })
 
-        expect(await readEventAccess.internalCall({ params: { id: event.id }, cache })).toBe(access)
-        await expect(eventRegistrationOperations.create({ ...signUp, cache })).resolves.toMatchObject({ userId: anne.id })
+            expect(await readAccess()).toBe(access)
+            await expect(eventRegistrationOperations.create(signUp)).resolves.toMatchObject({ userId: anne.id })
+        })
     })
 
     test('the access is read fresh in the transaction of a save that changes who administrates the event', async () => {
@@ -1056,12 +1092,11 @@ describe('what the page of an event reads', () => {
 
         // The save's authorizer reads the access before the save takes the administrators away. The
         // host is adopted only if the save then sees that no one is left.
-        await eventOperations.saveSetup({
+        await MapLocalCache.begin(() => eventOperations.saveSetup({
             params: { id: event.id },
             data: { adminRequirements: [{ conditions: [] }], hostedByCommitteeId: committeeId },
             session: administrator,
-            cache: new MapServiceCache(),
-        })
+        }))
 
         const matrix = await eventOperations.adminVisibility.readMatrix({ params: { id: event.id }, bypassAuth: true })
         expect(matrix.requirements.map(requirement => requirement.conditions.map(condition => condition.groupId)))
@@ -1069,55 +1104,43 @@ describe('what the page of an event reads', () => {
     })
 })
 
-/** An action opens its context with no cache, so a write of one is called here with none. */
 describe('a page reads, an action writes and the next render reads again', () => {
     test('a profile shows the name its user was given', async () => {
         const asAnne = testSession({ user: anne })
-        const readProfile = (cache: ServiceCache) => userOperations.readProfile({
-            params: { username: anne.username },
-            session: asAnne,
-            cache,
-        })
-        const firstRender = new MapServiceCache()
+        const readProfile = () => userOperations.readProfile({ params: { username: anne.username }, session: asAnne })
 
-        const before = await readProfile(firstRender)
+        await MapLocalCache.begin(readProfile)
         await userOperations.update({ params: { id: anne.id }, data: { firstname: 'Anne Endret' }, bypassAuth: true })
 
-        expect(await readProfile(firstRender)).toBe(before)
-        expect((await readProfile(new MapServiceCache())).user.firstname).toBe('Anne Endret')
+        expect((await MapLocalCache.begin(readProfile)).user.firstname).toBe('Anne Endret')
     })
 
     test('a special link shows the text it was given', async () => {
-        const readLink = (cache: ServiceCache) => careersFrontpageOperations.cmsLinks.read({
+        const readLink = () => careersFrontpageOperations.cmsLinks.read({
             params: { special: 'CAREER_CONTACT' },
             session: visitor,
-            cache,
         })
-        const firstRender = new MapServiceCache()
 
-        const before = await readLink(firstRender)
+        const before = await MapLocalCache.begin(readLink)
         await careersFrontpageOperations.cmsLinks.update({
             params: { linkId: before.id },
             data: { text: 'Skriv til oss' },
             bypassAuth: true,
         })
 
-        expect(await readLink(firstRender)).toBe(before)
-        expect((await readLink(new MapServiceCache())).text).toBe('Skriv til oss')
+        expect((await MapLocalCache.begin(readLink)).text).toBe('Skriv til oss')
     })
 
     test('the event tags hold the one that was made', async () => {
-        const readTags = (cache: ServiceCache) => eventTagOperations.readAll({ session: visitor, bypassAuth: true, cache })
-        const firstRender = new MapServiceCache()
+        const readTags = () => eventTagOperations.readAll({ session: visitor, bypassAuth: true })
 
-        const before = await readTags(firstRender)
+        await MapLocalCache.begin(readTags)
         const made = await eventTagOperations.create({
             data: { name: 'Husket merkelapp', description: '', color: '#aa0000' },
             bypassAuth: true,
         })
 
-        expect(await readTags(firstRender)).toBe(before)
-        expect((await readTags(new MapServiceCache())).map(tag => tag.id)).toContain(made.id)
+        expect((await MapLocalCache.begin(readTags)).map(tag => tag.id)).toContain(made.id)
     })
 })
 

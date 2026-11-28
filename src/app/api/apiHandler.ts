@@ -1,5 +1,6 @@
 import '@ow-server-only'
 import { getHttpErrorCode, ParseError, ServiceError, Smorekopp } from '@/services/error'
+import { MapLocalCache } from '@/services/localCache'
 import { ServerSession } from '@/auth/session/ServerSession'
 import logger from '@/lib/logger'
 import type { ServiceOperation } from '@/services/serviceOperation'
@@ -55,7 +56,8 @@ const sessionFromApiKey = (request: Request) => ServerSession.fromApiKey(request
 /**
  * A route handler that is a service operation: the request is turned into the operation's params,
  * data and session, and the result or the failure into the response. The defaults are the JSON
- * API's; a protocol with a shape of its own, such as OAuth, gives the hooks it needs.
+ * API's; a protocol with a shape of its own, such as OAuth, gives the hooks it needs. A request
+ * runs with a local cache of its own in force, so what it reads is read once.
  */
 export function apiHandler<
     RawParams,
@@ -74,20 +76,25 @@ export function apiHandler<
 }: APIHandler<RawParams, Return, ParamsSchema, DataSchema>) {
     return async (request: Request, context?: RouteContext<RawParams>): Promise<Response> => {
         try {
-            const currentSession = await session(request)
-            const rawBody = serviceOperation.dataSchema ? await readBody(request, body) : undefined
-            let parsedParams: unknown
-            if (query) {
-                parsedParams = await query(new URL(request.url).searchParams, request)
-            } else if (params) {
-                parsedParams = await params(await (context?.params ?? Promise.resolve(undefined as RawParams)), request)
-            }
-            const result = await serviceOperation<'UNSAFE'>({
-                params: parsedParams,
-                data: rawBody === undefined ? undefined : data(rawBody, request),
-                session: currentSession,
+            return await MapLocalCache.begin(async () => {
+                const currentSession = await session(request)
+                const rawBody = serviceOperation.dataSchema ? await readBody(request, body) : undefined
+                let parsedParams: unknown
+                if (query) {
+                    parsedParams = await query(new URL(request.url).searchParams, request)
+                } else if (params) {
+                    parsedParams = await params(
+                        await (context?.params ?? Promise.resolve(undefined as RawParams)),
+                        request,
+                    )
+                }
+                const result = await serviceOperation<'UNSAFE'>({
+                    params: parsedParams,
+                    data: rawBody === undefined ? undefined : data(rawBody, request),
+                    session: currentSession,
+                })
+                return respond(result, request)
             })
-            return respond(result, request)
         } catch (error: unknown) {
             return respondError(apiErrorOf(error), request)
         }
