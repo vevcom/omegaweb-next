@@ -11,6 +11,15 @@ services:
         volumes:
             - ${PROJECT_ROOT:-.}/src:/usr/src/app/src
             - ${PROJECT_ROOT:-.}/tests:/usr/src/app/tests
+        # The tests of the shared cache in Redis run against it.
+        depends_on:
+            redis:
+                condition: service_healthy
+
+    redis:
+        extends:
+            file: docker-compose.base.yml
+            service: redis
     
     db:
         extends:

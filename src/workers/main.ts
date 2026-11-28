@@ -2,6 +2,8 @@ import '@ow-server-only'
 import { workers } from './definitions'
 import { prisma } from '@/prisma-pn-client-instance'
 import { loadDomainConfig } from '@/lib/sites/loadDomainConfig'
+import { RedisSharedCache, redisUrl } from '@/services/redisSharedCache'
+import { SharedCache } from '@/services/sharedCache'
 import logger from '@/lib/logger'
 import { writeFile } from 'fs/promises'
 import type { Worker, WorkerName } from './types'
@@ -88,6 +90,7 @@ async function runWorkers(selected: Worker[]) {
     await Promise.all(selected.map(loop))
     clearInterval(heartbeat)
     await prisma.$disconnect()
+    SharedCache.stopForProcess()
 }
 
 function isWorkerName(name: string): name is WorkerName {
@@ -101,6 +104,10 @@ function isWorkerName(name: string): name is WorkerName {
  */
 async function main() {
     loadDomainConfig()
+    // Begun so the workers' writes are told to the app's processes, and with no version it only tells,
+    // since the workers read little. A cache of the worker's own would not hear of the app's writes,
+    // so with no Redis it has none.
+    if (redisUrl) RedisSharedCache.beginForProcess(redisUrl, null)
     const requested = process.argv.slice(2)
     const unknown = requested.filter(name => !isWorkerName(name))
     if (unknown.length > 0) {

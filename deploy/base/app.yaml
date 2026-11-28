@@ -26,6 +26,8 @@ spec:
                       - name: http
                         containerPort: 3000
                   envFrom:
+                      - configMapRef:
+                            name: omegaweb-next-defaults
                       - secretRef:
                             name: omegaweb-next-env
                       - configMapRef:

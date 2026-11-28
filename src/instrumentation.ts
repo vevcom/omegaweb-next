@@ -14,5 +14,12 @@ export async function register() {
     loadDomainConfig()
 
     const { MapSharedCache } = await import('@/services/sharedCache')
-    MapSharedCache.beginForProcess()
+    const { RedisSharedCache, redisUrl } = await import('@/services/redisSharedCache')
+    if (!redisUrl) {
+        MapSharedCache.beginForProcess()
+        return
+    }
+    // An answer is given only to the build that read it.
+    const { buildId } = await import('@/lib/buildId')
+    RedisSharedCache.beginForProcess(redisUrl, buildId())
 }

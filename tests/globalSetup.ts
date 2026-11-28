@@ -6,6 +6,10 @@ import { execSync } from 'child_process'
  * pushing the schema and seeding on its own.
  */
 export default async function globalSetup() {
+    if (!process.env.REDIS_URL) {
+        console.warn('REDIS_URL is not set, so the tests of the shared cache in Redis are skipped.')
+    }
+
     await withAdminClient(async client => {
         await client.query(`DROP DATABASE IF EXISTS "${TEMPLATE_DATABASE}" WITH (FORCE)`)
         await client.query(`CREATE DATABASE "${TEMPLATE_DATABASE}"`)

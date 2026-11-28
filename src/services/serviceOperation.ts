@@ -130,14 +130,16 @@ type Read<Flag extends TransactionFlag, DataSchema extends z.ZodTypeAny | undefi
     [Flag, DataSchema] extends ['NONE', undefined] ? boolean : false
 
 /**
- * Whether the answer of a read is shared across requests, in the shared cache of the process, see
- * {@link SharedCache}. Only an operation that says `read: true` compiles with it. A read says it only
- * when its answer is the same whoever asks: its body does not use the session, its authorizer hands
- * it no filter, and it calls only internal calls and other reads whose answer is the same whoever
- * asks. An operation it calls runs with the session and `bypassAuth` of whoever filled the cache, so
- * one that authorizes answers for them. Its authorizer and ownership check still run on every call.
+ * The name the answers of a read are shared under across requests, in the shared cache of the
+ * process, see {@link SharedCache}. It is the same in every process, so it is a literal, and no other
+ * read has it: the path its operations object exports it by. Only an operation that says
+ * `read: true` compiles with it. A read says it only when its answer is the same whoever asks: its
+ * body does not use the session, its authorizer hands it no filter, and it calls only internal calls
+ * and other reads whose answer is the same whoever asks. An operation it calls runs with the session
+ * and `bypassAuth` of whoever filled the cache, so one that authorizes answers for them. Its
+ * authorizer and ownership check still run on every call.
  */
-type Shared<IsRead extends boolean> = [IsRead] extends [true] ? boolean : never
+type Shared<IsRead extends boolean> = [IsRead] extends [true] ? string : never
 
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -347,6 +349,13 @@ const contextKey = Symbol.for('omegaweb.serviceContext')
 const processWide: typeof globalThis & { [contextKey]?: AsyncLocalStorage<ServiceOperationContext> } = globalThis
 const asyncLocalStorage = processWide[contextKey] ??= new AsyncLocalStorage<ServiceOperationContext>()
 
+/**
+ * The names the shared reads defined with this copy of the module are kept under. A name stands for
+ * one read in every process, so a second read of it, such as one a factory defines for each owner,
+ * is caught where it is defined.
+ */
+const sharedNames = new Set<string>()
+
 
 /**
  * Runs a callback with a specific service operation context.
@@ -498,12 +507,12 @@ export function defineSubOperation<
     >
 ) {
     type OpensTransaction = OpensTransactionOf<Flag>
+    if (serviceOperationConfig.shared !== undefined) holdSharedNameApart(serviceOperationConfig.shared)
 
     // An internal call implements the sub-operation anew each time, and the internal calls are still
     // one reader to a cache, so they share what tells a cache their answers apart from all others.
     const internalCalls = {
         answersRead: new WeakMap<Promise<unknown>, Promise<Return>>(),
-        answersShared: new WeakMap<SharedAnswer<unknown>, SharedAnswer<Return>>(),
     }
 
     type ImplementationArgs<ImplementationParamsSchema extends z.ZodTypeAny | undefined> =
@@ -525,7 +534,6 @@ export function defineSubOperation<
         // A cache holds the answers of every operation, so it gives one back as unknown. An answer is
         // known to be this operation's by being one of those it read.
         const answersRead = asInternalCall?.answersRead ?? new WeakMap<Promise<unknown>, Promise<Return>>()
-        const answersShared = asInternalCall?.answersShared ?? new WeakMap<SharedAnswer<unknown>, SharedAnswer<Return>>()
         let warnedOfCallWithoutKey = false
         // The rule of the type, asked again at run time: a `read: true` that got past the compiler would
         // otherwise take a write out of its transaction, or answer one call's data with another's.
@@ -535,7 +543,7 @@ export function defineSubOperation<
         const isRead = (said ?? serviceOperationConfig.read) === true
             && !serviceOperationConfig.dataSchema
             && (serviceOperationConfig.transaction ?? 'NONE') === 'NONE'
-        const isShared = isRead && serviceOperationConfig.shared === true
+        const sharedAs = isRead ? serviceOperationConfig.shared : undefined
 
         const expectedArgsArePresent = (
             args: ServiceOperationExecuteArgs<'UNSAFE', ParamsSchema, DataSchema, ImplementationParamsSchema>
@@ -638,17 +646,14 @@ export function defineSubOperation<
                 )
             }
 
-            // What tells the answer of this call from those of other calls, whoever asks.
-            const whatIsAsked = [
-                args.params,
-                args.implementationParams,
-                // Internal calls share a reader, so what each is implemented with tells them apart.
-                asInternalCall && [
-                    implementationArgs.paramsSchemaImplementationFields,
-                    implementationArgs.dataSchemaImplementationFields,
-                    implementationArgs.operationImplementationFields,
-                ],
+            const implementedWith = [
+                implementationArgs.paramsSchemaImplementationFields,
+                implementationArgs.dataSchemaImplementationFields,
+                implementationArgs.operationImplementationFields,
             ]
+            // What tells the answer of this call from those of other calls, whoever asks. Internal calls
+            // share a reader, so what each is implemented with tells them apart.
+            const whatIsAsked = [args.params, args.implementationParams, asInternalCall && implementedWith]
 
             const run = async (
                 { prisma, bypassAuth, session }: ServiceOperationContext<OpensTransaction>
@@ -720,27 +725,22 @@ export function defineSubOperation<
 
                 // The answer is filled with no local cache asked, since the request's may answer a nested read
                 // from before a write another request has made, and the shared answer outlives the request.
-                const answerShared = async (sharedCache: SharedCache, sharedKey: string) => {
-                    const kept = await sharedCache.remember(asInternalCall ?? executeOperation, sharedKey, async () => {
-                        const shared = new SharedAnswer(await LocalCache.withNone(answer))
-                        answersShared.set(shared, shared)
-                        return shared
-                    })
-                    const shared = answersShared.get(kept)
-                    if (!shared) {
-                        throw new Smorekopp('SERVER ERROR', 'The shared cache answered with what the operation never read.')
-                    }
-                    return shared.given()
+                const answerShared = async (sharedCache: SharedCache, name: string, sharedKey: string) => {
+                    const kept = await sharedCache.remember(
+                        name, sharedKey, async () => SharedAnswer.of(await LocalCache.withNone(answer))
+                    )
+                    return kept.given()
                 }
 
                 // Asked after the authorizer, so its key holds no session. What is read in a transaction
-                // may be what was just written in it.
-                const sharedCache = isShared && prismaWhereFilter === undefined && isPrismaClient(prisma)
+                // may be what was just written in it. The answer is the read's, whichever implementation
+                // or internal call asks, so what it is implemented with is in the key.
+                const sharedCache = sharedAs && prismaWhereFilter === undefined && isPrismaClient(prisma)
                     ? SharedCache.inForce()
                     : undefined
-                const sharedKey = sharedCache && localCacheKey(whatIsAsked)
-                const result = sharedCache && sharedKey !== undefined
-                    ? await answerShared(sharedCache, sharedKey)
+                const sharedKey = sharedCache && localCacheKey([args.params, args.implementationParams, implementedWith])
+                const result = sharedAs && sharedCache && sharedKey !== undefined
+                    ? await answerShared(sharedCache, sharedAs, sharedKey)
                     : await answer()
                 await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
                 return result
@@ -995,4 +995,18 @@ async function prismaErrorWrapper<Result>(call: () => Awaitable<Result>): Promis
         }
         throw new ServiceError(mapped[0], mapped[1])
     }
+}
+
+/**
+ * Refused in a test run, which defines every operation once. Elsewhere it is only said: Next defines
+ * a module anew when it reloads it in development, and a build may hold a module in more than one
+ * chunk, so a name can be defined again by the same read, and a guard must not stop the site.
+ */
+function holdSharedNameApart(name: string) {
+    if (sharedNames.has(name)) {
+        const message = `Two shared reads are named ${name}, so each would be given the other's answers.`
+        if (process.env.NODE_ENV === 'test') throw new Error(message)
+        if (process.env.NODE_ENV === 'production') logger.error(message)
+    }
+    sharedNames.add(name)
 }

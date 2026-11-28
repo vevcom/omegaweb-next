@@ -25,6 +25,8 @@ spec:
                   image: omegaweb-next-tools
                   command: [./node_modules/.bin/tsx, src/workers/main.ts]
                   envFrom:
+                      - configMapRef:
+                            name: omegaweb-next-defaults
                       - secretRef:
                             name: omegaweb-next-env
                       - configMapRef:

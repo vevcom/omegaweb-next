@@ -46,11 +46,14 @@ fi
 
 # `kubectl create secret --from-env-file` would keep the quotes and inline comments
 # in .env as part of the values. ${...} references stay unexpanded, which only
-# affects DB_URI, and the pods take that from the database secret instead.
+# affects DB_URI, and the pods take that from the database secret instead. The
+# REDIS_URL of .env is the compose stack's, so the cluster keeps base's unless
+# .env.local sets one.
 env_file=$(mktemp)
 trap 'rm -f "$env_file"' EXIT
 awk '
     /^[[:space:]]*(#|$)/ { next }
+    FILENAME == ".env" && /^REDIS_URL=/ { next }
     {
         key = substr($0, 1, index($0, "=") - 1)
         value = substr($0, index($0, "=") + 1)

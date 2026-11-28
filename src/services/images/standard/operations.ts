@@ -96,7 +96,7 @@ const readStandardImage = defineOperation({
     authorizer: () => standardImageCollectionAuth.readStandardImage,
     paramsSchema: standardImageCollectionSchemas.params.readStandardImage,
     read: true,
-    shared: true,
+    shared: 'standardImageCollectionOperations.readStandardImage',
     operation: async ({ prisma, params }) => {
         const image = await prisma.image.findUnique({
             where: {

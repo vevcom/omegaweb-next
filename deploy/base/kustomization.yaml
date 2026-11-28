@@ -7,6 +7,7 @@ labels:
 
 resources:
     - database.yaml
+    - redis.yaml
     - migrate-job.yaml
     - app.yaml
     - worker.yaml
@@ -17,6 +18,7 @@ resources:
 patches:
     - target:
           kind: (Deployment|Job)
+          name: omegaweb-next(-worker|-migrate)?
       patch: |-
           - op: add
             path: /spec/template/spec/volumes/-
@@ -48,6 +50,13 @@ configMapGenerator:
           - AUTH_TRUST_HOST=true
           # Each overlay generates the omegaweb-next-sites ConfigMap this comes from.
           - SITES_CONFIG=/etc/omegaweb-next/sites.json
+    # Defaults the env secret may override. Listed before it in the envFrom of the app and the
+    # worker, so a key in the secret wins over the same key here.
+    - name: omegaweb-next-defaults
+      literals:
+          # The shared cache of redis.yaml, which the app and the worker both begin. An installation
+          # with a Redis of its own puts its url, password and all, in the secret.
+          - REDIS_URL=redis://omegaweb-next-redis:6379
     # Only exists to carry POSTGRES_IMAGE from postgres.env into the replacement below.
     # local-config keeps it out of the cluster.
     - name: postgres
