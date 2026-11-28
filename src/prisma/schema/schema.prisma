@@ -8,3 +8,10 @@ generator omegawebnext {
 datasource db {
   provider = "postgresql"
 }
+
+// Writes the table map: which tables a model and its relations are, and what the database does to
+// other tables on a delete or a key change. See src/prisma/tableWatch.
+generator tableMap {
+  provider = "node ./src/prisma/tableWatch/tableMapGenerator.cjs"
+  output   = "../../../generated/table-map"
+}

@@ -9,7 +9,7 @@ const config: Config = {
     coverageProvider: 'v8',
     globalSetup: './tests/globalSetup.ts',
     testEnvironment: './tests/PrismaTestEnvironment.ts',
-    setupFilesAfterEnv: ['./tests/setup.ts', './tests/cleanup.ts'],
+    setupFilesAfterEnv: ['./tests/tableWatchCheck.ts', './tests/setup.ts', './tests/cleanup.ts'],
     collectCoverageFrom: ['src/**/*.{ts,tsx}'],
     coverageReporters: ['text-summary'],
     globals: {

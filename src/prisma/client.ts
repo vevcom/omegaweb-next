@@ -1,6 +1,7 @@
 import logger from '@/lib/logger'
 import { PrismaClient } from '@/prisma-generated-pn-client'
 import { getContext } from '@/services/serviceOperation'
+import { tableWatch } from '@/prisma/tableWatch/watch'
 import { PrismaPg } from '@prisma/adapter-pg'
 
 // To prevent hot reloading from creating new instances of PrismaClient it is stored in the global object.
@@ -89,7 +90,10 @@ function newPrisma() {
         })
     })
 
-    return prisma
+    // The watcher goes on last, and after the listeners, since an extended client has no `$on`. The
+    // compiler takes an extended client for another type than the plain one, which the service layer
+    // is typed with, though all it lacks is `$on`, and nothing calls that on the client handed on.
+    return prisma.$extends(tableWatch) as unknown as typeof prisma
 }
 
 // This is how the Prisma docs recommend doing it

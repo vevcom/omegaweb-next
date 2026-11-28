@@ -17,6 +17,8 @@ RUN npm ci
 # Generate prisma client
 RUN mkdir -p src/prisma
 COPY src/prisma/schema src/prisma/schema
+# The schema names it as a generator.
+COPY src/prisma/tableWatch/tableMapGenerator.cjs src/prisma/tableWatch/
 COPY prisma.config.ts .
 RUN npx prisma generate
 

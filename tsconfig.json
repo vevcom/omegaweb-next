@@ -54,6 +54,9 @@
       "@/prisma-generated-pn-types": [
         "generated/pn-prisma/browser.ts"
       ],
+      "@/prisma-generated-table-map": [
+        "generated/table-map/tableMap.ts"
+      ],
       "@/prisma-pn-client-instance": [
         "src/prisma/client.ts"
       ],
