@@ -28,19 +28,17 @@ type PropTypes = {
  * has not finished registering.
  */
 export default async function OmegaWebLayout({ children }: PropTypes) {
-    const { serverSession, navUser } = await withPageSession(async (session) => {
-        const profileRead = session.user
-            ? await withFallback(userOperations.readProfile({ params: { username: session.user.username } }), null)
-            : null
-        return {
-            serverSession: session,
-            // The nav components get the fields they actually render rather than the whole
-            // profile, so nothing beyond these reaches the client components among them.
-            navUser: profileRead?.user ?? null,
-        }
-    })
-    const navItems = await navDef.visible(serverSession)
-    const adminNavItems = (await adminNavDef.visible(serverSession)).flatMap(group => group.links.map(link => ({
+    const { serverSession, profileImage, navItems, adminNavGroups } = await withPageSession(async (session) => ({
+        serverSession: session,
+        // The nav shows nothing else of the user, so the profile is not read for it.
+        profileImage: session.user
+            ? await withFallback(userOperations.readProfileImage({ params: { username: session.user.username } }), null)
+            : null,
+        // Built in the service context, so what their items read and remember is read once in the render.
+        navItems: await navDef.visible(session),
+        adminNavGroups: await adminNavDef.visible(session),
+    }))
+    const adminNavItems = adminNavGroups.flatMap(group => group.links.map(link => ({
         name: link.name,
         href: link.href,
         icon: link.icon,
@@ -69,8 +67,8 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
                     ">
                         <div className="[grid-area:navBar] col-span-full h-[56px] z-3 rounded-round">
                             <NavBar
-                                isLoggedIn={navUser !== null}
-                                profileImage={navUser?.image ?? null}
+                                isLoggedIn={serverSession.user !== null}
+                                profileImage={profileImage}
                                 navItems={navItems}
                             />
                         </div>
@@ -91,7 +89,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
                             max-mobile:block max-mobile:h-[64px] max-mobile:w-full
                         ">
                             <MobileNavBar
-                                isLoggedIn={navUser !== null}
+                                isLoggedIn={serverSession.user !== null}
                                 navItems={navItems}
                             />
                         </div>

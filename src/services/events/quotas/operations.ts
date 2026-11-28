@@ -13,7 +13,7 @@ import type { EventQuotaExpanded } from './types'
 const visibility = implementVisibilityRead({
     implementationParamsSchema: eventQuotaSchemas.params.visibility,
     authorizer: async ({ prisma, params }) => eventQuotaAuth.readVisibility.data(
-        await readEventAccess(prisma, await readEventIdOfQuota(prisma, params.id))
+        await readEventAccess.internalCall({ prisma, params: { id: await readEventIdOfQuota(prisma, params.id) } })
     ),
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.eventQuota.findUniqueOrThrow({
@@ -173,7 +173,10 @@ export const eventQuotaOperations = {
     readMany: defineOperation({
         paramsSchema: eventQuotaSchemas.params.readMany,
         authorizer: async ({ params, prisma }) => eventQuotaAuth.readMany.data(
-            await readEventAccess(prisma, await readEventIdOfVariant(prisma, params.variantId))
+            await readEventAccess.internalCall({
+                prisma,
+                params: { id: await readEventIdOfVariant(prisma, params.variantId) },
+            })
         ),
         operation: async ({ prisma, params }): Promise<EventQuotaExpanded[]> => {
             const quotas = await prisma.eventQuota.findMany({

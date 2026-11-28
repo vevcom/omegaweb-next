@@ -1,4 +1,4 @@
-import { Session, type AnySession, type UserGuaranteeOption } from './Session'
+import { Session, type AnySession, type SessionOfToken, type UserGuaranteeOption } from './Session'
 import { authOptions } from '@/auth/nextAuth/authOptions'
 import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { apiKeyDecryptAndCompare } from '@/services/apiKeys/hashEncryptKey'
@@ -8,8 +8,14 @@ import { permissionOperations } from '@/services/permissions/operations'
 import { getServerSession as getSessionNextAuth } from 'next-auth'
 
 export class ServerSession<UserGuarantee extends UserGuaranteeOption> extends Session<UserGuarantee> {
-    public static async fromNextAuth(): Promise<AnySession> {
-        const session = await getSessionNextAuth(authOptions)
+    /**
+     * The session of the request. Whoever has read NextAuth for the request already hands that read
+     * in, so it is not read again.
+     */
+    public static async fromNextAuth(
+        readNextAuthSession: () => Promise<SessionOfToken | null> = () => getSessionNextAuth(authOptions),
+    ): Promise<AnySession> {
+        const session = await readNextAuthSession()
 
         if (!session) {
             const defaultPermissions = await permissionOperations.readDefaultPermissions({ bypassAuth: true })

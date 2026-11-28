@@ -51,7 +51,7 @@ const NO_ADMINISTRATORS = [{ conditions: [] }]
 const adminVisibility = implementVisibilityRead({
     implementationParamsSchema: eventSchemas.params.adminVisibility,
     authorizer: async ({ params, prisma }) => eventAuth.readAdminVisibility.data(
-        await readEventAccess(prisma, params.id)
+        await readEventAccess.internalCall({ prisma, params: { id: params.id } })
     ),
     readVisibility: async ({ prisma, implementationParams, include }) => (
         await prisma.event.findUniqueOrThrow({
@@ -63,7 +63,9 @@ const adminVisibility = implementVisibilityRead({
 
 const read = defineOperation({
     paramsSchema: eventSchemas.params.read,
-    authorizer: async ({ params, prisma }) => eventAuth.read.data(await readEventAccess(prisma, params.id)),
+    authorizer: async ({ params, prisma }) => eventAuth.read.data(
+        await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+    ),
     operation: async ({ prisma, params }) => {
         const event = await prisma.event.findUniqueOrThrow({
             where: {
@@ -203,7 +205,9 @@ const updateFields = defineSubOperation({
 const update = defineOperation({
     paramsSchema: eventSchemas.params.update,
     dataSchema: eventSchemas.data.update,
-    authorizer: async ({ params, prisma }) => eventAuth.update.data(await readEventAccess(prisma, params.id)),
+    authorizer: async ({ params, prisma }) => eventAuth.update.data(
+        await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+    ),
     transaction: 'RUNS_IN',
     operation: ({ prisma, params, data }) => updateFields.internalCall({ prisma, params, data }),
 })
@@ -216,7 +220,7 @@ const connectToLedgerAccount = defineOperation({
     paramsSchema: eventSchemas.params.connectToLedgerAccount,
     dataSchema: eventSchemas.data.connectToLedgerAccount,
     authorizer: async ({ params, data, prisma }) => eventAuth.connectToLedgerAccount.data({
-        ...await readEventAccess(prisma, params.id),
+        ...await readEventAccess.internalCall({ prisma, params: { id: params.id } }),
         accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
     }),
     operation: async ({ prisma, params, data }) => {
@@ -235,7 +239,9 @@ export const eventOperations = {
     /** Counts only, since those who administrate the event see the numbers without the people behind them. */
     readStatistics: defineOperation({
         paramsSchema: eventSchemas.params.readStatistics,
-        authorizer: async ({ params, prisma }) => eventAuth.readStatistics.data(await readEventAccess(prisma, params.id)),
+        authorizer: async ({ params, prisma }) => eventAuth.readStatistics.data(
+            await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+        ),
         operation: async ({ prisma, params }): Promise<VariantStatistics[]> => {
             const variants = await prisma.eventVariant.findMany({
                 where: { eventId: params.id },
@@ -496,7 +502,9 @@ export const eventOperations = {
     saveSetup: defineOperation({
         paramsSchema: eventSchemas.params.saveSetup,
         dataSchema: eventSchemas.data.saveSetup,
-        authorizer: async ({ params, prisma }) => eventAuth.saveSetup.data(await readEventAccess(prisma, params.id)),
+        authorizer: async ({ params, prisma }) => eventAuth.saveSetup.data(
+            await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+        ),
         transaction: 'OPENS',
         operation: async ({
             prisma,
@@ -552,7 +560,7 @@ export const eventOperations = {
     updateCmsCoverImage: cmsImageOperations.update.implement({
         implementationParamsSchema: eventSchemas.params.updateCmsCoverImage,
         authorizer: async ({ implementationParams, prisma }) => eventAuth.updateCmsCoverImage.data(
-            await readEventAccess(prisma, implementationParams.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: implementationParams.eventId } })
         ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
@@ -569,7 +577,9 @@ export const eventOperations = {
     setPublished: defineOperation({
         paramsSchema: eventSchemas.params.setPublished,
         dataSchema: eventSchemas.data.setPublished,
-        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(await readEventAccess(prisma, params.id)),
+        authorizer: async ({ params, prisma }) => eventAuth.setPublished.data(
+            await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+        ),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) => {
             if (data.published) {
@@ -600,7 +610,9 @@ export const eventOperations = {
 
     destroy: defineOperation({
         paramsSchema: eventSchemas.params.destroy,
-        authorizer: async ({ params, prisma }) => eventAuth.destroy.data(await readEventAccess(prisma, params.id)),
+        authorizer: async ({ params, prisma }) => eventAuth.destroy.data(
+            await readEventAccess.internalCall({ prisma, params: { id: params.id } })
+        ),
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
@@ -668,7 +680,7 @@ export const eventOperations = {
     updateParagraphContent: cmsParagraphOperations.updateContent.implement({
         implementationParamsSchema: eventSchemas.params.updateParagraphContent,
         authorizer: async ({ implementationParams, prisma }) => eventAuth.updateParagraphContent.data(
-            await readEventAccess(prisma, implementationParams.eventId)
+            await readEventAccess.internalCall({ prisma, params: { id: implementationParams.eventId } })
         ),
         ownershipCheck: async ({ implementationParams, params }) =>
             (await read({
@@ -791,7 +803,7 @@ async function assertReadyToPublish(prisma: PrismaPossibleTransaction<false>, ev
             },
         },
     })
-    const access = await readEventAccess(prisma, eventId)
+    const access = await readEventAccess.internalCall({ prisma, params: { id: eventId } })
     const problems = publishProblems({ ...event, adminVisibility: access.adminVisibility })
     if (problems.length > 0) throw new ServiceError('BAD PARAMETERS', problems.join(' '))
 }
@@ -803,7 +815,7 @@ async function adoptHostAsAdministrators(
     visibilityId: number,
     committeeId: number,
 ) {
-    const access = await readEventAccess(prisma, eventId)
+    const access = await readEventAccess.internalCall({ prisma, params: { id: eventId } })
     if (!hasNoAdministrators(access.adminVisibility)) return
     await adminVisibility.internal.update.internalCall({
         prisma,

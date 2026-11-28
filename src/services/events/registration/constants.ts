@@ -111,3 +111,10 @@ export const upcomingRegistrationOfUserSelection = {
     quota: { select: { variant: upcomingVariantSelection } },
     waitingListVariant: upcomingVariantSelection,
 } as const satisfies Prisma.EventRegistrationSelect
+
+/**
+ * How long a sign-up or sign-off may wait for its turn and take, in milliseconds. They queue on the
+ * lock of the event when its registration opens, and with Prisma's 2 and 5 seconds those at the back
+ * of the queue were turned away and told to try again.
+ */
+export const registrationQueueTransaction = { maxWait: 30_000, timeout: 30_000 } as const

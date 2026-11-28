@@ -8,6 +8,7 @@ const userIdOrUsersAdmin = Require.permission('USERS_ADMIN').or().userId()
 
 export const userAuth = {
     readProfile: userFieldOrUsersUse,
+    readProfileImage: userFieldOrUsersUse,
     readBasic: userFieldOrUsersUse,
     read: userFieldOrUsersAdmin,
     readOrNull: userFieldOrUsersAdmin,

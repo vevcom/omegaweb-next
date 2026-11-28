@@ -1351,7 +1351,10 @@ describe('a change the server refuses', () => {
         const squatters = held.map(name => server.add('Account', { '@type': 'User', name, domainId }))
 
         const failure = await run(server).then(() => null, (error: unknown) => String(error))
-        expect(failure).toContain(`(primaryKeyViolation: email is held by Account ${squatters[0].id})`)
+        // Neither the aliases here nor those of the run are read in an order, so any squatter may be named first.
+        expect(squatters.some(squatter => failure?.includes(
+            `(primaryKeyViolation: email is held by Account ${squatter.id})`
+        ))).toBe(true)
         expect(failure?.match(/create Account/g)).toHaveLength(20)
         expect(failure).toMatch(new RegExp(`; and ${held.length - 20} more changes$`))
     })

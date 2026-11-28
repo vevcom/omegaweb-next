@@ -2,6 +2,7 @@ import '@ow-server-only'
 import { checkVisibility } from '@/auth/visibility/checkVisibility'
 import { toMatrix, visibilityIncluder } from '@/services/visibility/implement'
 import { groupOperations } from '@/services/groups/operations'
+import { defineSubOperation } from '@/services/serviceOperation'
 import type { MembershipFiltered } from '@/services/groups/types'
 import type { Prisma } from '@/prisma-generated-pn-types'
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
@@ -38,18 +39,23 @@ export function administrates(groupId: number, memberships: MembershipFiltered[]
     return memberships.some(membership => membership.groupId === groupId && membership.active && membership.admin)
 }
 
-/** The owner matrices of every alias, for a rule that asks whether the session owns any alias at all. */
-export async function readAliasOwnerMatrices({ prisma }: {
-    prisma: PrismaPossibleTransaction<false>,
-}): Promise<VisibilityMatrix[]> {
-    const aliases = await prisma.mailAlias.findMany({ select: ownerVisibilityIncluder })
-    return aliases.map(alias => toMatrix(alias.ownerVisibility))
-}
+/**
+ * The owner matrices of every alias, for a rule that asks whether the session owns any alias at all.
+ * It is remembered, since every nav item of the mail server asks and the navs are built for every page.
+ */
+export const readAliasOwnerMatrices = defineSubOperation({
+    remember: true,
+    operation: () => async ({ prisma }): Promise<VisibilityMatrix[]> => {
+        const aliases = await prisma.mailAlias.findMany({ select: ownerVisibilityIncluder })
+        return aliases.map(alias => toMatrix(alias.ownerVisibility))
+    },
+})
 
-/** The owner matrices of every mailing list, for a rule that asks whether the session owns any list at all. */
-export async function readMailingListOwnerMatrices({ prisma }: {
-    prisma: PrismaPossibleTransaction<false>,
-}): Promise<VisibilityMatrix[]> {
-    const lists = await prisma.mailingList.findMany({ select: ownerVisibilityIncluder })
-    return lists.map(list => toMatrix(list.ownerVisibility))
-}
+/** The owner matrices of every mailing list, as {@link readAliasOwnerMatrices} is of the aliases. */
+export const readMailingListOwnerMatrices = defineSubOperation({
+    remember: true,
+    operation: () => async ({ prisma }): Promise<VisibilityMatrix[]> => {
+        const lists = await prisma.mailingList.findMany({ select: ownerVisibilityIncluder })
+        return lists.map(list => toMatrix(list.ownerVisibility))
+    },
+})

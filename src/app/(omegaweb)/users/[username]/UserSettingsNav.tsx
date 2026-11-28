@@ -1,6 +1,6 @@
 import Button from '@/components/UI/Button'
 import { userNavDef } from '@/app/(omegaweb)/users/[username]/userNavDef'
-import { ServerSession } from '@/auth/session/ServerSession'
+import { RenderSession } from '@/app/renderSession'
 import SiteLink from '@/components/SiteLink/SiteLink'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faChevronDown, faCog } from '@fortawesome/free-solid-svg-icons'
@@ -11,7 +11,7 @@ import type { UserNavSubject } from '@/app/(omegaweb)/users/[username]/userNavDe
  * button, which unfolds into a button per page.
  */
 export default async function UserSettingsNav({ username, userId }: UserNavSubject) {
-    const session = await ServerSession.fromNextAuth()
+    const session = await RenderSession.fromNextAuth()
     const items = await userNavDef({ username, userId }).settings.visible(session)
 
     if (items.length === 0) return null

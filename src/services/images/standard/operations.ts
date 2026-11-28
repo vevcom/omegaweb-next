@@ -89,9 +89,14 @@ const updateStandardImageFromConfig = defineSubOperation({
     }
 })
 
+/**
+ * A page asks for the same few standard images many times, so the read is remembered. It may be,
+ * though it makes the image when it is missing: the answer kept is the image it made.
+ */
 const readStandardImage = defineOperation({
     authorizer: () => standardImageCollectionAuth.readStandardImage,
     paramsSchema: standardImageCollectionSchemas.params.readStandardImage,
+    remember: true,
     operation: async ({ prisma, params }) => {
         const image = await prisma.image.findUnique({
             where: {
