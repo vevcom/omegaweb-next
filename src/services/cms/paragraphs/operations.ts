@@ -8,6 +8,7 @@ import type { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
     dataSchema: () => cmsParagraphSchemas.data.create,
+    read: false,
     operation: (
         { special }: { special: SpecialCmsParagraph | null }
     ) => async ({ data, prisma }) => await prisma.cmsParagraph.create({ data: { ...data, special } })
@@ -15,6 +16,7 @@ const create = defineSubOperation({
 
 const createSpecial = defineSubOperation({
     paramsSchema: () => cmsParagraphSchemas.params.createSpecial,
+    read: false,
     operation: () => async ({ params }) => create.internalCall({
         data: {},
         operationImplementationFields: { special: params.special }
@@ -27,6 +29,7 @@ export const cmsParagraphOperations = {
 
     destroy: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.destroy,
+        read: false,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
@@ -38,6 +41,7 @@ export const cmsParagraphOperations = {
 
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.readSpecial,
+        read: true,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUnique({ where: { special: params.special } })
             if (paragraph) return paragraph
@@ -49,6 +53,7 @@ export const cmsParagraphOperations = {
     update: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.update,
         dataSchema: () => cmsParagraphSchemas.data.update,
+        read: false,
         operation: () => async ({ params, prisma, data }) => {
             const paragraph = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: params.paragraphId } })
             if (paragraph.special) {
@@ -61,6 +66,7 @@ export const cmsParagraphOperations = {
     updateContent: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.updateContent,
         dataSchema: () => cmsParagraphSchemas.data.updateContent,
+        read: false,
         operation: () => async ({ params, prisma, data }) => {
             const safeHtml = await markdownToSafeHtml(data.markdown).catch(() => {
                 throw new ServiceError('BAD PARAMETERS', 'Ugyldig Markdown')
@@ -86,6 +92,7 @@ export const cmsParagraphOperations = {
      */
     isSpecial: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.isSpecial,
+        read: true,
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUnique({
                 where: {

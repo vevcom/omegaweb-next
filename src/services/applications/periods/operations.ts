@@ -61,12 +61,14 @@ async function destroyParticipationCmsParts(
 export const applicationPeriodOperations = {
     readAll: defineOperation({
         authorizer: () => applicationPeriodAuth.readAll,
+        read: true,
         operation: async ({ prisma }) => prisma.applicationPeriod.findMany()
     }),
 
     read: defineOperation({
         authorizer: () => applicationPeriodAuth.read,
         paramsSchema: applicationPeriodSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }) => {
             // committee.logoImage is null unless the committee has its own uploaded logo -
             // resolve it to the shared default here so callers never see a null logo.
@@ -96,6 +98,7 @@ export const applicationPeriodOperations = {
         authorizer: () => applicationPeriodAuth.create,
         dataSchema: applicationPeriodSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const period = await prisma.applicationPeriod.create({
                 data: {
@@ -119,6 +122,7 @@ export const applicationPeriodOperations = {
         dataSchema: applicationPeriodSchemas.data.update,
         paramsSchema: applicationPeriodSchemas.params.update,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const current = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
@@ -182,6 +186,7 @@ export const applicationPeriodOperations = {
     removeAllApplicationTexts: defineOperation({
         paramsSchema: applicationPeriodSchemas.params.removeAllApplicationTexts,
         authorizer: () => applicationPeriodAuth.removeAllApplicationTexts,
+        read: false,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
@@ -207,6 +212,7 @@ export const applicationPeriodOperations = {
         authorizer: () => applicationPeriodAuth.destroy,
         paramsSchema: applicationPeriodSchemas.params.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },
@@ -223,6 +229,7 @@ export const applicationPeriodOperations = {
     readNumberOfApplications: defineOperation({
         authorizer: () => applicationPeriodAuth.readNumberOfApplications,
         paramsSchema: applicationPeriodSchemas.params.readNumberOfApplications,
+        read: true,
         operation: async ({ prisma, params }) => {
             const period = await prisma.applicationPeriod.findUniqueOrThrow({
                 where: { name: params.name },

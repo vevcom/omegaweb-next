@@ -6,6 +6,7 @@ import { lockerReservationOperations } from './reservations/operations'
 import { defineOperation } from '@/services/serviceOperation'
 import { cursorPagingSelection } from '@/lib/paging/cursorPagingSelection'
 import { ServiceError } from '@/services/error'
+import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 export const lockerOperations = {
     /**
@@ -18,6 +19,7 @@ export const lockerOperations = {
     create: defineOperation({
         authorizer: () => lockerAuth.create,
         dataSchema: lockersSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }) => await prisma.locker.create({
             data,
         })
@@ -33,11 +35,9 @@ export const lockerOperations = {
     read: defineOperation({
         authorizer: () => lockerAuth.read,
         paramsSchema: lockersSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params: { id } }) => {
-            await lockerReservationOperations.deactivateExpiredReservations.internalCall({
-                prisma,
-                params: { lockerId: id },
-            })
+            await deactivateExpiredReservations(prisma, id)
 
             return await prisma.locker.findUniqueOrThrow({
                 where: {
@@ -58,8 +58,9 @@ export const lockerOperations = {
     readPage: defineOperation({
         authorizer: () => lockerAuth.readPage,
         paramsSchema: lockersSchemas.params.readPage,
+        read: true,
         operation: async ({ prisma, params }) => {
-            await lockerReservationOperations.deactivateExpiredReservations.internalCall({ prisma, params: {} })
+            await deactivateExpiredReservations(prisma)
 
             return await prisma.locker.findMany({
                 ...cursorPagingSelection(params.paging.page),
@@ -84,6 +85,7 @@ export const lockerOperations = {
         authorizer: () => lockerAuth.update,
         paramsSchema: lockersSchemas.params.update,
         dataSchema: lockersSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.locker.update({
             where: {
                 id: params.id,
@@ -105,6 +107,7 @@ export const lockerOperations = {
         authorizer: () => lockerAuth.destroy,
         paramsSchema: lockersSchemas.params.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             await lockerReservationOperations.deactivateExpiredReservations.internalCall({
                 prisma,
@@ -145,3 +148,13 @@ export const lockerOperations = {
         }
     }),
 } as const
+
+/** Deactivates only when a reservation has expired, so a read with nothing to repair writes nothing. */
+async function deactivateExpiredReservations(prisma: PrismaPossibleTransaction<false>, lockerId?: number) {
+    const expired = await prisma.lockerReservation.findFirst({
+        where: { lockerId, active: true, endDate: { lt: new Date() } },
+        select: { id: true },
+    })
+    if (!expired) return
+    await lockerReservationOperations.deactivateExpiredReservations.internalCall({ prisma, params: { lockerId } })
+}

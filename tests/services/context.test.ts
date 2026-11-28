@@ -7,6 +7,7 @@ import type { ServiceOperationContext } from '@/services/serviceOperation'
 
 const returnContextInfo = defineOperation({
     authorizer: () => Require.nothing(),
+    read: true,
     operation: ({ prisma, session }) => ({
         inTransaction: '$transaction' in prisma,
         apiKeyId: session.apiKeyId,
@@ -15,6 +16,7 @@ const returnContextInfo = defineOperation({
 
 const callReturnContextInfo = defineOperation({
     authorizer: () => Require.nothing(),
+    read: true,
     operation: async () => returnContextInfo({})
 })
 

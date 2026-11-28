@@ -47,6 +47,7 @@ export function implementMailAddressOperations<
         read: defineOperation({
             paramsSchema: implementationParamsSchema,
             authorizer: ({ params, prisma }) => authorizers.read({ prisma, implementationParams: params }),
+            read: true,
             operation: ({ params, prisma }) => readMailAddress({ prisma, implementationParams: params }),
         }),
         update: mailAddressOperations.update.implement<ImplementationParamsSchema>({

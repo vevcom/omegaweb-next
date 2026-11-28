@@ -9,6 +9,7 @@ import { userPartitions } from '@/services/users/constants'
 export const feideAccountOperations = {
     create: defineSubOperation({
         dataSchema: () => feideAccountSchemas.data.create,
+        read: false,
         operation: () => ({ prisma, data: { userId, ...feideAccount } }) => prisma.feideAccount.create({
             data: {
                 ...feideAccount,
@@ -20,6 +21,7 @@ export const feideAccountOperations = {
     /** The user a Feide account is linked to - null when there is no account with the id. */
     readUser: defineSubOperation({
         paramsSchema: () => feideAccountSchemas.params.readUser,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const feideAccount = await prisma.feideAccount.findUnique({
                 where: { id: params.feideAccountId, user: userPartitions.unarchived },
@@ -32,6 +34,7 @@ export const feideAccountOperations = {
     updateEmail: defineSubOperation({
         paramsSchema: () => feideAccountSchemas.params.updateEmail,
         dataSchema: () => feideAccountSchemas.data.updateEmail,
+        read: false,
         operation: () => ({ prisma, params, data }) => prisma.feideAccount.update({
             where: { id: params.feideAccountId },
             data,

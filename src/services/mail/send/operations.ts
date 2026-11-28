@@ -16,6 +16,7 @@ export const sendMailOperations = {
     /** Sends fully specified mails, such as the rendered mails of the notification dispatchers. */
     sendBulkMail: defineSubOperation({
         dataSchema: () => sendMailSchemas.data.sendBulkMail,
+        read: false,
         operation: () => async ({ data }) => {
             await getMailHandler().sendBulkMail(data)
         },
@@ -27,6 +28,7 @@ export const sendMailOperations = {
      */
     sendSystemMail: defineSubOperation({
         dataSchema: () => sendMailSchemas.data.sendSystemMail,
+        read: false,
         operation: () => async ({ data }) => {
             await getMailHandler().sendSingleMail({
                 to: data.to,

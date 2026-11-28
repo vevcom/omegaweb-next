@@ -24,6 +24,7 @@ export const companyUserAuthOperations = {
             })
             return companyUserAuthAuth.sendPasswordLink.data({ companyId, companyUserId: params.id })
         },
+        read: false,
         operation: async ({ prisma, params }) => {
             const companyUser = await prisma.companyUser.findUniqueOrThrow({
                 where: { id: params.id },
@@ -51,6 +52,7 @@ export const companyUserAuthOperations = {
             })
             return companyUserAuthAuth.registerNewEmail.data({ companyId, companyUserId: params.id })
         },
+        read: false,
         operation: async ({ prisma, params, data, session }) => {
             const companyUser = await prisma.companyUser.findUniqueOrThrow({
                 where: { id: params.id },

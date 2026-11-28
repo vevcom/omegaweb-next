@@ -29,6 +29,7 @@ export const committeeParticipationOperations = {
         authorizer: async ({ prisma, params }) => committeeParticipationAuth.read.data({
             groupId: (await readParticipationOwner(prisma, params.participationId)).groupId
         }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
@@ -76,6 +77,7 @@ export const committeeParticipationOperations = {
                 }
             }).then((committee) => committee.groupId)
         }),
+        read: true,
         operation: async ({ prisma, params }) => (
             await prisma.committeeParticipationInApplicationPeriod.findMany({
                 where: {

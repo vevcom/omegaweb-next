@@ -53,6 +53,7 @@ export function implementSpecialNotificationChannel({
         (await parent!.internal.read.internalCall({ prisma })).id
 
     const generateFromConfig = defineSubOperation({
+        read: false,
         operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
             const mailAlias = { connect: { address: aliasAddress(config.alias) } }
             const existing = await prisma.notificationChannel.findUnique({
@@ -95,6 +96,7 @@ export function implementSpecialNotificationChannel({
 
     /** The channel, created from the config when it does not exist yet. */
     const read = defineSubOperation({
+        read: true,
         operation: () => async ({ prisma }): Promise<ExpandedNotificationChannel> => {
             const channel = await prisma.notificationChannel.findUnique({
                 where: { special },
@@ -106,6 +108,7 @@ export function implementSpecialNotificationChannel({
 
     const createNotification = defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.createNotification,
+        read: false,
         operation: () => async ({ prisma, data }) => notificationChannelOperations.createNotification.internalCall({
             params: {
                 channelId: (await read.internalCall({ prisma })).id,
@@ -125,6 +128,7 @@ export function implementSpecialNotificationChannel({
 
         read: defineOperation({
             authorizer: () => specialNotificationChannelAuth.read,
+            read: true,
             operation: ({ prisma }) => read.internalCall({ prisma }),
         }),
     } as const

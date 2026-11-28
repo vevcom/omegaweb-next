@@ -44,6 +44,7 @@ export function implementSearchOperation<Row, Config = void, PrismaWhereFilter e
     return (config: Config) => defineOperation({
         paramsSchema: searchSchemas.params.search,
         authorizer,
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<SearchReturn<Row>> => {
             const rows = await find({
                 prisma,

@@ -11,6 +11,7 @@ import type { ExpandedCareerTeamDepartment } from './types'
 export const careersTeamOperations = {
     readDepartments: defineOperation({
         authorizer: () => careersTeamAuth.readDepartments,
+        read: true,
         operation: ({ prisma }): Promise<ExpandedCareerTeamDepartment[]> => prisma.careerTeamDepartment.findMany({
             orderBy: { order: 'asc' },
             include: careersTeamDepartmentIncluder,
@@ -21,6 +22,7 @@ export const careersTeamOperations = {
         dataSchema: careersTeamSchemas.data.createDepartment,
         authorizer: () => careersTeamAuth.createDepartment,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const paragraph = await cmsParagraphOperations.create.internalCall({
                 data: {},
@@ -37,6 +39,7 @@ export const careersTeamOperations = {
         paramsSchema: careersTeamSchemas.params.updateDepartment,
         dataSchema: careersTeamSchemas.data.updateDepartment,
         authorizer: () => careersTeamAuth.updateDepartment,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await prisma.careerTeamDepartment.update({
                 where: { id: params.departmentId },
@@ -50,6 +53,7 @@ export const careersTeamOperations = {
         dataSchema: careersTeamSchemas.data.moveDepartment,
         authorizer: () => careersTeamAuth.moveDepartment,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const department = await prisma.careerTeamDepartment.findUniqueOrThrow({
                 where: { id: params.departmentId },
@@ -73,6 +77,7 @@ export const careersTeamOperations = {
         paramsSchema: careersTeamSchemas.params.destroyDepartment,
         authorizer: () => careersTeamAuth.destroyDepartment,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.$transaction(async tx => {
                 await destroyPersons(tx, { departmentId: params.departmentId })

@@ -35,11 +35,13 @@ const userOverview = { id: true, username: true, firstname: true, lastname: true
 const create = defineOperation({
     dataSchema: manualChatSpaceSchemas.data.create,
     authorizer: () => manualChatSpaceAuth.create,
+    read: false,
     operation: ({ prisma, data }) => implemented.internal.create.internalCall({ prisma, data }),
 })
 
 const readAll = defineOperation({
     authorizer: () => manualChatSpaceAuth.readAll,
+    read: true,
     operation: async ({ prisma }) => {
         const spaces = await prisma.chatSpace.findMany({
             where: { purpose: 'MANUAL', destroyedAt: null },
@@ -62,6 +64,7 @@ const readAll = defineOperation({
 const read = defineOperation({
     paramsSchema: manualChatSpaceSchemas.params.read,
     authorizer: async ({ prisma, params }) => manualChatSpaceAuth.read.data(await adminsOf({ prisma, ...params })),
+    read: true,
     operation: async ({ prisma, params }) => {
         const space = await assertIsLiveManualSpace(prisma, params.spaceId)
         const [rooms, members, admins] = await Promise.all([
@@ -86,6 +89,7 @@ const read = defineOperation({
 const readAdministered = defineOperation({
     paramsSchema: manualChatSpaceSchemas.params.readAdministered,
     authorizer: ({ params }) => manualChatSpaceAuth.readAdministered.data(params),
+    read: true,
     operation: ({ prisma, params }) => prisma.chatSpace.findMany({
         where: { purpose: 'MANUAL', destroyedAt: null, manualAdmins: { some: { userId: params.userId } } },
         select: { id: true, name: true },
@@ -97,6 +101,7 @@ const addAdmins = defineOperation({
     paramsSchema: manualChatSpaceSchemas.params.addAdmins,
     dataSchema: manualChatSpaceSchemas.data.addAdmins,
     authorizer: () => manualChatSpaceAuth.addAdmins,
+    read: false,
     operation: async ({ prisma, params, data }) => {
         await assertIsLiveManualSpace(prisma, params.spaceId)
         await prisma.manualChatSpaceAdmin.createMany({
@@ -111,6 +116,7 @@ const removeAdmins = defineOperation({
     paramsSchema: manualChatSpaceSchemas.params.removeAdmins,
     dataSchema: manualChatSpaceSchemas.data.removeAdmins,
     authorizer: () => manualChatSpaceAuth.removeAdmins,
+    read: false,
     operation: async ({ prisma, params, data }) => {
         await prisma.manualChatSpaceAdmin.deleteMany({
             where: { spaceId: params.spaceId, userId: { in: data.userIds } },

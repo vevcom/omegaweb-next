@@ -3,7 +3,7 @@ import ServiceErrorView from '@/components/ServiceErrorView/ServiceErrorView'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
-import { RenderServiceCache } from '@/app/renderServiceCache'
+import { RenderLocalCache } from '@/app/renderLocalCache'
 import { RenderSession } from '@/app/renderSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
@@ -205,11 +205,7 @@ export function serverPage<
         await redirectToServingDomain(servedOn)
         const session = await RenderSession.fromNextAuth()
         if (!allowUnregistered) await redirectUnregistered(session)
-        const data = await withServiceContext(
-            { session, cache: new RenderServiceCache() },
-            'NONE',
-            () => operation({ params, searchParams, session })
-        )
+        const data = await inRender(session, () => operation({ params, searchParams, session }))
         return { data, session, capabilities: pageCapabilities(capabilities, data, session) }
     })
 
@@ -369,12 +365,17 @@ export async function withFallback<Data, Fallback>(
  * automatically - the same environment a serverPage operation runs in. Errors are not handled
  * here; wrap calls in {@link withFallback}, catch them with {@link handleServiceError}, or let
  * them hit the error boundary. Layouts use {@link serverLayout}, which handles them, and a section
- * of a page is a `Suspendful`, which loads behind a boundary of its own. The context is handed the
- * cache of the render, as a serverPage operation's is.
+ * of a page is a `Suspendful`, which loads behind a boundary of its own. The callback runs with the
+ * local cache of the render in force, as a serverPage operation does.
  */
 export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
     const session = await RenderSession.fromNextAuth()
-    return withServiceContext({ session, cache: new RenderServiceCache() }, 'NONE', () => callback(session))
+    return inRender(session, () => callback(session))
+}
+
+/** Runs the callback as a render does: with the session in the service context and the render's local cache in force. */
+function inRender<Result>(session: ServerPageSession, callback: () => Result): Result {
+    return RenderLocalCache.begin(() => withServiceContext({ session }, 'NONE', callback))
 }

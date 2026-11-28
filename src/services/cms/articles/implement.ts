@@ -111,6 +111,7 @@ export function implementArticleOperations<
         internal: {
             create: defineSubOperation({
                 dataSchema: () => articleSchemas.data.create({ maxNameLength }),
+                read: false,
                 operation: () => ({ data }) => articleOperations.create.internalCall({
                     data,
                     dataSchemaImplementationFields: { maxNameLength },
@@ -137,6 +138,7 @@ export function implementSpecialArticle({ special, authorizers }: {
     },
 }) {
     const read = defineSubOperation({
+        read: true,
         operation: () => () => articleOperations.readSpecial.internalCall({ params: { special } }),
     })
 
@@ -149,6 +151,7 @@ export function implementSpecialArticle({ special, authorizers }: {
 
         read: defineOperation({
             authorizer: () => authorizers.read,
+            read: true,
             operation: () => read.internalCall({}),
         }),
 

@@ -34,7 +34,7 @@ export default async function OmegaWebLayout({ children }: PropTypes) {
         profileImage: session.user
             ? await withFallback(userOperations.readProfileImage({ params: { username: session.user.username } }), null)
             : null,
-        // Built in the service context, so what their items read and remember is read once in the render.
+        // Built in the service context, so what their items read is read once in the render.
         navItems: await navDef.visible(session),
         adminNavGroups: await adminNavDef.visible(session),
     }))

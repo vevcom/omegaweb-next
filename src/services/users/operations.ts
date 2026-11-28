@@ -46,6 +46,7 @@ export const userOperations = {
     create: defineOperation({
         dataSchema: userSchemas.data.create,
         authorizer: () => userAuth.create,
+        read: false,
         operation: async ({ prisma, data }) => {
             const omegaMembership = await omegaMembershipGroupOperations.read({
                 params: { omegaMembershipLevel: 'DEN_GEMENE_HOB' },
@@ -93,6 +94,7 @@ export const userOperations = {
     read: defineOperation({
         paramsSchema: userSchemas.params.read,
         authorizer: ({ params }) => userAuth.read.data({ userField: params }),
+        read: true,
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -106,6 +108,7 @@ export const userOperations = {
     readBasic: defineOperation({
         paramsSchema: userSchemas.params.readBasic,
         authorizer: ({ params }) => userAuth.readBasic.data({ userField: params }),
+        read: true,
         operation: async ({ prisma, params }) => await prisma.user.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -119,6 +122,7 @@ export const userOperations = {
     readOrNull: defineOperation({
         paramsSchema: userSchemas.params.readOrNull,
         authorizer: ({ params }) => userAuth.readOrNull.data({ userField: params }),
+        read: true,
         operation: async ({ prisma, params }) => await prisma.user.findUnique({
             where: {
                 id: params.id, // This is a bit wierd, but now ts is satisfied.
@@ -131,15 +135,13 @@ export const userOperations = {
 
     /**
      * Everything the profile page of a user shows: the user, the groups they are in, their class and
-     * their omega membership. Remembered, since on a user's own pages the navigation, the layout and
-     * the page each ask for it. It may be, though it writes on its way: `readUserLevel` repairs a
-     * broken omega membership before anything else of the profile is read, so the answer kept is the
-     * repaired one.
+     * their omega membership. `readUserLevel` repairs a broken omega membership before anything else
+     * of the profile is read.
      */
     readProfile: defineOperation({
         paramsSchema: userSchemas.params.readProfile,
-        remember: true,
         authorizer: ({ params }) => userAuth.readProfile.data({ userField: { username: params.username } }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const { id: userId } = await prisma.user.findUniqueOrThrow({
                 where: { username: params.username.toLowerCase(), ...userPartitions.unarchived },
@@ -230,6 +232,7 @@ export const userOperations = {
     readProfileImage: defineOperation({
         paramsSchema: userSchemas.params.readProfileImage,
         authorizer: ({ params }) => userAuth.readProfileImage.data({ userField: { username: params.username } }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { username: params.username.toLowerCase(), ...userPartitions.unarchived },
@@ -249,6 +252,7 @@ export const userOperations = {
     readPage: defineOperation({
         paramsSchema: userSchemas.params.readPage,
         authorizer: () => userAuth.readPage,
+        read: true,
         operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.activeOmegaStudents),
     }),
 
@@ -259,6 +263,7 @@ export const userOperations = {
     readUnarchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readUnarchivedPage,
         authorizer: () => userAuth.readUnarchivedPage,
+        read: true,
         operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.unarchived),
     }),
 
@@ -268,6 +273,7 @@ export const userOperations = {
      */
     readPageOf: defineSubOperation({
         paramsSchema: () => userSchemas.params.readPageOf,
+        read: true,
         operation: ({ where }: { where: Prisma.UserWhereInput }) => ({ prisma, params }) =>
             readUserPage(prisma, params, { AND: [userPartitions.unarchived, where] }),
     }),
@@ -278,6 +284,7 @@ export const userOperations = {
     readArchivedPage: defineOperation({
         paramsSchema: userSchemas.params.readArchivedPage,
         authorizer: () => userAuth.readArchivedPage,
+        read: true,
         operation: ({ prisma, params }) => readUserPage(prisma, params, userPartitions.archived),
     }),
 
@@ -322,6 +329,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.connectStudentCard,
         dataSchema: userSchemas.data.connectStudentCard,
         authorizer: ({ params }) => userAuth.connectStudentCard.data({ userId: params.id }),
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await prisma.user.update({
                 where: { id: params.id },
@@ -333,6 +341,7 @@ export const userOperations = {
     disconnectStudentCard: defineOperation({
         paramsSchema: userSchemas.params.disconnectStudentCard,
         authorizer: ({ params }) => userAuth.disconnectStudentCard.data({ userId: params.id }),
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.user.update({
                 where: { id: params.id },
@@ -345,6 +354,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.update,
         dataSchema: userSchemas.data.update,
         authorizer: () => userAuth.update,
+        read: false,
         operation: ({ prisma, params, data }) => prisma.user.update({
             where: params,
             data,
@@ -355,6 +365,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.updateProfile,
         dataSchema: userSchemas.data.updateProfile,
         authorizer: ({ params }) => userAuth.updateProfile.data({ userField: { username: params.username } }),
+        read: false,
         operation: ({ prisma, data, params }) => prisma.user.update({
             where: params,
             data,
@@ -365,6 +376,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.updateTheme,
         dataSchema: userSchemas.data.updateTheme,
         authorizer: ({ params }) => userAuth.updateTheme.data({ userField: { username: params.username } }),
+        read: false,
         operation: async ({ prisma, params, data }) => {
             if (crypto
                 .createHash('sha256')
@@ -401,6 +413,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.updatePassword,
         dataSchema: userSchemas.data.updatePassword,
         authorizer: ({ params }) => userAuth.updatePassword.data({ userId: params.id }),
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const passwordHash = await hashAndEncryptPassword(data.password)
 
@@ -421,6 +434,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.registerNewEmail,
         authorizer: ({ params }) => userAuth.registerNewEmail.data({ userId: params.id }),
         dataSchema: userSchemas.data.registerNewEmail,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const storedUser = await prisma.user.findUniqueOrThrow({
                 where: {
@@ -499,6 +513,7 @@ export const userOperations = {
         dataSchema: userSchemas.data.register,
         authorizer: ({ params }) => userAuth.register.data({ userId: params.id }),
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const { sex, password, allergies, imageConsent } = data
 
@@ -589,6 +604,7 @@ export const userOperations = {
             },
         }),
         paramsSchema: userSchemas.params.readUserWithBalance,
+        read: true,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.findFirstOrThrow({
                 where: { ...params, ...userPartitions.unarchived },
@@ -631,6 +647,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.destroy,
         authorizer: () => userAuth.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.delete({
                 where: {
@@ -659,6 +676,7 @@ export const userOperations = {
     archive: defineOperation({
         paramsSchema: userSchemas.params.archive,
         authorizer: ({ params }) => userAuth.archive.data({ userId: params.id }),
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.user.update({
                 where: { id: params.id, ...userPartitions.unarchived },
@@ -670,6 +688,7 @@ export const userOperations = {
     unarchive: defineOperation({
         paramsSchema: userSchemas.params.unarchive,
         authorizer: () => userAuth.unarchive,
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.user.update({
                 where: { id: params.id, ...userPartitions.archived },
@@ -683,6 +702,7 @@ export const userOperations = {
         paramsSchema: userSchemas.params.updateProfileImage,
         dataSchema: userSchemas.data.updateProfileImage,
         transaction: 'OPENS',
+        read: false,
         // uploadImage resizes to 3 sizes, converts to avif and writes several files to store
         // before any db write happens - comfortably slower than the default 5000ms interactive
         // transaction timeout under load, hence the raised timeout below.

@@ -47,6 +47,7 @@ const migration = implementStraightAwayMigration({
 const create = defineOperation({
     dataSchema: studyProgrammeSchemas.data.create,
     authorizer: () => studyProgrammeAuth.create,
+    read: false,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -72,6 +73,7 @@ const upsertMany = defineOperation({
     dataSchema: studyProgrammeSchemas.data.upsertMany,
     authorizer: () => studyProgrammeAuth.upsertMany,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, data }) => {
         if (data.studyProgrammes.length === 0) return []
 
@@ -112,12 +114,14 @@ const upsertMany = defineOperation({
 
 const readMany = defineOperation({
     authorizer: () => studyProgrammeAuth.readMany,
+    read: true,
     operation: async ({ prisma }) => prisma.studyProgramme.findMany()
 })
 
 const read = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.read,
     authorizer: () => studyProgrammeAuth.read,
+    read: true,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findUniqueOrThrow({
         where: { id: params.id },
     })
@@ -127,6 +131,7 @@ const update = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.update,
     dataSchema: studyProgrammeSchemas.data.update,
     authorizer: () => studyProgrammeAuth.update,
+    read: false,
     operation: async ({ prisma, params, data }) => prisma.studyProgramme.update({
         where: { id: params.id },
         data,
@@ -137,6 +142,7 @@ const destroy = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.destroy,
     authorizer: () => studyProgrammeAuth.destroy,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, params }) => {
         const studyProgramme = await prisma.studyProgramme.delete({
             where: { id: params.id },
@@ -159,6 +165,7 @@ const destroy = defineOperation({
 const readFeideReturnedForUser = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.readFeideReturnedForUser,
     authorizer: () => studyProgrammeAuth.readFeideReturnedForUser,
+    read: true,
     operation: async ({ prisma, params }) => prisma.studyProgramme.findMany({
         where: {
             usersFeideHasAlreadyReturnedItFor: { some: { id: params.userId } },
@@ -175,6 +182,7 @@ const recordFeideReturnedForUser = defineOperation({
     paramsSchema: studyProgrammeSchemas.params.recordFeideReturnedForUser,
     dataSchema: studyProgrammeSchemas.data.recordFeideReturnedForUser,
     authorizer: () => studyProgrammeAuth.recordFeideReturnedForUser,
+    read: false,
     operation: async ({ prisma, params, data }) => prisma.user.update({
         where: { id: params.userId },
         data: {

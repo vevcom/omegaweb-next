@@ -35,6 +35,7 @@ const create = defineOperation({
     paramsSchema: committeeSchemas.params.createChatSpace,
     authorizer: ({ params }) => committeeAuth.createChatSpace.data(params),
     transaction: 'OPENS',
+    read: false,
     operation: async ({ prisma, params }) => {
         await assertGroupNotPensioned(prisma, params.groupId)
 
@@ -73,6 +74,7 @@ export type CommitteeChatSpacePerson = MemberOfCommittee & {
 const read = defineOperation({
     paramsSchema: committeeSchemas.params.readChatSpace,
     authorizer: ({ params }) => committeeAuth.readChatSpace.data(params),
+    read: true,
     operation: async ({ prisma, params }) => {
         const spaceId = await readLiveChatSpaceId(prisma, params.groupId)
         if (spaceId === null) return null

@@ -35,6 +35,7 @@ export const ledgerTransactionOperations = {
             accounts: await resolveTransactionAccounts(prisma, params.id),
         }),
         paramsSchema: ledgerTransactionSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findUniqueOrThrow({
             where: {
                 id: params.id,
@@ -60,6 +61,7 @@ export const ledgerTransactionOperations = {
             })
         },
         paramsSchema: ledgerTransactionSchemas.params.readStateByPayment,
+        read: true,
         operation: async ({ prisma, params }) => {
             const transaction = await prisma.ledgerTransaction.findFirstOrThrow({
                 where: { paymentId: params.paymentId },
@@ -77,6 +79,7 @@ export const ledgerTransactionOperations = {
     cancel: defineOperation({
         authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
+        read: false,
         operation: async ({ prisma, params }) => {
             const transaction: ExpandedLedgerTransaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
@@ -129,6 +132,7 @@ export const ledgerTransactionOperations = {
         authorizer: () => ledgerTransactionAuth.initiate,
         paramsSchema: ledgerTransactionSchemas.params.initiate,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params }): Promise<ExpandedPayment | null> => {
             const transaction = await ledgerTransactionOperations.read({
                 params: { id: params.id },
@@ -168,6 +172,7 @@ export const ledgerTransactionOperations = {
         authorizer: () => ledgerTransactionAuth.cancel,
         paramsSchema: ledgerTransactionSchemas.params.cancel,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }): Promise<ExpandedLedgerTransaction> => ledgerTransactionOperations.cancel({
             params,
             prisma,
@@ -183,6 +188,7 @@ export const ledgerTransactionOperations = {
             accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: params.paging.details.accountId })],
         }),
         paramsSchema: ledgerTransactionSchemas.params.readPage,
+        read: true,
         operation: async ({ prisma, params }) => await prisma.ledgerTransaction.findMany({
             where: {
                 ledgerEntries: {
@@ -207,6 +213,7 @@ export const ledgerTransactionOperations = {
     advance: defineOperation({
         authorizer: () => ledgerTransactionAuth.advance,
         paramsSchema: ledgerTransactionSchemas.params.advance,
+        read: false,
         operation: async ({ prisma, params }) => {
             // Bypassed: the transaction can span two parties (e.g. buyer and shop group), and an
             // ownership check would reject whichever side isn't the caller.
@@ -337,6 +344,7 @@ export const ledgerTransactionOperations = {
             })
         },
         paramsSchema: ledgerTransactionSchemas.params.create,
+        read: false,
         operation: async ({ prisma, params }) => {
             // Calculate the balance for all accounts which are going to be deducted.
             const debitEntries = params.ledgerEntries.filter(entry => entry.funds < 0)

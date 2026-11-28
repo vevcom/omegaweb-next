@@ -86,6 +86,7 @@ export const interestGroupOperations = {
         dataSchema: interestGroupSchemas.data.create,
         authorizer: () => interestGroupAuth.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -109,6 +110,7 @@ export const interestGroupOperations = {
 
     readMany: defineOperation({
         authorizer: () => interestGroupAuth.readMany,
+        read: true,
         operation: ({ prisma }) => prisma.interestGroup.findMany({
             include: {
                 articleSection: {
@@ -147,6 +149,7 @@ export const interestGroupOperations = {
     read: defineOperation({
         paramsSchema: interestGroupSchemas.params.read,
         authorizer: () => interestGroupAuth.read,
+        read: true,
         operation: async ({ prisma, params: { id } }) => await prisma.interestGroup.findUniqueOrThrow({
             where: {
                 id,
@@ -166,6 +169,7 @@ export const interestGroupOperations = {
         authorizer: async ({ prisma, params }) => interestGroupAuth.update.data({
             groupId: await readGroupIdOfInterestGroup(prisma, params.id),
         }),
+        read: false,
         operation: async ({ prisma, params: { id }, data }) => {
             await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 
@@ -180,6 +184,7 @@ export const interestGroupOperations = {
         paramsSchema: interestGroupSchemas.params.destroy,
         authorizer: () => interestGroupAuth.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params: { id } }) => {
             await assertGroupNotPensioned(prisma, await readGroupIdOfInterestGroup(prisma, id))
 

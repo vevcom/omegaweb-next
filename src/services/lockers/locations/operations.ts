@@ -16,6 +16,7 @@ export const lockerLocationOperations = {
     create: defineOperation({
         authorizer: () => lockerLocationAuth.create,
         dataSchema: lockerLocationSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }) => prisma.lockerLocation.create({
             data: {
                 building: data.building,
@@ -31,6 +32,7 @@ export const lockerLocationOperations = {
      */
     readAll: defineOperation({
         authorizer: () => lockerLocationAuth.readAll,
+        read: true,
         operation: async ({ prisma }) => prisma.lockerLocation.findMany({
             include: lockerLocationIncluder,
         })
@@ -49,6 +51,7 @@ export const lockerLocationOperations = {
         authorizer: () => lockerLocationAuth.update,
         paramsSchema: lockerLocationSchemas.params.update,
         dataSchema: lockerLocationSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.lockerLocation.update({
             where: {
                 id: params.id,
@@ -70,6 +73,7 @@ export const lockerLocationOperations = {
     destroy: defineOperation({
         authorizer: () => lockerLocationAuth.destroy,
         paramsSchema: lockerLocationSchemas.params.destroy,
+        read: false,
         operation: async ({ prisma, params }) => {
             const location = await prisma.lockerLocation.findUniqueOrThrow({
                 where: {

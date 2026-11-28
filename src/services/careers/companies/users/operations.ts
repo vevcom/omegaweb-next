@@ -35,6 +35,7 @@ export const companyUserOperations = {
     readOfCompany: defineOperation({
         paramsSchema: companyUserSchemas.params.readOfCompany,
         authorizer: ({ params }) => companyUserAuth.readOfCompany.data({ companyId: params.companyId }),
+        read: true,
         operation: ({ prisma, params }): Promise<CompanyUserFiltered[]> => prisma.companyUser.findMany({
             where: { companyId: params.companyId },
             orderBy: companyUserOrdering,
@@ -45,6 +46,7 @@ export const companyUserOperations = {
     read: defineOperation({
         paramsSchema: companyUserSchemas.params.read,
         authorizer: async ({ prisma, params }) => companyUserAuth.read.data(await ownershipOf(prisma, params.id)),
+        read: true,
         operation: ({ prisma, params }): Promise<CompanyUserWithCompany> => prisma.companyUser.findUniqueOrThrow({
             where: { id: params.id },
             select: companyUserWithCompanySelection,
@@ -59,6 +61,7 @@ export const companyUserOperations = {
         paramsSchema: companyUserSchemas.params.create,
         dataSchema: companyUserSchemas.data.create,
         authorizer: ({ params }) => companyUserAuth.create.data({ companyId: params.companyId }),
+        read: false,
         operation: async ({ prisma, params, data }): Promise<CompanyUserFiltered> => {
             const { company, ...companyUser } = await refusingTakenEmail(
                 () => prisma.companyUser.create({
@@ -80,6 +83,7 @@ export const companyUserOperations = {
         paramsSchema: companyUserSchemas.params.update,
         dataSchema: companyUserSchemas.data.update,
         authorizer: async ({ prisma, params }) => companyUserAuth.update.data(await ownershipOf(prisma, params.id)),
+        read: false,
         operation: ({ prisma, params, data }): Promise<CompanyUserFiltered> => prisma.companyUser.update({
             where: { id: params.id },
             data,
@@ -92,6 +96,7 @@ export const companyUserOperations = {
         paramsSchema: companyUserSchemas.params.updateRole,
         dataSchema: companyUserSchemas.data.updateRole,
         authorizer: async ({ prisma, params }) => companyUserAuth.updateRole.data(await ownershipOf(prisma, params.id)),
+        read: false,
         operation: ({ prisma, params, data }): Promise<CompanyUserFiltered> => prisma.companyUser.update({
             where: { id: params.id },
             // The role is carried by the session, so a change ends the sessions that carry the old one.
@@ -103,6 +108,7 @@ export const companyUserOperations = {
     destroy: defineOperation({
         paramsSchema: companyUserSchemas.params.destroy,
         authorizer: async ({ prisma, params }) => companyUserAuth.destroy.data(await ownershipOf(prisma, params.id)),
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.companyUser.delete({ where: { id: params.id } })
         },

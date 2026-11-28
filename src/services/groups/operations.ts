@@ -39,6 +39,7 @@ import type { UserBasic } from '@/services/users/types'
  */
 export const groupOperations = {
     readExpandedOfType: defineSubOperation({
+        read: true,
         operation: ({ type }: { type: GroupType }) => async ({ prisma }): Promise<ExpandedGroup[]> => {
             const groups = await prisma.group.findMany({
                 where: { groupType: type },
@@ -55,6 +56,7 @@ export const groupOperations = {
      */
     readMembershipsOfUserOfType: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readMembershipsOfUserOfType,
+        read: true,
         operation: ({ type }: { type: GroupType }) => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -78,6 +80,7 @@ export const groupOperations = {
 
     readMembers: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readMembers,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const defaultProfileImage = await standardImageCollectionOperations.readStandardImage({
                 params: { standardImage: 'DEFAULT_PROFILE_IMAGE' },
@@ -118,6 +121,7 @@ export const groupOperations = {
         dataSchema: () => groupSchemas.data.addMembers,
         // Its writes and the session invalidation have to land together.
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -168,6 +172,7 @@ export const groupOperations = {
         dataSchema: () => groupSchemas.data.removeMembers,
         // Its writes and the session invalidation have to land together.
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -195,6 +200,7 @@ export const groupOperations = {
         dataSchema: () => groupSchemas.data.destroyMembership,
         // Its write and the session invalidation have to land together.
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -219,6 +225,7 @@ export const groupOperations = {
         dataSchema: () => groupSchemas.data.setMemberAdmin,
         // Its writes and the session invalidation have to land together.
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -249,6 +256,7 @@ export const groupOperations = {
     setMemberTitle: defineSubOperation({
         paramsSchema: () => groupSchemas.params.setMemberTitle,
         dataSchema: () => groupSchemas.data.setMemberTitle,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -274,6 +282,7 @@ export const groupOperations = {
         paramsSchema: () => groupSchemas.params.reorderMembers,
         dataSchema: () => groupSchemas.data.reorderMembers,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const group = await readGroupOrderAndType(prisma, params.groupId)
             const order = resolveMembershipOrder(group, params.order)
@@ -309,6 +318,7 @@ export const groupOperations = {
         transaction: 'RUNS_IN',
         paramsSchema: () => groupSchemas.params.pension,
         dataSchema: () => groupSchemas.data.pension,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -360,6 +370,7 @@ export const groupOperations = {
         transaction: 'RUNS_IN',
         paramsSchema: () => groupSchemas.params.migrateGroup,
         dataSchema: () => groupSchemas.data.migrateGroup,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
             const { order: groupOrder } = await readGroupOrderAndType(prisma, params.groupId)
@@ -446,6 +457,7 @@ export const groupOperations = {
      * of the new order from this.
      */
     migrateStraightAwayOfType: defineSubOperation({
+        read: false,
         operation: ({ type }: { type: GroupType }) => async ({ prisma }) => {
             const { order: currentOmegaOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -475,6 +487,7 @@ export const groupOperations = {
      */
     readMembershipsOfUserOfAllTypes: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readMembershipsOfUserOfAllTypes,
+        read: true,
         operation: () => async ({ prisma, params }): Promise<MembershipFiltered[]> => prisma.membership.findMany({
             where: {
                 userId: params.userId,
@@ -490,6 +503,7 @@ export const groupOperations = {
      */
     readUsersOfGroups: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readUsersOfGroups,
+        read: true,
         operation: () => async ({ prisma, params }): Promise<Pick<UserBasic, 'id'>[]> => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -516,6 +530,7 @@ export const groupOperations = {
      */
     readGroupsOfUser: defineSubOperation({
         paramsSchema: () => groupSchemas.params.readGroupsOfUser,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: {
@@ -540,6 +555,7 @@ export const groupOperations = {
      */
     destroy: defineSubOperation({
         paramsSchema: () => groupSchemas.params.destroy,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const memberships = await prisma.membership.findMany({
                 where: { groupId: params.groupId },

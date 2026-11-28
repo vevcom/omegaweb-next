@@ -32,6 +32,7 @@ const readerOfType = {
 export const mailTraversalOperations = {
     read: defineSubOperation({
         paramsSchema: () => mailTraversalSchemas.params.read,
+        read: true,
         operation: ({ type }: { type: MailListTypes }) => async ({ prisma, params }): Promise<MailFlowObject> =>
             readerOfType[type](prisma, params.id, await readMembershipsToMark({
                 prisma,

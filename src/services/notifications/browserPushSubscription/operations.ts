@@ -14,6 +14,7 @@ export const browserPushSubscriptionOperations = {
         paramsSchema: browserPushSubscriptionSchemas.params.create,
         dataSchema: browserPushSubscriptionSchemas.data.create,
         authorizer: ({ params }) => browserPushSubscriptionAuth.create.data({ userId: params.userId }),
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await prisma.browserPushSubscription.upsert({
                 where: { pushServiceUrl: data.pushServiceUrl },
@@ -46,6 +47,7 @@ export const browserPushSubscriptionOperations = {
             })
             return browserPushSubscriptionAuth.destroy.data({ userId })
         },
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.browserPushSubscription.deleteMany({
                 where: { pushServiceUrl: params.pushServiceUrl },

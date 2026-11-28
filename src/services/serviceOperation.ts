@@ -1,6 +1,6 @@
 import '@ow-server-only'
 import { ParseError, ServiceError, Smorekopp } from './error'
-import { NoServiceCache, serviceCacheKey } from './serviceCache'
+import { LocalCache, localCacheKey } from './localCache'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
@@ -9,7 +9,6 @@ import { zfd } from 'zod-form-data'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { AsyncLocalStorage } from 'async_hooks'
 import type { ServiceErrorCode } from './error'
-import type { ServiceCache } from './serviceCache'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { z } from 'zod'
 import type { SessionMaybeUser } from '@/auth/session/Session'
@@ -87,7 +86,7 @@ export type ServiceOperationOperation<
     args:
         & ParamsObject<ParamsSchema, 'INFERRED'>
         & DataObject<DataSchema, 'INFERRED'>
-        & Omit<ServiceOperationContext<OpensTransaction>, 'cache'>
+        & ServiceOperationContext<OpensTransaction>
     , prismaWhereFilter: PrismaWhereFilter | undefined
 ) => Awaitable<Return>
 
@@ -105,27 +104,28 @@ export type TransactionFlag = 'NONE' | 'OPENS' | 'RUNS_IN'
 type OpensTransactionOf<Flag extends TransactionFlag> = [Flag] extends ['OPENS'] ? true : false
 
 /**
- * Whether an operation is remembered. With `remember: true` a call asks the cache of its context
- * first, and a call the cache has an answer for is not run again: neither its authorizer nor the
- * operation. A call is the same as another when the params, the implementation params, `bypassAuth`
- * and the session are equal by value. The Prisma client is not compared, since there is one root
- * client and a transaction remembers nothing. The caller never sees it, and the operation is never
- * handed the cache.
+ * Whether an operation is a read: it reads the database or another system and changes nothing, and
+ * calls nothing that is not a read. Every operation and sub-operation says `read: true` or
+ * `read: false`.
  *
- * It does not compile on an operation with a data schema, or on one that opens or runs in a
+ * A call of a read asks the local cache in force first, see {@link LocalCache}, and a call the
+ * cache has an answer for is not run again: neither its authorizer nor the operation. A call is the
+ * same as another when the params, the implementation params, `bypassAuth` and the session are
+ * equal by value. The Prisma client is not compared, since there is one root client and a call in a
+ * transaction is never remembered. The caller never sees it, and the operation is never handed the
+ * cache.
+ *
+ * A call of anything else may write. Nothing is remembered while it runs, and when it ends, also by
+ * throwing, it clears the local cache in force where it was called, and those that one was begun
+ * inside of.
+ *
+ * Only `read: false` compiles on an operation with a data schema, or on one that opens or runs in a
  * transaction. That is all the compiler checks: whether an operation with params alone writes is
- * for its author to judge, and one whose answer a write of its own could make stale is not
- * remembered.
+ * for its author to judge. A read that repairs what it finds broken does the repair through an
+ * internal sub-operation that says `read: false`.
  */
-type Remember<Flag extends TransactionFlag, DataSchema extends z.ZodTypeAny | undefined> =
-    [Flag, DataSchema] extends ['NONE', undefined]
-    ? true
-    : RememberRefused<'only an operation with no data schema and no transaction flag is remembered'>
-
-declare const rememberRefused: unique symbol
-
-/** What `remember` is typed where it is refused. Nothing has this type, and the compiler's error shows the reason. */
-type RememberRefused<Reason extends string> = { [rememberRefused]: Reason }
+type Read<Flag extends TransactionFlag, DataSchema extends z.ZodTypeAny | undefined> =
+    [Flag, DataSchema] extends ['NONE', undefined] ? boolean : false
 
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -141,10 +141,10 @@ export type SubServiceOperationConfig<
     dataSchema?: ((implementationFields: DataSchemaImplementationFields) => DataSchema) | undefined,
     transaction?: Flag,
     /**
-     * Remembered by its internal calls, and by an implementation that does not say otherwise. See
-     * {@link Remember}.
+     * Whether its internal calls are reads, and an implementation that does not say otherwise. See
+     * {@link Read}.
      */
-    remember?: Remember<Flag, DataSchema>,
+    read: Read<Flag, DataSchema>,
     operation: (implementationFields: OperationImplementationFields) =>
         ServiceOperationOperation<OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
 }
@@ -308,13 +308,12 @@ export type PrismaPossibleTransaction<
 
 /**
  * The context a service operation is called in. In addition to custom data arguments, every service
- * operation receives it, except the cache, which only the call of a remembered operation asks.
+ * operation receives it.
  */
 export type ServiceOperationContext<OpensTransaction extends boolean = boolean> = {
     prisma: PrismaPossibleTransaction<OpensTransaction>,
     session: SessionMaybeUser,
     bypassAuth: boolean,
-    cache: ServiceCache,
 }
 
 /**
@@ -325,8 +324,6 @@ export type ServiceOperationContext<OpensTransaction extends boolean = boolean> 
  * Read more about async local storage here: https://nodejs.org/api/async_context.html
  */
 const asyncLocalStorage = new AsyncLocalStorage<ServiceOperationContext>()
-
-const noServiceCache = new NoServiceCache()
 
 
 /**
@@ -378,8 +375,6 @@ export function withServiceContext<T, Flag extends TransactionFlag>(
         prisma,
         session: contextOverride.session ?? localContext?.session ?? Session.empty(),
         bypassAuth: contextOverride.bypassAuth ?? localContext?.bypassAuth ?? false,
-        // What is read in a transaction may be what was just written in it, so nothing is remembered there.
-        cache: isPrismaClient(prisma) ? contextOverride.cache ?? localContext?.cache ?? noServiceCache : noServiceCache,
     }
 
     return asyncLocalStorage.run(context, () => callback(context))
@@ -389,7 +384,7 @@ export function withServiceContext<T, Flag extends TransactionFlag>(
 /**
  * Get the current service operation context.
  * This includes the current user/api session,
- * prisma client, whether auth is bypassed, and the cache.
+ * prisma client, and whether auth is bypassed.
  *
  * This should only ever be used as a last resort!
  * In service operations you always have the contents
@@ -494,7 +489,7 @@ export function defineSubOperation<
                 DataSchemaImplementationFields,
                 OperationImplementationFields,
                 PrismaWhereFilter
-        > & { remember?: Remember<Flag, DataSchema> | false }
+        > & { read?: Read<Flag, DataSchema> }
 
     const implementAs = <ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined>(
         implementationArgs: ImplementationArgs<ImplementationParamsSchema>,
@@ -504,12 +499,12 @@ export function defineSubOperation<
         // known to be this operation's by being one of those it read.
         const answersRead = asInternalCall?.answersRead ?? new WeakMap<Promise<unknown>, Promise<Return>>()
         let warnedOfCallWithoutKey = false
-        // The rule of the type, asked again at run time: a `remember` that got past the compiler would
+        // The rule of the type, asked again at run time: a `read: true` that got past the compiler would
         // otherwise take a write out of its transaction, or answer one call's data with another's.
         // The implementation decides, and the sub-operation where the implementation says nothing.
         // Whoever makes an internal call does not, also when it got past the compiler.
-        const said = asInternalCall ? undefined : implementationArgs.remember
-        const remembered = (said ?? serviceOperationConfig.remember) === true
+        const said = asInternalCall ? undefined : implementationArgs.read
+        const isRead = (said ?? serviceOperationConfig.read) === true
             && !serviceOperationConfig.dataSchema
             && (serviceOperationConfig.transaction ?? 'NONE') === 'NONE'
 
@@ -684,7 +679,7 @@ export function defineSubOperation<
             }
 
             const runOrRemembered = (resolved: ServiceOperationContext<OpensTransaction>): Promise<Return> => {
-                const key = serviceCacheKey([
+                const key = localCacheKey([
                     args.params,
                     args.implementationParams,
                     resolved.bypassAuth,
@@ -700,7 +695,7 @@ export function defineSubOperation<
                     if (!warnedOfCallWithoutKey) {
                         warnedOfCallWithoutKey = true
                         logger.warn(
-                            'A remembered service operation was called with params that cannot be compared by value, '
+                            'A service operation that is a read was called with params that cannot be compared by value, '
                             + 'such as a Set or a class instance, so its calls are not remembered.',
                             {
                                 params: fieldsWithoutKey(args.params),
@@ -711,34 +706,47 @@ export function defineSubOperation<
                     return run(resolved)
                 }
 
-                const kept = resolved.cache.remember(asInternalCall ?? executeOperation, key, () => {
+                // What is read in a transaction may be what was just written in it.
+                const cache = isPrismaClient(resolved.prisma) ? LocalCache.inForce() : undefined
+                if (!cache) return run(resolved)
+
+                const kept = cache.remember(asInternalCall ?? executeOperation, key, () => {
                     const answer = run(resolved)
                     answersRead.set(answer, answer)
                     return answer
                 })
                 const answer = answersRead.get(kept)
                 if (!answer) {
-                    throw new Smorekopp('SERVER ERROR', 'The service cache answered with what the operation never read.')
+                    throw new Smorekopp('SERVER ERROR', 'The local cache answered with what the operation never read.')
                 }
                 return answer
             }
 
             // The context is resolved first, so the operation joins the caller's transaction when it is in one.
-            return withServiceContext(
-                context,
-                serviceOperationConfig.transaction,
-                resolved => {
-                    if (remembered) return runOrRemembered(resolved)
-                    if (serviceOperationConfig.transaction !== 'RUNS_IN' || !isPrismaClient(resolved.prisma)) {
-                        return run(resolved)
+            if (isRead) return withServiceContext(context, serviceOperationConfig.transaction, runOrRemembered)
+
+            // What is not a read may write. So nothing is remembered while it runs, and what was
+            // remembered before it ended is forgotten: by the cache in force where it was called, which
+            // clears those it was begun inside of.
+            const cacheToClear = LocalCache.inForce()
+            try {
+                return await LocalCache.withNone(() => withServiceContext(
+                    context,
+                    serviceOperationConfig.transaction,
+                    resolved => {
+                        if (serviceOperationConfig.transaction !== 'RUNS_IN' || !isPrismaClient(resolved.prisma)) {
+                            return run(resolved)
+                        }
+                        return prismaErrorWrapper(() => resolved.prisma.$transaction(tx => withServiceContext(
+                            { prisma: tx },
+                            serviceOperationConfig.transaction,
+                            run,
+                        )))
                     }
-                    return prismaErrorWrapper(() => resolved.prisma.$transaction(tx => withServiceContext(
-                        { prisma: tx },
-                        serviceOperationConfig.transaction,
-                        run,
-                    )))
-                }
-            )
+                ))
+            } finally {
+                cacheToClear?.clear()
+            }
         }
 
         executeOperation.paramsSchema = serviceOperationConfig.paramsSchema
@@ -762,7 +770,7 @@ export function defineSubOperation<
         implement,
         /**
          * Implements the sub-operation right away with require-nothing authorizer and "no" ownership check.
-         * It is remembered when the sub-operation says so where it is defined.
+         * It is a read when the sub-operation says so where it is defined.
          */
         internalCall: (
             args:
@@ -774,7 +782,7 @@ export function defineSubOperation<
                 >
                 & ServiceOperationExecuteArgs<'SAFE', ParamsSchema, DataSchema, undefined>
                 & Partial<ServiceOperationContext<OpensTransaction>>
-                & { remember?: never }
+                & { read?: never }
         ) => implementAs({
             ...args,
             authorizer: () => Require.nothing(),
@@ -789,11 +797,11 @@ export function defineOperation<
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
     PrismaWhereFilter extends object | undefined = undefined
->({ paramsSchema, dataSchema, transaction, remember, authorizer, operation }: {
+>({ paramsSchema, dataSchema, transaction, read, authorizer, operation }: {
     paramsSchema?: ParamsSchema,
     dataSchema?: DataSchema,
     transaction?: Flag,
-    remember?: Remember<Flag, DataSchema>,
+    read: Read<Flag, DataSchema>,
     authorizer: AuthorizerGetter<
         OpensTransactionOf<Flag>, ParamsSchema, DataSchema, undefined, PrismaWhereFilter | undefined
     >,
@@ -810,11 +818,11 @@ export function defineOperation<
         PrismaWhereFilter
     >({
         transaction,
+        read,
         operation: () => operation,
         paramsSchema: paramsSchema !== undefined ? () => paramsSchema : undefined,
         dataSchema: dataSchema !== undefined ? () => dataSchema : undefined,
     }).implement({
-        remember,
         authorizer,
         ownershipCheck: () => true,
         implementationParamsSchema: undefined,
@@ -843,7 +851,7 @@ export type SubServiceOperation<
 >>
 
 /**
- * Every field of a session, for the key of a remembered call. An answer holds what an authorizer
+ * Every field of a session, for the key of a call that is remembered. An answer holds what an authorizer
  * decided for one session, so it is given only to a session that is equal to it by value. The type
  * keeps a field added to any kind of session out of the build until it is in the key.
  */
@@ -860,7 +868,7 @@ function sessionFields(session: SessionMaybeUser): Record<KeysOfUnion<SessionMay
 /** The names of the fields of params that have no key, for the warning that says which to look at. */
 function fieldsWithoutKey(params: unknown): string[] {
     if (typeof params !== 'object' || params === null) return []
-    return Object.entries(params).filter(([, field]) => serviceCacheKey(field) === undefined).map(([name]) => name)
+    return Object.entries(params).filter(([, field]) => localCacheKey(field) === undefined).map(([name]) => name)
 }
 
 /**

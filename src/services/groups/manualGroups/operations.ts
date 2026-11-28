@@ -44,6 +44,7 @@ const migration = implementManualMigrationPerGroup({
 const create = defineOperation({
     dataSchema: manualGroupSchemas.data.create,
     authorizer: () => manualGroupAuth.create,
+    read: false,
     operation: async ({ prisma, data }) => {
         const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -63,6 +64,7 @@ const create = defineOperation({
 
 const readMany = defineOperation({
     authorizer: () => manualGroupAuth.readMany,
+    read: true,
     operation: async ({ prisma }) => prisma.manualGroup.findMany({
         include: { group: { select: { pensioned: true } } },
     })
@@ -71,6 +73,7 @@ const readMany = defineOperation({
 const read = defineOperation({
     paramsSchema: manualGroupSchemas.params.read,
     authorizer: () => manualGroupAuth.read,
+    read: true,
     operation: async ({ prisma, params }) => prisma.manualGroup.findUniqueOrThrow({
         where: { id: params.id },
         include: { group: { select: { pensioned: true } } },
@@ -83,6 +86,7 @@ const update = defineOperation({
     paramsSchema: manualGroupSchemas.params.update,
     dataSchema: manualGroupSchemas.data.update,
     authorizer: () => manualGroupAuth.update,
+    read: false,
     operation: async ({ prisma, params, data }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfManualGroup(prisma, params.id))
 
@@ -97,6 +101,7 @@ const destroy = defineOperation({
     paramsSchema: manualGroupSchemas.params.destroy,
     authorizer: () => manualGroupAuth.destroy,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, params }) => {
         await assertGroupNotPensioned(prisma, await readGroupIdOfManualGroup(prisma, params.id))
 

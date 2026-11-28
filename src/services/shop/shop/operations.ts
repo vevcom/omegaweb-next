@@ -41,6 +41,7 @@ export const shopOperations = {
         dataSchema: shopSchemas.data.create,
         authorizer: () => shopAuth.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const visibilityRegular = await visibility.internal.create.internalCall({
                 prisma,
@@ -64,6 +65,7 @@ export const shopOperations = {
 
     readMany: defineOperation({
         authorizer: () => shopAuth.readMany,
+        read: true,
         operation: ({ prisma }, prismaWhereFilter) => prisma.shop.findMany({ where: prismaWhereFilter }),
     }),
 
@@ -76,6 +78,7 @@ export const shopOperations = {
             visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }): Promise<ExtendedShop> => {
             const { ShopProduct, ...shop } = await prisma.shop.findUniqueOrThrow({
                 where: {
@@ -119,6 +122,7 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.update,
         dataSchema: shopSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.shop.update({
             where: { id: params.shopId },
             data: {
@@ -141,6 +145,7 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.connectToLedgerAccount,
         dataSchema: shopSchemas.data.connectToLedgerAccount,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({
                 where: { id: data.ledgerAccountId },
@@ -168,6 +173,7 @@ export const shopOperations = {
         paramsSchema: shopSchemas.params.createProduct,
         dataSchema: shopSchemas.data.createProduct,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data: { price, ...product } }) => {
             const image = await cmsImageOperations.create.internalCall({
                 data: {},
@@ -197,6 +203,7 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.connectProduct,
         dataSchema: shopSchemas.data.connectProduct,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const product = await prisma.product.findUniqueOrThrow({
                 where: { id: data.productId },
@@ -227,6 +234,7 @@ export const shopOperations = {
         }),
         paramsSchema: shopSchemas.params.updateProduct,
         dataSchema: shopSchemas.data.updateProduct,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.shopProduct.update({
             where: {
                 shopId_productId: {
@@ -244,6 +252,7 @@ export const shopOperations = {
             visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma }),
         }),
         paramsSchema: shopSchemas.params.readProductsToConnect,
+        read: true,
         operation: async ({ prisma, params }) => prisma.product.findMany({
             where: { ShopProduct: { none: { shopId: params.shopId } } },
             orderBy: { name: 'asc' },

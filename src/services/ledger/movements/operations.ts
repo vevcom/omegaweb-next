@@ -40,6 +40,7 @@ export const ledgerMovementOperations = {
         }),
         transaction: 'OPENS',
         paramsSchema: ledgerMovementSchemas.params.createDeposit,
+        read: false,
         operation: async ({ prisma, params }) => {
             const created = await prisma.$transaction(async tx => {
                 const payment = await paymentOperations.create({
@@ -95,6 +96,7 @@ export const ledgerMovementOperations = {
         }),
         paramsSchema: ledgerMovementSchemas.params.createPayout,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const payment = await paymentOperations.create({
                 params: {

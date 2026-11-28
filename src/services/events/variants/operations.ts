@@ -51,6 +51,7 @@ const create = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.create,
     dataSchema: () => eventVariantSchemas.data.create,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         assertValidVariant(data)
         const last = await prisma.eventVariant.findFirst({
@@ -85,6 +86,7 @@ const update = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.update,
     dataSchema: () => eventVariantSchemas.data.update,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         const variant = await prisma.eventVariant.findUniqueOrThrow({ where: { id: params.id } })
         const resulting = { ...variant, ...data }
@@ -104,6 +106,7 @@ const update = defineSubOperation({
 const destroy = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.destroy,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const variant = await prisma.eventVariant.findUniqueOrThrow({
             where: { id: params.id },
@@ -125,6 +128,7 @@ const reorder = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.reorder,
     dataSchema: () => eventVariantSchemas.data.reorder,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         const variants = await prisma.eventVariant.findMany({
             where: { eventId: params.eventId },
@@ -156,6 +160,7 @@ const saveSetup = defineSubOperation({
     paramsSchema: () => eventVariantSchemas.params.saveSetup,
     dataSchema: () => eventVariantSchemas.data.saveSetup,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }): Promise<number[]> => {
         const existing = await prisma.eventVariant.findMany({ where: { eventId: params.eventId } })
         const keptIds = data.variants.flatMap(variant => (variant.id === undefined ? [] : [variant.id]))
@@ -188,6 +193,7 @@ export const eventVariantOperations = {
         authorizer: async ({ params, prisma }) => eventVariantAuth.readMany.data(
             await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
+        read: true,
         operation: async ({ prisma, params }): Promise<EventVariantExpanded[]> => {
             const variants = await prisma.eventVariant.findMany({
                 where: { eventId: params.eventId },

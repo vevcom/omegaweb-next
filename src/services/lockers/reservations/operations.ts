@@ -13,6 +13,7 @@ import { ServiceError } from '@/services/error'
  */
 const deactivateExpiredReservations = defineSubOperation({
     paramsSchema: () => lockerReservationSchemas.params.deactivateExpiredReservations,
+    read: false,
     operation: () => async ({ prisma, params }) => {
         await prisma.lockerReservation.updateMany({
             where: {
@@ -44,6 +45,7 @@ export const lockerReservationOperations = {
         }),
         paramsSchema: lockerReservationSchemas.params.create,
         dataSchema: lockerReservationSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data, params }) => {
             await deactivateExpiredReservations.internalCall({ prisma, params: { lockerId: params.lockerId } })
 
@@ -83,6 +85,7 @@ export const lockerReservationOperations = {
     read: defineOperation({
         authorizer: () => lockerReservationAuth.read,
         paramsSchema: lockerReservationSchemas.params.read,
+        read: true,
         operation: ({ prisma, params: { id } }) => prisma.lockerReservation.findUniqueOrThrow({
             where: {
                 id,
@@ -116,6 +119,7 @@ export const lockerReservationOperations = {
         },
         paramsSchema: lockerReservationSchemas.params.update,
         dataSchema: lockerReservationSchemas.data.update,
+        read: false,
         operation: async ({ prisma, data, params: { id } }) => {
             const { count } = await prisma.lockerReservation.updateMany({
                 where: {
@@ -157,6 +161,7 @@ export const lockerReservationOperations = {
             return lockerReservationAuth.deactivate.data({ userId: reservation.userId })
         },
         paramsSchema: lockerReservationSchemas.params.deactivate,
+        read: false,
         operation: async ({ prisma, params: { id } }) => {
             const now = new Date()
             const { count } = await prisma.lockerReservation.updateMany({

@@ -35,6 +35,7 @@ async function assertAddressIsFree(prisma: Prisma.TransactionClient, address: st
 export const mailAddressOperations = {
     create: defineSubOperation({
         dataSchema: () => mailAddressSchemas.data.create,
+        read: false,
         operation: () => async ({ prisma, data }) => {
             const address = `${data.localPart}@${data.domain}`
             await assertAddressIsFree(prisma, address)
@@ -46,6 +47,7 @@ export const mailAddressOperations = {
     update: defineSubOperation({
         paramsSchema: () => mailAddressSchemas.params.update,
         dataSchema: () => mailAddressSchemas.data.update,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const address = `${data.localPart}@${data.domain}`
             await assertAddressIsFree(prisma, address, params.mailAddressId)
@@ -56,6 +58,7 @@ export const mailAddressOperations = {
     updateForwarding: defineSubOperation({
         paramsSchema: () => mailAddressSchemas.params.updateForwarding,
         dataSchema: () => mailAddressSchemas.data.updateForwarding,
+        read: false,
         operation: () => ({ prisma, params, data }) =>
             prisma.mailAddress.update({ where: { id: params.mailAddressId }, data }),
     }),
@@ -63,6 +66,7 @@ export const mailAddressOperations = {
     /** For an owner that is deleted, in the same transaction and after its own row, which refers to the address. */
     destroy: defineSubOperation({
         paramsSchema: () => mailAddressSchemas.params.destroy,
+        read: false,
         operation: () => ({ prisma, params }) =>
             prisma.mailAddress.delete({ where: { id: params.mailAddressId } }),
     }),

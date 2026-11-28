@@ -25,6 +25,7 @@ export const revueOperations = {
         dataSchema: revueSchemas.data.create,
         authorizer: () => revueAuth.create,
         transaction: 'OPENS',
+        read: false,
         operation: ({ prisma, data: { name, groups = [], ...revueData } }) => prisma.$transaction(async tx => {
             const createdArticle = await article.internal.create.internalCall({
                 prisma: tx,
@@ -47,6 +48,7 @@ export const revueOperations = {
     /** The newest revue comes first, which is the most current one. */
     readMany: defineOperation({
         authorizer: () => revueAuth.readMany,
+        read: true,
         operation: ({ prisma }) => prisma.revue.findMany({
             include: revueCardIncluder,
             orderBy: { year: 'desc' },
@@ -56,6 +58,7 @@ export const revueOperations = {
     read: defineOperation({
         paramsSchema: revueSchemas.params.read,
         authorizer: () => revueAuth.read,
+        read: true,
         operation: ({ prisma, params }) => prisma.revue.findUniqueOrThrow({
             where: { year: params.year },
             include: revueExpandedIncluder,
@@ -67,6 +70,7 @@ export const revueOperations = {
         dataSchema: revueSchemas.data.update,
         authorizer: () => revueAuth.update,
         transaction: 'OPENS',
+        read: false,
         operation: ({ prisma, params, data: { name, ...revueData } }) => prisma.$transaction(async tx => {
             if (name !== undefined) {
                 // The revue's name is its article's, and follows it.
@@ -84,6 +88,7 @@ export const revueOperations = {
         paramsSchema: revueSchemas.params.destroy,
         authorizer: () => revueAuth.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: ({ prisma, params }) => prisma.$transaction(async tx => {
             const revue = await tx.revue.delete({ where: { id: params.revueId } })
             await article.internal.destroy.internalCall({ prisma: tx, params: { articleId: revue.articleId } })

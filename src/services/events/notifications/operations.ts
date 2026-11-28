@@ -46,6 +46,7 @@ export const eventNotificationOperations = {
         authorizer: async ({ params, prisma }) => eventNotificationAuth.createPaymentReminder.data(
             await readEventAccess.internalCall({ prisma, params: { id: params.eventId } })
         ),
+        read: false,
         operation: async ({ prisma, params }): Promise<NotificationResult> => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.eventId },
@@ -90,6 +91,7 @@ export const eventNotificationOperations = {
             paramsSchema: () => eventNotificationSchemas.params.createChannels,
             dataSchema: () => eventNotificationSchemas.data.createChannels,
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => async ({ params, data }): Promise<EventChannelIds> => {
                 const names = eventChannelNames(data.name, params.eventId)
 
@@ -116,6 +118,7 @@ export const eventNotificationOperations = {
             paramsSchema: () => eventNotificationSchemas.params.renameChannels,
             dataSchema: () => eventNotificationSchemas.data.renameChannels,
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => async ({ prisma, params, data }): Promise<void> => {
                 const event = await prisma.event.findUniqueOrThrow({
                     where: { id: params.eventId },
@@ -137,6 +140,7 @@ export const eventNotificationOperations = {
         /** Deletes the channels of an event, once the event no longer points to them. */
         destroyChannels: defineSubOperation({
             paramsSchema: () => eventNotificationSchemas.params.destroyChannels,
+            read: false,
             operation: () => async ({ params }): Promise<void> => {
                 await Promise.all([
                     channels.info.internal.destroy.internalCall({ params: { id: params.infoNotificationChannelId } }),
@@ -149,6 +153,7 @@ export const eventNotificationOperations = {
         /** Subscribes someone registering to the info channel of the event, unless they have settled it themselves. */
         subscribeToInfoChannel: defineSubOperation({
             paramsSchema: () => eventNotificationSchemas.params.subscribeToInfoChannel,
+            read: false,
             operation: () => async ({ prisma, params }): Promise<void> => {
                 const event = await prisma.event.findUniqueOrThrow({
                     where: { id: params.eventId },

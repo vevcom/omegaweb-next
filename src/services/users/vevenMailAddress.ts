@@ -74,6 +74,7 @@ const implemented = implementMailAddressOperations({
 const createDefault = defineSubOperation({
     paramsSchema: () => userSchemas.params.createDefaultVevenMailAddress,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params }): Promise<string> => {
         const user = await prisma.user.findUniqueOrThrow({
             where: { id: params.id },

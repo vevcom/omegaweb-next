@@ -16,6 +16,7 @@ import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 const addToRevue = defineSubOperation({
     paramsSchema: () => revueGroupSchemas.params.addToRevue,
     dataSchema: () => revueGroupSchemas.data.addToRevue,
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         if (!await prisma.omegaOrder.findUnique({ where: { order: data.order } })) {
             throw new ServiceError('BAD DATA', `Omega har ingen orden ${data.order}`)
@@ -33,6 +34,7 @@ export const revueGroupOperations = {
         dataSchema: revueGroupSchemas.data.create,
         authorizer: () => revueGroupAuth.create,
         transaction: 'OPENS',
+        read: false,
         operation: ({ prisma, params: { revueId }, data }) => prisma.$transaction(async tx => {
             if (data.type === 'COMMITTEE') await assertNotARevueGroupYet(tx, data.committeeId)
             const articleSection = await revueGroupArticleSection.internal.create.internalCall({ data: {}, prisma: tx })
@@ -63,6 +65,7 @@ export const revueGroupOperations = {
     removeFromRevue: defineOperation({
         paramsSchema: revueGroupSchemas.params.removeFromRevue,
         authorizer: () => revueGroupAuth.removeFromRevue,
+        read: false,
         operation: ({ prisma, params }) => prisma.revueGroupInRevue.delete({
             where: { revueId_revueGroupId: params },
         }),
@@ -74,6 +77,7 @@ export const revueGroupOperations = {
      */
     readManyForNewRevue: defineOperation({
         authorizer: () => revueGroupAuth.readManyForNewRevue,
+        read: true,
         operation: async ({ prisma }) => {
             const [previousRevue, revueGroups] = await Promise.all([
                 prisma.revue.findFirst({
@@ -103,6 +107,7 @@ export const revueGroupOperations = {
 
     readMany: defineOperation({
         authorizer: () => revueGroupAuth.readMany,
+        read: true,
         operation: ({ prisma }) => prisma.revueGroup.findMany({
             include: revueGroupKindIncluder,
             orderBy: { name: 'asc' },
@@ -113,6 +118,7 @@ export const revueGroupOperations = {
     read: defineOperation({
         paramsSchema: revueGroupSchemas.params.read,
         authorizer: () => revueGroupAuth.read,
+        read: true,
         operation: ({ prisma, params }) => prisma.revueGroup.findUniqueOrThrow({
             where: { name: params.name },
             include: {
@@ -128,6 +134,7 @@ export const revueGroupOperations = {
     readManyInRevue: defineOperation({
         paramsSchema: revueGroupSchemas.params.readManyInRevue,
         authorizer: () => revueGroupAuth.readManyInRevue,
+        read: true,
         operation: async ({ prisma, params }) => {
             const groupsInRevue = await prisma.revueGroupInRevue.findMany({
                 where: { revueId: params.revueId },
@@ -151,6 +158,7 @@ export const revueGroupOperations = {
     readMembersAtOrder: defineOperation({
         paramsSchema: revueGroupSchemas.params.readMembersAtOrder,
         authorizer: () => revueGroupAuth.readMembersAtOrder,
+        read: true,
         operation: async ({ prisma, params }) => {
             const revueGroup = await prisma.revueGroup.findUniqueOrThrow({
                 where: { id: params.revueGroupId },
@@ -165,6 +173,7 @@ export const revueGroupOperations = {
     readInRevue: defineOperation({
         paramsSchema: revueGroupSchemas.params.readInRevue,
         authorizer: () => revueGroupAuth.readInRevue,
+        read: true,
         operation: async ({ prisma, params }) => {
             const { revue, revueGroup, order } = await prisma.revueGroupInRevue.findFirstOrThrow({
                 where: { revue: { year: params.year }, revueGroup: { name: params.name } },
@@ -196,6 +205,7 @@ export const revueGroupOperations = {
         paramsSchema: revueGroupSchemas.params.update,
         dataSchema: revueGroupSchemas.data.update,
         authorizer: () => revueGroupAuth.update,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await assertSubGroupNotPensioned(prisma, params.revueGroupId)
             return prisma.revueGroup.update({ where: { id: params.revueGroupId }, data })
@@ -207,6 +217,7 @@ export const revueGroupOperations = {
         paramsSchema: revueGroupSchemas.params.destroy,
         authorizer: () => revueGroupAuth.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: ({ prisma, params }) => prisma.$transaction(async tx => {
             await assertSubGroupNotPensioned(tx, params.revueGroupId)
             const revueGroup = await tx.revueGroup.delete({ where: { id: params.revueGroupId } })
@@ -236,6 +247,7 @@ export const revueGroupOperations = {
     readManyOfUser: defineOperation({
         paramsSchema: revueGroupSchemas.params.readManyOfUser,
         authorizer: ({ params }) => revueGroupAuth.readManyOfUser.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const memberOfGroup = { group: { memberships: { some: { userId: params.userId } } } }
             const groupsInRevues = await prisma.revueGroupInRevue.findMany({
@@ -267,6 +279,7 @@ export const revueGroupOperations = {
     readMemberProfilesInRevue: defineOperation({
         paramsSchema: revueGroupSchemas.params.readMemberProfilesInRevue,
         authorizer: () => revueGroupAuth.readMemberProfilesInRevue,
+        read: true,
         operation: async ({ prisma, params }) => {
             const { revueGroup, order } = await prisma.revueGroupInRevue.findFirstOrThrow({
                 where: { revue: { year: params.year }, revueGroup: { name: params.name } },

@@ -66,6 +66,7 @@ export const newsOperations = {
         authorizer: () => newsAuth.create,
         dataSchema: newsSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const { name, description, endDateTime } = data
 
@@ -100,6 +101,7 @@ export const newsOperations = {
             }),
         paramsSchema: newsSchemas.params.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             // The news row goes first: it restricts the deletion of its article and visibilities.
             const news = await prisma.newsArticle.delete({ where: { id: params.id } })
@@ -119,6 +121,7 @@ export const newsOperations = {
     }),
     readCurrent: defineOperation({
         authorizer: () => newsAuth.readCurrent,
+        read: true,
         operation: async ({ prisma }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -134,6 +137,7 @@ export const newsOperations = {
     readOldPage: defineOperation({
         paramsSchema: newsSchemas.params.readOldPage,
         authorizer: () => newsAuth.readOldPage,
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter) => {
             const news = await prisma.newsArticle.findMany({
                 where: {
@@ -181,6 +185,7 @@ export const newsOperations = {
                 visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
             })
         },
+        read: true,
         operation: async ({ prisma, params }) => prisma.newsArticle.findUniqueOrThrow({
             where: { id: params.id },
             include: newsArticleRelationsIncluder
@@ -193,6 +198,7 @@ export const newsOperations = {
             }),
         paramsSchema: newsSchemas.params.update,
         dataSchema: newsSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) =>
             prisma.newsArticle.update({
                 where: { id: params.id },
@@ -219,6 +225,7 @@ export const newsOperations = {
             }),
         paramsSchema: newsSchemas.params.setPublished,
         dataSchema: newsSchemas.data.setPublished,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const previous = await prisma.newsArticle.findUniqueOrThrow({
                 where: { id: params.id },

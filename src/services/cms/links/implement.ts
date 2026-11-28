@@ -9,9 +9,7 @@ import type { SpecialCmsLink } from '@/prisma-generated-pn-types'
 /**
  * The operations of the special links one service owns. `specials` is the ownership check, so the
  * owner never writes one: no operation here reaches a link that is not one of them. A special
- * link is created with placeholder text when first read. A read is remembered, since a page shows
- * the same link in several places. It may be, though it writes when the link is missing: the answer
- * kept is the link it made.
+ * link is created with placeholder text when first read.
  */
 export function implementSpecialCmsLinks({ specials, authorizers }: {
     specials: readonly SpecialCmsLink[],
@@ -26,6 +24,7 @@ export function implementSpecialCmsLinks({ specials, authorizers }: {
         internal: {
             read: defineSubOperation({
                 paramsSchema: () => cmsLinkSchemas.params.readSpecial,
+                read: true,
                 operation: () => ({ params }) => {
                     if (!specials.includes(params.special)) {
                         throw new ServiceError('BAD PARAMETERS', `${params.special} is not a link of this service`)
@@ -36,7 +35,6 @@ export function implementSpecialCmsLinks({ specials, authorizers }: {
         },
 
         read: cmsLinkOperations.readSpecial.implement({
-            remember: true,
             authorizer: () => authorizers.read,
             ownershipCheck: ({ params }) => specials.includes(params.special),
         }),

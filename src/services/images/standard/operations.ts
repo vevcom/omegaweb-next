@@ -14,6 +14,7 @@ import type { ExpandedImage } from '@/services/images/subservice/types'
 
 const generateStandardImageFromConfig = defineSubOperation({
     paramsSchema: () => standardImageCollectionSchemas.params.generateStandardImageFromConfig,
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const config = standardImageConfig[params.standardImage]
         const existingImage = await prisma.image.findUnique({
@@ -55,6 +56,7 @@ const generateStandardImageFromConfig = defineSubOperation({
 const updateStandardImageFromConfig = defineSubOperation({
     paramsSchema: () => standardImageCollectionSchemas.params.updateStandardImageFromConfig,
     transaction: 'OPENS',
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const config = standardImageConfig[params.standardImage]
         const image = await prisma.image.findUniqueOrThrow({
@@ -89,14 +91,11 @@ const updateStandardImageFromConfig = defineSubOperation({
     }
 })
 
-/**
- * A page asks for the same few standard images many times, so the read is remembered. It may be,
- * though it makes the image when it is missing: the answer kept is the image it made.
- */
+/** The standard image, made from its config when it is missing. */
 const readStandardImage = defineOperation({
     authorizer: () => standardImageCollectionAuth.readStandardImage,
     paramsSchema: standardImageCollectionSchemas.params.readStandardImage,
-    remember: true,
+    read: true,
     operation: async ({ prisma, params }) => {
         const image = await prisma.image.findUnique({
             where: {
@@ -148,6 +147,7 @@ const readStandardImage = defineOperation({
  */
 const readAllStandardImages = defineOperation({
     authorizer: () => standardImageCollectionAuth.readAllStandardImages,
+    read: true,
     operation: async ({ prisma }): Promise<Record<StandardImage, ExpandedImage>> => {
         const standardCollection = await standardImageCollection.internal.read.internalCall({})
         const imagesInCollection = await prisma.image.findMany({

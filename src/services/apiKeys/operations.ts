@@ -9,6 +9,7 @@ import { defineOperation } from '@/services/serviceOperation'
 import logger from '@/lib/logger'
 import crypto from 'crypto'
 import type { ApiKeyFiltered, ApiKeyFilteredWithKey } from './types'
+import type { z } from 'zod'
 
 /**
  * Updates the active status of an api key if it has expired, i.e. if the expiresAt date is in the past.
@@ -19,6 +20,7 @@ import type { ApiKeyFiltered, ApiKeyFilteredWithKey } from './types'
 const updateIfExpired = defineOperation({
     authorizer: () => apiKeyAuth.updateIfExpired,
     paramsSchema: apiKeySchemas.params.updateIfExpired,
+    read: false,
     operation: async ({ prisma, params: apiKey }) => {
         if (!apiKey.expiresAt || apiKey.expiresAt > new Date()) return { active: apiKey.active }
         logger.info('Deactivating expired api key', { id: apiKey.id })
@@ -38,6 +40,7 @@ export const apiKeyOperations = {
     create: defineOperation({
         authorizer: () => apiKeyAuth.create,
         dataSchema: apiKeySchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }): Promise<ApiKeyFilteredWithKey> => {
             const NODE_ENV = process.env.NODE_ENV
             const prepend = NODE_ENV === 'production' ? 'prod' : 'dev'
@@ -59,6 +62,7 @@ export const apiKeyOperations = {
     read: defineOperation({
         authorizer: () => apiKeyAuth.read,
         paramsSchema: apiKeySchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }): Promise<ApiKeyFiltered> => {
             const apiKey = await prisma.apiKey.findUnique({
                 where: {
@@ -71,15 +75,13 @@ export const apiKeyOperations = {
             if (!apiKey) throw new ServiceError('BAD PARAMETERS', 'API-nøkkelen finnes ikke')
             return {
                 ...apiKey,
-                ...await updateIfExpired({
-                    params: apiKey,
-                    bypassAuth: true,
-                })
+                ...await activeUnlessExpired(apiKey)
             }
         }
     }),
     readMany: defineOperation({
         authorizer: () => apiKeyAuth.readMany,
+        read: true,
         operation: async ({ prisma }): Promise<ApiKeyFiltered[]> => {
             const apiKeys = await prisma.apiKey.findMany({
                 select: apiFilterSelection,
@@ -91,16 +93,14 @@ export const apiKeyOperations = {
 
             return await Promise.all(apiKeys.map(async apiKey => ({
                 ...apiKey,
-                ...await updateIfExpired({
-                    params: apiKey,
-                    bypassAuth: true,
-                })
+                ...await activeUnlessExpired(apiKey)
             })))
         }
     }),
     readWithHash: defineOperation({
         authorizer: () => apiKeyAuth.readWithHash,
         paramsSchema: apiKeySchemas.params.readWithHash,
+        read: true,
         operation: async ({ prisma, params }) => {
             const apiKey = await prisma.apiKey.findUniqueOrThrow({
                 where: { id: params.id },
@@ -115,10 +115,7 @@ export const apiKeyOperations = {
 
             return {
                 ...apiKey,
-                ...await updateIfExpired({
-                    params: apiKey,
-                    bypassAuth: true,
-                }),
+                ...await activeUnlessExpired(apiKey),
             }
         }
     }),
@@ -126,6 +123,7 @@ export const apiKeyOperations = {
         authorizer: () => apiKeyAuth.update,
         paramsSchema: apiKeySchemas.params.update,
         dataSchema: apiKeySchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             if (data.active && data.expiresAt && data.expiresAt < new Date()) {
                 throw new ServiceError('BAD PARAMETERS', 'Hvis du vil aktivere en nøkkel, kan den ikke ha utløpt')
@@ -142,6 +140,7 @@ export const apiKeyOperations = {
         authorizer: () => apiKeyAuth.destroy,
         paramsSchema: apiKeySchemas.params.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }): Promise<void> => {
             const apiKey = await prisma.apiKey.findUniqueOrThrow({
                 where: { id: params.id },
@@ -158,3 +157,9 @@ export const apiKeyOperations = {
         }
     }),
 } as const
+
+/** Whether the key is active. Only an active key that has expired is updated, so a read of any other writes nothing. */
+async function activeUnlessExpired(apiKey: z.infer<typeof apiKeySchemas.params.updateIfExpired>) {
+    if (!apiKey.active || !apiKey.expiresAt || apiKey.expiresAt > new Date()) return { active: apiKey.active }
+    return updateIfExpired({ params: apiKey, bypassAuth: true })
+}

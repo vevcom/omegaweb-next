@@ -36,6 +36,7 @@ async function readCollectionOfImage(prisma: PrismaPossibleTransaction<false>, i
 
 const create = defineSubOperation({
     dataSchema: () => cmsImageSchemas.data.create,
+    read: false,
     operation: (
         { special }: { special: SpecialCmsImage | null }
     ) => (
@@ -56,6 +57,7 @@ const create = defineSubOperation({
 
 const createSpecial = defineSubOperation({
     paramsSchema: () => cmsImageSchemas.params.createSpecial,
+    read: false,
     operation: () => async ({ params }) => create.internalCall({
         data: {
             name: params.special,
@@ -70,6 +72,7 @@ export const cmsImageOperations = {
 
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.readSpecial,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {
@@ -86,6 +89,7 @@ export const cmsImageOperations = {
     update: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.update,
         dataSchema: () => cmsImageSchemas.data.update,
+        read: false,
         operation: () => async ({ prisma, params, session, bypassAuth, data: { imageId, ...data } }) => {
             // The implementing service authorizes editing the cms image itself, but not the image
             // being linked into it - that is the rule in cmsImageAuth.linkImage.
@@ -118,6 +122,7 @@ export const cmsImageOperations = {
 
     destroy: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.destroy,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const cmsImage = await prisma.cmsImage.findUniqueOrThrow({
                 where: {
@@ -140,6 +145,7 @@ export const cmsImageOperations = {
      */
     isSpecial: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.isSpecial,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {

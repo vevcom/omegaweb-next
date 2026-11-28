@@ -12,6 +12,7 @@ export const omegaquoteOperations = {
         authorizer: ({ params }) => omegaQuotesAuth.create.data({ userId: params.userPosterId }),
         dataSchema: omegaquoteSchemas.data.create,
         paramsSchema: omegaquoteSchemas.params.create,
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const results = await prisma.omegaQuote.create({
                 data: {
@@ -38,6 +39,7 @@ export const omegaquoteOperations = {
     readPage: defineOperation({
         paramsSchema: omegaquoteSchemas.params.readPage,
         authorizer: () => omegaQuotesAuth.readPage,
+        read: true,
         operation: async ({ prisma, params }) =>
             prisma.omegaQuote.findMany({
                 orderBy: {

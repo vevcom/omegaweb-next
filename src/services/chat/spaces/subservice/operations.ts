@@ -17,6 +17,7 @@ export const chatSpaceOperations = {
     create: defineSubOperation({
         dataSchema: () => chatSpaceSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: ({ purpose }: { purpose: ChatSpacePurpose }) => async ({ prisma, data }) => {
             const id = await reserveId(prisma, 'ChatSpace')
             const notificationChannelIds = await chatSpaceNotificationOperations.internal.createChannels.internalCall({
@@ -29,6 +30,7 @@ export const chatSpaceOperations = {
 
     read: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.read,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const space = await prisma.chatSpace.findFirst({ where: liveSpace(params.spaceId) })
             if (!space) throw new ServiceError('NOT FOUND', 'Fant ikke chatområdet')
@@ -38,6 +40,7 @@ export const chatSpaceOperations = {
 
     readMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.readMembers,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const members = await prisma.chatSpaceMember.findMany({
                 where: { spaceId: params.spaceId, chatUser: { user: { isNot: null } } },
@@ -59,6 +62,7 @@ export const chatSpaceOperations = {
         paramsSchema: () => chatSpaceSchemas.params.update,
         dataSchema: () => chatSpaceSchemas.data.update,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const space = await prisma.chatSpace.update({
                 where: liveSpace(params.spaceId),
@@ -74,6 +78,7 @@ export const chatSpaceOperations = {
 
     destroy: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.destroy,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             await prisma.chatSpace.update({ where: liveSpace(params.spaceId), data: { destroyedAt: new Date() } })
         },
@@ -86,6 +91,7 @@ export const chatSpaceOperations = {
      */
     readAddableUsers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.readAddableUsers,
+        read: true,
         operation: () => ({ prisma, params }) => userOperations.readPageOf.internalCall({
             prisma,
             params: { paging: params.paging },
@@ -96,6 +102,7 @@ export const chatSpaceOperations = {
     addMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.addMembers,
         dataSchema: () => chatSpaceSchemas.data.addMembers,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const chatUsers = await prisma.chatUser.findMany({
                 where: { userId: { in: data.userIds }, deactivatedAt: null },
@@ -115,6 +122,7 @@ export const chatSpaceOperations = {
     removeMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.removeMembers,
         dataSchema: () => chatSpaceSchemas.data.removeMembers,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             await prisma.chatSpaceMember.deleteMany({
                 where: { spaceId: params.spaceId, chatUser: { userId: { in: data.userIds } } },
@@ -124,6 +132,7 @@ export const chatSpaceOperations = {
 
     readRooms: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.readRooms,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const rooms = await prisma.chatSpaceRoom.findMany({
                 where: { spaceId: params.spaceId, destroyedAt: null },
@@ -150,6 +159,7 @@ export const chatSpaceOperations = {
     createRoom: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.createRoom,
         dataSchema: () => chatSpaceSchemas.data.createRoom,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const space = await prisma.chatSpace.findFirst({ where: liveSpace(params.spaceId), select: { id: true } })
             if (!space) throw new ServiceError('NOT FOUND', 'Fant ikke chatområdet')
@@ -160,6 +170,7 @@ export const chatSpaceOperations = {
     updateRoom: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.updateRoom,
         dataSchema: () => chatSpaceSchemas.data.updateRoom,
+        read: false,
         operation: () => ({ prisma, params, data }) => prisma.chatSpaceRoom.update({
             where: liveRoom(params),
             data: { name: data.name },
@@ -168,6 +179,7 @@ export const chatSpaceOperations = {
 
     destroyRoom: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.destroyRoom,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             await prisma.chatSpaceRoom.update({ where: liveRoom(params), data: { destroyedAt: new Date() } })
         },
@@ -176,6 +188,7 @@ export const chatSpaceOperations = {
     addRoomMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.addRoomMembers,
         dataSchema: () => chatSpaceSchemas.data.addRoomMembers,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const room = await prisma.chatSpaceRoom.findFirst({ where: liveRoom(params), select: { isPrivate: true } })
             if (!room) throw new ServiceError('NOT FOUND', 'Fant ikke rommet')
@@ -198,6 +211,7 @@ export const chatSpaceOperations = {
     removeRoomMembers: defineSubOperation({
         paramsSchema: () => chatSpaceSchemas.params.removeRoomMembers,
         dataSchema: () => chatSpaceSchemas.data.removeRoomMembers,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             await prisma.chatSpaceRoomMember.deleteMany({
                 where: { room: liveRoom(params), spaceMember: { chatUser: { userId: { in: data.userIds } } } },

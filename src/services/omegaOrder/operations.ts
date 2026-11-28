@@ -19,6 +19,7 @@ export const omegaOrderOperations = {
      */
     readRequirements: defineOperation({
         authorizer: () => omegaOrderAuth.readRequirements,
+        read: true,
         operation: async ({ prisma }): Promise<OmegaOrderRequirement[]> => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -82,6 +83,7 @@ export const omegaOrderOperations = {
     create: defineOperation({
         transaction: 'RUNS_IN',
         authorizer: () => omegaOrderAuth.create,
+        read: false,
         // The requirements are read on the transaction that writes the new order, so the order they
         // were checked against is the one incremented. Two increments at once still race; the loser
         // runs into the unique order and is turned away as a duplicate.
@@ -119,6 +121,7 @@ export const omegaOrderOperations = {
     }),
     readCurrent: defineOperation({
         authorizer: () => omegaOrderAuth.readCurrent,
+        read: true,
         operation: async ({ prisma }) => {
             const omegaOrder = await prisma.omegaOrder.findFirst({
                 orderBy: {
@@ -131,6 +134,7 @@ export const omegaOrderOperations = {
     }),
     readAll: defineOperation({
         authorizer: () => omegaOrderAuth.readAll,
+        read: true,
         operation: async ({ prisma }) =>
             await prisma.omegaOrder.findMany({
                 orderBy: {

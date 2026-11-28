@@ -23,6 +23,7 @@ const createPurchase = defineSubOperation({
     paramsSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.params[operation],
     dataSchema: ({ operation }: { operation: PurchaseImplementation }) => purchaseSchemas.data[operation],
     transaction: 'RUNS_IN',
+    read: false,
     operation: ({ method }: { method: PurchaseMethod }) => async ({ prisma, params, data }) => {
         const user = await prisma.user.findUniqueOrThrow({
             where: {
@@ -168,6 +169,7 @@ export const purchaseOperations = {
         authorizer: () => purchaseAuth.createByStudentCard,
         dataSchema: purchaseSchemas.data.createByStudentCard,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ data }) => {
             const user = await readCardOwner(data.studentCard)
             return createOnBehalf({

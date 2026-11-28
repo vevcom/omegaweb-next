@@ -13,6 +13,7 @@ import type { BakedVersions } from './types'
 const bake = defineSubOperation({
     paramsSchema: () => versionsSchemas.params.bake,
     dataSchema: () => versionsSchemas.data.bake,
+    read: false,
     operation: () => async ({ params, data }) => {
         const releases = data.releases.filter(release => release.published_at !== null && (
             release.tag_name === data.currentTag
@@ -46,6 +47,7 @@ const bake = defineSubOperation({
 export const versionsOperations = {
     readCurrent: defineOperation({
         authorizer: () => versionsAuth.readCurrent,
+        read: true,
         operation: async () => {
             const { versions } = await readVersions(versionsDirectory())
             const current = versions.find(version => version.current)
@@ -54,6 +56,7 @@ export const versionsOperations = {
     }),
     readAll: defineOperation({
         authorizer: () => versionsAuth.readAll,
+        read: true,
         operation: async () => {
             const directory = versionsDirectory()
             const { versions } = await readVersions(directory)
@@ -65,6 +68,7 @@ export const versionsOperations = {
     }),
     readRepositoryUrl: defineOperation({
         authorizer: () => versionsAuth.readRepositoryUrl,
+        read: true,
         operation: async () => (await readVersions(versionsDirectory())).repositoryUrl,
     }),
     internal: {

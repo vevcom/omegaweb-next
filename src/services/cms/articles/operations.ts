@@ -23,6 +23,7 @@ async function newArticleName(prisma: Prisma.TransactionClient) {
 
 const create = defineSubOperation({
     dataSchema: ({ maxNameLength }: { maxNameLength: number }) => articleSchemas.data.create({ maxNameLength }),
+    read: false,
     operation: ({ special }: { special: SpecialCmsArticle | null }) => async ({ prisma, data }) => prisma.article.create({
         data: {
             name: data.name ?? await newArticleName(prisma),
@@ -37,6 +38,7 @@ const create = defineSubOperation({
 
 const createSpecial = defineSubOperation({
     paramsSchema: () => articleSchemas.params.createSpecial,
+    read: false,
     operation: () => async ({ params }) => create.internalCall({
         data: { name: `Regenerert spesiell ${params.special}` },
         dataSchemaImplementationFields: { maxNameLength: 100 },
@@ -49,6 +51,7 @@ export const articleOperations = {
     createSpecial,
     destroy: defineSubOperation({
         paramsSchema: () => articleSchemas.params.destroy,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const article = await prisma.article.delete({
                 where: {
@@ -60,6 +63,7 @@ export const articleOperations = {
     }),
     readSpecial: defineSubOperation({
         paramsSchema: () => articleSchemas.params.readSpecial,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const article = await prisma.article.findUnique({
                 where: {
@@ -78,6 +82,7 @@ export const articleOperations = {
     update: defineSubOperation({
         paramsSchema: () => articleSchemas.params.update,
         dataSchema: () => articleSchemas.data.update,
+        read: false,
         operation: () => async ({ prisma, params, data }) =>
             prisma.article.update({
                 where: { id: params.articleId },
@@ -90,6 +95,7 @@ export const articleOperations = {
         paramsSchema: () => articleSchemas.params.addSection,
         dataSchema: () => articleSchemas.data.addSection,
         transaction: 'RUNS_IN',
+        read: false,
         // The section and its parts are written together; each part is made by its own service.
         operation: () => async ({ prisma, params, data }) => {
             const article = await prisma.article.findUnique({
@@ -125,6 +131,7 @@ export const articleOperations = {
         paramsSchema: () => articleSchemas.params.reorderSections,
         transaction: 'RUNS_IN',
         dataSchema: () => articleSchemas.data.reorderSections,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const section = await prisma.articleSection.findUnique({
                 where: {
@@ -165,6 +172,7 @@ export const articleOperations = {
 
     read: defineSubOperation({
         paramsSchema: () => articleSchemas.params.read,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const article = await prisma.article.findUnique({
                 where: {

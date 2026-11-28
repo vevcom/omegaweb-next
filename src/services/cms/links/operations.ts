@@ -7,6 +7,7 @@ import type { SpecialCmsLink } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
     dataSchema: () => cmsLinkSchemas.data.create,
+    read: false,
     operation: (
         { special }: { special: SpecialCmsLink | null }
     ) => (
@@ -18,6 +19,7 @@ const create = defineSubOperation({
 
 const createSpecial = defineSubOperation({
     paramsSchema: () => cmsLinkSchemas.params.createSpecial,
+    read: false,
     operation: () => async ({ params: { special } }) => create.internalCall({
         data: { url: './', text: 'Lenketekst' },
         operationImplementationFields: { special }
@@ -30,6 +32,7 @@ export const cmsLinkOperations = {
 
     destroy: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.destroy,
+        read: false,
         operation: () => async ({ params, prisma }) => {
             const cmsLink = await prisma.cmsLink.findUniqueOrThrow({
                 where: {
@@ -48,6 +51,7 @@ export const cmsLinkOperations = {
     update: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.update,
         dataSchema: () => cmsLinkSchemas.data.update,
+        read: false,
         operation: () => ({ prisma, params, data }) =>
             prisma.cmsLink.update({
                 where: {
@@ -59,6 +63,7 @@ export const cmsLinkOperations = {
 
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.readSpecial,
+        read: true,
         operation: () => async ({ prisma, params: { special } }) => {
             const cmsLink = await prisma.cmsLink.findUnique({
                 where: { special }
@@ -76,6 +81,7 @@ export const cmsLinkOperations = {
      */
     isSpecial: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.isSpecial,
+        read: true,
         operation: () => async ({ params, prisma }) => {
             const link = await prisma.cmsLink.findUnique({
                 where: {

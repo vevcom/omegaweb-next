@@ -85,6 +85,7 @@ export const articleCategoryOperations = {
         authorizer: () => articleCategoryAuth.create,
         dataSchema: articleCategorySchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const visibilityRegular = await visibility.internal.create.internalCall({
                 prisma,
@@ -121,6 +122,7 @@ export const articleCategoryOperations = {
         authorizer: () => articleCategoryAuth.destroy,
         paramsSchema: articleCategorySchemas.params.destroy,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             // The articles cascade with the category, but their cover images would stay behind:
             // the relation is on the article. Destroying each article takes its cover with it.
@@ -151,6 +153,7 @@ export const articleCategoryOperations = {
         }),
         paramsSchema: articleCategorySchemas.params.update,
         dataSchema: articleCategorySchemas.data.update,
+        read: false,
         operation: ({ prisma, data, params }) =>
             prisma.articleCategory.update({
                 where: {
@@ -169,6 +172,7 @@ export const articleCategoryOperations = {
         }),
         paramsSchema: articleCategorySchemas.params.addArticleToCategory,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const createdArticle = await article.internal.create.internalCall({ data: {}, prisma })
             await prisma.articleCategory.update({
@@ -208,6 +212,7 @@ export const articleCategoryOperations = {
     article,
     readAll: defineOperation({
         authorizer: () => articleCategoryAuth.readAll,
+        read: true,
         operation: async ({ prisma }, prismaWhereFilter) => {
             const categories = await prisma.articleCategory.findMany({
                 where: prismaWhereFilter,
@@ -238,6 +243,7 @@ export const articleCategoryOperations = {
             visibility: await readDoubleLevelMatrixByName(prisma, params.name)
         }),
         paramsSchema: articleCategorySchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }) => {
             const category = await prisma.articleCategory.findUnique({
                 where: {

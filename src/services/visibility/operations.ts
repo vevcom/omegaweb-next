@@ -8,6 +8,7 @@ import type { z } from 'zod'
 
 export const visibilityOperations = {
     create: defineSubOperation({
+        read: false,
         operation: () => ({ prisma }) =>
             prisma.visibility.create({ data: {} })
     }),
@@ -19,6 +20,7 @@ export const visibilityOperations = {
      */
     createWithRequirements: defineSubOperation({
         dataSchema: () => visibilitySchemas.data.createWithRequirements,
+        read: false,
         operation: () => ({ prisma, data }) =>
             prisma.visibility.create({
                 data: {
@@ -29,6 +31,7 @@ export const visibilityOperations = {
 
     destroy: defineSubOperation({
         paramsSchema: () => visibilitySchemas.params.destroy,
+        read: false,
         operation: () => ({ prisma, params }) =>
             prisma.visibility.delete({ where: { id: params.visibilityId } })
     }),
@@ -41,6 +44,7 @@ export const visibilityOperations = {
         paramsSchema: () => visibilitySchemas.params.update,
         dataSchema: () => visibilitySchemas.data.update,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const { requirements: stored, ...visibility } = await prisma.visibility.findUniqueOrThrow({
                 where: { id: params.visibilityId },
