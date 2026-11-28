@@ -1,5 +1,5 @@
 'use client'
-import { InsideSubmitterContext } from './insideSubmitterContext'
+import { SubmitterContext } from './submitterContext'
 import { FormInputSlot } from '@/components/Form/FormContext'
 import { useCallback, useContext, useEffect, useSyncExternalStore } from 'react'
 import type { FormStore } from './formStore'
@@ -18,7 +18,7 @@ export function makeField<Specs extends Record<string, KindSpec>>(
 ) {
     return function Field<KindName extends keyof Specs>(props: AnyFieldProps<Specs, KindName>) {
         const store = useContext(OwnStoreContext)
-        const insideSubmitter = useContext(InsideSubmitterContext)
+        const insideSubmitter = useContext(SubmitterContext) !== null
         if (!store) {
             throw new Error(insideSubmitter
                 ? `The field "${props.name}" is inside another submitter than the one it was made with. `
@@ -66,5 +66,11 @@ function useStoredValue(store: FormStore, name: string, emptyValue: unknown) {
     const value = useSyncExternalStore(subscribe, () => store.value(name), () => store.value(name))
     const errors = useSyncExternalStore(subscribe, () => store.errors(name), () => store.errors(name))
 
-    return { value, errors, set: (next: unknown) => store.setValue(name, next), leave: () => store.leave(name) }
+    return {
+        value,
+        errors,
+        set: (next: unknown) => store.setValue(name, next),
+        setReader: (read: () => unknown) => store.setReader(name, read),
+        leave: () => store.leave(name),
+    }
 }

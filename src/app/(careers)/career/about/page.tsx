@@ -1,6 +1,7 @@
 import AddTeamDepartment from './AddTeamDepartment'
 import AddTeamPerson from './AddTeamPerson'
 import TeamDepartmentEditor from './TeamDepartmentEditor'
+import { TeamDepartmentParagraphEditor } from './teamParagraphEditor'
 import TeamPerson from './TeamPerson'
 import {
     badgeClassName,
@@ -122,7 +123,7 @@ const { page, generateMetadata } = serverPage({
                                     mb-0!
                                     [&_:is(p,li)]:text-m [&_:is(p,li)]:leading-[1.7]
                                 "
-                                updateCmsParagraphAction={careersTeamCapabilities.updateDepartmentParagraph.action}
+                                editor={<TeamDepartmentParagraphEditor cmsParagraph={department.paragraph} />}
                                 capabilities={{ canEdit: capabilities.canEditDepartmentParagraph }}
                             />
                         </div>

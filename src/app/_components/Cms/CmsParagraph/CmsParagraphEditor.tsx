@@ -1,33 +1,18 @@
 'use client'
-import CmsParagraphEditorForm from './CmsParagraphEditorForm'
 import useEditMode from '@/hooks/useEditMode'
 import type { ReactNode } from 'react'
-import type { CmsParagraph } from '@/prisma-generated-pn-types'
-import type { UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
 import type { CapabilitiesJsObject } from '@/auth/authorizer/capabilities'
 
 type PropTypes = {
-    cmsParagraph: CmsParagraph
-    editorClassName?: string
-    updateCmsParagraphAction: UpdateCmsParagraphAction
+    /** What takes the place of the paragraph in edit mode. */
+    editor: ReactNode
     capabilities: CapabilitiesJsObject<'canEdit'>
-    /** The paragraph as it is read, which the editor takes the place of in edit mode. */
+    /** The paragraph as it is read. */
     children: ReactNode
 }
 
-export default function CmsParagraphEditor({
-    cmsParagraph,
-    editorClassName,
-    updateCmsParagraphAction,
-    capabilities,
-    children,
-}: PropTypes) {
+export default function CmsParagraphEditor({ editor, capabilities, children }: PropTypes) {
     const editable = useEditMode({ authResult: capabilities.canEdit })
 
-    if (!editable) return children
-    return <CmsParagraphEditorForm
-        className={editorClassName}
-        cmsParagraph={cmsParagraph}
-        updateCmsParagraphAction={updateCmsParagraphAction}
-    />
+    return editable ? editor : children
 }
