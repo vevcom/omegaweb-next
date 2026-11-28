@@ -13,6 +13,7 @@ export const mailAddressExternalOperations = {
     create: defineOperation({
         dataSchema: mailAddressExternalSchemas.data.create,
         authorizer: () => mailAddressExternalAuth.create,
+        read: false,
         operation: async ({ prisma, data }): Promise<MailAddressExternal> => {
             await assertNotAUsersEmail(prisma, data.address)
             return prisma.mailAddressExternal.create({ data })
@@ -32,6 +33,7 @@ export const mailAddressExternalOperations = {
         authorizer: async ({ prisma }) => mailAddressExternalAuth.readMany.data({
             mailingListOwnerVisibilities: await readMailingListOwnerMatrices.internalCall({ prisma }),
         }),
+        read: true,
         operation: async ({ prisma }): Promise<MailAddressExternal[]> =>
             prisma.mailAddressExternal.findMany(),
     }),
@@ -40,6 +42,7 @@ export const mailAddressExternalOperations = {
         paramsSchema: mailAddressExternalSchemas.params.update,
         dataSchema: mailAddressExternalSchemas.data.update,
         authorizer: () => mailAddressExternalAuth.update,
+        read: false,
         operation: async ({ prisma, params, data }): Promise<MailAddressExternal> => {
             await assertNotAUsersEmail(prisma, data.address)
             return prisma.mailAddressExternal.update({
@@ -52,6 +55,7 @@ export const mailAddressExternalOperations = {
     destroy: defineOperation({
         paramsSchema: mailAddressExternalSchemas.params.destroy,
         authorizer: () => mailAddressExternalAuth.destroy,
+        read: false,
         operation: async ({ prisma, params }): Promise<MailAddressExternal> =>
             prisma.mailAddressExternal.delete({
                 where: { id: params.id },

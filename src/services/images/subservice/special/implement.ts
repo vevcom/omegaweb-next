@@ -38,6 +38,7 @@ export function implementSpecialCollection({
      */
     const generateFromConfig = defineSubOperation({
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma }) => {
             const existing = await prisma.imageCollection.findUnique({
                 where: { special },
@@ -88,12 +89,11 @@ export function implementSpecialCollection({
     /**
      * The unauthorized read of the collection, exposed as `internal.read`. Server code uses it and
      * not `readCollection`, whose panel authorizer would demand panel access of every caller, for
-     * instance of a member uploading their own profile picture. It is remembered, since every read
-     * of a standard image asks for its collection. It may be, though it makes the collection when it
-     * is missing: the answer kept is the collection it made.
+     * instance of a member uploading their own profile picture. It makes the collection when it is
+     * missing.
      */
     const readCollectionInternal = defineSubOperation({
-        remember: true,
+        read: true,
         operation: () => async ({ prisma }): Promise<ExpandedImageCollection> => {
             const collection = await prisma.imageCollection.findUnique({
                 where: {
@@ -118,6 +118,7 @@ export function implementSpecialCollection({
 
     const readCollection = defineOperation({
         authorizer: () => imagePanelAuth,
+        read: true,
         operation: async ({ prisma }) => readCollectionInternal.internalCall({ prisma })
     })
 
@@ -145,6 +146,7 @@ export function implementSpecialCollection({
 
     const uploadImage = defineSubOperation({
         dataSchema: () => imageSchemas.data.uploadImage,
+        read: false,
         operation: () => async ({ prisma, data }) =>
             imageOperations.uploadImage.internalCall({
                 params: {
@@ -157,6 +159,7 @@ export function implementSpecialCollection({
 
     const destroyImage = defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyImage,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             await assertImageInCollection(prisma, params.imageId)
             return imageOperations.destroyImage.internalCall({ params })
@@ -166,6 +169,7 @@ export function implementSpecialCollection({
     const readPageOfImagesInCollection = defineOperation({
         authorizer: () => imagePanelAuth,
         paramsSchema: imageSchemas.params.readPageOfImagesInSpecialCollection,
+        read: true,
         operation: async ({ prisma, params }) => {
             const collection = await readCollectionInternal.internalCall({ prisma })
             return imageOperations.readPageOfImagesInCollection.internalCall({

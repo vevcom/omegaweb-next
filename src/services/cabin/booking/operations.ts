@@ -281,6 +281,7 @@ export const cabinBookingOperations = {
         authorizer: ({ params }) => cabinBookingAuth.createCabinBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.data.createCabinBookingUserAttached,
         transaction: 'RUNS_IN',
+        read: false,
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('CABIN', params, data)),
     }),
 
@@ -289,6 +290,7 @@ export const cabinBookingOperations = {
         authorizer: ({ params }) => cabinBookingAuth.createBedBookingUserAttached.data({ userId: params.userId }),
         dataSchema: cabinBookingSchemas.data.createBedBookingUserAttached,
         transaction: 'RUNS_IN',
+        read: false,
         operation: ({ prisma, params, data }) => reserve(prisma, withUser('BED', params, data)),
     }),
 
@@ -297,6 +299,7 @@ export const cabinBookingOperations = {
         authorizer: () => cabinBookingAuth.createCabinBookingNoUser,
         dataSchema: cabinBookingSchemas.data.createCabinBookingNoUser,
         transaction: 'RUNS_IN',
+        read: false,
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('CABIN', params, data)),
     }),
 
@@ -305,11 +308,13 @@ export const cabinBookingOperations = {
         authorizer: () => cabinBookingAuth.createBedBookingNoUser,
         dataSchema: cabinBookingSchemas.data.createBedBookingNoUser,
         transaction: 'RUNS_IN',
+        read: false,
         operation: ({ prisma, params, data }) => reserve(prisma, asGuest('BED', params, data)),
     }),
 
     readAvailability: defineOperation({
         authorizer: () => cabinBookingAuth.readAvailability,
+        read: true,
         operation: async ({ prisma }) => {
             const bookings = await prisma.booking.findMany({
                 select: cabinBookingFilterSelection,
@@ -330,6 +335,7 @@ export const cabinBookingOperations = {
 
     readMany: defineOperation({
         authorizer: () => cabinBookingAuth.readMany,
+        read: true,
         operation: ({ prisma }) => prisma.booking.findMany({
             orderBy: {
                 start: 'asc',
@@ -341,6 +347,7 @@ export const cabinBookingOperations = {
     read: defineOperation({
         authorizer: () => cabinBookingAuth.read,
         paramsSchema: cabinBookingSchemas.params.read,
+        read: true,
         operation: ({ prisma, params }) => prisma.booking.findUniqueOrThrow({
             where: params,
             include: cabinBookingIncluder,
@@ -350,6 +357,7 @@ export const cabinBookingOperations = {
     /** The account cabin bookings are paid into, or null while none is linked. */
     readLedgerAccount: defineOperation({
         authorizer: () => cabinBookingAuth.readLedgerAccount,
+        read: true,
         operation: ({ prisma }) => prisma.ledgerAccount.findUnique({
             where: { special: 'CABIN' },
             select: { id: true, name: true },
@@ -368,6 +376,7 @@ export const cabinBookingOperations = {
         }),
         dataSchema: cabinBookingSchemas.data.connectToLedgerAccount,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const account = await prisma.ledgerAccount.findUniqueOrThrow({
                 where: { id: data.ledgerAccountId },
@@ -412,6 +421,7 @@ export const cabinBookingOperations = {
             })
         },
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params }): Promise<{ payment: ExpandedPayment | null }> => {
             let payment: ExpandedPayment | undefined
             const transaction: ExpandedLedgerTransaction = await prisma.$transaction(async tx => {
@@ -533,6 +543,7 @@ export const cabinBookingOperations = {
             })
         },
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const booking = await lockBooking(prisma, params.bookingId)
             if (booking.canceled !== null) return

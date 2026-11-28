@@ -1,11 +1,10 @@
 import '@ow-server-only'
 
 /**
- * What a service context remembers of the calls made in it. Only an operation that declares
- * `remember` asks it, so a read that many callers make in one context runs once. Whoever opens a
- * context hands it its cache, and so decides how long an answer lives. A cache never drops an
- * answer and nothing tells it of a write, so whoever makes one keeps it no longer than the request
- * or the piece of work it is for.
+ * What a service context remembers of the calls made in it. Only an operation that says
+ * `read: true` asks it, so a read that many callers make in one context runs once. Every other
+ * operation may write, so it clears the cache when it ends, and what is read after it is read
+ * again. Whoever opens a context hands it its cache, and so decides how long an answer lives.
  */
 export type ServiceCache = {
     /**
@@ -14,6 +13,8 @@ export type ServiceCache = {
      * remembered as well: a refusal, and also a failure that would have passed on a second try.
      */
     remember(operation: object, key: string, read: () => Promise<unknown>): Promise<unknown>
+    /** Forgets every answer, since something that may have written has run. */
+    clear(): void
 }
 
 /** Keeps its answers in a map of its own, so it lives for as long as whoever made it keeps it. */
@@ -31,6 +32,10 @@ export class MapServiceCache implements ServiceCache {
         answersOfOperation.set(key, answer)
         return answer
     }
+
+    public clear() {
+        this.answers.clear()
+    }
 }
 
 /** Remembers nothing. It is what a context has when it is handed no cache, and inside a transaction. */
@@ -38,6 +43,8 @@ export class NoServiceCache implements ServiceCache {
     public remember(operation: object, key: string, read: () => Promise<unknown>) {
         return read()
     }
+
+    public clear() {}
 }
 
 /**

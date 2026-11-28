@@ -37,12 +37,14 @@ const migration = implementStraightAwayMigration({
 
 const readMany = defineOperation({
     authorizer: () => classAuth.readMany,
+    read: true,
     operation: async ({ prisma }) => prisma.class.findMany()
 })
 
 const read = defineOperation({
     paramsSchema: classSchemas.params.read,
     authorizer: () => classAuth.read,
+    read: true,
     operation: async ({ prisma, params }) => prisma.class.findUniqueOrThrow({
         where: params,
     })
@@ -62,6 +64,7 @@ const read = defineOperation({
 const readClassOfUser = defineOperation({
     paramsSchema: classSchemas.params.readClassOfUser,
     authorizer: () => classAuth.readClassOfUser,
+    read: true,
     operation: async ({ prisma, params }): Promise<{ level: ClassLevel, order: number } | null> => {
         const memberships = await prisma.membership.findMany({
             where: {
@@ -117,6 +120,7 @@ const changeClassOfUser = defineOperation({
     dataSchema: classSchemas.data.changeClassOfUser,
     authorizer: () => classAuth.changeClassOfUser,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, params, data }) => {
         const targetClass = await prisma.class.findUniqueOrThrow({
             where: { level: data.level },
@@ -214,6 +218,7 @@ const changeClassOfUser = defineOperation({
 const bumpClasses = defineOperation({
     authorizer: () => classAuth.bumpClasses,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma }) => {
         const { order: currentOrder } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 

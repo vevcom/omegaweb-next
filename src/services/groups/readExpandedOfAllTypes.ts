@@ -66,6 +66,7 @@ const groupTypeExpandedReads = {
  */
 export const readExpandedOfAllTypes = defineOperation({
     authorizer: () => Require.nothing(),
+    read: true,
     operation: async ({ session }): Promise<ExpandedGroupsOfAllTypes> => {
         const entries = await Promise.all(
             Object.values(GroupType).map(async groupType => {

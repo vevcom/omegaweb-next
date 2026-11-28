@@ -9,6 +9,7 @@ const update = defineOperation({
     paramsSchema: z.object({ id: z.string().regex(/^\d+$/) }),
     dataSchema: z.object({ name: z.string().min(2) }),
     authorizer: () => Require.nothing(),
+    read: false,
     operation: ({ params, data }) => ({ id: params.id, name: data.name }),
 })
 

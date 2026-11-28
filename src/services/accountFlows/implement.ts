@@ -91,6 +91,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
     const verifyResetPasswordToken = defineOperation({
         paramsSchema: accountSchemas.params.verifyResetPasswordToken,
         authorizer: () => Require.nothing(),
+        read: true,
         operation: async ({ prisma, params }) => {
             const { accountId, issuedAt, email } = readResetPasswordToken(params.token)
             const credentialsUpdatedAt = await kind.readCredentialsUpdatedAt(prisma, accountId)
@@ -115,6 +116,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
         dataSchema: kind.passwordSchema,
         authorizer: () => Require.nothing(),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             // The link is checked and the password written with the account held, or the account could
             // leave the link's address, or the link be used once more, between the two.
@@ -134,6 +136,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
         paramsSchema: accountSchemas.params.sendResetPasswordEmail,
         dataSchema: accountSchemas.data.sendResetPasswordEmail,
         authorizer: () => Require.nothing(),
+        read: false,
         operation: ({ params, data }) => {
             // Not awaited: the response must not wait on the lookup or the mail server, or how long
             // it takes would tell whether an account has this email. Failures are logged, never thrown.
@@ -148,6 +151,7 @@ export function implementAccountFlows<Verified extends { email: string }, Passwo
     const verifyEmail = defineOperation({
         paramsSchema: accountSchemas.params.verifyEmail,
         authorizer: () => Require.nothing(),
+        read: false,
         operation: async ({ prisma, params }) => {
             const payload = verifyJWT(params.token, kind.audiences.verifyEmail)
 

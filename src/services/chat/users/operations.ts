@@ -22,6 +22,7 @@ export const chatUserOperations = {
     optIn: defineOperation({
         paramsSchema: chatUserSchemas.params.optIn,
         authorizer: ({ params }) => chatUserAuth.optIn.data({ userId: params.userId }),
+        read: false,
         operation: async ({ prisma, params }) => {
             const existing = await prisma.chatUser.findUnique({ where: { userId: params.userId } })
             if (existing) return existing
@@ -50,6 +51,7 @@ export const chatUserOperations = {
     read: defineOperation({
         paramsSchema: chatUserSchemas.params.read,
         authorizer: ({ params }) => chatUserAuth.read.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const chatUser = await prisma.chatUser.findUnique({ where: { userId: params.userId } })
             if (!chatUser) throw new ServiceError('NOT FOUND', 'Brukeren har ingen chatkonto')
@@ -61,6 +63,7 @@ export const chatUserOperations = {
     readSpaces: defineOperation({
         paramsSchema: chatUserSchemas.params.readSpaces,
         authorizer: ({ params }) => chatUserAuth.readSpaces.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const chatUser = await prisma.chatUser.findUnique({
                 where: { userId: params.userId },
@@ -96,6 +99,7 @@ export const chatUserOperations = {
     readDirectMessage: defineOperation({
         paramsSchema: chatUserSchemas.params.readDirectMessage,
         authorizer: () => chatUserAuth.readDirectMessage,
+        read: true,
         operation: async ({ prisma, params }) => {
             const { serverName } = chatServer
             if (!chatClientOrigin || !serverName) return { chatIsSetUp: false, url: null }

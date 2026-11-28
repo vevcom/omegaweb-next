@@ -66,6 +66,7 @@ const read = defineOperation({
     authorizer: async ({ params, prisma }) => eventAuth.read.data(
         await readEventAccess.internalCall({ prisma, params: { id: params.id } })
     ),
+    read: true,
     operation: async ({ prisma, params }) => {
         const event = await prisma.event.findUniqueOrThrow({
             where: {
@@ -124,6 +125,7 @@ const updateFields = defineSubOperation({
     paramsSchema: () => eventSchemas.params.updateFields,
     dataSchema: () => eventSchemas.data.updateFields,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data: { tagIds, locationMap, notifyAboutChange, ...data } }) => {
         const event = await prisma.event.findUniqueOrThrow({
             where: { id: params.id },
@@ -209,6 +211,7 @@ const update = defineOperation({
         await readEventAccess.internalCall({ prisma, params: { id: params.id } })
     ),
     transaction: 'RUNS_IN',
+    read: false,
     operation: ({ prisma, params, data }) => updateFields.internalCall({ prisma, params, data }),
 })
 
@@ -223,6 +226,7 @@ const connectToLedgerAccount = defineOperation({
         ...await readEventAccess.internalCall({ prisma, params: { id: params.id } }),
         accounts: [await resolveAccountOwnership(prisma, { ledgerAccountId: data.ledgerAccountId })],
     }),
+    read: false,
     operation: async ({ prisma, params, data }) => {
         await assertGroupAccount(prisma, data.ledgerAccountId)
 
@@ -242,6 +246,7 @@ export const eventOperations = {
         authorizer: async ({ params, prisma }) => eventAuth.readStatistics.data(
             await readEventAccess.internalCall({ prisma, params: { id: params.id } })
         ),
+        read: true,
         operation: async ({ prisma, params }): Promise<VariantStatistics[]> => {
             const variants = await prisma.eventVariant.findMany({
                 where: { eventId: params.id },
@@ -302,6 +307,7 @@ export const eventOperations = {
         dataSchema: eventSchemas.data.create,
         authorizer: () => eventAuth.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data, session }) => {
             const eventStart = data.eventStart ?? new Date(Date.now() + UNSET_EVENT_TIME_OFFSET_MS)
             const eventEnd = data.eventEnd ?? eventStart
@@ -408,6 +414,7 @@ export const eventOperations = {
     readManyCurrent: defineOperation({
         paramsSchema: eventSchemas.params.readManyCurrent,
         authorizer: () => eventAuth.readManyCurrent,
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 select: eventListSelection,
@@ -432,6 +439,7 @@ export const eventOperations = {
     readManyArchivedPage: defineOperation({
         paramsSchema: eventSchemas.params.readManyArchivedPage,
         authorizer: () => eventAuth.readManyArchivedPage,
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<EventExpanded[]> => {
             const events = await prisma.event.findMany({
                 ...cursorPagingSelection(params.paging.page),
@@ -506,6 +514,7 @@ export const eventOperations = {
             await readEventAccess.internalCall({ prisma, params: { id: params.id } })
         ),
         transaction: 'OPENS',
+        read: false,
         operation: async ({
             prisma,
             params,
@@ -581,6 +590,7 @@ export const eventOperations = {
             await readEventAccess.internalCall({ prisma, params: { id: params.id } })
         ),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             if (data.published) {
                 await assertSeenThroughQuotas(prisma, params.id, { published: true })
@@ -614,6 +624,7 @@ export const eventOperations = {
             await readEventAccess.internalCall({ prisma, params: { id: params.id } })
         ),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const event = await prisma.event.findUniqueOrThrow({
                 where: { id: params.id },

@@ -59,6 +59,7 @@ export const oidcOperations = {
     issueCode: defineOperation({
         paramsSchema: oidcSchemas.params.issueCode,
         authorizer: ({ params }) => oidcAuth.issueCode.data({ userId: params.userId }),
+        read: false,
         operation: async ({ params, prisma }) => {
             const client = oidcClientOf(params.clientId)
             if (!client) throw new ServiceError('BAD PARAMETERS', 'Ukjent klient')
@@ -94,6 +95,7 @@ export const oidcOperations = {
     exchangeCode: defineOperation({
         paramsSchema: oidcSchemas.params.exchangeCode,
         authorizer: () => oidcAuth.exchangeCode,
+        read: false,
         operation: ({ params, prisma }) => redeemCode(prisma, params),
     }),
 
@@ -105,6 +107,7 @@ export const oidcOperations = {
     token: defineOperation({
         dataSchema: oidcSchemas.data.token,
         authorizer: () => oidcAuth.token,
+        read: false,
         operation: async ({ data, prisma }) => {
             const grant = await redeemCode(prisma, data)
             const claims = await userClaims(grant.userId, grant.scopes)
@@ -123,6 +126,7 @@ export const oidcOperations = {
     userinfo: defineOperation({
         paramsSchema: oidcSchemas.params.userinfo,
         authorizer: () => oidcAuth.userinfo,
+        read: true,
         operation: async ({ params }) => {
             const token = verifyAccessToken(params.accessToken)
             return { sub: String(token.userId), ...await userClaims(token.userId, token.scopes) }
@@ -136,6 +140,7 @@ export const oidcOperations = {
     endSession: defineOperation({
         paramsSchema: oidcSchemas.params.endSession,
         authorizer: () => oidcAuth.endSession,
+        read: true,
         operation: ({ params }) => ({
             redirectTo: params.postLogoutRedirectUri && isPostLogoutRedirectUri(params.postLogoutRedirectUri)
                 ? params.postLogoutRedirectUri
@@ -146,12 +151,14 @@ export const oidcOperations = {
     /** The discovery document, see discovery.ts. */
     discovery: defineOperation({
         authorizer: () => oidcAuth.discovery,
+        read: true,
         operation: () => discoveryDocument(),
     }),
 
     /** The key set the tokens are verified with, see tokens.ts. */
     jwks: defineOperation({
         authorizer: () => oidcAuth.jwks,
+        read: true,
         operation: () => jwks(),
     }),
 } as const

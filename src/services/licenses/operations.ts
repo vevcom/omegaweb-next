@@ -7,6 +7,7 @@ import { defineOperation, defineSubOperation } from '@/services/serviceOperation
 
 const generateStandardLicense = defineSubOperation({
     paramsSchema: () => licenseSchemas.params.generateStandardLicense,
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const licenseConfig = getStandardLicenseConfig(params.standardLicenseName)
 
@@ -25,6 +26,7 @@ const generateStandardLicense = defineSubOperation({
 
 const readStandardLicense = defineSubOperation({
     paramsSchema: () => licenseSchemas.params.readStandardLicense,
+    read: true,
     operation: () => async ({ prisma, params }) => {
         const license = await prisma.license.findUnique({
             where: { name: params.standardLicenseName },
@@ -54,17 +56,20 @@ export const licenseOperations = {
     create: defineOperation({
         authorizer: () => licenseAuth.create,
         dataSchema: licenseSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }) => await prisma.license.create({
             data,
         }),
     }),
     readAll: defineOperation({
         authorizer: () => licenseAuth.readAll,
+        read: true,
         operation: async ({ prisma }) => await prisma.license.findMany()
     }),
     destroy: defineOperation({
         paramsSchema: licenseSchemas.params.destroy,
         authorizer: () => licenseAuth.destroy,
+        read: false,
         operation: async ({ prisma, params }) => {
             const { name: licenseName } = await prisma.license.findUniqueOrThrow({
                 where: { id: params.id },
@@ -91,6 +96,7 @@ export const licenseOperations = {
         paramsSchema: licenseSchemas.params.update,
         dataSchema: licenseSchemas.data.update,
         authorizer: () => licenseAuth.update,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await prisma.license.update({
                 where: {

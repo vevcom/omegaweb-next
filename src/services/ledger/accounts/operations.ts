@@ -74,6 +74,7 @@ export const ledgerAccountOperations = {
         // used to cover): this is admin-only.
         authorizer: () => ledgerAccountAuth.create,
         dataSchema: ledgerAccountSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }): Promise<LedgerAccount> => prisma.ledgerAccount.create({
             data: {
                 type: 'GROUP',
@@ -107,6 +108,7 @@ export const ledgerAccountOperations = {
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
         paramsSchema: ledgerAccountSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }): Promise<ExpandedLedgerAccount> => {
             const account = await prisma.ledgerAccount.findFirstOrThrow({
                 where: {
@@ -140,6 +142,7 @@ export const ledgerAccountOperations = {
             accounts: await resolveAccountsOwnership(prisma, params),
         }),
         paramsSchema: ledgerAccountSchemas.params.readMany,
+        read: true,
         operation: async ({ prisma, params }): Promise<LedgerAccount[]> => {
             const filters: Prisma.LedgerAccountWhereInput[] = []
 
@@ -175,6 +178,7 @@ export const ledgerAccountOperations = {
     readAccessible: defineOperation({
         authorizer: () => ledgerAccountAuth.readAccessible,
         paramsSchema: ledgerAccountSchemas.params.readAccessible,
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<ExpandedLedgerAccount[]> => {
             const types: LedgerAccountType[] = [
                 ...(params.includeGroupAccounts ? ['GROUP' as const] : []),
@@ -196,6 +200,7 @@ export const ledgerAccountOperations = {
     readPage: defineOperation({
         authorizer: () => ledgerAccountAuth.readPage,
         paramsSchema: ledgerAccountSchemas.params.readPage,
+        read: true,
         operation: async ({ params: { paging }, prisma }): Promise<(LedgerAccount & { balance: Balance })[]> => {
             const accounts = await prisma.ledgerAccount.findMany({
                 where: {
@@ -233,6 +238,7 @@ export const ledgerAccountOperations = {
         }),
         paramsSchema: ledgerAccountSchemas.params.update,
         dataSchema: ledgerAccountSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
             return writeAccountUpdate(prisma, account.id, data)
@@ -255,6 +261,7 @@ export const ledgerAccountOperations = {
         }),
         paramsSchema: ledgerAccountSchemas.params.updateAsAdmin,
         dataSchema: ledgerAccountSchemas.data.updateAsAdmin,
+        read: false,
         operation: async ({ prisma, params, data }): Promise<LedgerAccount> => {
             const account = await ledgerAccountOperations.read({ params })
             return writeAccountUpdate(prisma, account.id, data)
@@ -278,6 +285,7 @@ export const ledgerAccountOperations = {
             accounts: await resolveAccountsOwnership(prisma, params),
         }),
         paramsSchema: ledgerAccountSchemas.params.calculateBalances,
+        read: true,
         operation: async ({ prisma, params }): Promise<BalanceRecord> => {
             // Skip resolving userIds/groupIds to ledger account IDs when ledgerAccountIds
             // alone was given, since there is then nothing to resolve.
@@ -344,6 +352,7 @@ export const ledgerAccountOperations = {
             accounts: [await resolveAccountOwnership(prisma, params)],
         }),
         paramsSchema: ledgerAccountSchemas.params.calculateBalance,
+        read: true,
         operation: async ({ params }): Promise<Balance> => {
             const account = await ledgerAccountOperations.read({
                 params: { userId: params.userId, ledgerAccountId: params.ledgerAccountId },

@@ -17,6 +17,7 @@ export const imageOperations = {
     destroyCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyCollection,
         transaction: 'OPENS',
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const collection = await prisma.imageCollection.findUnique({
                 where: uniqueCollectionWhere(params),
@@ -65,6 +66,7 @@ export const imageOperations = {
     updateCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.params.updateCollection,
         dataSchema: () => imageSchemas.data.updateCollection,
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             if (data.coverImageId !== undefined) {
                 const image = await prisma.image.findUnique({
@@ -121,6 +123,7 @@ export const imageOperations = {
     uploadImage: defineSubOperation({
         paramsSchema: () => imageSchemas.params.uploadImage,
         dataSchema: () => imageSchemas.data.uploadImage,
+        read: false,
         operation: (
             { uploadAsStandardImage, allowedExtensions }: {
                 uploadAsStandardImage: StandardImage | null,
@@ -170,6 +173,7 @@ export const imageOperations = {
         paramsSchema: () => imageSchemas.params.replaceImageFile,
         dataSchema: () => imageSchemas.data.replaceImageFile,
         transaction: 'OPENS',
+        read: false,
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
         ) => async ({ prisma, params, data: { imageFile } }) => {
@@ -220,6 +224,7 @@ export const imageOperations = {
      */
     processImageVariants: defineSubOperation({
         paramsSchema: () => imageSchemas.params.processImageVariants,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.image.findUniqueOrThrow({ where: { id: params.imageId } })
             if (image.type !== 'RASTER') {
@@ -273,6 +278,7 @@ export const imageOperations = {
      */
     retryImageProcessing: defineSubOperation({
         paramsSchema: () => imageSchemas.params.retryImageProcessing,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             await prisma.image.update({
                 where: { id: params.imageId },
@@ -288,6 +294,7 @@ export const imageOperations = {
     uploadManyImages: defineSubOperation({
         paramsSchema: () => imageSchemas.params.uploadManyImages,
         dataSchema: () => imageSchemas.data.uploadManyImages,
+        read: false,
         operation: (
             { allowedExtensions }: { allowedExtensions: readonly ImageExtension[] }
         ) => async ({ params, data }) => {
@@ -312,6 +319,7 @@ export const imageOperations = {
 
     readPageOfImagesInCollection: defineSubOperation({
         paramsSchema: () => imageSchemas.params.readPageOfImagesInCollection,
+        read: true,
         operation: () => async ({ prisma, params }) => {
             const { cursor, ...rest } = cursorPagingSelection(params.paging.page)
             return await prisma.image.findMany({
@@ -328,6 +336,7 @@ export const imageOperations = {
     updateImageMeta: defineSubOperation({
         paramsSchema: () => imageSchemas.params.updateImageMeta,
         dataSchema: () => imageSchemas.data.updateImageMeta,
+        read: false,
         operation: () => async ({ prisma, params, data }) =>
             await prisma.image.update({
                 where: {
@@ -348,6 +357,7 @@ export const imageOperations = {
     /** Deletes the image. Its files are orphans from then on, which the store destroys. */
     destroyImage: defineSubOperation({
         paramsSchema: () => imageSchemas.params.destroyImage,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             await prisma.image.delete({
                 where: {
@@ -359,6 +369,7 @@ export const imageOperations = {
 
     readCollectionOfImage: defineSubOperation({
         paramsSchema: () => imageSchemas.params.readCollectionOfImage,
+        read: true,
         operation: () => async ({ prisma, params }) =>
             (await prisma.image.findUniqueOrThrow({
                 where: {

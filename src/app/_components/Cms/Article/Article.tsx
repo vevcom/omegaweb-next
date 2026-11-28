@@ -115,7 +115,7 @@ export default function Article({
             >
                 {
                     article.articleSections.length ? (
-                        article.articleSections.sort((a, b) => (a.order - b.order)).map((section, i) => (
+                        [...article.articleSections].sort((a, b) => (a.order - b.order)).map((section, i) => (
                             <SlideInOnView direction="left" key={section.id}>
                                 <span className="relative block">
                                     <ArticleSection

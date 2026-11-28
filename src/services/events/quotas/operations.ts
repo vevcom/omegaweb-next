@@ -34,6 +34,7 @@ const create = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.create,
     dataSchema: () => eventQuotaSchemas.data.create,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         const last = await prisma.eventQuota.findFirst({
             where: { variantId: params.variantId },
@@ -62,6 +63,7 @@ const update = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.update,
     dataSchema: () => eventQuotaSchemas.data.update,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data: { visibilityRequirements, ...fields } }) => {
         const quota = await prisma.eventQuota.update({ where: { id: params.id }, data: fields })
         if (visibilityRequirements) {
@@ -79,6 +81,7 @@ const update = defineSubOperation({
 const destroy = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.destroy,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const quota = await prisma.eventQuota.findUniqueOrThrow({
             where: { id: params.id },
@@ -104,6 +107,7 @@ const reorder = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.reorder,
     dataSchema: () => eventQuotaSchemas.data.reorder,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         const quotas = await prisma.eventQuota.findMany({
             where: { variantId: params.variantId },
@@ -134,6 +138,7 @@ const saveSetup = defineSubOperation({
     paramsSchema: () => eventQuotaSchemas.params.saveSetup,
     dataSchema: () => eventQuotaSchemas.data.saveSetup,
     transaction: 'RUNS_IN',
+    read: false,
     operation: () => async ({ prisma, params, data }) => {
         const existing = await prisma.eventQuota.findMany({
             where: { variantId: params.variantId },
@@ -178,6 +183,7 @@ export const eventQuotaOperations = {
                 params: { id: await readEventIdOfVariant(prisma, params.variantId) },
             })
         ),
+        read: true,
         operation: async ({ prisma, params }): Promise<EventQuotaExpanded[]> => {
             const quotas = await prisma.eventQuota.findMany({
                 where: { variantId: params.variantId },

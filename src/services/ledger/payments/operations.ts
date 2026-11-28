@@ -18,6 +18,7 @@ export const paymentOperations = {
     create: defineOperation({
         authorizer: ({ params }) => paymentAuth.create({ provider: params.provider }),
         paramsSchema: paymentSchemas.params.create,
+        read: false,
         operation: async ({ prisma, params }) => prisma.payment.create({
             data: {
                 provider: params.provider,
@@ -57,6 +58,7 @@ export const paymentOperations = {
         // This method does not actually open a transaction. However, it cannot be used
         // inside a transaction as it does external API calls which cannot be reversed.
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, session }) => {
             const payment = await prisma.payment.findUniqueOrThrow({
                 where: {
@@ -160,6 +162,7 @@ export const paymentOperations = {
     cancel: defineOperation({
         authorizer: () => paymentAuth.cancel,
         paramsSchema: paymentSchemas.params.cancel,
+        read: false,
         operation: async ({ prisma, params }) => {
             const payment = await prisma.payment.findUniqueOrThrow({
                 where: { id: params.paymentId },

@@ -16,6 +16,7 @@ export const notificationSubscriptionOperations = {
     read: defineOperation({
         paramsSchema: notificationSubscriptionSchemas.params.read,
         authorizer: ({ params }) => notificationSubscriptionAuth.read.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }): Promise<ResolvedSubscription[]> => {
             const [channels, subscriptions] = await Promise.all([
                 prisma.notificationChannel.findMany({
@@ -42,6 +43,7 @@ export const notificationSubscriptionOperations = {
         paramsSchema: notificationSubscriptionSchemas.params.update,
         dataSchema: notificationSubscriptionSchemas.data.update,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data: { includeChildren, ...methods } }): Promise<Subscription> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: { id: params.channelId },
@@ -89,6 +91,7 @@ export const notificationSubscriptionOperations = {
          */
         subscribeByDefault: defineSubOperation({
             paramsSchema: () => notificationSubscriptionSchemas.params.subscribeByDefault,
+            read: false,
             operation: () => async ({ prisma, params }): Promise<void> => {
                 const existing = await prisma.notificationSubscription.findUnique({
                     where: { userId_channelId: params },

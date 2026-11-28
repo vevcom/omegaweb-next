@@ -12,6 +12,7 @@ export const careersTeamPersonOperations = {
         paramsSchema: careersTeamPersonSchemas.params.create,
         dataSchema: careersTeamPersonSchemas.data.create,
         authorizer: () => careersTeamPersonAuth.create,
+        read: false,
         operation: ({ prisma, params, data }) => prisma.careerTeamPerson.create({
             data: { ...data, departmentId: params.departmentId },
             include: careersTeamPersonIncluder,
@@ -22,6 +23,7 @@ export const careersTeamPersonOperations = {
         paramsSchema: careersTeamPersonSchemas.params.update,
         dataSchema: careersTeamPersonSchemas.data.update,
         authorizer: () => careersTeamPersonAuth.update,
+        read: false,
         operation: ({ prisma, params, data }) => prisma.careerTeamPerson.update({
             where: { id: params.personId },
             data,
@@ -34,6 +36,7 @@ export const careersTeamPersonOperations = {
         dataSchema: careersTeamPersonSchemas.data.updateImage,
         authorizer: () => careersTeamPersonAuth.updateImage,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             // The upload writes several resized files before the database, so it needs more than the
             // default transaction timeout.
@@ -70,6 +73,7 @@ export const careersTeamPersonOperations = {
         paramsSchema: careersTeamPersonSchemas.params.destroy,
         authorizer: () => careersTeamPersonAuth.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params }) => {
             await prisma.$transaction(tx => destroyPersons(tx, { id: params.personId }))
         },
@@ -80,6 +84,7 @@ export const careersTeamPersonOperations = {
         dataSchema: careersTeamPersonSchemas.data.move,
         authorizer: () => careersTeamPersonAuth.move,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const person = await prisma.careerTeamPerson.findUniqueOrThrow({
                 where: { id: params.personId },

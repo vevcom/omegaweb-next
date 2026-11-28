@@ -21,6 +21,7 @@ const read = defineOperation({
         where: { id: params.id },
         select: { companyId: true },
     })),
+    read: true,
     operation: async ({ prisma, params }): Promise<ExpandedJobAd> => await prisma.jobAd.findUniqueOrThrow({
         where: {
             id: params.id,
@@ -49,6 +50,7 @@ export const jobAdOperations = {
         dataSchema: jobAdSchemas.data.create,
         authorizer: () => jobAdAuth.create,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, data: { articleName, companyId, ...data } }) => {
             const jobAd = await prisma.$transaction(async tx => {
                 const createdArticle = await article.internal.create.internalCall({
@@ -102,6 +104,7 @@ export const jobAdOperations = {
     readOfCompany: defineOperation({
         paramsSchema: jobAdSchemas.params.readOfCompany,
         authorizer: ({ params }) => jobAdAuth.readOfCompany.data({ companyId: params.companyId }),
+        read: true,
         operation: async ({ prisma, params }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
                 orderBy: [{ active: 'desc' }, ...activeJobAdOrdering],
@@ -119,6 +122,7 @@ export const jobAdOperations = {
      */
     readActive: defineOperation({
         authorizer: () => jobAdAuth.readActive,
+        read: true,
         operation: async ({ prisma }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
                 orderBy: activeJobAdOrdering,
@@ -164,6 +168,7 @@ export const jobAdOperations = {
     readInactivePage: defineOperation({
         paramsSchema: jobAdSchemas.params.readInactivePage,
         authorizer: () => jobAdAuth.readInactivePage,
+        read: true,
         operation: async ({ prisma, params }): Promise<SimpleJobAd[]> => {
             const jobAds = await prisma.jobAd.findMany({
                 ...cursorPagingSelection(params.paging.page),
@@ -192,6 +197,7 @@ export const jobAdOperations = {
         paramsSchema: jobAdSchemas.params.update,
         dataSchema: jobAdSchemas.data.update,
         authorizer: () => jobAdAuth.update,
+        read: false,
         operation: async ({ prisma, params: { id }, data }) => await prisma.jobAd.update({
             where: { id },
             data,
@@ -201,6 +207,7 @@ export const jobAdOperations = {
     destroy: defineOperation({
         paramsSchema: jobAdSchemas.params.destroy,
         authorizer: () => jobAdAuth.destroy,
+        read: false,
         operation: async ({ prisma, params: { id } }) => {
             const jobAd = await prisma.jobAd.delete({
                 where: { id },

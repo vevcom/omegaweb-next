@@ -16,6 +16,7 @@ export const applicationOperations = {
     readForUser: defineOperation({
         paramsSchema: applicationSchemas.params.readForUser,
         authorizer: ({ params }) => applicationAuth.readForUser.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }) => prisma.application.findMany({
             where: {
                 userId: params.userId,
@@ -28,6 +29,7 @@ export const applicationOperations = {
         dataSchema: applicationSchemas.data.create,
         paramsSchema: applicationSchemas.params.create,
         authorizer: ({ params }) => applicationAuth.create.data({ userId: params.userId }),
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const committeeParticipation = await prisma.committeeParticipationInApplicationPeriod.findUniqueOrThrow({
                 where: {
@@ -84,6 +86,7 @@ export const applicationOperations = {
         paramsSchema: applicationSchemas.params.update,
         transaction: 'RUNS_IN',
         authorizer: ({ params }) => applicationAuth.update.data({ userId: params.userId }),
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const application = await prisma.application.findUniqueOrThrow({
                 where: applicationWhere(params),
@@ -156,6 +159,7 @@ export const applicationOperations = {
         paramsSchema: applicationSchemas.params.destroy,
         authorizer: ({ params }) => applicationAuth.destroy.data({ userId: params.userId }),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const application = await prisma.application.findUniqueOrThrow({
                 where: applicationWhere(params),

@@ -17,6 +17,7 @@ export const productOperations = {
         authorizer: () => productAuth.create,
         dataSchema: productSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const image = await cmsImageOperations.create.internalCall({
                 data: {},
@@ -34,6 +35,7 @@ export const productOperations = {
 
     readMany: defineOperation({
         authorizer: () => productAuth.readMany,
+        read: true,
         operation: async ({ prisma }) => prisma.product.findMany({
             orderBy: { name: 'asc' },
             include: productImageIncluder,
@@ -43,6 +45,7 @@ export const productOperations = {
     read: defineOperation({
         authorizer: () => productAuth.read,
         paramsSchema: productSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params }) => prisma.product.findUniqueOrThrow({
             where: {
                 id: params.productId,
@@ -65,6 +68,7 @@ export const productOperations = {
     readByBarCode: defineOperation({
         authorizer: () => productAuth.readByBarCode,
         paramsSchema: productSchemas.params.readByBarCode,
+        read: true,
         operation: async ({ prisma, params }): Promise<ExtendedProduct> => {
             const product = await prisma.product.findUnique({
                 where: {
@@ -105,6 +109,7 @@ export const productOperations = {
         }),
         paramsSchema: productSchemas.params.update,
         dataSchema: productSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.product.update({
             where: {
                 id: params.productId,

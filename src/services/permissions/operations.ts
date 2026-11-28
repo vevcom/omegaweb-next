@@ -12,6 +12,7 @@ import type { Permission } from '@/prisma-generated-pn-types'
 export const permissionOperations = {
     readDefaultPermissions: defineOperation({
         authorizer: () => permissionsAuth.readDefaultPermissions,
+        read: true,
         operation: async ({ prisma }) =>
             (await prisma.defaultPermission.findMany()).map(perm => perm.permission)
     }),
@@ -19,6 +20,7 @@ export const permissionOperations = {
     readPermissionsOfUser: defineOperation({
         authorizer: ({ params }) => permissionsAuth.readPermissionsOfUser.data({ userId: params.userId }),
         paramsSchema: permissionSchemas.params.readPermissionsOfUser,
+        read: true,
         operation: async ({ prisma, params }) => {
             const [defaultPermissions, groupPermissions] = await Promise.all([
                 permissionOperations.readDefaultPermissions({}),
@@ -50,6 +52,7 @@ export const permissionOperations = {
     readPermissionsOfGroup: defineOperation({
         authorizer: () => permissionsAuth.readPermissionsOfGroup,
         paramsSchema: permissionSchemas.params.readPermissionsOfGroup,
+        read: true,
         operation: async ({ prisma, params }) => (await prisma.groupPermission.findMany({
             where: {
                 groupId: params.groupId
@@ -59,6 +62,7 @@ export const permissionOperations = {
 
     readPermissionMatrix: defineOperation({
         authorizer: () => permissionsAuth.readPermissionMatrix,
+        read: true,
         operation: async ({ prisma }) => {
             const groupsPermission = await prisma.group.findMany({
                 include: {
@@ -79,6 +83,7 @@ export const permissionOperations = {
         authorizer: () => permissionsAuth.updateDefaultPermissions,
         dataSchema: permissionSchemas.data.updateDefaultPermissions,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             await prisma.defaultPermission.deleteMany({
                 where: {
@@ -107,6 +112,7 @@ export const permissionOperations = {
         paramsSchema: permissionSchemas.params.updateGroupPermission,
         dataSchema: permissionSchemas.data.updateGroupPermission,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             if (data.value) {
                 await prisma.groupPermission.create({

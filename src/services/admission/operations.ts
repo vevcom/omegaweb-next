@@ -13,6 +13,7 @@ export const admissionOperations = {
     readTrial: defineOperation({
         paramsSchema: admissionSchemas.params.readTrial,
         authorizer: ({ params }) => admissionAuth.readTrial.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params: { userId } }) => await prisma.admissionTrial.findMany({
             where: {
                 userId,
@@ -27,6 +28,7 @@ export const admissionOperations = {
     userCompletedTrials: defineOperation({
         paramsSchema: admissionSchemas.params.userCompletedTrials,
         authorizer: ({ params }) => admissionAuth.userCompletedTrials.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params: { userId } }): Promise<boolean> => {
             const trials = await prisma.admissionTrial.count({
                 where: {
@@ -49,6 +51,7 @@ export const admissionOperations = {
         paramsSchema: admissionSchemas.params.createTrial,
         dataSchema: admissionSchemas.data.createTrial,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, session, params, data }): Promise<ExpandedAdmissionTrail> => {
             // The last trial makes the user a sysken, so registering one's own would be self-promotion.
             if (data.userId === session.user?.id) {

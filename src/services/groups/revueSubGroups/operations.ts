@@ -75,6 +75,7 @@ export const revueSubGroupOperations = {
     readAddableUsers: defineOperation({
         paramsSchema: revueSubGroupSchemas.params.readAddableUsers,
         authorizer: ({ params }) => revueSubGroupAuth.readAddableUsers.data({ groupId: params.groupId }),
+        read: true,
         operation: async ({ prisma, params }) => {
             if (!await isGroupOfType(prisma, params.groupId, GroupType.REVUE_SUB_GROUP)) {
                 throw new ServiceError('NOT FOUND', 'Fant ikke revyundergruppen')
@@ -89,6 +90,7 @@ export const revueSubGroupOperations = {
 
     internal: {
         create: defineSubOperation({
+            read: false,
             operation: () => async ({ prisma }) => {
                 const { order } = await omegaOrderOperations.readCurrent({ prisma, bypassAuth: true })
                 return prisma.revueSubGroup.create({
@@ -99,6 +101,7 @@ export const revueSubGroupOperations = {
 
         destroy: defineSubOperation({
             paramsSchema: () => revueSubGroupSchemas.params.destroy,
+            read: false,
             operation: () => async ({ prisma, params }) => {
                 const revueSubGroup = await prisma.revueSubGroup.delete({ where: { id: params.id } })
                 await groupOperations.destroy.internalCall({ prisma, params: { groupId: revueSubGroup.groupId } })

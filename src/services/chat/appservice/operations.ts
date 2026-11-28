@@ -22,6 +22,7 @@ export const chatAppserviceOperations = {
             provided: params.homeserverToken,
             expected: chatHomeserverToken,
         }),
+        read: false,
         operation: async ({ prisma, data }) => {
             const messages = data.events
                 .flatMap(event => {

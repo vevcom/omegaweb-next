@@ -14,6 +14,7 @@ export const ombulOperations = {
     read: defineOperation({
         authorizer: () => ombulAuth.read,
         paramsSchema: ombulSchemas.params.read,
+        read: true,
         operation: ({ params, prisma }) =>
             prisma.ombul.findUniqueOrThrow({
                 where: {
@@ -25,6 +26,7 @@ export const ombulOperations = {
 
     readAll: defineOperation({
         authorizer: () => ombulAuth.readAll,
+        read: true,
         operation: ({ prisma }) =>
             prisma.ombul.findMany({
                 orderBy: ombulOrderBy,
@@ -34,6 +36,7 @@ export const ombulOperations = {
 
     readLatest: defineOperation({
         authorizer: () => ombulAuth.readLatest,
+        read: true,
         operation: ({ prisma }) => prisma.ombul.findFirst({ orderBy: ombulOrderBy })
     }),
 
@@ -46,6 +49,7 @@ export const ombulOperations = {
         authorizer: () => ombulAuth.create,
         dataSchema: ombulSchemas.data.create,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ data, prisma }) => {
             const { ombulCoverImage, ombulFile, year, issueNumber, ...rest } = data
 
@@ -108,6 +112,7 @@ export const ombulOperations = {
         authorizer: () => ombulAuth.update,
         dataSchema: ombulSchemas.data.update,
         paramsSchema: ombulSchemas.params.update,
+        read: false,
         operation: ({ data, prisma, params }) =>
             prisma.ombul.update({
                 where: {
@@ -123,6 +128,7 @@ export const ombulOperations = {
         authorizer: () => ombulAuth.updateFile,
         dataSchema: ombulSchemas.data.updateFile,
         paramsSchema: ombulSchemas.params.updateFile,
+        read: false,
         operation: async ({ data, prisma, params }) => {
             const file = await ombulStore.createFile(data.ombulFile)
             return prisma.ombul.update({
@@ -142,6 +148,7 @@ export const ombulOperations = {
         paramsSchema: ombulSchemas.params.updateCoverImage,
         dataSchema: ombulSchemas.data.updateCoverImage,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const newImage = await prisma.$transaction(async tx => {
                 const existingOmbul = await tx.ombul.findUniqueOrThrow({
@@ -189,6 +196,7 @@ export const ombulOperations = {
         authorizer: () => ombulAuth.destroy,
         paramsSchema: ombulSchemas.params.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ params, prisma }) => {
             const ombul = await prisma.$transaction(async tx => {
                 const deleted = await tx.ombul.delete({

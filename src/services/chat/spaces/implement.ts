@@ -114,6 +114,7 @@ export function implementChatSpaces<
             /** For the owner to call in the transaction that writes its own row. */
             create: defineSubOperation({
                 dataSchema: () => chatSpaceSchemas.data.create,
+                read: false,
                 operation: () => ({ data }) => chatSpaceOperations.create.internalCall({
                     data,
                     operationImplementationFields: { purpose },

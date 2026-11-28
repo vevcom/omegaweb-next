@@ -1,10 +1,13 @@
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import { prisma } from '@/prisma-pn-client-instance'
+import { apiKeyOperations } from '@/services/apiKeys/operations'
 import { careersFrontpageOperations } from '@/services/careers/frontpage/operations'
 import { Smorekopp } from '@/services/error'
+import { readEventAccess } from '@/services/events/access'
 import { eventOperations } from '@/services/events/operations'
 import { eventRegistrationOperations } from '@/services/events/registration/operations'
+import { eventTagOperations } from '@/services/events/tags/operations'
 import { standardImageCollection } from '@/services/images/standard/standardImageCollection'
 import { standardImageCollectionOperations } from '@/services/images/standard/operations'
 import { readAliasOwnerMatrices, readMailingListOwnerMatrices } from '@/services/mail/owned'
@@ -28,7 +31,7 @@ const thingParams = z.object({ id: z.number(), filter: z.object({ tag: z.string(
 /** A read only a holder of USERS_USE may make, which says who it was made for. */
 const readThing = defineOperation({
     paramsSchema: thingParams,
-    remember: true,
+    read: true,
     authorizer: () => {
         authorizerRuns()
         return Require.permission('USERS_USE')
@@ -39,8 +42,9 @@ const readThing = defineOperation({
     },
 })
 
-const readThingFresh = defineOperation({
+const writeThing = defineOperation({
     paramsSchema: thingParams,
+    read: false,
     authorizer: () => Require.permission('USERS_USE'),
     operation: ({ params }) => {
         runs()
@@ -49,6 +53,7 @@ const readThingFresh = defineOperation({
 })
 
 const readThingTwice = defineOperation({
+    read: true,
     authorizer: () => Require.nothing(),
     operation: async () => [await readThing({ params: { id: 1 } }), await readThing({ params: { id: 1 } })],
 })
@@ -81,7 +86,7 @@ beforeEach(() => {
     runs.mockClear()
 })
 
-describe('a remembered operation', () => {
+describe('a read', () => {
     test('runs once for calls that are equal by value, and again for other params', async () => {
         const cache = new MapServiceCache()
 
@@ -100,7 +105,7 @@ describe('a remembered operation', () => {
     test('is never given the answer of another operation', async () => {
         const readOtherThing = defineOperation({
             paramsSchema: thingParams,
-            remember: true,
+            read: true,
             authorizer: () => Require.nothing(),
             operation: () => 'another thing',
         })
@@ -155,7 +160,7 @@ describe('a remembered operation', () => {
     test('params that cannot be compared by value are read every time, and the operation warns of it once', async () => {
         const readByTags = defineOperation({
             paramsSchema: z.object({ id: z.number(), tags: z.set(z.string()) }),
-            remember: true,
+            read: true,
             authorizer: () => Require.nothing(),
             operation: ({ params }) => {
                 runs()
@@ -174,12 +179,12 @@ describe('a remembered operation', () => {
     })
 })
 
-describe('an operation that is not remembered', () => {
+describe('an operation that is not a read', () => {
     test('runs every time, also in a context with a cache', async () => {
         const cache = new MapServiceCache()
 
-        await readThingFresh({ params: { id: 1 }, session: reader, cache })
-        await readThingFresh({ params: { id: 1 }, session: reader, cache })
+        await writeThing({ params: { id: 1 }, session: reader, cache })
+        await writeThing({ params: { id: 1 }, session: reader, cache })
 
         expect(runs).toHaveBeenCalledTimes(2)
     })
@@ -246,13 +251,14 @@ describe('an answer and the session it was read for', () => {
     })
 })
 
-describe('what a context hands a remembered call', () => {
+describe('what a context hands the call of a read', () => {
     const readSecret = defineOperation({
-        remember: true,
+        read: true,
         authorizer: () => Require.permission('USERS_ADMIN'),
         operation: () => 'secret',
     })
     const readSecretInside = defineOperation({
+        read: true,
         authorizer: () => Require.nothing(),
         operation: () => readSecret({}),
     })
@@ -276,6 +282,7 @@ describe('what a context hands a remembered call', () => {
 describe('the cache of a context', () => {
     test('is shared by the contexts opened inside it', async () => {
         const readThingThroughOthers = defineOperation({
+            read: true,
             authorizer: () => Require.nothing(),
             operation: async () => [await readThingTwice({}), await readThing({ params: { id: 1 } })],
         })
@@ -288,6 +295,7 @@ describe('the cache of a context', () => {
     test('is not asked inside a transaction, whether the cache was handed in or inherited', async () => {
         const cache = new MapServiceCache()
         const readThingInTransaction = defineOperation({
+            read: true,
             authorizer: () => Require.nothing(),
             operation: async ({ prisma: client }) => {
                 await readThing({ params: { id: 1 } })
@@ -312,6 +320,7 @@ describe('the cache of a context', () => {
 
     test('is replaced by a call that sets its own, for that call and what it calls', async () => {
         const readThingAroundACacheOfItsOwn = defineOperation({
+            read: true,
             authorizer: () => Require.nothing(),
             operation: async () => {
                 await readThing({ params: { id: 1 } })
@@ -326,7 +335,10 @@ describe('the cache of a context', () => {
     })
 
     test('is refused when it answers with what the operation never read', async () => {
-        const answersForAnother: ServiceCache = { remember: () => Promise.resolve({ id: 1, readFor: 'cache-berit' }) }
+        const answersForAnother: ServiceCache = {
+            remember: () => Promise.resolve({ id: 1, readFor: 'cache-berit' }),
+            clear: () => {},
+        }
 
         await expect(readThing({ params: { id: 1 }, session: reader, cache: answersForAnother }))
             .rejects.toMatchObject({ errorCode: 'SERVER ERROR' })
@@ -349,6 +361,7 @@ describe('a sub-operation', () => {
     const ownershipChecks = jest.fn()
     const readPart = defineSubOperation({
         paramsSchema: () => z.object({ id: z.number() }),
+        read: false,
         operation: () => ({ params }) => {
             runs()
             return params.id
@@ -362,14 +375,14 @@ describe('a sub-operation', () => {
             return true
         },
     }
-    const remembered = readPart.implement({ ...implementation, remember: true })
+    const remembered = readPart.implement({ ...implementation, read: true })
     const fresh = readPart.implement(implementation)
 
     beforeEach(() => {
         ownershipChecks.mockClear()
     })
 
-    test('is remembered by the implementation that says so, with its ownership check, and by no other', async () => {
+    test('is a read to the implementation that says so, with its ownership check, and to no other', async () => {
         const cache = new MapServiceCache()
 
         await remembered({ params: { id: 1 }, implementationParams: { ownerId: 1 }, cache })
@@ -392,10 +405,10 @@ describe('a sub-operation', () => {
     })
 })
 
-describe('a sub-operation that says it is remembered where it is defined', () => {
+describe('a sub-operation that says it is a read where it is defined', () => {
     const readPart = defineSubOperation({
         paramsSchema: () => z.object({ id: z.number() }),
-        remember: true,
+        read: true,
         operation: (fields: { times: number } | undefined) => ({ params, prisma: client }) => {
             runs()
             return { answer: params.id * (fields?.times ?? 1), inTransaction: !isPrismaClient(client) }
@@ -439,9 +452,9 @@ describe('a sub-operation that says it is remembered where it is defined', () =>
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
-    test('the implementation decides: one that says no reads every time, one that says nothing is remembered', async () => {
+    test('the implementation decides: one that says no reads every time, one that says nothing is a read', async () => {
         const cache = new MapServiceCache()
-        const fresh = readPart.implement({ ...implementation, operationImplementationFields: undefined, remember: false })
+        const fresh = readPart.implement({ ...implementation, operationImplementationFields: undefined, read: false })
         const asDefined = readPart.implement({ ...implementation, operationImplementationFields: undefined })
 
         await fresh({ params: { id: 1 }, cache })
@@ -451,6 +464,243 @@ describe('a sub-operation that says it is remembered where it is defined', () =>
         await asDefined({ params: { id: 1 }, cache })
         await asDefined({ params: { id: 1 }, cache })
         expect(runs).toHaveBeenCalledTimes(3)
+    })
+})
+
+describe('a call that is not a read', () => {
+    const write = defineOperation({
+        paramsSchema: z.object({ fails: z.boolean() }),
+        read: false,
+        authorizer: () => Require.nothing(),
+        operation: ({ params }) => {
+            if (params.fails) throw new Error('The write failed')
+        },
+    })
+    const writeInItsOwnTransaction = defineOperation({
+        transaction: 'RUNS_IN',
+        read: false,
+        authorizer: () => Require.nothing(),
+        operation: ({ prisma: client }) => !isPrismaClient(client),
+    })
+    const writePart = defineSubOperation({
+        read: false,
+        operation: () => () => null,
+    })
+    const readThenWrite = defineOperation({
+        read: true,
+        authorizer: () => Require.nothing(),
+        operation: async () => {
+            runs()
+            await write({ params: { fails: false } })
+        },
+    })
+    const readThingIn = (cache: ServiceCache) => readThing({ params: { id: 1 }, session: reader, cache })
+
+    test('clears the cache when it ends, so what is read after a write is read again', async () => {
+        const cache = new MapServiceCache()
+
+        await readThingIn(cache)
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(1)
+
+        await write({ params: { fails: false }, cache })
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(2)
+    })
+
+    test('clears the cache when it throws, and when it runs in a transaction of its own', async () => {
+        const cache = new MapServiceCache()
+
+        await readThingIn(cache)
+        await expect(write({ params: { fails: true }, cache })).rejects.toMatchObject({ errorCode: 'UNKNOWN ERROR' })
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(2)
+
+        expect(await writeInItsOwnTransaction({ cache })).toBe(true)
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(3)
+    })
+
+    test('clears the cache of the context it is called in, also what the read that called it was kept as', async () => {
+        const cache = new MapServiceCache()
+
+        await readThenWrite({ cache })
+        await readThenWrite({ cache })
+        expect(runs).toHaveBeenCalledTimes(2)
+    })
+
+    test('a read under way when it ends is not what a later call is answered with', async () => {
+        const reading = gate()
+        const writing = gate()
+        const readSlowly = defineOperation({
+            paramsSchema: z.object({ started: z.enum(['before the write', 'during the write']) }),
+            read: true,
+            authorizer: () => Require.nothing(),
+            operation: async () => {
+                runs()
+                await reading.opened
+                return runs.mock.calls.length
+            },
+        })
+        const writeSlowly = defineOperation({
+            read: false,
+            authorizer: () => Require.nothing(),
+            operation: () => writing.opened,
+        })
+        const cache = new MapServiceCache()
+
+        const startedBefore = readSlowly({ params: { started: 'before the write' }, cache })
+        const written = writeSlowly({ cache })
+        const startedDuring = readSlowly({ params: { started: 'during the write' }, cache })
+        writing.open()
+        await written
+
+        const after = [
+            readSlowly({ params: { started: 'before the write' }, cache }),
+            readSlowly({ params: { started: 'during the write' }, cache }),
+        ]
+        reading.open()
+        await Promise.all([startedBefore, startedDuring, ...after])
+
+        expect(runs).toHaveBeenCalledTimes(4)
+    })
+
+    test('remembers nothing while it runs, so it reads what it wrote', async () => {
+        const readWriteRead = defineOperation({
+            read: false,
+            authorizer: () => Require.nothing(),
+            operation: async () => {
+                await readThing({ params: { id: 1 } })
+                await readThing({ params: { id: 1 } })
+            },
+        })
+        const cache = new MapServiceCache()
+
+        await readThingIn(cache)
+        await readWriteRead({ session: reader, cache })
+
+        expect(runs).toHaveBeenCalledTimes(3)
+    })
+
+    test('in a transaction clears the cache of the context that opened the transaction', async () => {
+        const repairInTransaction = defineOperation({
+            read: true,
+            authorizer: () => Require.nothing(),
+            operation: ({ prisma: client }) => client.$transaction(tx => writePart.internalCall({ prisma: tx })),
+        })
+        const writeInTransaction = defineOperation({
+            transaction: 'OPENS',
+            read: false,
+            authorizer: () => Require.nothing(),
+            operation: ({ prisma: client }) => client.$transaction(tx => writePart.internalCall({ prisma: tx })),
+        })
+        const cache = new MapServiceCache()
+
+        await readThingIn(cache)
+        await repairInTransaction({ cache })
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(2)
+
+        await writeInTransaction({ cache })
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(3)
+    })
+
+    test('clears the cache it is handed and the cache of the context it is called in', async () => {
+        const ofContext = new MapServiceCache()
+        const handed = new MapServiceCache()
+        const readInBoth = async () => {
+            await readThingIn(ofContext)
+            await readThingIn(handed)
+        }
+
+        await readInBoth()
+        await withServiceContext({ cache: ofContext }, 'NONE', () => write({ params: { fails: false }, cache: handed }))
+        await readInBoth()
+
+        expect(runs).toHaveBeenCalledTimes(4)
+    })
+
+    test('handed NoServiceCache clears the cache of the context, and outside every context it clears none', async () => {
+        const cache = new MapServiceCache()
+
+        await readThingIn(cache)
+        await withServiceContext({ cache }, 'NONE', () => write({ params: { fails: false }, cache: new NoServiceCache() }))
+        await readThingIn(cache)
+        expect(runs).toHaveBeenCalledTimes(2)
+
+        await expect(write({ params: { fails: false } })).resolves.toBeUndefined()
+    })
+
+    test('is not what a read with params that cannot be compared is: such a read clears nothing', async () => {
+        const readByTags = defineOperation({
+            paramsSchema: z.object({ tags: z.set(z.string()) }),
+            read: true,
+            authorizer: () => Require.nothing(),
+            operation: ({ params }) => params.tags.size,
+        })
+        const cache = new MapServiceCache()
+        const warn = jest.spyOn(logger, 'warn').mockImplementation(() => logger)
+
+        await readThingIn(cache)
+        expect(await readByTags({ params: { tags: new Set(['a']) }, cache })).toBe(1)
+        await readThingIn(cache)
+
+        expect(runs).toHaveBeenCalledTimes(1)
+        warn.mockRestore()
+    })
+})
+
+describe('what is read after a write', () => {
+    let stored = 0
+    const value = z.object({ value: z.number() })
+    const readStored = defineOperation({
+        read: true,
+        authorizer: () => Require.nothing(),
+        operation: () => ({ stored }),
+    })
+    const store = defineOperation({
+        dataSchema: value,
+        read: false,
+        authorizer: () => Require.nothing(),
+        operation: ({ data }) => {
+            stored = data.value
+        },
+    })
+    const storePart = defineSubOperation({
+        dataSchema: () => value,
+        read: false,
+        operation: () => ({ data }) => {
+            stored = data.value
+        },
+    })
+    const storeImplemented = storePart.implement({ authorizer: () => Require.nothing(), ownershipCheck: () => true })
+    const storeInTransaction = defineOperation({
+        dataSchema: value,
+        transaction: 'RUNS_IN',
+        read: false,
+        authorizer: () => Require.nothing(),
+        operation: ({ data }) => {
+            stored = data.value
+        },
+    })
+    const writes: [string, (data: { value: number }, cache?: ServiceCache) => Promise<unknown>][] = [
+        ['an operation', (data, cache) => store({ data, cache })],
+        ['an implemented sub-operation', (data, cache) => storeImplemented({ data, cache })],
+        ['an internal call', (data, cache) => storePart.internalCall({ data, cache })],
+        ['an operation that runs in a transaction', (data, cache) => storeInTransaction({ data, cache })],
+    ]
+
+    test.each(writes)('is what was written by %s, handed the cache or called in its context', async (kind, write) => {
+        const cache = new MapServiceCache()
+        stored = 1
+
+        expect(await readStored({ cache })).toEqual({ stored: 1 })
+        await write({ value: 2 }, cache)
+        expect(await readStored({ cache })).toEqual({ stored: 2 })
+
+        await withServiceContext({ cache }, 'NONE', () => write({ value: 3 }))
+        expect(await readStored({ cache })).toEqual({ stored: 3 })
     })
 })
 
@@ -501,29 +751,51 @@ describe('the key of a call', () => {
 })
 
 /**
- * `remember` is refused on what the compiler can see is no read. The `@ts-expect-error` lines are
- * the test of that: `tsc` fails on any of them that stops being an error. Each refused operation is
- * then called, since a `remember` that got past the compiler must not be honoured either.
+ * `read` must be said, and `read: true` is refused on what the compiler can see is no read. The
+ * `@ts-expect-error` lines are the test of that: `tsc` fails on any of them that stops being an
+ * error. Each refused operation is then called, since a `read: true` that got past the compiler
+ * must not be honoured either.
  */
-describe('the types of remember', () => {
+describe('the types of read', () => {
     const data = z.object({ name: z.string() })
     const implementation = { authorizer: () => Require.nothing(), ownershipCheck: () => true }
 
-    test('it does not compile on an operation with a data schema, and such a call is never remembered', async () => {
+    test('it does not compile left out, and such an operation is no read', async () => {
+        // @ts-expect-error - an operation says whether it is a read
+        const unsaid = defineOperation({
+            authorizer: () => Require.nothing(),
+            operation: () => runs(),
+        })
+        // @ts-expect-error - a sub-operation says whether it is a read
+        const unsaidPart = defineSubOperation({
+            operation: () => () => runs(),
+        })
+        const cache = new MapServiceCache()
+
+        await unsaid({ cache })
+        await unsaid({ cache })
+        await unsaidPart.internalCall({ cache })
+        await unsaidPart.internalCall({ cache })
+
+        expect(runs).toHaveBeenCalledTimes(4)
+    })
+
+    test('it does not compile as true on an operation with a data schema, and such a call is never remembered', async () => {
         const writeName = defineOperation({
             dataSchema: data,
             // @ts-expect-error - an operation that takes data is no read
-            remember: true,
+            read: true,
             authorizer: () => Require.nothing(),
             operation: ({ data: { name } }) => name,
         })
         const writeNameOfPart = defineSubOperation({
             dataSchema: () => data,
+            read: false,
             operation: () => ({ data: { name } }) => name,
         }).implement({
             ...implementation,
             // @ts-expect-error - an operation that takes data is no read
-            remember: true,
+            read: true,
         })
         const cache = new MapServiceCache()
 
@@ -533,26 +805,27 @@ describe('the types of remember', () => {
         }
     })
 
-    test('it does not compile on an operation that opens or runs in a transaction, which keeps it', async () => {
+    test('it does not compile as true on an operation that opens or runs in a transaction, which keeps it', async () => {
         const inTransaction = defineOperation({
             transaction: 'RUNS_IN',
             // @ts-expect-error - what runs in a transaction writes
-            remember: true,
+            read: true,
             authorizer: () => Require.nothing(),
             operation: ({ prisma: client }) => !isPrismaClient(client),
         })
         const inTransactionOfPart = defineSubOperation({
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => ({ prisma: client }) => !isPrismaClient(client),
         }).implement({
             ...implementation,
             // @ts-expect-error - what runs in a transaction writes
-            remember: true,
+            read: true,
         })
         const opensTransaction = defineOperation({
             transaction: 'OPENS',
             // @ts-expect-error - what opens a transaction writes
-            remember: true,
+            read: true,
             authorizer: () => Require.nothing(),
             operation: () => runs(),
         })
@@ -565,12 +838,12 @@ describe('the types of remember', () => {
         expect(runs).toHaveBeenCalledTimes(2)
     })
 
-    test('it compiles on an operation with neither, also one that says it has no transaction', () => {
+    test('it compiles as true on an operation with neither, also one that says it has no transaction', () => {
         const operations = [
-            defineOperation({ remember: true, authorizer: () => Require.nothing(), operation: () => null }),
+            defineOperation({ read: true, authorizer: () => Require.nothing(), operation: () => null }),
             defineOperation({
                 transaction: 'NONE',
-                remember: true,
+                read: true,
                 authorizer: () => Require.nothing(),
                 operation: () => null,
             }),
@@ -583,31 +856,33 @@ describe('the types of remember', () => {
         const write = defineSubOperation({
             transaction: 'RUNS_IN',
             dataSchema: () => data,
+            read: false,
             operation: () => ({ prisma: client }) => !isPrismaClient(client),
         })
         // Made beforehand, since an object written in the call is refused for any field the call does not know.
-        const args = { data: { name: 'first' }, remember: true }
+        const args = { data: { name: 'first' }, read: true }
 
-        // @ts-expect-error - an internal call is not remembered
+        // @ts-expect-error - an internal call does not say whether it is a read
         const wasInTransaction = await write.internalCall(args)
 
         expect(wasInTransaction).toBe(true)
     })
 
     test('an internal call that is handed it past the compiler does not decide', async () => {
-        const read = defineSubOperation({
+        const write = defineSubOperation({
+            read: false,
             operation: () => () => {
                 runs()
                 return 1
             },
         })
         const cache = new MapServiceCache()
-        const args = { cache, remember: true }
+        const args = { cache, read: true }
 
-        // @ts-expect-error - an internal call is not remembered
-        await read.internalCall(args)
-        // @ts-expect-error - an internal call is not remembered
-        await read.internalCall(args)
+        // @ts-expect-error - an internal call does not say whether it is a read
+        await write.internalCall(args)
+        // @ts-expect-error - an internal call does not say whether it is a read
+        await write.internalCall(args)
 
         expect(runs).toHaveBeenCalledTimes(2)
     })
@@ -622,12 +897,16 @@ describe('the types of remember', () => {
     })
 })
 
-describe('the operations that are remembered', () => {
-    test('a profile is read once for its user, and a user who may not read it is still refused', async () => {
+describe('the reads of the services', () => {
+    test('a profile is read again after the read that repaired its omega membership, and then once', async () => {
         const cache = new MapServiceCache()
         const asAnne = testSession({ user: anne })
 
+        const repaired = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
         const profile = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
+        expect(profile).not.toBe(repaired)
+        expect(profile).toEqual(repaired)
+
         await prisma.user.update({ where: { id: anne.id }, data: { firstname: 'Anne Etterpå' } })
         const again = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne, cache })
         const fresh = await userOperations.readProfile({ params: { username: anne.username }, session: asAnne })
@@ -653,6 +932,41 @@ describe('the operations that are remembered', () => {
 
         expect(new Set(links.map(link => link.id)).size).toBe(1)
         expect(await prisma.cmsLink.count({ where: { special: 'CAREER_CONTACT' } })).toBe(1)
+    })
+
+    test('a special event tag that is missing is made by a read, which clears what was read before it', async () => {
+        await prisma.eventTagEvent.deleteMany({ where: { tag: { special: 'COMPANY_PRESENTATION' } } })
+        await prisma.eventTag.deleteMany({ where: { special: 'COMPANY_PRESENTATION' } })
+        const cache = new MapServiceCache()
+        const readSpecial = () => eventTagOperations.readSpecial({
+            params: { special: 'COMPANY_PRESENTATION' },
+            bypassAuth: true,
+            cache,
+        })
+
+        const tagsBefore = await eventTagOperations.readAll({ bypassAuth: true, cache })
+        const made = await readSpecial()
+        const tagsAfter = await eventTagOperations.readAll({ bypassAuth: true, cache })
+
+        expect(tagsBefore.map(tag => tag.id)).not.toContain(made.id)
+        expect(tagsAfter.map(tag => tag.id)).toContain(made.id)
+        expect(await readSpecial()).toBe(await readSpecial())
+    })
+
+    test('an api key is read once, and again after the read that deactivated it as expired', async () => {
+        const { id } = await prisma.apiKey.create({ data: { name: 'cache key', keyHashEncrypted: 'none', active: true } })
+        const readIn = (cache: ServiceCache) => apiKeyOperations.read({ params: { id }, bypassAuth: true, cache })
+        const before = new MapServiceCache()
+        const after = new MapServiceCache()
+
+        expect(await readIn(before)).toBe(await readIn(before))
+        await prisma.apiKey.update({ where: { id }, data: { expiresAt: new Date(Date.now() - 1000) } })
+
+        const deactivated = await readIn(after)
+        const again = await readIn(after)
+        expect(deactivated.active).toBe(false)
+        expect(again).not.toBe(deactivated)
+        expect(await readIn(after)).toBe(again)
     })
 
     test('a standard image and its collection are read once in a context', async () => {
@@ -727,11 +1041,12 @@ describe('what the page of an event reads', () => {
         const cache = new MapServiceCache()
         const signUp = { params: { eventId: event.id, userId: anne.id }, session: testSession({ user: anne }) }
 
-        await expect(eventRegistrationOperations.create({ ...signUp, cache })).rejects.toThrow(Smorekopp)
+        const access = await readEventAccess.internalCall({ params: { id: event.id }, cache })
+        await expect(eventRegistrationOperations.create(signUp)).rejects.toThrow(Smorekopp)
         await prisma.event.update({ where: { id: event.id }, data: { published: true } })
 
-        await expect(eventRegistrationOperations.create({ ...signUp, cache })).rejects.toThrow(Smorekopp)
-        await expect(eventRegistrationOperations.create(signUp)).resolves.toMatchObject({ userId: anne.id })
+        expect(await readEventAccess.internalCall({ params: { id: event.id }, cache })).toBe(access)
+        await expect(eventRegistrationOperations.create({ ...signUp, cache })).resolves.toMatchObject({ userId: anne.id })
     })
 
     test('the access is read fresh in the transaction of a save that changes who administrates the event', async () => {
@@ -753,3 +1068,63 @@ describe('what the page of an event reads', () => {
             .toEqual([[committeeGroupId]])
     })
 })
+
+/** An action opens its context with no cache, so a write of one is called here with none. */
+describe('a page reads, an action writes and the next render reads again', () => {
+    test('a profile shows the name its user was given', async () => {
+        const asAnne = testSession({ user: anne })
+        const readProfile = (cache: ServiceCache) => userOperations.readProfile({
+            params: { username: anne.username },
+            session: asAnne,
+            cache,
+        })
+        const firstRender = new MapServiceCache()
+
+        const before = await readProfile(firstRender)
+        await userOperations.update({ params: { id: anne.id }, data: { firstname: 'Anne Endret' }, bypassAuth: true })
+
+        expect(await readProfile(firstRender)).toBe(before)
+        expect((await readProfile(new MapServiceCache())).user.firstname).toBe('Anne Endret')
+    })
+
+    test('a special link shows the text it was given', async () => {
+        const readLink = (cache: ServiceCache) => careersFrontpageOperations.cmsLinks.read({
+            params: { special: 'CAREER_CONTACT' },
+            session: visitor,
+            cache,
+        })
+        const firstRender = new MapServiceCache()
+
+        const before = await readLink(firstRender)
+        await careersFrontpageOperations.cmsLinks.update({
+            params: { linkId: before.id },
+            data: { text: 'Skriv til oss' },
+            bypassAuth: true,
+        })
+
+        expect(await readLink(firstRender)).toBe(before)
+        expect((await readLink(new MapServiceCache())).text).toBe('Skriv til oss')
+    })
+
+    test('the event tags hold the one that was made', async () => {
+        const readTags = (cache: ServiceCache) => eventTagOperations.readAll({ session: visitor, bypassAuth: true, cache })
+        const firstRender = new MapServiceCache()
+
+        const before = await readTags(firstRender)
+        const made = await eventTagOperations.create({
+            data: { name: 'Husket merkelapp', description: '', color: '#aa0000' },
+            bypassAuth: true,
+        })
+
+        expect(await readTags(firstRender)).toBe(before)
+        expect((await readTags(new MapServiceCache())).map(tag => tag.id)).toContain(made.id)
+    })
+})
+
+function gate() {
+    let open = () => {}
+    const opened = new Promise<void>(resolve => {
+        open = resolve
+    })
+    return { opened, open: () => open() }
+}

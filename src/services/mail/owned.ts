@@ -41,10 +41,9 @@ export function administrates(groupId: number, memberships: MembershipFiltered[]
 
 /**
  * The owner matrices of every alias, for a rule that asks whether the session owns any alias at all.
- * It is remembered, since every nav item of the mail server asks and the navs are built for every page.
  */
 export const readAliasOwnerMatrices = defineSubOperation({
-    remember: true,
+    read: true,
     operation: () => async ({ prisma }): Promise<VisibilityMatrix[]> => {
         const aliases = await prisma.mailAlias.findMany({ select: ownerVisibilityIncluder })
         return aliases.map(alias => toMatrix(alias.ownerVisibility))
@@ -53,7 +52,7 @@ export const readAliasOwnerMatrices = defineSubOperation({
 
 /** The owner matrices of every mailing list, as {@link readAliasOwnerMatrices} is of the aliases. */
 export const readMailingListOwnerMatrices = defineSubOperation({
-    remember: true,
+    read: true,
     operation: () => async ({ prisma }): Promise<VisibilityMatrix[]> => {
         const lists = await prisma.mailingList.findMany({ select: ownerVisibilityIncluder })
         return lists.map(list => toMatrix(list.ownerVisibility))

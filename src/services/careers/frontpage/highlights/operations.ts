@@ -21,6 +21,7 @@ export const careerFrontpageHighlightOperations = {
     create: defineOperation({
         dataSchema: careerFrontpageHighlightSchemas.data.create,
         authorizer: () => careerFrontpageHighlightAuth.create,
+        read: false,
         operation: async ({ prisma, data }) => {
             await assertCanBeHighlighted(prisma, data)
             return prisma.careerFrontpageHighlight.create({ data })
@@ -29,6 +30,7 @@ export const careerFrontpageHighlightOperations = {
     /** The highlights to show now. Each one also ends when its event does, should the event be moved earlier. */
     readCurrent: defineOperation({
         authorizer: () => careerFrontpageHighlightAuth.readCurrent,
+        read: true,
         operation: async ({ prisma }, prismaWhereFilter): Promise<ExpandedCareerFrontpageHighlight[]> => {
             const now = new Date()
             return await prisma.careerFrontpageHighlight.findMany({
@@ -50,6 +52,7 @@ export const careerFrontpageHighlightOperations = {
     }),
     readMany: defineOperation({
         authorizer: () => careerFrontpageHighlightAuth.readMany,
+        read: true,
         operation: async ({ prisma }): Promise<ExpandedCareerFrontpageHighlight[]> => (
             await prisma.careerFrontpageHighlight.findMany({
                 orderBy: adminHighlightOrdering,
@@ -59,6 +62,7 @@ export const careerFrontpageHighlightOperations = {
     }),
     readTargets: defineOperation({
         authorizer: () => careerFrontpageHighlightAuth.readTargets,
+        read: true,
         operation: async ({ prisma }): Promise<CareerFrontpageHighlightTargets> => {
             const [events, jobAds] = await Promise.all([
                 prisma.event.findMany({
@@ -79,6 +83,7 @@ export const careerFrontpageHighlightOperations = {
         paramsSchema: careerFrontpageHighlightSchemas.params.update,
         dataSchema: careerFrontpageHighlightSchemas.data.update,
         authorizer: () => careerFrontpageHighlightAuth.update,
+        read: false,
         operation: async ({ prisma, params: { id }, data }) => {
             await assertCanBeHighlighted(prisma, data)
             return prisma.careerFrontpageHighlight.update({ where: { id }, data })
@@ -87,6 +92,7 @@ export const careerFrontpageHighlightOperations = {
     destroy: defineOperation({
         paramsSchema: careerFrontpageHighlightSchemas.params.destroy,
         authorizer: () => careerFrontpageHighlightAuth.destroy,
+        read: false,
         operation: async ({ prisma, params: { id } }) => {
             await prisma.careerFrontpageHighlight.delete({ where: { id } })
         },

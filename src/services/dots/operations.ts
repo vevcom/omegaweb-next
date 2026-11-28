@@ -8,6 +8,7 @@ import type { DotExpanded } from './types'
 
 const numberOfActiveDotsForUser = defineSubOperation({
     paramsSchema: () => dotSchemas.params.numberOfActiveDotsForUser,
+    read: true,
     operation: () => async ({ prisma, params }) => {
         const expandedDots = await readExpandedDotsOfUser(prisma, params.userId)
         return expandedDots.reduce((total, dot) => total + dot.valueLeft, 0)
@@ -25,6 +26,7 @@ type ReasonContext = {
 const createInternal = defineSubOperation({
     paramsSchema: () => dotSchemas.params.createInternal,
     dataSchema: () => dotSchemas.data.createInternal,
+    read: false,
     operation: ({ reasonContext }: ReasonContext) => async ({ prisma, params, data }) => prisma.dot.create({
         data: {
             ...data,
@@ -38,6 +40,7 @@ const createInternal = defineSubOperation({
 const createManyInternal = defineSubOperation({
     paramsSchema: () => dotSchemas.params.createManyInternal,
     dataSchema: () => dotSchemas.data.createManyInternal,
+    read: false,
     operation: ({ reasonContext }: ReasonContext) => async ({ prisma, params, data }) => {
         const reason = reasonWithContext(data.reason, reasonContext)
         return prisma.dot.createMany({
@@ -67,6 +70,7 @@ export const dotOperations = {
         paramsSchema: dotSchemas.params.update,
         dataSchema: dotSchemas.data.update,
         authorizer: () => dotAuth.update,
+        read: false,
         operation: async ({ prisma, params, data }) => prisma.dot.update({
             where: {
                 id: params.id,
@@ -78,6 +82,7 @@ export const dotOperations = {
     destroy: defineOperation({
         paramsSchema: dotSchemas.params.destroy,
         authorizer: () => dotAuth.destroy,
+        read: false,
         operation: async ({ prisma, params }) => prisma.dot.delete({
             where: {
                 id: params.id,
@@ -95,6 +100,7 @@ export const dotOperations = {
     readForUser: defineOperation({
         paramsSchema: dotSchemas.params.readForUser,
         authorizer: ({ params }) => dotAuth.readForUser.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }): Promise<DotExpanded[]> => {
             const expandedDots = await readExpandedDotsOfUser(prisma, params.userId)
             return params.onlyActive ? expandedDots.filter(dot => dot.valueLeft > 0) : expandedDots

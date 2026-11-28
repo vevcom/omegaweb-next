@@ -17,6 +17,7 @@ export const searchOperations = {
             params => !params.category || params.category in providers,
             { message: 'Kategorien finnes ikke i dette søket.', path: ['category'] },
         ),
+        read: true,
         operation: ({ providers }: SearchAllFields) => async ({ params }) => {
             const searched = Object.entries(providers)
                 .filter(([category]) => !params.category || category === params.category)

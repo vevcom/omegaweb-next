@@ -24,6 +24,7 @@ export function implementSpecialCmsImages({ specials, authorizers }: {
         internal: {
             read: defineSubOperation({
                 paramsSchema: () => cmsImageSchemas.params.readSpecial,
+                read: true,
                 operation: () => ({ params }) => {
                     if (!specials.includes(params.special)) {
                         throw new ServiceError('BAD PARAMETERS', `${params.special} is not a cms image of this service`)

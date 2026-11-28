@@ -35,6 +35,7 @@ export const authOperations = {
         paramsSchema: authSchemas.params.sendLinkFeideAccountEmail,
         dataSchema: authSchemas.data.sendLinkFeideAccountEmail,
         authorizer: ({ params }) => authAuth.sendLinkFeideAccountEmail.data({ userId: params.userId }),
+        read: false,
         operation: async ({ prisma, data, params }) => {
             // Only a user created by a Feide login that has not completed registration may ask
             // to be moved onto a migrated user - any other user asking, such as a migrated user
@@ -107,6 +108,7 @@ export const authOperations = {
     readFeideLoginMatch: defineOperation({
         paramsSchema: authSchemas.params.readFeideLoginMatch,
         authorizer: ({ params }) => authAuth.readFeideLoginMatch.data({ userId: params.userId }),
+        read: true,
         operation: async ({ prisma, params }) => {
             const user = await prisma.user.findUniqueOrThrow({
                 where: { id: params.userId },
@@ -131,6 +133,7 @@ export const authOperations = {
     verifyLinkFeideAccountToken: defineOperation({
         paramsSchema: authSchemas.params.verifyLinkFeideAccountToken,
         authorizer: () => authAuth.verifyLinkFeideAccountToken,
+        read: true,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -153,6 +156,7 @@ export const authOperations = {
         paramsSchema: authSchemas.params.linkFeideAccount,
         authorizer: () => authAuth.linkFeideAccount,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }) => {
             const claims = readLinkFeideAccountClaims(params.token)
 
@@ -168,6 +172,7 @@ export const authOperations = {
         dataSchema: authSchemas.data.adminLinkFeideAccount,
         authorizer: () => authAuth.adminLinkFeideAccount,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const fromUser = await prisma.user.findUniqueOrThrow({
                 where: { username: data.fromUsername.trim().toLowerCase() },

@@ -9,12 +9,11 @@ import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 import type { EventCanView, Prisma } from '@/prisma-generated-pn-types'
 
 /**
- * Reads what the rules of eventAuth need to know about an event, for `.data()`. It is remembered,
- * since a page asks once for each operation it calls.
+ * Reads what the rules of eventAuth need to know about an event, for `.data()`.
  */
 export const readEventAccess = defineSubOperation({
     paramsSchema: () => eventSchemas.params.readAccess,
-    remember: true,
+    read: true,
     operation: () => async ({ prisma, params }): Promise<EventAccess> => {
         const event = await prisma.event.findUniqueOrThrow({
             where: { id: params.id },

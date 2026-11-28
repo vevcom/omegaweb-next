@@ -31,6 +31,7 @@ export const mailOperations = {
                 params: { id: data.mailingListId },
             }),
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.create({
                 data: {
@@ -48,6 +49,7 @@ export const mailOperations = {
                 params: { id: data.mailingListId },
             }),
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.create({
                 data: {
@@ -66,6 +68,7 @@ export const mailOperations = {
             }),
             userId: data.userId,
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.create({
                 data: {
@@ -84,6 +87,7 @@ export const mailOperations = {
             }),
             groupId: data.groupId,
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.create({
                 data: {
@@ -105,6 +109,7 @@ export const mailOperations = {
                 params: { id: data.mailingListId },
             }),
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailAliasMailingList> =>
             prisma.mailAliasMailingList.delete({
                 where: {
@@ -121,6 +126,7 @@ export const mailOperations = {
                 params: { id: data.mailingListId },
             }),
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListMailAddressExternal> =>
             prisma.mailingListMailAddressExternal.delete({
                 where: {
@@ -138,6 +144,7 @@ export const mailOperations = {
             }),
             userId: data.userId,
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListUser> =>
             prisma.mailingListUser.delete({
                 where: {
@@ -155,6 +162,7 @@ export const mailOperations = {
             }),
             groupId: data.groupId,
         }),
+        read: false,
         operation: async ({ prisma, data }): Promise<MailingListGroup> =>
             prisma.mailingListGroup.delete({
                 where: {
@@ -187,6 +195,7 @@ export const mailOperations = {
      */
     readMailOptions: defineOperation({
         authorizer: () => mailAuth.readMailOptions,
+        read: true,
         operation: async (): Promise<{
             alias: MailAlias[],
             mailingList: MailingList[],

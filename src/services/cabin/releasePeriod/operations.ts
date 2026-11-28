@@ -9,6 +9,7 @@ export const cabinReleasePeriodOperations = {
     create: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.create,
         dataSchema: cabinReleasePeriodSchemas.data.create,
+        read: false,
         operation: async ({ prisma, data }) => {
             const latestReleasePeriod = await prisma.releasePeriod.findFirst({
                 orderBy: {
@@ -33,6 +34,7 @@ export const cabinReleasePeriodOperations = {
     destroy: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.destroy,
         paramsSchema: cabinReleasePeriodSchemas.params.destroy,
+        read: false,
         operation: async ({ prisma, params }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,
@@ -50,6 +52,7 @@ export const cabinReleasePeriodOperations = {
 
     readMany: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.readMany,
+        read: true,
         operation: async ({ prisma }) => prisma.releasePeriod.findMany({
             orderBy: {
                 releaseUntil: 'desc',
@@ -59,6 +62,7 @@ export const cabinReleasePeriodOperations = {
 
     getCurrentReleasePeriod: defineOperation({
         authorizer: () => cabinReleasePeriodAuth.getCurrentReleasePeriod,
+        read: true,
         operation: async ({ prisma }) => prisma.releasePeriod.findFirst({
             where: {
                 releaseTime: {
@@ -80,6 +84,7 @@ export const cabinReleasePeriodOperations = {
         authorizer: () => cabinReleasePeriodAuth.update,
         paramsSchema: cabinReleasePeriodSchemas.params.update,
         dataSchema: cabinReleasePeriodSchemas.data.update,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,

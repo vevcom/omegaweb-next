@@ -16,6 +16,7 @@ export const refundOperations = {
     reverseTransaction: defineOperation({
         authorizer: () => refundAuth.reverseTransaction,
         paramsSchema: refundParamsSchemas.reverseTransaction,
+        read: false,
         operation: async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },
@@ -67,6 +68,7 @@ export const refundOperations = {
     reimburseUnappliedPayment: defineOperation({
         authorizer: () => refundAuth.reimburseUnappliedPayment,
         paramsSchema: refundParamsSchemas.reimburseUnappliedPayment,
+        read: false,
         operation: async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },

@@ -11,11 +11,14 @@ export const omegaIdOperations = {
     generate: defineOperation({
         authorizer: ({ params }) => omegaIdAuth.generate.data({ userId: params.userId }),
         paramsSchema: omegaIdSchemas.params.generate,
+        // Not a read: every call signs a new token.
+        read: false,
         operation: ({ params }) =>
             generateJWT('omegaid', { sub: params.userId }, OmegaIdExpiryTime),
     }),
     readPublicKey: defineOperation({
         authorizer: () => omegaIdAuth.readPublicKey,
+        read: true,
         operation: () => {
             if (!JWT_PUBLIC_KEY) {
                 throw new ServiceError('INVALID CONFIGURATION', 'The JWT_PUBLIC_KEY must be set')

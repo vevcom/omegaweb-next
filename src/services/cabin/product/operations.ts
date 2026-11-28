@@ -13,6 +13,7 @@ export const cabinProductOperations = {
     create: defineOperation({
         authorizer: () => cabinProductAuth.create,
         dataSchema: cabinProductSchemas.data.create,
+        read: false,
         operation: ({ prisma, data }) => prisma.cabinProduct.create({
             data,
         })
@@ -22,6 +23,7 @@ export const cabinProductOperations = {
         authorizer: () => cabinProductAuth.createPrice,
         paramsSchema: cabinProductSchemas.params.createPrice,
         dataSchema: cabinProductSchemas.data.createPrice,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const [pricePeriod, releasePeriod] = await Promise.all([
                 prisma.pricePeriod.findUniqueOrThrow({
@@ -49,6 +51,7 @@ export const cabinProductOperations = {
 
     readMany: defineOperation({
         authorizer: () => cabinProductAuth.readMany,
+        read: true,
         operation: ({ prisma }) => prisma.cabinProduct.findMany({
             include: cabinProductPriceIncluder,
         }),
@@ -56,6 +59,7 @@ export const cabinProductOperations = {
 
     readActive: defineOperation({
         authorizer: () => cabinProductAuth.readActive,
+        read: true,
         operation: async ({ prisma }) => {
             const pricePeriods = await cabinPricePeriodOperations.readPublicPeriods({ bypassAuth: true })
 
@@ -77,6 +81,7 @@ export const cabinProductOperations = {
     read: defineOperation({
         authorizer: () => cabinProductAuth.read,
         paramsSchema: cabinProductSchemas.params.read,
+        read: true,
         operation: ({ prisma, params }) => prisma.cabinProduct.findUniqueOrThrow({
             where: params,
             include: cabinProductPriceIncluder,

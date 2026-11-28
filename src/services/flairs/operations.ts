@@ -13,6 +13,7 @@ export const flairOperations = {
         authorizer: () => flairAuth.create,
         dataSchema: flairSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const image = await flairImageCollection.internal.uploadImage.internalCall({ prisma, data })
             await lockRanks(prisma)
@@ -37,6 +38,7 @@ export const flairOperations = {
         authorizer: () => flairAuth.update,
         dataSchema: flairSchemas.data.update,
         paramsSchema: flairSchemas.params.update,
+        read: false,
         operation: ({ prisma, params, data }) =>
             prisma.flair.update({
                 where: {
@@ -55,6 +57,7 @@ export const flairOperations = {
         paramsSchema: flairSchemas.params.updateImage,
         dataSchema: flairSchemas.data.updateImage,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const newImage = await prisma.$transaction(async tx => {
                 const existingFlair = await tx.flair.findUniqueOrThrow({
@@ -86,6 +89,7 @@ export const flairOperations = {
     read: defineOperation({
         authorizer: () => flairAuth.read,
         paramsSchema: flairSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params: { flairId } }) =>
             await prisma.flair.findUniqueOrThrow({
                 where: {
@@ -98,6 +102,7 @@ export const flairOperations = {
     }),
     readAll: defineOperation({
         authorizer: () => flairAuth.readAll,
+        read: true,
         operation: async ({ prisma }) => await prisma.flair.findMany({
             include: {
                 image: { include: expandedImageIncluder }
@@ -108,6 +113,7 @@ export const flairOperations = {
     readUserFlairs: defineOperation({
         authorizer: ({ params }) => flairAuth.readUserFlairs.data({ userId: params.userId }),
         paramsSchema: flairSchemas.params.readUserFlairs,
+        read: true,
         operation: async ({ prisma, params: { userId } }) =>
             await prisma.user.findUniqueOrThrow({
                 where: {
@@ -125,6 +131,7 @@ export const flairOperations = {
     assignToUser: defineOperation({
         authorizer: () => flairAuth.assignToUser,
         paramsSchema: flairSchemas.params.assignToUser,
+        read: false,
         operation: async ({ prisma, params }) =>
             await prisma.flair.update({
                 where: {
@@ -142,6 +149,7 @@ export const flairOperations = {
     unAssignToUser: defineOperation({
         authorizer: () => flairAuth.unAssignToUser,
         paramsSchema: flairSchemas.params.unAssignToUser,
+        read: false,
         operation: async ({ prisma, params }) =>
             await prisma.flair.update({
                 where: {
@@ -160,6 +168,7 @@ export const flairOperations = {
         authorizer: () => flairAuth.destroy,
         paramsSchema: flairSchemas.params.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params: { flairId } }) => {
             await prisma.$transaction(async tx => {
                 await lockRanks(tx)
@@ -192,6 +201,7 @@ export const flairOperations = {
         authorizer: () => flairAuth.increaseRank,
         paramsSchema: flairSchemas.params.increaseRank,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params: { flairId } }) => moveRank(prisma, flairId, 'UP'),
     }),
     /** Moves a flair one step away from rank 1. */
@@ -199,6 +209,7 @@ export const flairOperations = {
         authorizer: () => flairAuth.decreaseRank,
         paramsSchema: flairSchemas.params.decreaseRank,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params: { flairId } }) => moveRank(prisma, flairId, 'DOWN'),
     }),
 } as const

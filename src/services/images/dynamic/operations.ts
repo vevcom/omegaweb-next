@@ -52,6 +52,7 @@ const readCollection = defineOperation({
     authorizer: async ({ params, prisma }) => dynamicImageAuth.readCollection.data({
         visibility: await visibility.internal.readDoubleLevelMatrix.internalCall({ params, prisma })
     }),
+    read: true,
     operation: async ({ prisma, params }) => {
         const collection = await prisma.imageCollection.findFirstOrThrow({
             where: whereConditionWithOwnershipCheck(params),
@@ -66,6 +67,7 @@ const readCollectionPage = defineOperation({
     authorizer: ({ params }) => dynamicImageAuth.readCollectionPage.data({
         onlyAdministrated: params.paging.details.showOnlyCollectionsSessionAdministrates,
     }),
+    read: true,
     operation: async ({ prisma, params }, prismaWhereFilter) => {
         const collections = await prisma.imageCollection.findMany({
             ...cursorPagingSelection(params.paging.page),
@@ -95,6 +97,7 @@ export const dynamicImageOperations = {
         dataSchema: dynamicImageSchemas.data.createCollection,
         authorizer: () => dynamicImageAuth.createCollection,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const visibilityRegular = await visibility.internal.create.internalCall({ prisma, data: { requirements: [] } })
             const visibilityAdmin = await visibility.internal.create.internalCall({

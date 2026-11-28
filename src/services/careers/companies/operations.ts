@@ -19,10 +19,12 @@ export const companyOperations = {
     create: defineOperation({
         dataSchema: companySchemas.data.create,
         authorizer: () => companyAuth.create,
+        read: false,
         operation: ({ prisma, data }) => prisma.company.create({ data }),
     }),
     readSponsors: defineOperation({
         authorizer: () => companyAuth.readSponsors,
+        read: true,
         operation: async ({ prisma }): Promise<SponsorCompany[]> => await prisma.company.findMany({
             where: {
                 sponsorTier: { not: CompanySponsorTier.NONE },
@@ -34,6 +36,7 @@ export const companyOperations = {
     read: defineOperation({
         paramsSchema: companySchemas.params.read,
         authorizer: ({ params }) => companyAuth.read.data({ companyId: params.id }),
+        read: true,
         operation: ({ prisma, params: { id } }): Promise<CompanyExpanded> => prisma.company.findUniqueOrThrow({
             where: { id },
             include: logoIncluder,
@@ -42,6 +45,7 @@ export const companyOperations = {
     readPage: defineOperation({
         paramsSchema: companySchemas.params.readPage,
         authorizer: () => companyAuth.readPage,
+        read: true,
         operation: async ({ prisma, params }) => await prisma.company.findMany({
             ...cursorPagingSelection(params.paging.page),
             where: {
@@ -73,6 +77,7 @@ export const companyOperations = {
         paramsSchema: companySchemas.params.update,
         dataSchema: companySchemas.data.update,
         authorizer: ({ params }) => companyAuth.update.data({ companyId: params.id }),
+        read: false,
         operation: async ({ prisma, params: { id }, data }) => {
             await prisma.company.update({
                 where: { id },
@@ -84,6 +89,7 @@ export const companyOperations = {
         paramsSchema: companySchemas.params.updateName,
         dataSchema: companySchemas.data.updateName,
         authorizer: () => companyAuth.updateName,
+        read: false,
         operation: async ({ prisma, params: { id }, data }) => {
             await prisma.company.update({
                 where: { id },
@@ -96,6 +102,7 @@ export const companyOperations = {
         dataSchema: companySchemas.data.updateSponsorTier,
         authorizer: () => companyAuth.updateSponsorTier,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params: { id }, data: { sponsorTier } }) => {
             await takeAdvisoryLock(prisma, 'companySponsorTier')
 
@@ -119,6 +126,7 @@ export const companyOperations = {
         dataSchema: companySchemas.data.updateLogo,
         authorizer: ({ params }) => companyAuth.updateLogo.data({ companyId: params.id }),
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params: { id }, data }) =>
             // The upload writes the file before the database, so it needs more than the default
             // transaction timeout.
@@ -153,6 +161,7 @@ export const companyOperations = {
         paramsSchema: companySchemas.params.destroy,
         authorizer: () => companyAuth.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params: { id } }) => {
             await prisma.$transaction(async tx => {
                 const company = await tx.company.delete({

@@ -13,6 +13,8 @@ export const stripeCustomerOperations = {
     readOrCreate: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.readOrCreate.data({ userId }),
         paramsSchema: stripeCustomerSchemas.params.readOrCreate,
+        // Not a read: it makes the customer at Stripe and here when missing, and updates Stripe's copy.
+        read: false,
         operation: async ({ params: { userId }, prisma }) => {
             // We query the user table and not the StripeCustomer table here
             // because we also need to fetch the user's email and name in
@@ -108,6 +110,7 @@ export const stripeCustomerOperations = {
     createSession: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSession.data({ userId }),
         paramsSchema: stripeCustomerSchemas.params.createSession,
+        read: false,
         operation: async ({ params: { userId } }) => {
             const { customerId } = await stripeCustomerOperations.readOrCreate({ params: { userId } })
 
@@ -154,6 +157,7 @@ export const stripeCustomerOperations = {
     createSetupIntent: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.createSetupIntent.data({ userId }),
         paramsSchema: stripeCustomerSchemas.params.createSetupIntent,
+        read: false,
         operation: async ({ params: { userId } }) => {
             const customerId: string = (await stripeCustomerOperations.readOrCreate({ params: { userId } })).customerId
 
@@ -178,6 +182,8 @@ export const stripeCustomerOperations = {
     readSavedPaymentMethods: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.readSavedPaymentMethods.data({ userId }),
         paramsSchema: stripeCustomerSchemas.params.readSavedPaymentMethods,
+        // Not a read: it calls readOrCreate.
+        read: false,
         operation: async ({ params: { userId }, session }) => {
             // readOrCreate is strictly self-service, but this operation's own authorizer above
             // already allows LEDGER_ADMIN, so bypass it here rather than blocking admins.
@@ -214,6 +220,7 @@ export const stripeCustomerOperations = {
     deleteSavedPaymentMethod: defineOperation({
         authorizer: ({ params: { userId } }) => stripeCustomerAuth.deleteSavedPaymentMethod.data({ userId }),
         paramsSchema: stripeCustomerSchemas.params.deleteSavedPaymentMethod,
+        read: false,
         operation: async ({ params: { userId, paymentMethodId }, session }) => {
             // readOrCreate is strictly self-service, but this operation's own authorizer above
             // already allows LEDGER_ADMIN, so bypass it here rather than blocking admins.

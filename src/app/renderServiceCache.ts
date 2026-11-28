@@ -4,11 +4,14 @@ import type { ServiceCache } from '@/services/serviceCache'
 
 type Kept = { answer?: Promise<unknown> }
 
+/** What React keeps for a render: how many times its answers have been cleared. */
+const clearingsOf: () => { count: number } = cache(() => ({ count: 0 }))
+
 /**
- * What React keeps for an operation and a key: the same object all through a render, whoever asks,
- * and a new one on every call outside a render.
+ * What React keeps for an operation and a key since the last clearing: the same object all through
+ * a render, whoever asks, and a new one on every call outside a render.
  */
-const keptOf: (operation: object, key: string) => Kept = cache(() => ({}))
+const keptOf: (operation: object, key: string, clearings: number) => Kept = cache(() => ({}))
 
 /**
  * Keeps its answers in React's `cache`, so they live for the render under way and are shared by
@@ -19,8 +22,13 @@ const keptOf: (operation: object, key: string) => Kept = cache(() => ({}))
  */
 export class RenderServiceCache implements ServiceCache {
     public remember(operation: object, key: string, read: () => Promise<unknown>) {
-        const kept = keptOf(operation, key)
+        const kept = keptOf(operation, key, clearingsOf().count)
         kept.answer ??= read()
         return kept.answer
+    }
+
+    // React's `cache` cannot be emptied, so what was kept before a clearing is no longer asked for.
+    public clear() {
+        clearingsOf().count++
     }
 }

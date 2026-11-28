@@ -10,6 +10,7 @@ export const promoOperations = {
         authorizer: () => promoAuth.create,
         dataSchema: promoSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const image = await promoImageCollection.internal.uploadImage.internalCall({ prisma, data })
             return await prisma.promo.create({
@@ -33,6 +34,7 @@ export const promoOperations = {
         authorizer: () => promoAuth.update,
         paramsSchema: promoSchemas.params.update,
         dataSchema: promoSchemas.data.update,
+        read: false,
         operation: ({ prisma, params, data }) =>
             prisma.promo.update({
                 where: {
@@ -52,6 +54,7 @@ export const promoOperations = {
         paramsSchema: promoSchemas.params.updateImage,
         dataSchema: promoSchemas.data.updateImage,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const newImage = await prisma.$transaction(async tx => {
                 const existingPromo = await tx.promo.findUniqueOrThrow({
@@ -81,6 +84,7 @@ export const promoOperations = {
     read: defineOperation({
         authorizer: () => promoAuth.read,
         paramsSchema: promoSchemas.params.read,
+        read: true,
         operation: async ({ prisma, params: { promoId } }) =>
             await prisma.promo.findUniqueOrThrow({
                 where: {
@@ -91,6 +95,7 @@ export const promoOperations = {
     }),
     readAll: defineOperation({
         authorizer: () => promoAuth.readAll,
+        read: true,
         operation: async ({ prisma }) =>
             await prisma.promo.findMany({
                 include: promoWithImageIncluder,
@@ -101,6 +106,7 @@ export const promoOperations = {
     // the most recently created one if several periods overlap.
     readActive: defineOperation({
         authorizer: () => promoAuth.readActive,
+        read: true,
         operation: async ({ prisma }) => {
             const now = new Date()
             return await prisma.promo.findFirst({
@@ -117,6 +123,7 @@ export const promoOperations = {
         authorizer: () => promoAuth.destroy,
         paramsSchema: promoSchemas.params.destroy,
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params: { promoId } }) => {
             await prisma.$transaction(async tx => {
                 const promo = await tx.promo.delete({

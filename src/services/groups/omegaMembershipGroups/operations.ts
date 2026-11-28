@@ -31,12 +31,14 @@ const migration = implementStraightAwayMigration({
 
 const readMany = defineOperation({
     authorizer: () => omegaMembershipGroupAuth.readMany,
+    read: true,
     operation: async ({ prisma }) => prisma.omegaMembershipGroup.findMany()
 })
 
 const read = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.read,
     authorizer: () => omegaMembershipGroupAuth.read,
+    read: true,
     operation: async ({ prisma, params }) => prisma.omegaMembershipGroup.findUniqueOrThrow({
         where: params,
     })
@@ -58,6 +60,7 @@ const read = defineOperation({
 const inferUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.inferUserLevel,
     authorizer: () => omegaMembershipGroupAuth.inferUserLevel,
+    read: true,
     operation: async ({ prisma, params }): Promise<OmegaMembershipLevel> => {
         const partOfOmega = await prisma.membership.findFirst({
             where: {
@@ -90,6 +93,7 @@ const inferUserLevel = defineOperation({
  */
 const writeUserLevel = defineSubOperation({
     paramsSchema: () => omegaMembershipGroupSchemas.params.writeUserLevel,
+    read: false,
     operation: () => async ({ prisma, params }) => {
         const group = await read({
             params: { omegaMembershipLevel: params.omegaMembershipLevel },
@@ -187,6 +191,7 @@ const updateUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.updateUserLevel,
     authorizer: () => omegaMembershipGroupAuth.updateUserLevel,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, params }) => {
         await writeUserLevel.internalCall({ params, prisma })
         await invalidateOneUserSessionData(prisma, params.userId)
@@ -211,6 +216,7 @@ const updateUserLevel = defineOperation({
 const readUserLevel = defineOperation({
     paramsSchema: omegaMembershipGroupSchemas.params.readUserLevel,
     authorizer: ({ params }) => omegaMembershipGroupAuth.readUserLevel.data({ userId: params.userId }),
+    read: true,
     operation: async ({ prisma, params }): Promise<{ level: OmegaMembershipLevel, order: number }> => {
         const omegaMemberships = await readActiveOmegaMemberships(prisma, params.userId)
 
@@ -258,6 +264,7 @@ const updateUserOrder = defineOperation({
     dataSchema: omegaMembershipGroupSchemas.data.updateUserOrder,
     authorizer: () => omegaMembershipGroupAuth.updateUserOrder,
     transaction: 'RUNS_IN',
+    read: false,
     operation: async ({ prisma, params, data }) => {
         // A user whose memberships are in a broken state is put right first, and that writes.
         const current = await readUserLevel({

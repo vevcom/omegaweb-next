@@ -10,6 +10,7 @@ export const cabinPricePeriodOperations = {
         authorizer: () => cabinPricePeriodAuth.create,
         dataSchema: cabinPricePeriodSchemas.data.create,
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data }) => {
             const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
                 bypassAuth: true,
@@ -63,6 +64,7 @@ export const cabinPricePeriodOperations = {
     destroy: defineOperation({
         authorizer: () => cabinPricePeriodAuth.destroy,
         paramsSchema: cabinPricePeriodSchemas.params.destroy,
+        read: false,
         operation: async ({ prisma, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -82,11 +84,13 @@ export const cabinPricePeriodOperations = {
 
     readMany: defineOperation({
         authorizer: () => cabinPricePeriodAuth.readMany,
+        read: true,
         operation: async ({ prisma }) => prisma.pricePeriod.findMany()
     }),
 
     readPublicPeriods: defineOperation({
         authorizer: () => cabinPricePeriodAuth.readPublicPeriods,
+        read: true,
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -120,6 +124,7 @@ export const cabinPricePeriodOperations = {
 
     readUnreleasedPeriods: defineOperation({
         authorizer: () => cabinPricePeriodAuth.readUnreleasedPeriods,
+        read: true,
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
             return prisma.pricePeriod.findMany({
@@ -141,6 +146,7 @@ export const cabinPricePeriodOperations = {
         authorizer: () => cabinPricePeriodAuth.update,
         dataSchema: cabinPricePeriodSchemas.data.update,
         paramsSchema: cabinPricePeriodSchemas.params.update,
+        read: false,
         operation: async ({ prisma, data, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 

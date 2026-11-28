@@ -25,6 +25,7 @@ const destroyPart = {
 
 const create = defineSubOperation({
     dataSchema: () => articleSectionSchemas.data.create,
+    read: false,
     operation: () => ({ prisma, data }) =>
         prisma.articleSection.create({
             data,
@@ -34,6 +35,7 @@ const create = defineSubOperation({
 
 const destroy = defineSubOperation({
     paramsSchema: () => articleSectionSchemas.params.destroy,
+    read: false,
     operation: () => ({ prisma, params }) =>
         prisma.articleSection.delete({
             where: articleSectionWhere(params),
@@ -54,6 +56,7 @@ export const articleSectionOperations = {
     update: defineSubOperation({
         paramsSchema: () => articleSectionSchemas.params.update,
         dataSchema: () => articleSectionSchemas.data.update,
+        read: false,
         operation: () => ({ prisma, params, data }) =>
             prisma.articleSection.update({
                 where: articleSectionWhere(params),
@@ -77,6 +80,7 @@ export const articleSectionOperations = {
         paramsSchema: () => articleSectionSchemas.params.addPart,
         dataSchema: () => articleSectionSchemas.data.addPart,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }) => {
             const where = articleSectionWhere(params)
 
@@ -111,6 +115,7 @@ export const articleSectionOperations = {
     removePart: defineSubOperation({
         paramsSchema: () => articleSectionSchemas.params.removePart,
         dataSchema: () => articleSectionSchemas.data.removePart,
+        read: false,
         operation: ({ destroyOnEmpty }: { destroyOnEmpty: boolean }) => async ({ prisma, params, data }) => {
             const where = articleSectionWhere(params)
             const articleSection = await prisma.articleSection.findUnique({

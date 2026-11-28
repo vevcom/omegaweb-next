@@ -24,6 +24,7 @@ export function implementSpecialCmsParagraphs({ specials, authorizers }: {
         internal: {
             read: defineSubOperation({
                 paramsSchema: () => cmsParagraphSchemas.params.readSpecial,
+                read: true,
                 operation: () => ({ params }) => {
                     if (!specials.includes(params.special)) {
                         throw new ServiceError('BAD PARAMETERS', `${params.special} is not a paragraph of this service`)

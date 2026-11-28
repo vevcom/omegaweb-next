@@ -20,6 +20,7 @@ export const notificationMethodOperations = {
      */
     dispatchEmail: defineSubOperation({
         paramsSchema: () => notificationMethodSchemas.params.dispatchEmail,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const notification = await prisma.notification.findUniqueOrThrow({
                 where: { id: params.notificationId },
@@ -50,6 +51,7 @@ export const notificationMethodOperations = {
      */
     dispatchPush: defineSubOperation({
         paramsSchema: () => notificationMethodSchemas.params.dispatchPush,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const notification = await prisma.notification.findUniqueOrThrow({
                 where: { id: params.notificationId },
@@ -94,6 +96,7 @@ export const notificationMethodOperations = {
     materializeWeeklyOutbox: defineSubOperation({
         paramsSchema: () => notificationMethodSchemas.params.materializeWeeklyOutbox,
         transaction: 'OPENS',
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const notifications = await prisma.notification.findMany({
                 where: {
@@ -162,6 +165,7 @@ export const notificationMethodOperations = {
      * not sent, and its rows are deleted as a retry would fail the same way.
      */
     sendWeeklyMail: defineSubOperation({
+        read: false,
         operation: () => async ({ prisma }) => {
             const outboxEntries = await prisma.weeklyMailOutboxEntry.findMany({
                 include: {

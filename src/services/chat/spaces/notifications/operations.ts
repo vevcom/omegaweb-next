@@ -43,6 +43,7 @@ export const chatSpaceNotificationOperations = {
             paramsSchema: () => chatSpaceNotificationSchemas.params.createChannels,
             dataSchema: () => chatSpaceNotificationSchemas.data.createChannels,
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => async ({ params, data }): Promise<ChatSpaceChannelIds> => {
                 const names = chatSpaceChannelNames(data.name, params.spaceId)
                 // One after the other: the first makes the channel they sit under when it is not there
@@ -59,6 +60,7 @@ export const chatSpaceNotificationOperations = {
             paramsSchema: () => chatSpaceNotificationSchemas.params.renameChannels,
             dataSchema: () => chatSpaceNotificationSchemas.data.renameChannels,
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => async ({ prisma, params, data }): Promise<void> => {
                 const space = await prisma.chatSpace.findUniqueOrThrow({
                     where: { id: params.spaceId },
@@ -75,6 +77,7 @@ export const chatSpaceNotificationOperations = {
         /** For once the space no longer points to them, which is to say once its row is deleted. */
         destroyChannels: defineSubOperation({
             paramsSchema: () => chatSpaceNotificationSchemas.params.destroyChannels,
+            read: false,
             operation: () => async ({ params }): Promise<void> => {
                 const { mentionsNotificationChannelId, allNotificationChannelId } = params
                 await Promise.all([

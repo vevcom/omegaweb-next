@@ -10,6 +10,7 @@ export const bulshitOperations = {
         authorizer: ({ params }) => bulshitAuth.create.data({ userId: params.bulshitPosterId }),
         dataSchema: bulshitSchemas.data.create,
         paramsSchema: bulshitSchemas.params.create,
+        read: false,
         operation: async ({ prisma, data, params }) => {
             await prisma.bulshit.create({
                 data: {
@@ -26,6 +27,7 @@ export const bulshitOperations = {
     readPage: defineOperation({
         paramsSchema: bulshitSchemas.params.readPage,
         authorizer: () => bulshitAuth.readPage,
+        read: true,
         operation: async ({ prisma, params }) =>
             prisma.bulshit.findMany({
                 // `timestamp` alone is not a total order - the dev seed gives a whole batch the

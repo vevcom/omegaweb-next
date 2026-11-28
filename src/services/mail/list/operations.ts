@@ -33,6 +33,7 @@ export const mailingListOperations = {
         dataSchema: mailingListSchemas.data.create,
         authorizer: ({ data }) => mailingListAuth.create.data({ ownerVisibility: { requirements: data.ownerRequirements } }),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, data: { ownerRequirements, ...data } }): Promise<MailingList> => {
             const ownerVisibility = await visibility.internal.create.internalCall({
                 prisma,
@@ -59,6 +60,7 @@ export const mailingListOperations = {
             mailingListOwnerVisibilities: await readMailingListOwnerMatrices.internalCall({ prisma }),
             markOwnedByUserId: params.markOwnedByUserId,
         }),
+        read: true,
         operation: async ({ prisma, params }, prismaWhereFilter): Promise<MailingListWithOwned[]> => {
             const [lists, memberships] = await Promise.all([
                 prisma.mailingList.findMany({ where: prismaWhereFilter, include: ownerVisibilityIncluder }),
@@ -74,6 +76,7 @@ export const mailingListOperations = {
         authorizer: async ({ params, prisma }) => mailingListAuth.update.data({
             visibility: await visibility.internal.readMatrix.internalCall({ prisma, params }),
         }),
+        read: false,
         operation: async ({ prisma, params, data }): Promise<MailingList> =>
             prisma.mailingList.update({
                 where: { id: params.id },
@@ -87,6 +90,7 @@ export const mailingListOperations = {
             visibility: await visibility.internal.readMatrix.internalCall({ prisma, params }),
         }),
         transaction: 'RUNS_IN',
+        read: false,
         operation: async ({ prisma, params }): Promise<MailingList> => {
             const destroyed = await prisma.mailingList.delete({
                 where: { id: params.id },

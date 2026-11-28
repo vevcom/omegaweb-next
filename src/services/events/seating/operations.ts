@@ -17,6 +17,7 @@ export const eventSeatingOperations = {
         authorizer: async ({ params, prisma }) => (
             eventSeatingAuth.readBoard.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
+        read: true,
         operation: async ({ prisma, params }): Promise<SeatingBoard> => {
             const seating = await readSeating(prisma, params.id)
             const tables = await readTables(prisma, params.id)
@@ -46,6 +47,7 @@ export const eventSeatingOperations = {
         authorizer: async ({ params, prisma }) => (
             eventSeatingAuth.readOwn.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
+        read: true,
         operation: async ({ prisma, params, session }): Promise<OwnSeating | null> => {
             const { wishesEnd, publishedAt } = await readSeating(prisma, params.id)
             if (!wishesEnd && !publishedAt) return null
@@ -78,6 +80,7 @@ export const eventSeatingOperations = {
             eventSeatingAuth.updateWishes.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data, session }) => {
             const { wishesEnd } = await readSeating(prisma, params.id)
             if (!wishesEnd || wishesEnd < new Date()) {
@@ -113,6 +116,7 @@ export const eventSeatingOperations = {
         authorizer: async ({ params, prisma }) => (
             eventSeatingAuth.openWishes.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
+        read: false,
         operation: async ({ prisma, params, data }) => {
             if (data.wishesEnd < new Date()) throw new ServiceError('BAD PARAMETERS', 'Fristen må være frem i tid')
 
@@ -141,6 +145,7 @@ export const eventSeatingOperations = {
             eventSeatingAuth.savePlan.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
         transaction: 'OPENS',
+        read: false,
         operation: async ({ prisma, params, data }) => {
             await prisma.$transaction(async tx => {
                 await lockEvent(tx, params.id)
@@ -195,6 +200,7 @@ export const eventSeatingOperations = {
         authorizer: async ({ params, prisma }) => (
             eventSeatingAuth.setPublished.data(await readEventAccess.internalCall({ prisma, params: { id: params.id } }))
         ),
+        read: false,
         operation: async ({ prisma, params, data }) => {
             const publishedAt = data.published ? new Date() : null
             await prisma.eventSeating.upsert({
@@ -224,6 +230,7 @@ export const eventSeatingOperations = {
         handOver: defineSubOperation({
             paramsSchema: () => eventSeatingSchemas.params.handOver,
             transaction: 'RUNS_IN',
+            read: false,
             operation: () => async ({ prisma, params }): Promise<void> => {
                 const leaving = await prisma.eventRegistration.findUnique({
                     where: { id: params.registrationId, state: 'IN_QUOTA' },

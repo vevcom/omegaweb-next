@@ -112,6 +112,7 @@ export function implementVisibilityRead<
         internal: {
             readMatrix: defineSubOperation({
                 paramsSchema: () => implementationParamsSchema,
+                read: true,
                 operation: () => ({ prisma, params }) => matrixOf({ prisma, params }),
             }),
             create: visibilityOperations.createWithRequirements,
@@ -126,6 +127,7 @@ export function implementVisibilityRead<
                 params,
                 matrix: await matrixOf({ params, prisma }),
             }),
+            read: true,
             operation: ({ params, prisma }) => matrixOf({ params, prisma }),
         }),
     } as const
@@ -214,6 +216,7 @@ export function implementDoubleLevelVisibilityOperations<
         internal: {
             readDoubleLevelMatrix: defineSubOperation({
                 paramsSchema: () => implementationParamsSchema,
+                read: true,
                 operation: () => ({ prisma, params }) => doubleLevelMatrixOf({ prisma, params }),
             }),
             create: visibilityOperations.createWithRequirements,
@@ -230,6 +233,7 @@ export function implementDoubleLevelVisibilityOperations<
                         params: args.params, prisma: args.prisma
                     })
                 }),
+            read: true,
             operation: async args => doubleLevelMatrixOf({
                 params: args.params,
                 prisma: args.prisma

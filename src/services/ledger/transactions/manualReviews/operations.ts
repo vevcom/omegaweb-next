@@ -16,6 +16,7 @@ export const manualReviewOperations = {
     create: defineOperation({
         authorizer: () => manualReviewAuth.create,
         paramsSchema: manualReviewSchemas.params.create,
+        read: false,
         operation: async ({ prisma, params }) => {
             const subject = `transaksjon ${params.transactionId ?? '-'}, betaling ${params.paymentId ?? '-'}`
             const problemDescription = params.problemDescription ?? manualReviewProblemDescriptions[params.problem]
@@ -44,6 +45,7 @@ export const manualReviewOperations = {
      */
     readOpen: defineOperation({
         authorizer: () => manualReviewAuth.readOpen,
+        read: true,
         operation: async ({ prisma }) => prisma.manualTransactionReview.findMany({
             where: { state: 'OPEN' },
             include: {
@@ -69,6 +71,7 @@ export const manualReviewOperations = {
         authorizer: () => manualReviewAuth.resolve,
         paramsSchema: manualReviewSchemas.params.resolve,
         dataSchema: manualReviewSchemas.data.resolve,
+        read: false,
         operation: async ({ prisma, params, data }) => {
             // Guarded in the update itself, not a separate read then write - two admins
             // resolving the same review at once would otherwise both pass a plain read and the

@@ -98,6 +98,7 @@ export function implementNotificationChannelsForPurpose<
             create: defineSubOperation({
                 paramsSchema: () => notificationChannelSchemas.params.create,
                 dataSchema: () => notificationChannelSchemas.data.create,
+                read: false,
                 operation: () => ({ params, data }) => notificationChannelOperations.create.internalCall({
                     params,
                     data,
@@ -107,6 +108,7 @@ export function implementNotificationChannelsForPurpose<
 
             createAsConfigured: defineSubOperation({
                 dataSchema: () => notificationChannelSchemas.data.createAsConfigured,
+                read: false,
                 operation: () => async ({ prisma, data }) => {
                     if (!channelsConfig) {
                         throw new ServiceError('SERVER ERROR', `${purpose}-kanaler har ikke noe oppsett å lages fra.`)
@@ -132,6 +134,7 @@ export function implementNotificationChannelsForPurpose<
                 paramsSchema: () => notificationChannelSchemas.params.update,
                 dataSchema: () => notificationChannelSchemas.data.update,
                 transaction: 'RUNS_IN',
+                read: false,
                 operation: () => async ({ prisma, params, data }) => {
                     await assertPurpose({ prisma, channelId: params.id })
                     return notificationChannelOperations.update.internalCall({ params, data })
@@ -141,6 +144,7 @@ export function implementNotificationChannelsForPurpose<
             destroy: defineSubOperation({
                 paramsSchema: () => notificationChannelSchemas.params.destroy,
                 transaction: 'RUNS_IN',
+                read: false,
                 operation: () => async ({ prisma, params }) => {
                     await assertPurpose({ prisma, channelId: params.id })
                     return notificationChannelOperations.destroy.internalCall({ params })
@@ -150,6 +154,7 @@ export function implementNotificationChannelsForPurpose<
             createNotification: defineSubOperation({
                 paramsSchema: () => notificationChannelSchemas.params.createNotification,
                 dataSchema: () => notificationChannelSchemas.data.createNotification,
+                read: false,
                 operation: () => async ({ prisma, params, data }) => {
                     await assertPurpose({ prisma, channelId: params.channelId })
                     return notificationChannelOperations.createNotification.internalCall({ params, data })

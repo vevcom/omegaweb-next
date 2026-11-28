@@ -11,6 +11,7 @@ import type { PrismaClient } from '@/prisma-generated-pn-client'
 describe('service operation', () => {
     describe('simple', () => {
         const addPositiveOnly = defineOperation({
+            read: false,
             authorizer: ({ data: { a, b } }) => {
                 if (a < 0 || b < 0) {
                     // The bare `Require` entry point has no rules chained onto it, so it always denies.
@@ -62,12 +63,14 @@ describe('service operation', () => {
     describe('nested', () => {
         // Simple service operation that just returns its own context
         const inner = defineOperation({
+            read: true,
             authorizer: () => Require.nothing(),
             operation: (context) => context,
         })
 
         // Outer service operation that calls the inner one and returns its context
         const outer = defineOperation({
+            read: true,
             authorizer: () => Require.nothing(),
             operation: async () => await inner({}),
         })
@@ -123,6 +126,7 @@ describe('service operation', () => {
             authorizer: () => Require.nothing(),
             dataSchema: z.object({ fail: z.boolean() }),
             transaction: 'RUNS_IN',
+            read: false,
             operation: async ({ prisma, data }) => {
                 const methods = await prisma.notificationMethod.create({ data: {} })
                 lastWrittenId = methods.id
@@ -134,6 +138,7 @@ describe('service operation', () => {
         const opensTransaction = defineOperation({
             authorizer: () => Require.nothing(),
             transaction: 'OPENS',
+            read: false,
             operation: ({ prisma }) => prisma.$transaction(tx => tx.notificationMethod.count()),
         })
 

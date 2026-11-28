@@ -23,6 +23,7 @@ export const notificationChannelOperations = {
     create: defineSubOperation({
         dataSchema: () => notificationChannelSchemas.data.create,
         paramsSchema: () => notificationChannelSchemas.params.create,
+        read: false,
         operation: ({ purpose }: { purpose: NotificationChannelPurpose }) =>
             async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => prisma.notificationChannel.create({
                 data: {
@@ -49,6 +50,7 @@ export const notificationChannelOperations = {
 
     /** The channels the implementing system owns, as its `where` picks them out. */
     readMany: defineSubOperation({
+        read: true,
         operation: ({ where }: { where: Prisma.NotificationChannelWhereInput }) =>
             async ({ prisma }): Promise<ExpandedNotificationChannel[]> => await prisma.notificationChannel.findMany({
                 where,
@@ -60,6 +62,7 @@ export const notificationChannelOperations = {
         dataSchema: () => notificationChannelSchemas.data.update,
         paramsSchema: () => notificationChannelSchemas.params.update,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, data, params }): Promise<ExpandedNotificationChannel> => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
@@ -112,6 +115,7 @@ export const notificationChannelOperations = {
      */
     destroy: defineSubOperation({
         paramsSchema: () => notificationChannelSchemas.params.destroy,
+        read: false,
         operation: () => async ({ prisma, params }) => {
             const channel = await prisma.notificationChannel.findUniqueOrThrow({
                 where: {
@@ -162,6 +166,7 @@ export const notificationChannelOperations = {
         paramsSchema: () => notificationChannelSchemas.params.createNotification,
         dataSchema: () => notificationChannelSchemas.data.createNotification,
         transaction: 'RUNS_IN',
+        read: false,
         operation: () => async ({ prisma, params, data }): Promise<NotificationResult> => {
             // What the seeder makes is no news to anyone, so nothing is created for the notification
             // worker to dispatch, and the tests make none unless they ask to. A flag of its own, since
