@@ -1,35 +1,10 @@
-import { dateLessThan } from '@/lib/dates/comparison'
 import { z } from 'zod'
 
-const dataFieldSchemas = z.object({
-    releaseTime: z.coerce.date(),
-    releaseUntil: z.coerce.date(),
+export const cabinReleasePeriodDataFieldSchemas = z.object({
+    releaseTime: z.date({ required_error: 'Slippdato må fylles ut' }),
+    releaseUntil: z.date({ required_error: 'Slipp inntil dato må fylles ut' }),
 })
 
-const paramsFieldSchemas = z.object({
+export const cabinReleasePeriodParamsFieldSchemas = z.object({
     id: z.number(),
 })
-
-const releasesBeforeItsEnd = (data: { releaseTime: Date, releaseUntil: Date }) =>
-    dateLessThan(data.releaseTime, data.releaseUntil)
-const releaseMessage = 'Slipptiden må være før slutten av perioden som slippes.'
-
-const releasePeriod = dataFieldSchemas.pick({
-    releaseTime: true,
-    releaseUntil: true,
-}).refine(releasesBeforeItsEnd, releaseMessage)
-
-const releasePeriodId = paramsFieldSchemas.pick({
-    id: true,
-})
-
-export const cabinReleasePeriodSchemas = {
-    data: {
-        create: releasePeriod,
-        update: releasePeriod,
-    },
-    params: {
-        destroy: releasePeriodId,
-        update: releasePeriodId,
-    },
-}

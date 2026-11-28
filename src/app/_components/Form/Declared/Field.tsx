@@ -3,7 +3,7 @@ import { SubmitterContext } from './submitterContext'
 import { FormInputSlot } from '@/components/Form/FormContext'
 import { useCallback, useContext, useEffect, useSyncExternalStore } from 'react'
 import type { FormStore } from './formStore'
-import type { KindSpec, Kinds } from './Kinds/kind'
+import type { KindSpec, Kinds, SpecFor } from './Kinds/kind'
 import type { Context, ReactNode } from 'react'
 
 /**
@@ -40,21 +40,24 @@ export function makeField<Specs extends Record<string, KindSpec>>(
 
 /**
  * The field of a schema: `kind` is a key of the table of kinds, `name` is a name that fits that
- * kind, and the other props are that kind's. They are also what the implementation takes, so the
- * one implementation is the field of every schema.
+ * kind, and the other props are that kind's, for what the schema takes under the name. They are
+ * also what the implementation takes, so the one implementation is the field of every schema.
  */
 export type FieldOf<Input, Specs extends Record<string, KindSpec>> = <
     KindName extends keyof Specs,
-    Name extends NamesFor<Input, Specs[KindName]['writes']>,
->(props: AnyFieldProps<Specs, KindName> & { name: Name }) => ReactNode
+    Name extends NamesFor<Input, Specs[KindName]>,
+>(props: { kind: KindName, name: Name, label: string } & SpecFor<Specs[KindName], Input[Name]>['props']) => ReactNode
 
 /**
- * The names that fit a kind: those where the schema takes what the kind writes. A name is a
- * top-level key of the schema's input. This is the one place a path into a nested value is added.
+ * The names that fit a kind: those where the kind writes something and the schema takes what it
+ * writes. A name is a top-level key of the schema's input. This is the one place a path into a
+ * nested value is added.
  */
-type NamesFor<Input, Writes> = {
-    [Key in keyof Input & string]: [Writes] extends [Input[Key]] ? Key : never
+type NamesFor<Input, Spec extends KindSpec> = {
+    [Key in keyof Input & string]: Fits<SpecFor<Spec, Input[Key]>['writes'], Input[Key]> extends true ? Key : never
 }[keyof Input & string]
+
+type Fits<Writes, Value> = [Writes] extends [never] ? false : [Writes] extends [Value] ? true : false
 
 type AnyFieldProps<Specs extends Record<string, KindSpec>, KindName extends keyof Specs> =
     { kind: KindName, name: string, label: string } & Specs[KindName]['props']

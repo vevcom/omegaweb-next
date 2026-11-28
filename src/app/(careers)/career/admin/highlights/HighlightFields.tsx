@@ -1,15 +1,14 @@
 'use client'
-import Form from '@/components/Form/Form'
-import DateInput from '@/components/UI/DateInput'
-import { SelectNumberPossibleNULL } from '@/components/UI/Select'
 import { displayDate } from '@/lib/dates/displayDate'
-import type { ComponentProps } from 'react'
+import type { CreateHighlightField } from './highlightSubmitters'
 import type {
     CareerFrontpageHighlightTargets,
     ExpandedCareerFrontpageHighlight,
 } from '@/services/careers/frontpage/highlights/types'
 
-type PropTypes = Pick<ComponentProps<typeof Form>, 'action' | 'title' | 'submitText' | 'closePopUpOnSuccess'> & {
+type PropTypes = {
+    /** The field of the submitter around these, since creating and updating take the same values. */
+    Field: typeof CreateHighlightField,
     targets: CareerFrontpageHighlightTargets,
     highlight?: ExpandedCareerFrontpageHighlight,
 }
@@ -24,37 +23,37 @@ function withCurrent<T extends { id: number }>(offered: T[], current: T | null |
 }
 
 /** A highlight of either an event or a job ad, the other left as none. */
-export default function HighlightForm({ targets, highlight, ...formProps }: PropTypes) {
+export default function HighlightFields({ Field, targets, highlight }: PropTypes) {
     const events = withCurrent(targets.events, highlight?.event)
     const jobAds = withCurrent(targets.jobAds, highlight?.jobAd)
     return (
-        <Form refreshOnSuccess {...formProps}>
-            <SelectNumberPossibleNULL
-                label="Bedriftspresentasjon"
+        <>
+            <Field
+                kind="select"
                 name="eventId"
+                label="Bedriftspresentasjon"
                 options={[
-                    { value: 'NULL', label: 'Ingen' },
+                    { value: null, label: 'Ingen' },
                     ...events.map(event => ({
                         value: event.id,
                         label: `${event.name} (${displayDate(event.eventStart, false)})`,
                     })),
                 ]}
-                defaultValue={highlight?.event?.id ?? 'NULL'}
             />
-            <SelectNumberPossibleNULL
-                label="Jobbannonse"
+            <Field
+                kind="select"
                 name="jobAdId"
+                label="Jobbannonse"
                 options={[
-                    { value: 'NULL', label: 'Ingen' },
+                    { value: null, label: 'Ingen' },
                     ...jobAds.map(jobAd => ({
                         value: jobAd.id,
                         label: `${jobAd.articleName} (${jobAd.company.name})`,
                     })),
                 ]}
-                defaultValue={highlight?.jobAd?.id ?? 'NULL'}
             />
-            <DateInput label="Start" name="start" includeTime defaultValue={highlight?.start} />
-            <DateInput label="Slutt" name="end" includeTime defaultValue={highlight?.end} />
-        </Form>
+            <Field kind="date" name="start" label="Start" includeTime />
+            <Field kind="date" name="end" label="Slutt" includeTime />
+        </>
     )
 }

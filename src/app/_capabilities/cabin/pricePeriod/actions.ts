@@ -1,5 +1,5 @@
 'use server'
-import { cabinPricePeriodOperations } from './operations'
+import { cabinPricePeriodOperations } from '@/services/cabin/pricePeriod/operations'
 import { makeAction } from '@/services/serverAction'
 
 export const createPricePeriodAction = makeAction(cabinPricePeriodOperations.create)

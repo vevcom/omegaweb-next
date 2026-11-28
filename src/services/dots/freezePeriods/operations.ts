@@ -1,17 +1,13 @@
 import '@ow-server-only'
-import { dotFreezePeriodAuth } from './auth'
-import { dotFreezePeriodSchemas } from './schemas'
+import { dotFreezePeriodContract } from './contract'
 import { defineOperation } from '@/services/serviceOperation'
 
 export const dotFreezePeriodOperations = {
-    create: defineOperation({
-        dataSchema: dotFreezePeriodSchemas.data.create,
-        authorizer: () => dotFreezePeriodAuth.create,
+    create: defineOperation(dotFreezePeriodContract.create, {
         operation: async ({ prisma, data }) => prisma.dotFreezePeriod.create({ data }),
     }),
 
-    readAll: defineOperation({
-        authorizer: () => dotFreezePeriodAuth.readAll,
+    readAll: defineOperation(dotFreezePeriodContract.readAll, {
         operation: async ({ prisma }) => prisma.dotFreezePeriod.findMany({
             orderBy: {
                 start: 'desc',
@@ -19,10 +15,7 @@ export const dotFreezePeriodOperations = {
         }),
     }),
 
-    update: defineOperation({
-        paramsSchema: dotFreezePeriodSchemas.params.update,
-        dataSchema: dotFreezePeriodSchemas.data.update,
-        authorizer: () => dotFreezePeriodAuth.update,
+    update: defineOperation(dotFreezePeriodContract.update, {
         operation: async ({ prisma, params, data }) => prisma.dotFreezePeriod.update({
             where: {
                 id: params.id,
@@ -31,9 +24,7 @@ export const dotFreezePeriodOperations = {
         }),
     }),
 
-    destroy: defineOperation({
-        paramsSchema: dotFreezePeriodSchemas.params.destroy,
-        authorizer: () => dotFreezePeriodAuth.destroy,
+    destroy: defineOperation(dotFreezePeriodContract.destroy, {
         operation: async ({ prisma, params }) => prisma.dotFreezePeriod.delete({
             where: {
                 id: params.id,

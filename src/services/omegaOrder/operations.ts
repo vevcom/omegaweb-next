@@ -1,5 +1,5 @@
 import '@ow-server-only'
-import { omegaOrderAuth } from './auth'
+import { omegaOrderContract } from './contract'
 import { groupTypesMigratedStraightAway } from './constants'
 import { groupTypesConfig } from '@/services/groups/constants'
 import { defineOperation } from '@/services/serviceOperation'
@@ -17,8 +17,7 @@ export const omegaOrderOperations = {
      * A group type that is migrated straight away on increment is included too: its groups are
      * always brought along, so the requirement only ever fails if something has drifted.
      */
-    readRequirements: defineOperation({
-        authorizer: () => omegaOrderAuth.readRequirements,
+    readRequirements: defineOperation(omegaOrderContract.readRequirements, {
         operation: async ({ prisma }): Promise<OmegaOrderRequirement[]> => {
             const { order } = await omegaOrderOperations.readCurrent({ bypassAuth: true })
 
@@ -79,9 +78,8 @@ export const omegaOrderOperations = {
      *
      * @throws BAD PARAMETERS if any requirement from `readRequirements` is unfulfilled.
      */
-    create: defineOperation({
+    create: defineOperation(omegaOrderContract.create, {
         transaction: 'RUNS_IN',
-        authorizer: () => omegaOrderAuth.create,
         // The requirements are read on the transaction that writes the new order, so the order they
         // were checked against is the one incremented. Two increments at once still race; the loser
         // runs into the unique order and is turned away as a duplicate.
@@ -117,8 +115,7 @@ export const omegaOrderOperations = {
             })
         },
     }),
-    readCurrent: defineOperation({
-        authorizer: () => omegaOrderAuth.readCurrent,
+    readCurrent: defineOperation(omegaOrderContract.readCurrent, {
         operation: async ({ prisma }) => {
             const omegaOrder = await prisma.omegaOrder.findFirst({
                 orderBy: {
@@ -129,8 +126,7 @@ export const omegaOrderOperations = {
             return omegaOrder
         }
     }),
-    readAll: defineOperation({
-        authorizer: () => omegaOrderAuth.readAll,
+    readAll: defineOperation(omegaOrderContract.readAll, {
         operation: async ({ prisma }) =>
             await prisma.omegaOrder.findMany({
                 orderBy: {

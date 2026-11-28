@@ -1,13 +1,8 @@
 'use client'
-import HighlightForm from './HighlightForm'
+import HighlightFields from './HighlightFields'
+import { DestroyHighlightSubmitter, UpdateHighlightField, UpdateHighlightSubmitter } from './highlightSubmitters'
 import { buttonClassName } from '@/components/UI/buttonClassName'
-import Form from '@/components/Form/Form'
 import PopUp from '@/components/PopUp/PopUp'
-import { configureAction } from '@/services/configureAction'
-import {
-    destroyCareerFrontpageHighlightAction,
-    updateCareerFrontpageHighlightAction,
-} from '@/services/careers/frontpage/highlights/actions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPencil } from '@fortawesome/free-solid-svg-icons'
 import type {
@@ -23,7 +18,6 @@ type PropTypes = {
 
 export default function EditHighlight({ highlight, targets, name }: PropTypes) {
     const popUpKey = `EditCareerFrontpageHighlight${highlight.id}`
-    const params = { params: { id: highlight.id } }
     return (
         <PopUp
             popUpKey={popUpKey}
@@ -36,16 +30,23 @@ export default function EditHighlight({ highlight, targets, name }: PropTypes) {
             ariaLabel={`Rediger ${name}`}
         >
             <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
-                <HighlightForm
+                <UpdateHighlightSubmitter
+                    params={{ id: highlight.id }}
+                    defaultValues={{
+                        eventId: highlight.event?.id ?? null,
+                        jobAdId: highlight.jobAd?.id ?? null,
+                        start: highlight.start,
+                        end: highlight.end,
+                    }}
                     title="Rediger fremheving"
-                    action={configureAction(updateCareerFrontpageHighlightAction, params)}
                     submitText="Lagre"
+                    refreshOnSuccess
                     closePopUpOnSuccess={popUpKey}
-                    targets={targets}
-                    highlight={highlight}
-                />
-                <Form
-                    action={configureAction(destroyCareerFrontpageHighlightAction, params)}
+                >
+                    <HighlightFields Field={UpdateHighlightField} targets={targets} highlight={highlight} />
+                </UpdateHighlightSubmitter>
+                <DestroyHighlightSubmitter
+                    params={{ id: highlight.id }}
                     submitText="Fjern fremheving"
                     submitColor="error"
                     refreshOnSuccess

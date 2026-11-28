@@ -1,6 +1,4 @@
-import { createOmegaOrderAction } from '@/services/omegaOrder/actions'
-import Form from '@/components/Form/Form'
-import React from 'react'
+import { CreateOmegaOrderSubmitter } from './omegaOrderSubmitters'
 
 type PropTypes = {
     allRequirementsFulfilled: boolean
@@ -8,8 +6,7 @@ type PropTypes = {
 
 export default function CreateOrder({ allRequirementsFulfilled }: PropTypes) {
     return (
-        <Form
-            action={createOmegaOrderAction}
+        <CreateOmegaOrderSubmitter
             refreshOnSuccess
             submitText="Inkrementer Omega"
             submitColor={allRequirementsFulfilled ? 'primary' : 'error'}

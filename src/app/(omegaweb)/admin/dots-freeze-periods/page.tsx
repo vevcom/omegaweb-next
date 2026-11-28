@@ -1,17 +1,15 @@
+import {
+    CreateFreezePeriodField,
+    CreateFreezePeriodSubmitter,
+    DestroyFreezePeriodSubmitter,
+    UpdateFreezePeriodField,
+    UpdateFreezePeriodSubmitter,
+} from './freezePeriodSubmitters'
 import PageWrapper from '@/components/PageWrapper/PageWrapper'
 import { AddHeaderItemPopUp, SettingsHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import Form from '@/components/Form/Form'
 import DateDisplay from '@/components/Date/Date'
-import DateInput from '@/UI/DateInput'
-import TextInput from '@/UI/TextInput'
-import { configureAction } from '@/services/configureAction'
-import {
-    createDotFreezePeriodAction,
-    destroyDotFreezePeriodAction,
-    updateDotFreezePeriodAction,
-} from '@/services/dots/freezePeriods/actions'
 import { dotFreezePeriodOperations } from '@/services/dots/freezePeriods/operations'
-import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
+import { dotFreezePeriodCapabilities } from '@/capabilities/dots/freezePeriods/capabilities'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import type { PageOperationArgs } from '@/app/ServerPage'
@@ -41,9 +39,9 @@ const { page, generateMetadata } = serverPage({
         return dotFreezePeriodOperations.readAll({})
     },
     capabilities: () => ({
-        canCreateFreezePeriod: dotFreezePeriodAuth.create,
-        canUpdateFreezePeriod: dotFreezePeriodAuth.update,
-        canDestroyFreezePeriod: dotFreezePeriodAuth.destroy,
+        canCreateFreezePeriod: dotFreezePeriodCapabilities.create.authorizer,
+        canUpdateFreezePeriod: dotFreezePeriodCapabilities.update.authorizer,
+        canDestroyFreezePeriod: dotFreezePeriodCapabilities.destroy.authorizer,
     }),
     metadata: () => ({ title: 'Frysperioder for prikker' }),
     render: ({ data: freezePeriods, capabilities }) => {
@@ -52,17 +50,16 @@ const { page, generateMetadata } = serverPage({
         return (
             <PageWrapper headerItem={capabilities.canCreateFreezePeriod.authorized &&
                 <AddHeaderItemPopUp popUpKey={createPopUpKey}>
-                    <Form
-                        action={createDotFreezePeriodAction}
+                    <CreateFreezePeriodSubmitter
                         title="Ny frysperiode"
                         submitText="Lag frysperiode"
                         closePopUpOnSuccess={createPopUpKey}
                         refreshOnSuccess
                     >
-                        <DateInput name="start" label="Start" />
-                        <DateInput name="end" label="Slutt" />
-                        <TextInput name="reason" label="Grunn" />
-                    </Form>
+                        <CreateFreezePeriodField kind="date" name="start" label="Start" />
+                        <CreateFreezePeriodField kind="date" name="end" label="Slutt" />
+                        <CreateFreezePeriodField kind="string" name="reason" label="Grunn" />
+                    </CreateFreezePeriodSubmitter>
                 </AddHeaderItemPopUp>
             }>
                 <div className="p-[1em]">
@@ -102,37 +99,38 @@ const { page, generateMetadata } = serverPage({
                                                         popUpKey={`dotFreezePeriodSettings ${freezePeriod.id}`}
                                                     >
                                                         {capabilities.canUpdateFreezePeriod.authorized &&
-                                                        <Form
-                                                            action={configureAction(updateDotFreezePeriodAction, {
-                                                                params: { id: freezePeriod.id },
-                                                            })}
+                                                        <UpdateFreezePeriodSubmitter
+                                                            params={{ id: freezePeriod.id }}
+                                                            defaultValues={{
+                                                                start: freezePeriod.start,
+                                                                end: freezePeriod.end,
+                                                                reason: freezePeriod.reason,
+                                                            }}
                                                             title="Endre frysperiode"
                                                             submitText="Endre"
                                                             refreshOnSuccess
                                                         >
-                                                            <DateInput
+                                                            <UpdateFreezePeriodField
+                                                                kind="date"
                                                                 name="start"
                                                                 label="Start"
-                                                                defaultValue={freezePeriod.start}
                                                             />
-                                                            <DateInput
+                                                            <UpdateFreezePeriodField
+                                                                kind="date"
                                                                 name="end"
                                                                 label="Slutt"
-                                                                defaultValue={freezePeriod.end}
                                                             />
-                                                            <TextInput
+                                                            <UpdateFreezePeriodField
+                                                                kind="string"
                                                                 name="reason"
                                                                 label="Grunn"
-                                                                defaultValue={freezePeriod.reason}
                                                             />
-                                                        </Form>
+                                                        </UpdateFreezePeriodSubmitter>
                                                         }
 
                                                         {capabilities.canDestroyFreezePeriod.authorized &&
-                                                        <Form
-                                                            action={configureAction(destroyDotFreezePeriodAction, {
-                                                                params: { id: freezePeriod.id },
-                                                            })}
+                                                        <DestroyFreezePeriodSubmitter
+                                                            params={{ id: freezePeriod.id }}
                                                             submitText="Slett"
                                                             submitColor="error"
                                                             confirmation={{

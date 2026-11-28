@@ -65,7 +65,7 @@ const createHighlight = (
     target: { eventId: number } | { jobAdId: number },
     { start = hoursFromNow(-1), end = hoursFromNow(1) }: { start?: Date, end?: Date } = {},
 ) => careerFrontpageHighlightOperations.create({
-    data: { eventId: 'NULL', jobAdId: 'NULL', ...target, start, end },
+    data: { eventId: null, jobAdId: null, ...target, start, end },
     session: admin,
 })
 
@@ -91,7 +91,7 @@ describe('career frontpage highlights', () => {
     test('only an administrator of them may create one', async () => {
         const event = await createEvent()
         await expect(careerFrontpageHighlightOperations.create({
-            data: { eventId: event.id, jobAdId: 'NULL', start: hoursFromNow(-1), end: hoursFromNow(1) },
+            data: { eventId: event.id, jobAdId: null, start: hoursFromNow(-1), end: hoursFromNow(1) },
             session: Session.empty(),
         })).rejects.toThrow(new Smorekopp('UNAUTHENTICATED'))
     })
@@ -108,7 +108,7 @@ describe('career frontpage highlights', () => {
         const highlight = await createHighlight({ eventId: event.id })
         await expect(careerFrontpageHighlightOperations.update({
             params: { id: highlight.id },
-            data: { eventId: event.id, jobAdId: 'NULL', start: hoursFromNow(-1), end: hoursFromNow(13) },
+            data: { eventId: event.id, jobAdId: null, start: hoursFromNow(-1), end: hoursFromNow(13) },
             session: admin,
         })).rejects.toThrow(new ServiceError('BAD PARAMETERS', 'Fremhevingen kan ikke slutte etter arrangementet'))
     })
@@ -126,7 +126,7 @@ describe('career frontpage highlights', () => {
         const period = { start: hoursFromNow(-1), end: hoursFromNow(1) }
         const message = 'Velg enten en bedriftspresentasjon eller en jobbannonse'
         await expect(careerFrontpageHighlightOperations.create({
-            data: { eventId: 'NULL', jobAdId: 'NULL', ...period },
+            data: { eventId: null, jobAdId: null, ...period },
             session: admin,
         })).rejects.toThrow(new ServiceError('BAD PARAMETERS', message))
         await expect(careerFrontpageHighlightOperations.create({
@@ -229,7 +229,7 @@ describe('career frontpage highlights', () => {
         const end = hoursFromNow(1)
         await careerFrontpageHighlightOperations.update({
             params: { id: highlight.id },
-            data: { eventId: event.id, jobAdId: 'NULL', start: highlight.start, end },
+            data: { eventId: event.id, jobAdId: null, start: highlight.start, end },
             session: admin,
         })
         expect(await readCurrentIds()).toEqual([highlight.id])

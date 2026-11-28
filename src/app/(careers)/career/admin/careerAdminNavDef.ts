@@ -1,6 +1,6 @@
 import { careerAdminLinks } from './links'
 import { companyAuth } from '@/services/careers/companies/auth'
-import { careerFrontpageHighlightAuth } from '@/services/careers/frontpage/highlights/auth'
+import { careerFrontpageHighlightCapabilities } from '@/capabilities/careers/frontpage/highlights/capabilities'
 import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
 import { defineNavDef } from '@/lib/navDef/navDef'
 import { faBuilding, faEnvelopesBulk, faStar } from '@fortawesome/free-solid-svg-icons'
@@ -19,7 +19,7 @@ export const careerAdminNavDef = defineNavDef([
         name: 'Fremhevinger',
         href: careerAdminLinks.highlights(),
         icon: faStar,
-        authorizers: () => [careerFrontpageHighlightAuth.readMany],
+        authorizers: () => [careerFrontpageHighlightCapabilities.readMany.authorizer],
     },
     {
         key: 'mail',

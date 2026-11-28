@@ -1,9 +1,9 @@
-'use client'
-
-import { createReleasePeriodAction, updateReleasePeriodAction } from '@/services/cabin/releasePeriod/actions'
-import { configureAction } from '@/services/configureAction'
-import Form from '@/app/_components/Form/Form'
-import DateInput from '@/app/_components/UI/DateInput'
+import {
+    CreateReleasePeriodField,
+    CreateReleasePeriodSubmitter,
+    UpdateReleasePeriodField,
+    UpdateReleasePeriodSubmitter,
+} from './cabinPeriodSubmitters'
 import type { ReleasePeriod } from '@/prisma-generated-pn-types'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 
@@ -13,16 +13,24 @@ type PropTypes = {
 }
 
 export default function ReleasePeriodForm({ period, closePopUpOnSuccess }: PropTypes) {
-    return <Form
-        action={period
-            ? configureAction(updateReleasePeriodAction, { params: { id: period.id } })
-            : createReleasePeriodAction
-        }
-        submitText={period ? 'Oppdater slipp' : 'Lag nytt slipp'}
+    if (!period) {
+        return <CreateReleasePeriodSubmitter
+            submitText="Lag nytt slipp"
+            refreshOnSuccess
+            closePopUpOnSuccess={closePopUpOnSuccess}
+        >
+            <CreateReleasePeriodField kind="date" name="releaseTime" label="Slippdato" />
+            <CreateReleasePeriodField kind="date" name="releaseUntil" label="Slipp inntil dato" />
+        </CreateReleasePeriodSubmitter>
+    }
+    return <UpdateReleasePeriodSubmitter
+        params={{ id: period.id }}
+        defaultValues={{ releaseTime: period.releaseTime, releaseUntil: period.releaseUntil }}
+        submitText="Oppdater slipp"
         refreshOnSuccess
         closePopUpOnSuccess={closePopUpOnSuccess}
     >
-        <DateInput name="releaseTime" label="Slippdato" defaultValue={period?.releaseTime} />
-        <DateInput name="releaseUntil" label="Slipp inntil dato" defaultValue={period?.releaseUntil} />
-    </Form>
+        <UpdateReleasePeriodField kind="date" name="releaseTime" label="Slippdato" />
+        <UpdateReleasePeriodField kind="date" name="releaseUntil" label="Slipp inntil dato" />
+    </UpdateReleasePeriodSubmitter>
 }

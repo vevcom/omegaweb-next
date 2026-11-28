@@ -14,3 +14,11 @@ export function dateFromUtcInputValue(value: string) {
     // A date alone is read as UTC already.
     return new Date(value.includes('T') ? `${value}Z` : value)
 }
+
+/**
+ * The date a date input holds, read as the browser reads its value: a date alone as midnight in
+ * UTC, and a date with a time in the browser's own zone. Nothing for an emptied input.
+ */
+export function dateOfInputValue(value: string) {
+    return value === '' ? undefined : new Date(value)
+}

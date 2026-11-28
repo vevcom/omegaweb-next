@@ -1,5 +1,5 @@
 'use server'
-import { dotFreezePeriodOperations } from './operations'
+import { dotFreezePeriodOperations } from '@/services/dots/freezePeriods/operations'
 import { makeAction } from '@/services/serverAction'
 
 export const createDotFreezePeriodAction = makeAction(dotFreezePeriodOperations.create)

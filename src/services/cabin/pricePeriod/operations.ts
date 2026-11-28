@@ -1,14 +1,11 @@
 import '@ow-server-only'
-import { cabinPricePeriodAuth } from './auth'
-import { cabinPricePeriodSchemas } from './schemas'
+import { cabinPricePeriodContract } from './contract'
 import { defineOperation } from '@/services/serviceOperation'
 import { cabinReleasePeriodOperations } from '@/services/cabin/releasePeriod/operations'
 import { ServiceError } from '@/services/error'
 
 export const cabinPricePeriodOperations = {
-    create: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.create,
-        dataSchema: cabinPricePeriodSchemas.data.create,
+    create: defineOperation(cabinPricePeriodContract.create, {
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const currentReleaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({
@@ -60,9 +57,7 @@ export const cabinPricePeriodOperations = {
         },
     }),
 
-    destroy: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.destroy,
-        paramsSchema: cabinPricePeriodSchemas.params.destroy,
+    destroy: defineOperation(cabinPricePeriodContract.destroy, {
         operation: async ({ prisma, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -80,13 +75,11 @@ export const cabinPricePeriodOperations = {
         }
     }),
 
-    readMany: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readMany,
+    readMany: defineOperation(cabinPricePeriodContract.readMany, {
         operation: async ({ prisma }) => prisma.pricePeriod.findMany()
     }),
 
-    readPublicPeriods: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readPublicPeriods,
+    readPublicPeriods: defineOperation(cabinPricePeriodContract.readPublicPeriods, {
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 
@@ -118,8 +111,7 @@ export const cabinPricePeriodOperations = {
         }
     }),
 
-    readUnreleasedPeriods: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.readUnreleasedPeriods,
+    readUnreleasedPeriods: defineOperation(cabinPricePeriodContract.readUnreleasedPeriods, {
         operation: async ({ prisma }) => {
             const releaseDate = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
             return prisma.pricePeriod.findMany({
@@ -137,10 +129,7 @@ export const cabinPricePeriodOperations = {
      * requires of a new one, and between its neighbours, so every day still falls in the period it
      * was priced by.
      */
-    update: defineOperation({
-        authorizer: () => cabinPricePeriodAuth.update,
-        dataSchema: cabinPricePeriodSchemas.data.update,
-        paramsSchema: cabinPricePeriodSchemas.params.update,
+    update: defineOperation(cabinPricePeriodContract.update, {
         operation: async ({ prisma, data, params }) => {
             const currentReleasePeriod = await cabinReleasePeriodOperations.getCurrentReleasePeriod({ bypassAuth: true })
 

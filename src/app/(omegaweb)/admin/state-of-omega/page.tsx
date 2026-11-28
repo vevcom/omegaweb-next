@@ -1,7 +1,7 @@
 import CreateOrder from './CreateOrder'
 import Requirements from './Requirements'
 import { omegaOrderOperations } from '@/services/omegaOrder/operations'
-import { omegaOrderAuth } from '@/services/omegaOrder/auth'
+import { omegaOrderCapabilities } from '@/capabilities/omegaOrder/capabilities'
 import { serverPage } from '@/app/ServerPage'
 import { authorizeAdminPage } from '@/app/(omegaweb)/admin/authorizeAdminPage'
 import Date from '@/components/Date/Date'
@@ -20,7 +20,7 @@ const { page, generateMetadata } = serverPage({
         return { currentOrder, requirements }
     },
     capabilities: () => ({
-        canCreateOrder: omegaOrderAuth.create,
+        canCreateOrder: omegaOrderCapabilities.create.authorizer,
     }),
     metadata: () => ({ title: 'Omegas tilstand' }),
     render: ({ data, capabilities }) => {
