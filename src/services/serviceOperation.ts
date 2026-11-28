@@ -1,7 +1,9 @@
 import '@ow-server-only'
 import { ParseError, ServiceError, Smorekopp } from './error'
 import { LocalCache, localCacheKey } from './localCache'
+import { SharedAnswer, SharedCache } from './sharedCache'
 import { prisma as globalPrisma } from '@/prisma-pn-client-instance'
+import { addSeenByAnAnswer, watchTablesRead } from '@/prisma/tableWatch/watch'
 import { Require } from '@/auth/authorizer/Require'
 import { Session } from '@/auth/session/Session'
 import logger from '@/lib/logger'
@@ -127,6 +129,16 @@ type OpensTransactionOf<Flag extends TransactionFlag> = [Flag] extends ['OPENS']
 type Read<Flag extends TransactionFlag, DataSchema extends z.ZodTypeAny | undefined> =
     [Flag, DataSchema] extends ['NONE', undefined] ? boolean : false
 
+/**
+ * Whether the answer of a read is shared across requests, in the shared cache of the process, see
+ * {@link SharedCache}. Only an operation that says `read: true` compiles with it. A read says it only
+ * when its answer is the same whoever asks: its body does not use the session, its authorizer hands
+ * it no filter, and it calls only internal calls and other reads whose answer is the same whoever
+ * asks. An operation it calls runs with the session and `bypassAuth` of whoever filled the cache, so
+ * one that authorizes answers for them. Its authorizer and ownership check still run on every call.
+ */
+type Shared<IsRead extends boolean> = [IsRead] extends [true] ? boolean : never
+
 export type SubServiceOperationConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
     DataSchema extends z.ZodTypeAny | undefined,
@@ -135,7 +147,8 @@ export type SubServiceOperationConfig<
     OperationImplementationFields extends object | undefined,
     Return,
     Flag extends TransactionFlag = 'NONE',
-    PrismaWhereFilter extends object | undefined = undefined
+    PrismaWhereFilter extends object | undefined = undefined,
+    IsRead extends Read<Flag, DataSchema> = Read<Flag, DataSchema>
 > = {
     paramsSchema?: ((implementationFields: ParamsSchemaImplementationFields) => ParamsSchema) | undefined,
     dataSchema?: ((implementationFields: DataSchemaImplementationFields) => DataSchema) | undefined,
@@ -144,7 +157,8 @@ export type SubServiceOperationConfig<
      * Whether its internal calls are reads, and an implementation that does not say otherwise. See
      * {@link Read}.
      */
-    read: Read<Flag, DataSchema>,
+    read: IsRead,
+    shared?: Shared<IsRead>,
     operation: (implementationFields: OperationImplementationFields) =>
         ServiceOperationOperation<OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, PrismaWhereFilter>
 }
@@ -200,7 +214,10 @@ export type BeforeRun<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) => Awaitable<void>
 
-/** Runs once the operation has, for what the owning service does in response, such as refilling places. */
+/**
+ * Runs once the operation has, for what the owning service does in response, such as refilling places.
+ * It runs also on a call the shared cache answers, as the authorizer and the ownership check do.
+ */
 export type AfterRun<
     OpensTransaction extends boolean,
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -465,7 +482,8 @@ export function defineSubOperation<
     ParamsSchemaImplementationFields extends object | undefined = undefined,
     DataSchemaImplementationFields extends object | undefined = undefined,
     OperationImplementationFields extends object | undefined = undefined,
-    PrismaWhereFilter extends object | undefined = undefined
+    PrismaWhereFilter extends object | undefined = undefined,
+    IsRead extends Read<Flag, DataSchema> = Read<Flag, DataSchema>
 >(
     serviceOperationConfig: SubServiceOperationConfig<
         ParamsSchema,
@@ -475,14 +493,18 @@ export function defineSubOperation<
         OperationImplementationFields,
         Return,
         Flag,
-        PrismaWhereFilter
+        PrismaWhereFilter,
+        IsRead
     >
 ) {
     type OpensTransaction = OpensTransactionOf<Flag>
 
     // An internal call implements the sub-operation anew each time, and the internal calls are still
     // one reader to a cache, so they share what tells a cache their answers apart from all others.
-    const internalCalls = { answersRead: new WeakMap<Promise<unknown>, Promise<Return>>() }
+    const internalCalls = {
+        answersRead: new WeakMap<Promise<unknown>, Promise<Return>>(),
+        answersShared: new WeakMap<SharedAnswer<unknown>, SharedAnswer<Return>>(),
+    }
 
     type ImplementationArgs<ImplementationParamsSchema extends z.ZodTypeAny | undefined> =
         ServiceOperationImplementationConfig<
@@ -503,6 +525,7 @@ export function defineSubOperation<
         // A cache holds the answers of every operation, so it gives one back as unknown. An answer is
         // known to be this operation's by being one of those it read.
         const answersRead = asInternalCall?.answersRead ?? new WeakMap<Promise<unknown>, Promise<Return>>()
+        const answersShared = asInternalCall?.answersShared ?? new WeakMap<SharedAnswer<unknown>, SharedAnswer<Return>>()
         let warnedOfCallWithoutKey = false
         // The rule of the type, asked again at run time: a `read: true` that got past the compiler would
         // otherwise take a write out of its transaction, or answer one call's data with another's.
@@ -512,6 +535,7 @@ export function defineSubOperation<
         const isRead = (said ?? serviceOperationConfig.read) === true
             && !serviceOperationConfig.dataSchema
             && (serviceOperationConfig.transaction ?? 'NONE') === 'NONE'
+        const isShared = isRead && serviceOperationConfig.shared === true
 
         const expectedArgsArePresent = (
             args: ServiceOperationExecuteArgs<'UNSAFE', ParamsSchema, DataSchema, ImplementationParamsSchema>
@@ -614,6 +638,18 @@ export function defineSubOperation<
                 )
             }
 
+            // What tells the answer of this call from those of other calls, whoever asks.
+            const whatIsAsked = [
+                args.params,
+                args.implementationParams,
+                // Internal calls share a reader, so what each is implemented with tells them apart.
+                asInternalCall && [
+                    implementationArgs.paramsSchemaImplementationFields,
+                    implementationArgs.dataSchemaImplementationFields,
+                    implementationArgs.operationImplementationFields,
+                ],
+            ]
+
             const run = async (
                 { prisma, bypassAuth, session }: ServiceOperationContext<OpensTransaction>
             ): Promise<Return> => {
@@ -672,30 +708,46 @@ export function defineSubOperation<
                 ) as OperationImplementationFieldsOf<
                     OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
                 >
-                const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
+                const answer = async () => {
+                    const operationImplementationFields = await prismaErrorWrapper(() => fieldsOf({ ...args, prisma }))
 
-                const result = await prismaErrorWrapper(() =>
-                    serviceOperationConfig.operation(
-                        operationImplementationFields
-                    )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
-                )
+                    return await prismaErrorWrapper(() =>
+                        serviceOperationConfig.operation(
+                            operationImplementationFields
+                        )({ ...args, prisma, bypassAuth, session }, prismaWhereFilter)
+                    )
+                }
+
+                // The answer is filled with no local cache asked, since the request's may answer a nested read
+                // from before a write another request has made, and the shared answer outlives the request.
+                const answerShared = async (sharedCache: SharedCache, sharedKey: string) => {
+                    const kept = await sharedCache.remember(asInternalCall ?? executeOperation, sharedKey, async () => {
+                        const shared = new SharedAnswer(await LocalCache.withNone(answer))
+                        answersShared.set(shared, shared)
+                        return shared
+                    })
+                    const shared = answersShared.get(kept)
+                    if (!shared) {
+                        throw new Smorekopp('SERVER ERROR', 'The shared cache answered with what the operation never read.')
+                    }
+                    return shared.given()
+                }
+
+                // Asked after the authorizer, so its key holds no session. What is read in a transaction
+                // may be what was just written in it.
+                const sharedCache = isShared && prismaWhereFilter === undefined && isPrismaClient(prisma)
+                    ? SharedCache.inForce()
+                    : undefined
+                const sharedKey = sharedCache && localCacheKey(whatIsAsked)
+                const result = sharedCache && sharedKey !== undefined
+                    ? await answerShared(sharedCache, sharedKey)
+                    : await answer()
                 await prismaErrorWrapper(() => implementationArgs.afterRun?.({ ...args, prisma }))
                 return result
             }
 
             const runOrRemembered = (resolved: ServiceOperationContext<OpensTransaction>): Promise<Return> => {
-                const key = localCacheKey([
-                    args.params,
-                    args.implementationParams,
-                    resolved.bypassAuth,
-                    sessionFields(resolved.session),
-                    // Internal calls share a reader, so what each is implemented with tells them apart.
-                    asInternalCall && [
-                        implementationArgs.paramsSchemaImplementationFields,
-                        implementationArgs.dataSchemaImplementationFields,
-                        implementationArgs.operationImplementationFields,
-                    ],
-                ])
+                const key = localCacheKey([whatIsAsked, resolved.bypassAuth, sessionFields(resolved.session)])
                 if (key === undefined) {
                     if (!warnedOfCallWithoutKey) {
                         warnedOfCallWithoutKey = true
@@ -713,7 +765,11 @@ export function defineSubOperation<
 
                 // What is read in a transaction may be what was just written in it.
                 const cache = isPrismaClient(resolved.prisma) ? LocalCache.inForce() : undefined
-                if (!cache) return run(resolved)
+                if (!cache) {
+                    // Watched all the same, so the read that asked for it knows what it read, also that it read no table.
+                    const { result, seen } = watchTablesRead(() => run(resolved))
+                    return result.finally(() => addSeenByAnAnswer(seen))
+                }
 
                 const kept = cache.remember(asInternalCall ?? executeOperation, key, () => {
                     const answer = run(resolved)
@@ -730,12 +786,12 @@ export function defineSubOperation<
             // The context is resolved first, so the operation joins the caller's transaction when it is in one.
             if (isRead) return withServiceContext(context, serviceOperationConfig.transaction, runOrRemembered)
 
-            // What is not a read may write. So nothing is remembered while it runs. The cache in force
-            // where it was called hears from the Prisma client of every table it writes, and here that
-            // it has ended, since it may have written what no table shows.
+            // What is not a read may write. So nothing is remembered or shared while it runs. The cache in
+            // force where it was called hears from the Prisma client of every table it writes, and here
+            // that it has ended, since it may have written what no table shows.
             const cacheToTell = LocalCache.inForce()
             try {
-                return await LocalCache.withNone(() => withServiceContext(
+                return await withNoCacheAsked(() => withServiceContext(
                     context,
                     serviceOperationConfig.transaction,
                     resolved => {
@@ -801,12 +857,14 @@ export function defineOperation<
     Return = unknown,
     ParamsSchema extends z.ZodTypeAny | undefined = undefined,
     DataSchema extends z.ZodTypeAny | undefined = undefined,
-    PrismaWhereFilter extends object | undefined = undefined
->({ paramsSchema, dataSchema, transaction, read, authorizer, operation }: {
+    PrismaWhereFilter extends object | undefined = undefined,
+    IsRead extends Read<Flag, DataSchema> = Read<Flag, DataSchema>
+>({ paramsSchema, dataSchema, transaction, read, shared, authorizer, operation }: {
     paramsSchema?: ParamsSchema,
     dataSchema?: DataSchema,
     transaction?: Flag,
-    read: Read<Flag, DataSchema>,
+    read: IsRead,
+    shared?: Shared<IsRead>,
     authorizer: AuthorizerGetter<
         OpensTransactionOf<Flag>, ParamsSchema, DataSchema, undefined, PrismaWhereFilter | undefined
     >,
@@ -820,10 +878,12 @@ export function defineOperation<
         undefined,
         undefined,
         undefined,
-        PrismaWhereFilter
+        PrismaWhereFilter,
+        IsRead
     >({
         transaction,
         read,
+        shared,
         operation: () => operation,
         paramsSchema: paramsSchema !== undefined ? () => paramsSchema : undefined,
         dataSchema: dataSchema !== undefined ? () => dataSchema : undefined,
@@ -868,6 +928,11 @@ function sessionFields(session: SessionMaybeUser): Record<KeysOfUnion<SessionMay
         memberships: session.memberships,
         apiKeyId: session.apiKeyId,
     }
+}
+
+/** Runs the callback with neither a local nor the shared cache asked. What it writes is still told to both. */
+function withNoCacheAsked<Result>(callback: () => Result): Result {
+    return LocalCache.withNone(() => SharedCache.withNone(callback))
 }
 
 /** The names of the fields of params that have no key, for the warning that says which to look at. */

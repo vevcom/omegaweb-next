@@ -64,6 +64,7 @@ export const cmsLinkOperations = {
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsLinkSchemas.params.readSpecial,
         read: true,
+        shared: true,
         operation: () => async ({ prisma, params: { special } }) => {
             const cmsLink = await prisma.cmsLink.findUnique({
                 where: { special }
