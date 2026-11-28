@@ -1,5 +1,4 @@
 import { getImageForCmsImageRelation } from './seedImages'
-import { markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { cmsImageOperations } from '@/cms/images/operations'
 import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import { cmsLinkOperations } from '@/cms/links/operations'
@@ -213,7 +212,7 @@ async function upsertSpecialCmsParagraph(
             })
             return cmsParagraphOperations.updateContent.internalCall({
                 params: { paragraphId: paragraph.id },
-                data: { html: await markdownToSafeHtml(readFileSync(join(CMS_PARAGRAPHS_DIR, file), 'utf-8')) }
+                data: { markdown: readFileSync(join(CMS_PARAGRAPHS_DIR, file), 'utf-8') }
             })
         },
         update: () => {},

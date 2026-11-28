@@ -1,9 +1,10 @@
 import '@ow-server-only'
 import { cmsParagraphSchemas } from './schemas'
+import { maxContentHtmlLength } from './constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 import logger from '@/lib/logger'
-import { sanitizeHtml } from '@/lib/html/sanitizeHtml'
+import { HtmlTooLongError, markdownToSafeHtml } from '@/lib/html/safeHtml'
 import type { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
 
 const create = defineSubOperation({
@@ -62,13 +63,22 @@ export const cmsParagraphOperations = {
         paramsSchema: () => cmsParagraphSchemas.params.updateContent,
         dataSchema: () => cmsParagraphSchemas.data.updateContent,
         operation: () => async ({ params, prisma, data }) => {
-            const contentHtml = sanitizeHtml(data.html)
-                .replace(/<img[^>]*>/g, 'Bilder i tekst er ikke støttet. Bruk det innebygde bildeverktøyet.')
+            const safeHtml = await markdownToSafeHtml(data.markdown, {
+                strikethrough: true,
+                maxLength: maxContentHtmlLength,
+            }).catch((error: unknown) => {
+                throw error instanceof HtmlTooLongError
+                    ? new ServiceError('BAD PARAMETERS', 'Avsnittet blir for stort. Del det opp, eller bruk færre lenker.')
+                    : new ServiceError('BAD PARAMETERS', 'Ugyldig Markdown')
+            })
+            const contentHtml = safeHtml
+                .replace(/<img[^>]*>/g, 'Bilder i markdown er ikke støttet. Bruk det innebygde bildeverktøyet.')
             return await prisma.cmsParagraph.update({
                 where: {
                     id: params.paragraphId
                 },
                 data: {
+                    contentMd: data.markdown,
                     contentHtml,
                 }
             })

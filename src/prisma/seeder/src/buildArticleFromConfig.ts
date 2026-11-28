@@ -1,5 +1,4 @@
 import { getImageForCmsImageRelation } from '@/seeder/src/standardContent/seedImages'
-import { markdownToSafeHtml } from '@/lib/html/safeHtml'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
@@ -103,7 +102,7 @@ export async function buildArticleFromConfig(
 
         if (section.cmsParagraph && newSection.cmsParagraph) {
             await updateSectionParagraph(newSection.cmsParagraph.id, {
-                html: await markdownToSafeHtml(readFileSync(join(CMS_PARAGRAPHS_DIR, section.cmsParagraph.file), 'utf-8'))
+                markdown: readFileSync(join(CMS_PARAGRAPHS_DIR, section.cmsParagraph.file), 'utf-8')
             })
         }
 
