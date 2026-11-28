@@ -1,6 +1,6 @@
 import '@ow-server-only'
-import { chatAppserviceAuth } from './auth'
-import { chatAppserviceSchemas, roomMessageEventSchema, roomRedactionEventSchema } from './schemas'
+import { chatAppserviceContract } from './contract'
+import { roomMessageEventSchema, roomRedactionEventSchema } from './schemas'
 import { chatHomeserverToken } from '@/lib/chatSync/constants'
 import { defineOperation } from '@/services/serviceOperation'
 import type { RoomMessageEvent } from './schemas'
@@ -15,10 +15,8 @@ export const chatAppserviceOperations = {
      * messages and group rooms, by the Matrix room they were written in. One that is removed before
      * it is notified of is forgotten. Everything else is let go.
      */
-    receiveTransaction: defineOperation({
-        paramsSchema: chatAppserviceSchemas.params.receiveTransaction,
-        dataSchema: chatAppserviceSchemas.data.receiveTransaction,
-        authorizer: ({ params }) => chatAppserviceAuth.receiveTransaction.data({
+    receiveTransaction: defineOperation(chatAppserviceContract.receiveTransaction, {
+        authorizerData: ({ params }) => ({
             provided: params.homeserverToken,
             expected: chatHomeserverToken,
         }),

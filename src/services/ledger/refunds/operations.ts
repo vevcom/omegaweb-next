@@ -1,6 +1,5 @@
 import '@ow-server-only'
-import { refundAuth } from './auth'
-import { refundParamsSchemas } from './schemas'
+import { refundContract } from './contract'
 import { ledgerTransactionOperations } from '@/services/ledger/transactions/operations'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -13,9 +12,7 @@ export const refundOperations = {
      * Reverses a SUCCEEDED transaction in full by negating its entries. When part of the money came
      * through Stripe that doesn't balance, so `refundTo` names the account that gets the rest.
      */
-    reverseTransaction: defineOperation({
-        authorizer: () => refundAuth.reverseTransaction,
-        paramsSchema: refundParamsSchemas.reverseTransaction,
+    reverseTransaction: defineOperation(refundContract.reverseTransaction, {
         operation: async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },
@@ -64,9 +61,7 @@ export const refundOperations = {
      * CANCELED. Reuses the original's Payment, so the correction balances without a new one.
      * advance() guarantees nothing else can claim that payment.
      */
-    reimburseUnappliedPayment: defineOperation({
-        authorizer: () => refundAuth.reimburseUnappliedPayment,
-        paramsSchema: refundParamsSchemas.reimburseUnappliedPayment,
+    reimburseUnappliedPayment: defineOperation(refundContract.reimburseUnappliedPayment, {
         operation: async ({ prisma, params }) => {
             const original = await prisma.ledgerTransaction.findUniqueOrThrow({
                 where: { id: params.originalTransactionId },

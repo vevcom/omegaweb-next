@@ -1,6 +1,5 @@
 import '@ow-server-only'
-import { manualReviewAuth } from './auth'
-import { manualReviewSchemas } from './schemas'
+import { manualReviewContract } from './contract'
 import { manualReviewProblemDescriptions } from './constants'
 import { Smorekopp } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -13,9 +12,7 @@ export const manualReviewOperations = {
      * one to add details, or to say what the review is about when it has no transaction or payment.
      * Never throws, since every caller is a best-effort path.
      */
-    create: defineOperation({
-        authorizer: () => manualReviewAuth.create,
-        paramsSchema: manualReviewSchemas.params.create,
+    create: defineOperation(manualReviewContract.create, {
         operation: async ({ prisma, params }) => {
             const subject = `transaksjon ${params.transactionId ?? '-'}, betaling ${params.paymentId ?? '-'}`
             const problemDescription = params.problemDescription ?? manualReviewProblemDescriptions[params.problem]
@@ -42,8 +39,7 @@ export const manualReviewOperations = {
      * Lists the OPEN reviews, newest first, with the transaction and payment each one is about.
      * Admin-only, across every account, not scoped to one the caller is a party to.
      */
-    readOpen: defineOperation({
-        authorizer: () => manualReviewAuth.readOpen,
+    readOpen: defineOperation(manualReviewContract.readOpen, {
         operation: async ({ prisma }) => prisma.manualTransactionReview.findMany({
             where: { state: 'OPEN' },
             include: {
@@ -65,10 +61,7 @@ export const manualReviewOperations = {
     }),
 
     /** Marks an open manual review resolved, with the admin's own account of how. */
-    resolve: defineOperation({
-        authorizer: () => manualReviewAuth.resolve,
-        paramsSchema: manualReviewSchemas.params.resolve,
-        dataSchema: manualReviewSchemas.data.resolve,
+    resolve: defineOperation(manualReviewContract.resolve, {
         operation: async ({ prisma, params, data }) => {
             // Guarded in the update itself, not a separate read then write - two admins
             // resolving the same review at once would otherwise both pass a plain read and the

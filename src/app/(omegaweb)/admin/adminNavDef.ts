@@ -22,12 +22,12 @@ import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
-import { manualReviewAuth } from '@/services/ledger/transactions/manualReviews/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
 import { lockerAuth } from '@/services/lockers/auth'
 import { lockerLocationCapabilities } from '@/capabilities/lockers/locations/capabilities'
+import { manualReviewCapabilities } from '@/capabilities/ledger/transactions/manualReviews/capabilities'
 import { defineGroupedNavDef } from '@/lib/navDef/groupedNavDef'
 import { appHref } from '@/lib/sites/href'
 import {
@@ -289,7 +289,7 @@ export const adminNavDef = defineGroupedNavDef([
                 key: 'ledger-review',
                 name: 'Trenger oppfølging',
                 href: appHref('/admin/ledger-review'),
-                authorizers: () => [manualReviewAuth.readOpen],
+                authorizers: () => [manualReviewCapabilities.readOpen.authorizer],
             },
         ],
     },
