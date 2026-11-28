@@ -1,10 +1,10 @@
 import '@ow-server-only'
 import { localCacheKey, WritesTold } from './localCache'
-import { addSeenByAnAnswer, onTablesWritten, watchTablesRead } from '@/prisma/tableWatch/watch'
+import { addSeenByAnAnswer, onTablesWritten, TablesSeen, watchTablesRead } from '@/prisma/tableWatch/watch'
 import logger from '@/lib/logger'
 import { AsyncLocalStorage } from 'async_hooks'
+import { deserialize, serialize } from 'v8'
 import type { Tables } from '@/prisma/tableWatch/tablesOfQuery'
-import type { TablesSeen } from '@/prisma/tableWatch/watch'
 
 /**
  * How many answers a `MapSharedCache` keeps before it drops the least recently used. An answer of
@@ -14,9 +14,9 @@ import type { TablesSeen } from '@/prisma/tableWatch/watch'
 export const SHARED_CACHE_SIZE = 1000
 
 /**
- * How long an answer is given at most, from when its read began. It bounds what no watcher in this
- * process sees: a write in the worker or in another process of the app, and a read whose answer
- * changes with the clock.
+ * How long an answer is given at most, from when its read began. Every write the watcher sees is
+ * told to the cache, so it bounds what no watcher sees: a read whose answer changes with the clock,
+ * and, for a cache in one process, a write in another.
  */
 export const SHARED_CACHE_TIME_LIMIT_MS = 60 * 1000
 
@@ -32,38 +32,83 @@ const processWide: typeof globalThis & { [stateKey]?: SharedCacheState } = globa
 const state = processWide[stateKey] ??= { notAReadRuns: new AsyncLocalStorage() }
 
 /**
- * What is remembered of the reads that say `shared: true`, across requests. The process begins one
- * when it starts, `MapSharedCache.beginForProcess()`, and with none begun nothing is shared. No call
- * sets it. A read asks it after its authorizer and ownership check have run, so the session is not
- * in its key, and a caller who may not read is refused also when the answer is kept.
+ * What is remembered of the reads that say `shared` with their name, across requests. The process
+ * begins one when it starts, `MapSharedCache.beginForProcess()` or `RedisSharedCache.beginForProcess(...)`,
+ * and with none begun nothing is shared. No call sets it. A read asks it after its authorizer and
+ * ownership check have run, so the session is not in its key, and a caller who may not read is
+ * refused also when the answer is kept.
  *
- * An answer is kept with the tables its read read, and is given while none of them has been
- * written, as in a local cache, and for at most `SHARED_CACHE_TIME_LIMIT_MS`. Every write the
- * watcher of the Prisma client tells of in the process is told to it, wherever it was made. An
- * answer that read no table, tables that cannot be told, or another system, is not kept, nor one
- * that is not plain data. What is kept is the data, and every caller is given a copy of its own.
+ * An answer is kept under the read's name and what was asked, with the tables its read read, and is
+ * given while none of them has been written, as in a local cache, and for at most
+ * `SHARED_CACHE_TIME_LIMIT_MS`. Every write the watcher of the Prisma client tells of in the process
+ * is told to it, wherever it was made. An answer that read no table, tables that cannot be told, or
+ * another system, is not kept, nor one that is not plain data. What is kept is the answer
+ * serialized, and every caller is given a copy of its own. What does not deserialize is a miss, so
+ * no request fails on what is kept. Calls made while a read runs in the process share its run when
+ * no write has been counted since it began. A failure is not kept, and a caller is not given
+ * another's.
+ *
+ * A kind of cache says only how it is asked and where it keeps its answers and its count of writes.
  */
 export abstract class SharedCache {
+    private readonly underWay = new Map<string, AnswerUnderWay>()
+    private readonly warnedOf = new Set<string>()
+
     /**
-     * The answer kept for this operation and this key, or `read` run and its answer kept when it
-     * may be. The tables of the answer are added to the read that asked for it. A failure is not
-     * kept, and a caller is not given another's.
+     * What is kept for this read and this key, and the count of writes now. `undefined` when the
+     * cache cannot be asked, and the read is then read and not kept.
      */
-    public abstract remember(
-        operation: object,
-        key: string,
-        read: () => Promise<SharedAnswer<unknown>>,
-    ): Promise<SharedAnswer<unknown>>
+    protected abstract ask(name: string, key: string): Promise<Asked | undefined> | Asked | undefined
 
     /** No answer that read one of the tables is given again. */
-    public abstract tablesWritten(tables: Tables): void
+    public abstract tablesWritten(tables: Tables): void | Promise<void>
 
-    /** A new cache of this kind is the one of the process from now on. */
-    public static beginForProcess(this: new () => SharedCache): void {
-        const cache = new this()
-        state.stopListening?.()
+    /** Lets go of what the cache holds on to outside the process, once it is no longer in force. */
+    public stop(): void {}
+
+    public async remember<Answer>(
+        name: string,
+        key: string,
+        read: () => Promise<SharedAnswer<Answer>>,
+    ): Promise<SharedAnswer<Answer>> {
+        const asked = await this.ask(name, key)
+        if (!asked) return await read()
+        if (asked.kept) {
+            const kept = SharedAnswer.kept<Answer>(asked.kept.answer)
+            if (kept) {
+                addSeenByAnAnswer(seenOf(asked.kept.tables))
+                return kept
+            }
+        }
+        const id = `${name}:${key}`
+        const underWay = this.underWay.get(id)
+        if (underWay?.readAfter === asked.count) {
+            const shared = await underWay.answer.then(answer => answer.serialized, () => undefined)
+            addSeenByAnAnswer(underWay.seen)
+            const joined = shared && SharedAnswer.kept<Answer>(shared)
+            if (joined) return joined
+        }
+        return await this.readAndKeep(name, id, asked, read)
+    }
+
+    /** A new cache of this kind is the one of the process from now on, and the one before is let go. */
+    public static beginForProcess<Args extends unknown[], Cache extends SharedCache>(
+        this: new (...args: Args) => Cache,
+        ...args: Args
+    ): Cache {
+        const cache = new this(...args)
+        SharedCache.stopForProcess()
         state.stopListening = onTablesWritten(tables => cache.tablesWritten(tables))
         state.cache = cache
+        return cache
+    }
+
+    /** No cache is the one of the process from now on, and the one that was is let go. */
+    public static stopForProcess(): void {
+        state.stopListening?.()
+        state.cache?.stop()
+        state.stopListening = undefined
+        state.cache = undefined
     }
 
     /** The cache a read asks: the one of the process, unless something that is not a read runs. */
@@ -75,83 +120,119 @@ export abstract class SharedCache {
     public static withNone<Result>(callback: () => Result): Result {
         return state.notAReadRuns.run(true, callback)
     }
+
+    private async readAndKeep<Answer>(
+        name: string,
+        id: string,
+        asked: Asked,
+        read: () => Promise<SharedAnswer<Answer>>,
+    ) {
+        const readAt = Date.now()
+        const { result, seen } = watchTablesRead(read)
+        const underWay = { answer: result, readAfter: asked.count, seen }
+        this.underWay.set(id, underWay)
+        try {
+            const answer = await result
+            const tables = this.tablesToKeep(name, answer, seen)
+            if (tables && answer.serialized) {
+                await asked.keep({ answer: answer.serialized, readAfter: asked.count, readAt, tables })
+            }
+            return answer
+        } finally {
+            if (this.underWay.get(id) === underWay) this.underWay.delete(id)
+            addSeenByAnAnswer(seen)
+        }
+    }
+
+    private tablesToKeep(name: string, answer: SharedAnswer<unknown>, seen: TablesSeen) {
+        if (seen.tables === 'unknown' || seen.readOutsideTheDatabase) return undefined
+        if (answer.serialized) return Array.from(seen.tables)
+        if (!this.warnedOf.has(name)) {
+            this.warnedOf.add(name)
+            logger.warn(
+                `The shared read ${name} answered with what is not plain data, such as a class instance, so it is not kept.`
+            )
+        }
+        return undefined
+    }
+}
+
+/** What a cache has for a read when asked, and how to keep the answer of a read begun now. */
+export type Asked = {
+    /** How many writes the cache has counted. A read begun now keeps it as `readAfter`. */
+    count: number,
+    kept?: { answer: Buffer, tables: string[] },
+    keep: (answer: KeptSharedAnswer) => void | Promise<void>,
+}
+
+export type KeptSharedAnswer = {
+    answer: Buffer,
+    /** The count of writes when its read began. */
+    readAfter: number,
+    readAt: number,
+    tables: string[],
+}
+
+type AnswerUnderWay = {
+    answer: Promise<SharedAnswer<unknown>>,
+    readAfter: number,
+    seen: TablesSeen,
 }
 
 /**
- * An answer as the shared cache keeps it. It is given as a copy of its own to every caller, also
- * the one whose read it was, so no caller changes what the next is given. One that is not plain
- * data cannot be copied so, and is given as it is.
+ * An answer as the shared cache keeps it: serialized, and given as a copy of its own to every
+ * caller, also the one whose read it was, so no caller changes what the next is given. A `Date`
+ * is given back as a `Date`. One that is not plain data does not survive it, and is given as it
+ * is to the caller whose read it was alone. A kept one is deserialized once, as the copy of the
+ * caller it is given to.
  */
 export class SharedAnswer<Answer> {
-    public readonly isPlainData: boolean
+    private constructor(private readonly held: { serialized: Buffer } | { answer: Answer }) {}
 
-    public constructor(private readonly answer: Answer) {
-        // What a local cache can key is plain data, which `structuredClone` copies as it is.
-        this.isPlainData = localCacheKey(answer) !== undefined
+    /** What a local cache can key is plain data, which `serialize` keeps as it is. */
+    public static of<Answer>(answer: Answer): SharedAnswer<Answer> {
+        return new SharedAnswer(localCacheKey(answer) === undefined ? { answer } : { serialized: serialize(answer) })
+    }
+
+    /** `undefined` when what is kept does not deserialize, such as bytes of another V8 or a hand write. */
+    public static kept<Answer>(serialized: Buffer): SharedAnswer<Answer> | undefined {
+        try {
+            return new SharedAnswer({ answer: new SharedAnswer<Answer>({ serialized }).given() })
+        } catch {
+            return undefined
+        }
+    }
+
+    public get serialized(): Buffer | undefined {
+        return 'serialized' in this.held ? this.held.serialized : undefined
     }
 
     public given(): Answer {
-        return this.isPlainData ? structuredClone(this.answer) : this.answer
+        if (!('serialized' in this.held)) return this.held.answer
+        // What is kept under a read's name is that read's answer, which no type follows through the bytes.
+        return deserialize(this.held.serialized) as Answer
     }
 }
-
-type KeptSharedAnswer = {
-    answer: SharedAnswer<unknown>,
-    readAfter: number,
-    seen: TablesSeen,
-    readAt: number,
-}
-
-type SharedAnswerUnderWay = Omit<KeptSharedAnswer, 'answer' | 'readAt'> & { answer: Promise<SharedAnswer<unknown>> }
 
 /**
  * Keeps its answers in a map of its own, in the memory of the process, at most
- * `SHARED_CACHE_SIZE` of them. A read under way is shared by the calls made while it runs.
+ * `SHARED_CACHE_SIZE` of them, and counts the writes told to it in the process.
  */
 export class MapSharedCache extends SharedCache {
     private readonly kept = new Map<string, KeptSharedAnswer>()
-    private readonly underWay = new Map<string, SharedAnswerUnderWay>()
     private readonly writes = new WritesTold()
-    private readonly idOfOperation = new WeakMap<object, number>()
-    private operationsSeen = 0
-    private readonly warnedOf = new WeakSet<object>()
-
-    public async remember(operation: object, key: string, read: () => Promise<SharedAnswer<unknown>>) {
-        const id = `${this.idOf(operation)}:${key}`
-        const kept = this.usable(id)
-        if (kept) {
-            addSeenByAnAnswer(kept.seen)
-            return kept.answer
-        }
-        const underWay = this.underWay.get(id)
-        if (underWay?.readAfter === this.writes.count) {
-            try {
-                return await underWay.answer
-            } catch {
-                return await this.readAndKeep(operation, id, read)
-            } finally {
-                addSeenByAnAnswer(underWay.seen)
-            }
-        }
-        return await this.readAndKeep(operation, id, read)
-    }
 
     public tablesWritten(tables: Tables) {
         this.writes.tell(tables)
     }
 
-    private async readAndKeep(operation: object, id: string, read: () => Promise<SharedAnswer<unknown>>) {
-        const readAt = Date.now()
-        const { result, seen } = watchTablesRead(read)
-        const underWay = { answer: result, readAfter: this.writes.count, seen }
-        this.underWay.set(id, underWay)
-        try {
-            const answer = await result
-            if (this.mayKeep(operation, answer, seen)) this.keep(id, { ...underWay, answer, readAt })
-            return answer
-        } finally {
-            if (this.underWay.get(id) === underWay) this.underWay.delete(id)
-            addSeenByAnAnswer(seen)
+    protected ask(name: string, key: string): Asked {
+        const id = `${name}:${key}`
+        const kept = this.usable(id)
+        return {
+            count: this.writes.count,
+            kept,
+            keep: answer => this.keep(id, answer),
         }
     }
 
@@ -160,20 +241,11 @@ export class MapSharedCache extends SharedCache {
         if (!kept) return undefined
         this.kept.delete(id)
         const isInTime = Date.now() - kept.readAt < SHARED_CACHE_TIME_LIMIT_MS
-        if (!isInTime || !this.writes.leaveUsable({ ...kept, hasEnded: true })) return undefined
+        const isUnwritten = this.writes.leaveUsable({ readAfter: kept.readAfter, seen: seenOf(kept.tables), hasEnded: true })
+        if (!isInTime || !isUnwritten) return undefined
         // Put last again, as the most recently used.
         this.kept.set(id, kept)
         return kept
-    }
-
-    private mayKeep(operation: object, answer: SharedAnswer<unknown>, seen: TablesSeen) {
-        if (seen.tables === 'unknown' || seen.readOutsideTheDatabase) return false
-        if (answer.isPlainData) return true
-        if (!this.warnedOf.has(operation)) {
-            this.warnedOf.add(operation)
-            logger.warn('A shared read answered with what is not plain data, such as a class instance, so it is not shared.')
-        }
-        return false
     }
 
     private keep(id: string, kept: KeptSharedAnswer) {
@@ -183,10 +255,10 @@ export class MapSharedCache extends SharedCache {
         const leastRecentlyUsed = this.kept.keys().next()
         if (this.kept.size > SHARED_CACHE_SIZE && !leastRecentlyUsed.done) this.kept.delete(leastRecentlyUsed.value)
     }
+}
 
-    private idOf(operation: object) {
-        const id = this.idOfOperation.get(operation) ?? ++this.operationsSeen
-        this.idOfOperation.set(operation, id)
-        return id
-    }
+function seenOf(tables: string[]) {
+    const seen = new TablesSeen()
+    seen.add(new Set(tables))
+    return seen
 }

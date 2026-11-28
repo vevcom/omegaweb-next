@@ -7,7 +7,7 @@ type TableWatchState = {
     watchInForce: AsyncLocalStorage<TablesSeen>,
     /** The writes of a transaction under way, which no other query sees before it has ended. */
     transactionInForce: AsyncLocalStorage<{ written: TablesSeen, hasEnded: boolean }>,
-    writeListeners: Set<(tables: Tables) => void>,
+    writeListeners: Set<WriteListener>,
 }
 
 /**
@@ -59,7 +59,7 @@ export const tableWatch = Prisma.defineExtension(client => {
                     inForce.hasEnded = true
                     // One opened while another is under way may be part of it, so that one tells of it too.
                     transactionInForce.getStore()?.written.add(inForce.written.tables)
-                    if (!inForce.written.isEmpty) tellOfWrite(inForce.written.tables)
+                    return inForce.written.isEmpty ? undefined : tellOfWrite(inForce.written.tables)
                 })
             },
         },
@@ -122,13 +122,16 @@ export function addSeenByAnAnswer(seen: TablesSeen) {
 /**
  * Calls the listener with the tables of every write, after the write is done and other queries see
  * it: a write in a transaction is told when the transaction has ended, also when it was rolled back.
- * The listener is called in the async context the write was awaited in. Returns how to stop.
+ * The listener is called in the async context the write was awaited in, and the write is done for
+ * its caller once what the listener returns has settled. Returns how to stop.
  */
-export function onTablesWritten(listener: (tables: Tables) => void): () => void {
+export function onTablesWritten(listener: WriteListener): () => void {
     writeListeners.add(listener)
     return () => writeListeners.delete(listener)
 }
 
+type WriteListener = (tables: Tables) => unknown
+
 function tellOfWrite(tables: Tables) {
-    writeListeners.forEach(listener => listener(tables))
+    return Promise.all(Array.from(writeListeners, listener => listener(tables)))
 }

@@ -42,7 +42,7 @@ export const cmsParagraphOperations = {
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsParagraphSchemas.params.readSpecial,
         read: true,
-        shared: true,
+        shared: 'cmsParagraphOperations.readSpecial',
         operation: () => async ({ params, prisma }) => {
             const paragraph = await prisma.cmsParagraph.findUnique({ where: { special: params.special } })
             if (paragraph) return paragraph

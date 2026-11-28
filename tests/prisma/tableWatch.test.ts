@@ -227,6 +227,22 @@ describe('the watcher on the client', () => {
         expect(await Promise.all(linksReadWhenTold)).toEqual(['https://told.test/written'])
     })
 
+    test('a write is done for its caller once what its listeners return has settled, also in a transaction', async () => {
+        const settled: string[] = []
+        const stop = onTablesWritten(async () => {
+            await new Promise(resolve => setTimeout(resolve, 10))
+            settled.push('told')
+        })
+
+        await prisma.omegaQuote.updateMany({ where: { id: -1 }, data: { quote: 'none' } })
+        settled.push('written')
+        await prisma.$transaction(tx => tx.omegaQuote.updateMany({ where: { id: -1 }, data: { quote: 'none' } }))
+        settled.push('written in a transaction')
+        stop()
+
+        expect(settled).toEqual(['told', 'written', 'told', 'written in a transaction'])
+    })
+
     test('a transaction opened on the client inside another is told when it ends, and with the outer one', async () => {
         const told: (string[] | 'unknown')[] = []
         const stop = onTablesWritten(tables => told.push(sorted(tables)))
