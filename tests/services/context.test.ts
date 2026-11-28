@@ -1,8 +1,8 @@
 import { prisma as globalPrisma } from '@/prisma/client'
-import { defineOperation } from '@/services/serviceOperation'
+import { defineOperation, getContext, withServiceContext } from '@/services/serviceOperation'
 import { Session } from '@/auth/session/Session'
 import { Require } from '@/auth/authorizer/Require'
-import { describe, test, expect } from '@jest/globals'
+import { describe, test, expect, jest } from '@jest/globals'
 import type { ServiceOperationContext } from '@/services/serviceOperation'
 
 const returnContextInfo = defineOperation({
@@ -45,5 +45,15 @@ describe('context', () => {
             const res = await func(context)
             expect(res).toMatchObject(expected)
         }
+    })
+
+    test('is one for the process, so the log of the one client knows who asks in either runtime', async () => {
+        jest.resetModules()
+        const copy = await import('@/services/serviceOperation')
+        expect(copy.withServiceContext).not.toBe(withServiceContext)
+
+        const seenByTheLog = copy.withServiceContext({ session: apiKeySession }, 'NONE', () => getContext()?.session)
+
+        expect(seenByTheLog).toBe(apiKeySession)
     })
 })

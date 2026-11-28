@@ -73,6 +73,7 @@ export const cmsImageOperations = {
     readSpecial: defineSubOperation({
         paramsSchema: () => cmsImageSchemas.params.readSpecial,
         read: true,
+        shared: true,
         operation: () => async ({ prisma, params }) => {
             const image = await prisma.cmsImage.findUnique({
                 where: {

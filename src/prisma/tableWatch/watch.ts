@@ -3,12 +3,24 @@ import { Prisma } from '@/prisma-generated-pn-client'
 import { AsyncLocalStorage } from 'async_hooks'
 import type { Tables } from '@/prisma/tableWatch/tablesOfQuery'
 
-const watchInForce = new AsyncLocalStorage<TablesSeen>()
+type TableWatchState = {
+    watchInForce: AsyncLocalStorage<TablesSeen>,
+    /** The writes of a transaction under way, which no other query sees before it has ended. */
+    transactionInForce: AsyncLocalStorage<{ written: TablesSeen, hasEnded: boolean }>,
+    writeListeners: Set<(tables: Tables) => void>,
+}
 
-/** The writes of a transaction under way, which no other query sees before it has ended. */
-const transactionInForce = new AsyncLocalStorage<{ written: TablesSeen, hasEnded: boolean }>()
-
-const writeListeners = new Set<(tables: Tables) => void>()
+/**
+ * One for the process, hung on `globalThis`. A production build has a copy of this module in each
+ * of its runtimes, one for the pages and one for the route handlers, and they share one client.
+ */
+const stateKey = Symbol.for('omegaweb.tableWatch')
+const processWide: typeof globalThis & { [stateKey]?: TableWatchState } = globalThis
+const { watchInForce, transactionInForce, writeListeners } = processWide[stateKey] ??= {
+    watchInForce: new AsyncLocalStorage(),
+    transactionInForce: new AsyncLocalStorage(),
+    writeListeners: new Set(),
+}
 
 /**
  * The watcher of the Prisma client, for `$extends`: every call of the client passes it, and those

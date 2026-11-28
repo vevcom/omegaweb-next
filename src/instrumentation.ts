@@ -12,4 +12,7 @@ export async function register() {
 
     const { loadDomainConfig } = await import('@/lib/sites/loadDomainConfig')
     loadDomainConfig()
+
+    const { MapSharedCache } = await import('@/services/sharedCache')
+    MapSharedCache.beginForProcess()
 }

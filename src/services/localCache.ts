@@ -129,7 +129,7 @@ export class WritesTold {
         tables.forEach(table => this.lastToTable.set(table, this.told))
     }
 
-    public leaveUsable({ readAfter, seen, hasEnded }: KeptAnswer) {
+    public leaveUsable({ readAfter, seen, hasEnded }: Omit<KeptAnswer, 'answer'>) {
         const { tables } = seen
         if (this.told === readAfter) return true
         if (!hasEnded || tables === 'unknown' || seen.readOutsideTheDatabase) return false
