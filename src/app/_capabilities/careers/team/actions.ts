@@ -1,5 +1,5 @@
 'use server'
-import { careersTeamOperations } from './operations'
+import { careersTeamOperations } from '@/services/careers/team/operations'
 import { makeAction } from '@/services/serverAction'
 
 export const createCareersTeamDepartmentAction = makeAction(careersTeamOperations.createDepartment)

@@ -1,6 +1,5 @@
 import '@ow-server-only'
-import { careersTeamAuth } from './auth'
-import { careersTeamSchemas } from './schemas'
+import { careersTeamContract } from './contract'
 import { careersTeamDepartmentIncluder } from './constants'
 import { destroyPersons } from './persons/destroyPersons'
 import { defineOperation } from '@/services/serviceOperation'
@@ -9,17 +8,14 @@ import { cmsParagraphOperations } from '@/cms/paragraphs/operations'
 import type { ExpandedCareerTeamDepartment } from './types'
 
 export const careersTeamOperations = {
-    readDepartments: defineOperation({
-        authorizer: () => careersTeamAuth.readDepartments,
+    readDepartments: defineOperation(careersTeamContract.readDepartments, {
         operation: ({ prisma }): Promise<ExpandedCareerTeamDepartment[]> => prisma.careerTeamDepartment.findMany({
             orderBy: { order: 'asc' },
             include: careersTeamDepartmentIncluder,
         }),
     }),
 
-    createDepartment: defineOperation({
-        dataSchema: careersTeamSchemas.data.createDepartment,
-        authorizer: () => careersTeamAuth.createDepartment,
+    createDepartment: defineOperation(careersTeamContract.createDepartment, {
         transaction: 'RUNS_IN',
         operation: async ({ prisma, data }) => {
             const paragraph = await cmsParagraphOperations.create.internalCall({
@@ -33,10 +29,7 @@ export const careersTeamOperations = {
         },
     }),
 
-    updateDepartment: defineOperation({
-        paramsSchema: careersTeamSchemas.params.updateDepartment,
-        dataSchema: careersTeamSchemas.data.updateDepartment,
-        authorizer: () => careersTeamAuth.updateDepartment,
+    updateDepartment: defineOperation(careersTeamContract.updateDepartment, {
         operation: async ({ prisma, params, data }) => {
             await prisma.careerTeamDepartment.update({
                 where: { id: params.departmentId },
@@ -45,10 +38,7 @@ export const careersTeamOperations = {
         },
     }),
 
-    moveDepartment: defineOperation({
-        paramsSchema: careersTeamSchemas.params.moveDepartment,
-        dataSchema: careersTeamSchemas.data.moveDepartment,
-        authorizer: () => careersTeamAuth.moveDepartment,
+    moveDepartment: defineOperation(careersTeamContract.moveDepartment, {
         transaction: 'RUNS_IN',
         operation: async ({ prisma, params, data }) => {
             const department = await prisma.careerTeamDepartment.findUniqueOrThrow({
@@ -69,9 +59,7 @@ export const careersTeamOperations = {
         },
     }),
 
-    destroyDepartment: defineOperation({
-        paramsSchema: careersTeamSchemas.params.destroyDepartment,
-        authorizer: () => careersTeamAuth.destroyDepartment,
+    destroyDepartment: defineOperation(careersTeamContract.destroyDepartment, {
         transaction: 'OPENS',
         operation: async ({ prisma, params }) => {
             await prisma.$transaction(async tx => {
@@ -90,13 +78,15 @@ export const careersTeamOperations = {
         },
     }),
 
-    updateDepartmentParagraph: cmsParagraphOperations.updateContent.implement({
-        authorizer: () => careersTeamAuth.updateDepartmentParagraph,
-        ownershipCheck: async ({ params, prisma }) => (
-            await prisma.careerTeamDepartment.findUnique({
-                where: { paragraphId: params.paragraphId },
-                select: { id: true },
-            })
-        ) !== null,
-    }),
+    updateDepartmentParagraph: cmsParagraphOperations.updateContent.implement(
+        careersTeamContract.updateDepartmentParagraph,
+        {
+            ownershipCheck: async ({ params, prisma }) => (
+                await prisma.careerTeamDepartment.findUnique({
+                    where: { paragraphId: params.paragraphId },
+                    select: { id: true },
+                })
+            ) !== null,
+        },
+    ),
 } as const

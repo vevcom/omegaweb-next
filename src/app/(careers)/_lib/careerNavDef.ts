@@ -5,7 +5,7 @@ import { careerAdminLinks } from '@/app/(careers)/career/admin/links'
 import { careerAdminNavDef } from '@/app/(careers)/career/admin/careerAdminNavDef'
 import { jobAdAuth } from '@/services/careers/jobAds/auth'
 import { companyAuth } from '@/services/careers/companies/auth'
-import { careersTeamAuth } from '@/services/careers/team/auth'
+import { careersTeamCapabilities } from '@/capabilities/careers/team/capabilities'
 import { eventAuth } from '@/services/events/auth'
 import { Require } from '@/auth/authorizer/Require'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -46,7 +46,7 @@ export const careerNavDef = defineNavDef([
         name: 'Om oss',
         href: careerLinks.about(),
         icon: faPeopleGroup,
-        authorizers: () => [careersTeamAuth.readDepartments],
+        authorizers: () => [careersTeamCapabilities.readDepartments.authorizer],
     },
 ])
 
