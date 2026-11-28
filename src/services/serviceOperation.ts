@@ -115,9 +115,9 @@ type OpensTransactionOf<Flag extends TransactionFlag> = [Flag] extends ['OPENS']
  * transaction is never remembered. The caller never sees it, and the operation is never handed the
  * cache.
  *
- * A call of anything else may write. Nothing is remembered while it runs, and when it ends, also by
- * throwing, it clears the local cache in force where it was called, and those that one was begun
- * inside of.
+ * A call of anything else may write. Nothing is remembered while it runs. The local cache in force
+ * where it was called, and those that one was begun inside of, give no answer again that read a
+ * table it wrote, nor, once it has ended, also by throwing, one that read no table.
  *
  * Only `read: false` compiles on an operation with a data schema, or on one that opens or runs in a
  * transaction. That is all the compiler checks: whether an operation with params alone writes is
@@ -725,10 +725,10 @@ export function defineSubOperation<
             // The context is resolved first, so the operation joins the caller's transaction when it is in one.
             if (isRead) return withServiceContext(context, serviceOperationConfig.transaction, runOrRemembered)
 
-            // What is not a read may write. So nothing is remembered while it runs, and what was
-            // remembered before it ended is forgotten: by the cache in force where it was called, which
-            // clears those it was begun inside of.
-            const cacheToClear = LocalCache.inForce()
+            // What is not a read may write. So nothing is remembered while it runs. The cache in force
+            // where it was called hears from the Prisma client of every table it writes, and here that
+            // it has ended, since it may have written what no table shows.
+            const cacheToTell = LocalCache.inForce()
             try {
                 return await LocalCache.withNone(() => withServiceContext(
                     context,
@@ -745,7 +745,7 @@ export function defineSubOperation<
                     }
                 ))
             } finally {
-                cacheToClear?.clear()
+                cacheToTell?.notAReadEnded()
             }
         }
 
