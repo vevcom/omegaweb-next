@@ -3,6 +3,7 @@ import ServiceErrorView from '@/components/ServiceErrorView/ServiceErrorView'
 import PageTitleSetter from '@/contexts/PageTitleSetter'
 import { Smorekopp } from '@/services/error'
 import { withServiceContext } from '@/services/serviceOperation'
+import { RenderServiceCache } from '@/app/renderServiceCache'
 import { ServerSession } from '@/auth/session/ServerSession'
 import { runCapabilities } from '@/auth/authorizer/capabilities'
 import { authLinks } from '@/pageKits/auth/links'
@@ -205,7 +206,7 @@ export function serverPage<
         const session = await ServerSession.fromNextAuth()
         if (!allowUnregistered) await redirectUnregistered(session)
         const data = await withServiceContext(
-            { session },
+            { session, cache: new RenderServiceCache() },
             'NONE',
             () => operation({ params, searchParams, session })
         )
@@ -368,11 +369,12 @@ export async function withFallback<Data, Fallback>(
  * automatically - the same environment a serverPage operation runs in. Errors are not handled
  * here; wrap calls in {@link withFallback}, catch them with {@link handleServiceError}, or let
  * them hit the error boundary. Layouts use {@link serverLayout}, which handles them, and a section
- * of a page is a `Suspendful`, which loads behind a boundary of its own.
+ * of a page is a `Suspendful`, which loads behind a boundary of its own. The context is handed the
+ * cache of the render, as a serverPage operation's is.
  */
 export async function withPageSession<Result>(
     callback: (session: ServerPageSession) => Awaitable<Result>
 ): Promise<Result> {
     const session = await ServerSession.fromNextAuth()
-    return withServiceContext({ session }, 'NONE', () => callback(session))
+    return withServiceContext({ session, cache: new RenderServiceCache() }, 'NONE', () => callback(session))
 }
