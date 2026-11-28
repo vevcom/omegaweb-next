@@ -5,6 +5,7 @@ import { defineCapabilities, defineContract } from '@/services/serviceContract'
 import { defineOperation } from '@/services/serviceOperation'
 import { z } from 'zod'
 import type { ActionReturn } from '@/services/actionTypes'
+import type { Prisma, PrismaClient } from '@/prisma-generated-pn-client'
 
 // Checked by `npx tsc --noEmit` and never run, so jest does not match its name. The
 // `@ts-expect-error` lines are the test: tsc fails on any of them that stops being an error.
@@ -75,6 +76,28 @@ defineContract({
         authorizer: anyone,
     },
 })
+
+// The transaction flag, as in the other form: an operation that opens a transaction gets the root client.
+
+const opensTransaction = defineOperation(shapes.neither, {
+    transaction: 'OPENS',
+    operation: ({ prisma }) => {
+        const client: PrismaClient = prisma
+        return client.$transaction(tx => tx.user.count())
+    },
+})
+
+defineOperation(shapes.neither, {
+    operation: ({ prisma }) => {
+        // @ts-expect-error Without OPENS the client may be a transaction's.
+        const client: PrismaClient = prisma
+        return client
+    },
+})
+
+declare const transactionClient: Prisma.TransactionClient
+// @ts-expect-error An operation that opens a transaction is not called inside one.
+void opensTransaction({ prisma: transactionClient })
 
 // The join: an action sits under the key of the entry it was made from.
 

@@ -6,12 +6,7 @@ import PopUp from '@/components/PopUp/PopUp'
 import TextInput from '@/components/UI/TextInput'
 import useEditMode from '@/hooks/useEditMode'
 import { configureAction } from '@/services/configureAction'
-import {
-    destroyCareersTeamDepartmentAction,
-    moveCareersTeamDepartmentAction,
-    updateCareersTeamDepartmentAction,
-} from '@/services/careers/team/actions'
-import { careersTeamAuth } from '@/services/careers/team/auth'
+import { careersTeamCapabilities } from '@/capabilities/careers/team/capabilities'
 import useSiteRouter from '@/hooks/useSiteRouter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowDown, faArrowUp, faPencil } from '@fortawesome/free-solid-svg-icons'
@@ -25,13 +20,13 @@ type PropTypes = {
 const controlClassName = 'bg-base-300! rounded-full!'
 
 export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDown }: PropTypes) {
-    const editable = useEditMode({ authorizer: careersTeamAuth.updateDepartment })
+    const editable = useEditMode({ authorizer: careersTeamCapabilities.updateDepartment.authorizer })
     const { refresh } = useSiteRouter()
     const popUpKey = `EditCareersTeamDepartment${department.id}`
     const params = { params: { departmentId: department.id } }
 
     const move = async (direction: 'UP' | 'DOWN') => {
-        await moveCareersTeamDepartmentAction(params, { data: { direction } })
+        await careersTeamCapabilities.moveDepartment.action(params, { data: { direction } })
         refresh()
     }
 
@@ -67,7 +62,7 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
                 <div className="flex flex-col gap-8 min-w-[min(24rem,80vw)]">
                     <Form
                         title="Rediger avdeling"
-                        action={configureAction(updateCareersTeamDepartmentAction, params)}
+                        action={configureAction(careersTeamCapabilities.updateDepartment.action, params)}
                         submitText="Lagre"
                         refreshOnSuccess
                         closePopUpOnSuccess={popUpKey}
@@ -75,7 +70,7 @@ export default function TeamDepartmentEditor({ department, canMoveUp, canMoveDow
                         <TextInput name="name" label="Navn" defaultValue={department.name} />
                     </Form>
                     <Form
-                        action={configureAction(destroyCareersTeamDepartmentAction, params)}
+                        action={configureAction(careersTeamCapabilities.destroyDepartment.action, params)}
                         submitText="Slett avdeling"
                         submitColor="error"
                         refreshOnSuccess

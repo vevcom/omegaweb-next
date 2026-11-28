@@ -1,5 +1,6 @@
 import '@ow-server-only'
 import { cmsParagraphSchemas } from './schemas'
+import { cmsParagraphContract } from './contract'
 import { maxContentHtmlLength } from './constants'
 import { defineSubOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -59,10 +60,8 @@ export const cmsParagraphOperations = {
         }
     }),
 
-    updateContent: defineSubOperation({
-        paramsSchema: () => cmsParagraphSchemas.params.updateContent,
-        dataSchema: () => cmsParagraphSchemas.data.updateContent,
-        operation: () => async ({ params, prisma, data }) => {
+    updateContent: defineSubOperation(cmsParagraphContract.updateContent, {
+        operation: async ({ params, prisma, data }) => {
             const safeHtml = await markdownToSafeHtml(data.markdown, {
                 strikethrough: true,
                 maxLength: maxContentHtmlLength,

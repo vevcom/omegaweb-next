@@ -1,6 +1,6 @@
 import { paragraphMarkdownLimits } from './constants'
 import { costlyMarkdownIssue } from '@/lib/markdown/markdownCost'
-import { SpecialCmsParagraph } from '@/prisma-generated-pn-types'
+import { SpecialCmsParagraph } from '@/prisma-generated-pn/enums'
 import { z } from 'zod'
 
 const dataFieldSchemas = z.object({

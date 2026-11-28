@@ -3,7 +3,12 @@ import { Smorekopp } from '@/services/error'
 import { prisma } from '@/prisma-pn-client-instance'
 import { careersTeamOperations } from '@/services/careers/team/operations'
 import { careersTeamPersonOperations } from '@/services/careers/team/persons/operations'
+import { frontpageOperations } from '@/services/frontpage/operations'
+import { userOperations } from '@/services/users/operations'
+import { withServiceContext } from '@/services/serviceOperation'
+import { testSession } from 'tests/utils'
 import { beforeAll, describe, expect, test } from '@jest/globals'
+import type { AnySession } from '@/auth/session/Session'
 
 const teamEditor = Session.fromJsObject({ user: null, permissions: ['JOBAD_ADMIN'], memberships: [] })
 
@@ -101,5 +106,88 @@ describe('careers team', () => {
         expect(await prisma.careerTeamPerson.count({ where: { departmentId } })).toBe(0)
         expect(await prisma.image.count({ where: { id: { in: imageIds } } })).toBe(0)
         expect(await prisma.cmsParagraph.count({ where: { id: department.paragraphId } })).toBe(0)
+    })
+})
+
+describe('the rules of the careers team, from its contract', () => {
+    const committeeAdmin = Session.fromJsObject({ user: null, permissions: ['COMMITTEE_ADMIN'], memberships: [] })
+    let signedIn: AnySession
+    let department: { id: number, paragraphId: number }
+
+    beforeAll(async () => {
+        const user = await userOperations.create({
+            data: {
+                email: 'careersteam@omega.ntnu.no',
+                firstname: 'Test',
+                lastname: 'Testesen',
+                username: 'careersteam',
+                emailVerified: new Date().toISOString(),
+            },
+            bypassAuth: true,
+        })
+        signedIn = testSession({ user, permissions: ['JOBAD_USE'] })
+        department = await careersTeamOperations.createDepartment({ data: { name: 'Arrangement' }, session: teamEditor })
+    })
+
+    test('a job ad admin and a committee admin change a department and its paragraph', async () => {
+        await careersTeamOperations.updateDepartment({
+            params: { departmentId: department.id },
+            data: { name: 'Arrangementer' },
+            session: committeeAdmin,
+        })
+
+        await expect(careersTeamOperations.updateDepartmentParagraph({
+            params: { paragraphId: department.paragraphId },
+            data: { markdown: 'Vi lager *bedpres*' },
+            session: teamEditor,
+        })).resolves.toMatchObject({ contentMd: 'Vi lager *bedpres*' })
+        await expect(careersTeamOperations.updateDepartmentParagraph({
+            params: { paragraphId: department.paragraphId },
+            data: { markdown: 'Vi lager bedpres' },
+            session: committeeAdmin,
+        })).resolves.toMatchObject({ contentMd: 'Vi lager bedpres' })
+    })
+
+    test('a user with neither permission changes nothing, and a visitor is asked to sign in', async () => {
+        const params = { departmentId: department.id }
+        const paragraphBefore = await prisma.cmsParagraph.findUniqueOrThrow({ where: { id: department.paragraphId } })
+        for (const [session, errorCode] of [[signedIn, 'UNAUTHORIZED'], [Session.empty(), 'UNAUTHENTICATED']] as const) {
+            await expect(careersTeamOperations.createDepartment({ data: { name: 'PR' }, session }))
+                .rejects.toMatchObject({ errorCode })
+            await expect(careersTeamOperations.updateDepartment({ params, data: { name: 'PR' }, session }))
+                .rejects.toMatchObject({ errorCode })
+            await expect(careersTeamOperations.moveDepartment({ params, data: { direction: 'UP' }, session }))
+                .rejects.toMatchObject({ errorCode })
+            await expect(careersTeamOperations.destroyDepartment({ params, session }))
+                .rejects.toMatchObject({ errorCode })
+            await expect(careersTeamOperations.updateDepartmentParagraph({
+                params: { paragraphId: department.paragraphId },
+                data: { markdown: 'Nei' },
+                session,
+            })).rejects.toMatchObject({ errorCode })
+        }
+        await expect(prisma.cmsParagraph.findUniqueOrThrow({ where: { id: department.paragraphId } }))
+            .resolves.toMatchObject({ contentMd: paragraphBefore.contentMd })
+    })
+
+    test('a paragraph of another owner is refused by the ownership check, whoever asks', async () => {
+        const frontpageParagraph = await frontpageOperations.cmsParagraphs.internal.read.internalCall({
+            params: { special: 'FRONTPAGE_3' },
+        })
+
+        await expect(careersTeamOperations.updateDepartmentParagraph({
+            params: { paragraphId: frontpageParagraph.id },
+            data: { markdown: 'Ikke vårt' },
+            session: teamEditor,
+        })).rejects.toMatchObject({ errorCode: 'DISSALLOWED' })
+        await expect(prisma.cmsParagraph.findUniqueOrThrow({ where: { id: frontpageParagraph.id } }))
+            .resolves.toMatchObject({ contentMd: frontpageParagraph.contentMd })
+    })
+
+    test('a department is destroyed in a transaction of its own, so not inside another', async () => {
+        await expect(prisma.$transaction(tx => withServiceContext({ prisma: tx }, 'NONE', () =>
+            careersTeamOperations.destroyDepartment({ params: { departmentId: department.id }, session: teamEditor })
+        ))).rejects.toMatchObject({ errorCode: 'SERVER ERROR' })
+        expect(await prisma.careerTeamDepartment.count({ where: { id: department.id } })).toBe(1)
     })
 })

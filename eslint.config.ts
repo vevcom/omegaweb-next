@@ -30,10 +30,17 @@ const noNextRedirect = {
     message: 'Redirect with siteRedirect from @/app/domainContextOfRequest, '
         + 'which resolves an app path for the domain the request came to.',
 }
+// Every alias that reaches into src/services, so none of them is a way around the rule.
 const noContractOfAnotherService = {
-    group: ['@/services/**/contract'],
+    group: ['@/services/**/contract', '@/careers/**/contract', '@/cms/**/contract'],
     message: 'A contract is imported by its own service, as ./contract, and by its capabilities file. '
         + 'Everything else imports from @/capabilities.',
+}
+// The sub-contracts, which the contracts that implement them import as well.
+const subContracts = ['@/services/cms/paragraphs/contract', '@/cms/paragraphs/contract']
+const noContractOfAnotherServiceButSubContracts = {
+    group: [...noContractOfAnotherService.group, ...subContracts.map(subContract => `!${subContract}`)],
+    message: `${noContractOfAnotherService.message} A contract imports a sub-contract it implements.`,
 }
 const noDeclaredFormInternals = {
     group: ['**/Form/Declared/*', '!**/Form/Declared/Form', './Declared/*', '!./Declared/Form'],
@@ -658,6 +665,24 @@ const eslintConfig = defineConfig([
                         + 'etc.) instead of a raw <input>. type="hidden" inputs are exempt.'
                 }
             ]
+        }
+    },
+    {
+        // A contract imports the sub-contracts it implements.
+        files: ['src/services/**/contract.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                {
+                    patterns: [
+                        noRelativeImports,
+                        noResolvedHrefTagging,
+                        noContractOfAnotherServiceButSubContracts,
+                        noDeclaredFormInternals,
+                    ],
+                    paths: [noNextLink, noNextRouter, noNextRedirect],
+                },
+            ],
         }
     },
     {

@@ -11,8 +11,7 @@ import {
 import CmsParagraph from '@/components/Cms/CmsParagraph/CmsParagraph'
 import SpecialCmsImage from '@/components/Cms/CmsImage/SpecialCmsImage'
 import { careersTeamOperations } from '@/services/careers/team/operations'
-import { careersTeamAuth } from '@/services/careers/team/auth'
-import { updateCareersTeamDepartmentParagraphAction } from '@/services/careers/team/actions'
+import { careersTeamCapabilities } from '@/capabilities/careers/team/capabilities'
 import { careersFrontpageAuth } from '@/services/careers/frontpage/auth'
 import {
     updateCareersFrontpageSpecialCmsImageAction,
@@ -26,7 +25,7 @@ const departmentAnchor = (departmentId: number) => `avdeling-${departmentId}`
 const { page, generateMetadata } = serverPage({
     operation: () => careersTeamOperations.readDepartments({}),
     capabilities: () => ({
-        canEditDepartmentParagraph: careersTeamAuth.updateDepartmentParagraph,
+        canEditDepartmentParagraph: careersTeamCapabilities.updateDepartmentParagraph.authorizer,
         canEditSpecialCmsImage: careersFrontpageAuth.cmsImages.update,
     }),
     metadata: () => ({
@@ -123,7 +122,7 @@ const { page, generateMetadata } = serverPage({
                                     mb-0!
                                     [&_:is(p,li)]:text-m [&_:is(p,li)]:leading-[1.7]
                                 "
-                                updateCmsParagraphAction={updateCareersTeamDepartmentParagraphAction}
+                                updateCmsParagraphAction={careersTeamCapabilities.updateDepartmentParagraph.action}
                                 capabilities={{ canEdit: capabilities.canEditDepartmentParagraph }}
                             />
                         </div>

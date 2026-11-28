@@ -8,7 +8,9 @@ import logger from '@/lib/logger'
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { AsyncLocalStorage } from 'async_hooks'
 import type { ServiceErrorCode } from './error'
-import type { ContractEntry, Marked, Rule, RuleData } from './serviceContract'
+import type {
+    ContractEntry, Implementing, ImplementingNothing, Marked, Rule, RuleData, SubContractEntry,
+} from './serviceContract'
 import type { Authorizer } from '@/auth/authorizer/Authorizer'
 import type { RequireBuilder } from '@/auth/authorizer/Require'
 import type { z } from 'zod'
@@ -229,7 +231,11 @@ export type OperationImplementationFieldsOf<
     args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
 ) => OperationImplementationFields | Promise<OperationImplementationFields>
 
-export type ServiceOperationImplementationConfig<
+/**
+ * Every key of an implementation, with none of the fields required, so that generic code can hand
+ * an implementation on. The two forms of `implement` say which fields are required.
+ */
+type ImplementationParts<
     OpensTransaction extends boolean,
     ImplementationParamsSchema extends z.ZodTypeAny | undefined,
     ParamsSchema extends z.ZodTypeAny | undefined,
@@ -240,6 +246,8 @@ export type ServiceOperationImplementationConfig<
     PrismaWhereFilter extends object | undefined
 > = {
     implementationParamsSchema?: ImplementationParamsSchema,
+    paramsSchemaImplementationFields?: ParamsSchemaImplementationFields,
+    dataSchemaImplementationFields?: DataSchemaImplementationFields,
     operationImplementationFields?: OperationImplementationFields | OperationImplementationFieldsOf<
         OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema, OperationImplementationFields
     >,
@@ -249,7 +257,27 @@ export type ServiceOperationImplementationConfig<
     ownershipCheck: OwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
     beforeRun?: BeforeRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
     afterRun?: AfterRun<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>,
-} & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
+}
+
+export type ServiceOperationImplementationConfig<
+    OpensTransaction extends boolean,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ParamsSchemaImplementationFields extends object | undefined,
+    DataSchemaImplementationFields extends object | undefined,
+    OperationImplementationFields extends object | undefined,
+    PrismaWhereFilter extends object | undefined
+> = ImplementationParts<
+    OpensTransaction,
+    ImplementationParamsSchema,
+    ParamsSchema,
+    DataSchema,
+    ParamsSchemaImplementationFields,
+    DataSchemaImplementationFields,
+    OperationImplementationFields,
+    PrismaWhereFilter
+> & SchemaImplementationFieldsConfig<ParamsSchemaImplementationFields, DataSchemaImplementationFields>
     & (OperationImplementationFields extends undefined ?
         object
         : {
@@ -442,11 +470,204 @@ export function defineSubOperation<
         Flag,
         PrismaWhereFilter
     >
+): SubServiceOperation<
+    Return,
+    Flag,
+    ParamsSchema,
+    DataSchema,
+    ParamsSchemaImplementationFields,
+    DataSchemaImplementationFields,
+    OperationImplementationFields,
+    PrismaWhereFilter
+>
+
+/**
+ * The sub-operation of a sub-contract's entry, with the entry's schemas. An owner implements it
+ * from the entry of its own contract that implements this one, or in the form above.
+ */
+export function defineSubOperation<
+    SubMark,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    Return,
+>(
+    entry: SubContractEntry<SubMark, ParamsSchema, DataSchema>,
+    implementation: SubEntryImplementation<ParamsSchema, DataSchema, Return>,
+): SubOperationOfEntry<SubMark, Return, ParamsSchema, DataSchema>
+
+export function defineSubOperation<
+    Return,
+    Flag extends TransactionFlag,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ParamsSchemaImplementationFields extends object | undefined,
+    DataSchemaImplementationFields extends object | undefined,
+    OperationImplementationFields extends object | undefined,
+    PrismaWhereFilter extends object | undefined,
+>(
+    configOrEntry:
+        | SubServiceOperationConfig<
+            ParamsSchema,
+            DataSchema,
+            ParamsSchemaImplementationFields,
+            DataSchemaImplementationFields,
+            OperationImplementationFields,
+            Return,
+            Flag,
+            PrismaWhereFilter
+        >
+        | SubContractEntry<unknown, ParamsSchema, DataSchema>,
+    implementation?: SubEntryImplementation<ParamsSchema, DataSchema, Return>,
+) {
+    if ('operation' in configOrEntry) return subOperationOfConfig(configOrEntry)
+    if (!implementation) {
+        throw new Smorekopp('SERVER ERROR', 'A sub-operation made from a sub-contract entry was given no implementation.')
+    }
+    return subOperationOfEntry(configOrEntry, implementation)
+}
+
+type SubEntryImplementation<
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    Return,
+> = {
+    operation: ServiceOperationOperation<false, ParamsSchema, DataSchema, Return, undefined>,
+}
+
+/**
+ * What an owner gives to implement a sub-operation from its entry. The schemas and the rule are
+ * the entry's, and `authorizerData` is as for a plain operation, with the implementation params.
+ */
+type OwnerImplementation<
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
+    EntryRule extends Rule,
+> = {
+    ownershipCheck: OwnershipCheck<false, ParamsSchema, DataSchema, ImplementationParamsSchema>,
+} & AuthorizerDataConfig<ParamsSchema, DataSchema, EntryRule, false, ImplementationParamsSchema>
+
+type SubOperationOfEntry<
+    SubMark,
+    Return,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+> = ReturnType<typeof subOperationOfEntry<SubMark, ParamsSchema, DataSchema, Return>>
+
+function subOperationOfConfig<
+    Return,
+    Flag extends TransactionFlag,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ParamsSchemaImplementationFields extends object | undefined,
+    DataSchemaImplementationFields extends object | undefined,
+    OperationImplementationFields extends object | undefined,
+    PrismaWhereFilter extends object | undefined,
+>(
+    serviceOperationConfig: SubServiceOperationConfig<
+        ParamsSchema,
+        DataSchema,
+        ParamsSchemaImplementationFields,
+        DataSchemaImplementationFields,
+        OperationImplementationFields,
+        Return,
+        Flag,
+        PrismaWhereFilter
+    >
+) {
+    type OpensTransaction = OpensTransactionOf<Flag>
+
+    const { transaction, implement, internalCall } = subOperationParts(serviceOperationConfig)
+    const implementWithRequiredFields: <ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined>(
+        implementationArgs: ServiceOperationImplementationConfig<
+            OpensTransaction,
+            ImplementationParamsSchema,
+            ParamsSchema,
+            DataSchema,
+            ParamsSchemaImplementationFields,
+            DataSchemaImplementationFields,
+            OperationImplementationFields,
+            PrismaWhereFilter
+        >
+    ) => ServiceOperation<OpensTransaction, Return, ParamsSchema, DataSchema, ImplementationParamsSchema> = implement
+    return { transaction, implement: implementWithRequiredFields, internalCall }
+}
+
+function subOperationOfEntry<
+    SubMark,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    Return,
+>(
+    entry: SubContractEntry<SubMark, ParamsSchema, DataSchema>,
+    { operation }: SubEntryImplementation<ParamsSchema, DataSchema, Return>,
+) {
+    const { params: paramsSchema, data: dataSchema } = entry
+    const parts = subOperationParts<Return, 'NONE', ParamsSchema, DataSchema, undefined, undefined, undefined, undefined>({
+        operation: () => operation,
+        paramsSchema: paramsSchema !== undefined ? () => paramsSchema : undefined,
+        dataSchema: dataSchema !== undefined ? () => dataSchema : undefined,
+    })
+
+    function implement<ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined>(
+        config: ServiceOperationImplementationConfig<
+            false, ImplementationParamsSchema, ParamsSchema, DataSchema, undefined, undefined, undefined, undefined
+        >
+    ): ServiceOperation<false, Return, ParamsSchema, DataSchema, ImplementationParamsSchema>
+    /** From the owner's entry, which implements this sub-entry. The operation runs the entry's rule. */
+    function implement<Mark, EntryRule extends Rule, ImplementationParamsSchema extends z.ZodTypeAny | undefined>(
+        entry: ContractEntry<Mark, ParamsSchema, DataSchema, EntryRule, ImplementationParamsSchema> & Implementing<SubMark>,
+        implementation: OwnerImplementation<ParamsSchema, DataSchema, ImplementationParamsSchema, EntryRule>,
+    ): ServiceOperation<false, Return, ParamsSchema, DataSchema, ImplementationParamsSchema> & Marked<Mark>
+    function implement<EntryRule extends Rule, ImplementationParamsSchema extends z.ZodTypeAny | undefined>(
+        configOrEntry:
+            | ImplementationParts<
+                false, ImplementationParamsSchema, ParamsSchema, DataSchema, undefined, undefined, undefined, undefined
+            >
+            | ContractEntry<unknown, ParamsSchema, DataSchema, EntryRule, ImplementationParamsSchema>,
+        implementation?: OwnerImplementation<ParamsSchema, DataSchema, ImplementationParamsSchema, EntryRule>,
+    ) {
+        if ('ownershipCheck' in configOrEntry) return parts.implement(configOrEntry)
+        if (!implementation) {
+            throw new Smorekopp('SERVER ERROR', 'A sub-operation implemented from an entry was given no implementation.')
+        }
+        const { authorizerData, ownershipCheck } = implementation
+        return parts.implement<ImplementationParamsSchema>({
+            implementationParamsSchema: configOrEntry.implementationParams,
+            authorizer: async args => configOrEntry.authorizer.data(authorizerData ? await authorizerData(args) : {}),
+            ownershipCheck,
+        })
+    }
+
+    return { transaction: parts.transaction, implement, internalCall: parts.internalCall }
+}
+
+/** A sub-operation whose `implement` requires none of the fields, for the two forms above to narrow. */
+function subOperationParts<
+    Return,
+    Flag extends TransactionFlag,
+    ParamsSchema extends z.ZodTypeAny | undefined,
+    DataSchema extends z.ZodTypeAny | undefined,
+    ParamsSchemaImplementationFields extends object | undefined,
+    DataSchemaImplementationFields extends object | undefined,
+    OperationImplementationFields extends object | undefined,
+    PrismaWhereFilter extends object | undefined
+>(
+    serviceOperationConfig: SubServiceOperationConfig<
+        ParamsSchema,
+        DataSchema,
+        ParamsSchemaImplementationFields,
+        DataSchemaImplementationFields,
+        OperationImplementationFields,
+        Return,
+        Flag,
+        PrismaWhereFilter
+    >
 ) {
     type OpensTransaction = OpensTransactionOf<Flag>
 
     const implement = <ImplementationParamsSchema extends z.ZodTypeAny | undefined = undefined>(
-        implementationArgs: ServiceOperationImplementationConfig<
+        implementationArgs: ImplementationParts<
             OpensTransaction,
             ImplementationParamsSchema,
             ParamsSchema,
@@ -699,10 +920,11 @@ export function defineOperation<
     DataSchema extends z.ZodTypeAny | undefined,
     EntryRule extends Rule,
     Return,
+    Flag extends TransactionFlag = 'NONE',
 >(
-    entry: ContractEntry<Mark, ParamsSchema, DataSchema, EntryRule>,
-    implementation: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
-): ServiceOperation<false, Return, ParamsSchema, DataSchema, undefined> & Marked<Mark>
+    entry: ContractEntry<Mark, ParamsSchema, DataSchema, EntryRule> & ImplementingNothing,
+    implementation: EntryImplementation<Flag, Return, ParamsSchema, DataSchema, EntryRule>,
+): ServiceOperation<OpensTransactionOf<Flag>, Return, ParamsSchema, DataSchema, undefined> & Marked<Mark>
 
 export function defineOperation<
     Flag extends TransactionFlag,
@@ -715,7 +937,7 @@ export function defineOperation<
     configOrEntry:
         | OperationConfig<Flag, Return, ParamsSchema, DataSchema, PrismaWhereFilter>
         | ContractEntry<unknown, ParamsSchema, DataSchema, EntryRule>,
-    implementation?: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
+    implementation?: EntryImplementation<Flag, Return, ParamsSchema, DataSchema, EntryRule>,
 ) {
     if ('operation' in configOrEntry) return operationOfConfig(configOrEntry)
     if (!implementation) {
@@ -741,13 +963,17 @@ type OperationConfig<
 }
 
 type EntryImplementation<
+    Flag extends TransactionFlag,
     Return,
     ParamsSchema extends z.ZodTypeAny | undefined,
     DataSchema extends z.ZodTypeAny | undefined,
     EntryRule extends Rule,
 > = {
-    operation: ServiceOperationOperation<false, ParamsSchema, DataSchema, Return, RuleFilter<EntryRule>>,
-} & AuthorizerDataConfig<ParamsSchema, DataSchema, EntryRule>
+    transaction?: Flag,
+    operation: ServiceOperationOperation<
+        OpensTransactionOf<Flag>, ParamsSchema, DataSchema, Return, RuleFilter<EntryRule>
+    >,
+} & AuthorizerDataConfig<ParamsSchema, DataSchema, EntryRule, OpensTransactionOf<Flag>, undefined>
 
 /**
  * Required when the rule needs data, and refused when it needs none. It may give more than the
@@ -757,11 +983,13 @@ type AuthorizerDataConfig<
     ParamsSchema extends z.ZodTypeAny | undefined,
     DataSchema extends z.ZodTypeAny | undefined,
     EntryRule extends Rule,
+    OpensTransaction extends boolean,
+    ImplementationParamsSchema extends z.ZodTypeAny | undefined,
 > = [keyof RuleData<EntryRule>] extends [never]
     ? { authorizerData?: undefined }
     : {
         authorizerData: (
-            args: ArgsAuthGetterAndOwnershipCheck<false, ParamsSchema, DataSchema, undefined>
+            args: ArgsAuthGetterAndOwnershipCheck<OpensTransaction, ParamsSchema, DataSchema, ImplementationParamsSchema>
         ) => Awaitable<RuleData<EntryRule> & { session?: never }>
     }
 
@@ -806,17 +1034,19 @@ function operationOfConfig<
 }
 
 function operationOfEntry<
+    Flag extends TransactionFlag,
     ParamsSchema extends z.ZodTypeAny | undefined,
     DataSchema extends z.ZodTypeAny | undefined,
     EntryRule extends Rule,
     Return,
 >(
     entry: ContractEntry<unknown, ParamsSchema, DataSchema, EntryRule>,
-    { authorizerData, operation }: EntryImplementation<Return, ParamsSchema, DataSchema, EntryRule>,
+    { transaction, authorizerData, operation }: EntryImplementation<Flag, Return, ParamsSchema, DataSchema, EntryRule>,
 ) {
-    return operationOfConfig<'NONE', Return, ParamsSchema, DataSchema, RuleFilter<EntryRule>>({
+    return operationOfConfig<Flag, Return, ParamsSchema, DataSchema, RuleFilter<EntryRule>>({
         paramsSchema: entry.params,
         dataSchema: entry.data,
+        transaction,
         authorizer: async args => entry.authorizer.data(authorizerData ? await authorizerData(args) : {}),
         operation,
     })
@@ -830,14 +1060,16 @@ export type SubServiceOperation<
     ParamsSchemaImplementationFields extends object | undefined = undefined,
     DataSchemaImplementationFields extends object | undefined = undefined,
     OperationImplementationFields extends object | undefined = undefined,
-> = ReturnType<typeof defineSubOperation<
+    PrismaWhereFilter extends object | undefined = undefined,
+> = ReturnType<typeof subOperationOfConfig<
     Return,
     Flag,
     ParamsSchema,
     DataSchema,
     ParamsSchemaImplementationFields,
     DataSchemaImplementationFields,
-    OperationImplementationFields
+    OperationImplementationFields,
+    PrismaWhereFilter
 >>
 
 /**
