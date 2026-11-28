@@ -1,4 +1,5 @@
 import { numberKind } from './NumberKind'
+import { richTextKind } from './RichTextKind'
 import { stringKind } from './StringKind'
 import { textKind } from './TextKind'
 
@@ -7,4 +8,5 @@ export const kinds = {
     string: stringKind,
     text: textKind,
     number: numberKind,
+    richText: richTextKind,
 }

@@ -53,7 +53,13 @@ export function defineCapabilities<
     // Object.fromEntries types every key as string, so the contract's keys are asserted.
     return Object.fromEntries(Object.entries(contract).map(([key, entry]) => [
         key,
-        { params: entry.params, data: entry.data, authorizer: entry.authorizer, action: actionOf[key] },
+        {
+            params: entry.params,
+            data: entry.data,
+            implementationParams: entry.implementationParams,
+            authorizer: entry.authorizer,
+            action: actionOf[key],
+        },
     ])) as DeclaredCapabilities<Entries, Actions>
 }
 
@@ -196,6 +202,7 @@ type ActionOfEntry<Entry extends AnyContractEntry> =
 type DeclaredCapability<Entry extends AnyContractEntry, EntryAction> = {
     readonly params: Entry['params'],
     readonly data: Entry['data'],
+    readonly implementationParams: Entry['implementationParams'],
     readonly authorizer: Entry['authorizer'],
     readonly action: EntryAction,
 }

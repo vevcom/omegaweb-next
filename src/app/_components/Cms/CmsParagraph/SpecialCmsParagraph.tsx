@@ -2,9 +2,10 @@ import CmsParagraph from './CmsParagraph'
 import { readSpecialCmsPart } from '@/cms/readSpecialCmsPart'
 import type { PropTypes as PropTypesCmsParapraph } from './CmsParagraph'
 import type { SpecialCmsParagraph as SpecialCmsParagraphT } from '@/prisma-generated-pn-types'
-import type { ReadSpecialCmsParagraph } from '@/cms/paragraphs/types'
+import type { ReadSpecialCmsParagraph, UpdateCmsParagraphAction } from '@/cms/paragraphs/types'
 
-type PropTypes = Omit<PropTypesCmsParapraph, 'cmsParagraph'> & {
+type PropTypes = Pick<PropTypesCmsParapraph, 'className' | 'capabilities'> & {
+    updateCmsParagraphAction: UpdateCmsParagraphAction,
     special: SpecialCmsParagraphT,
     readSpecialCmsParagraph: ReadSpecialCmsParagraph
 }

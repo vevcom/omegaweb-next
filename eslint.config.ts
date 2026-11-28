@@ -817,14 +817,24 @@ const eslintConfig = defineConfig([
                 },
                 // A server component cannot reach into an object exported from a 'use client' file, so a
                 // bound submitter behind a key fails when the page renders, with an error that does not
-                // say why. It is listed here since a file has one list of restricted syntax.
+                // say why. It is listed here since a file has one list of restricted syntax. The paragraph
+                // editor's factory binds a submitter it does not export, and what it gives is held to the
+                // same rule.
                 {
                     selector: "CallExpression[callee.object.name='Form'][callee.property.name='Submitter']"
                         + ":not(Program > ExportNamedDeclaration > VariableDeclaration[kind='const']"
                         + " > VariableDeclarator[id.type='ArrayPattern']:not(:has(RestElement))"
-                        + ' > CallExpression.init)',
+                        + ' > CallExpression.init)'
+                        + ":not(FunctionDeclaration[id.name='implementParagraphEditor'] CallExpression)",
                     message: 'Bind a submitter and its field as named exports of their own, at the top of a '
                         + '\'use client\' file: export const [FooSubmitter, FooField] = Form.Submitter({ ... }).'
+                },
+                {
+                    selector: "CallExpression[callee.name='implementParagraphEditor']"
+                        + ":not(Program > ExportNamedDeclaration > VariableDeclaration[kind='const']"
+                        + " > VariableDeclarator[id.type='Identifier'] > CallExpression.init)",
+                    message: 'Bind a paragraph editor as a named export of its own, at the top of a \'use client\' '
+                        + 'file: export const FooParagraphEditor = implementParagraphEditor({ ... }).'
                 }
             ]
         }

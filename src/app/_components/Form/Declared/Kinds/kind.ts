@@ -16,12 +16,14 @@ export function defineKind<Writes, Props extends object>(
 
 /**
  * What the component of a kind binds its input with: its one value, and nothing else of the form.
- * A kind whose empty value is `undefined` sets that when its input is emptied.
+ * A kind whose empty value is `undefined` sets that when its input is emptied. `setReader` sets a
+ * value that is costly to make, which the form then makes only when it reads it.
  */
 type FieldBinding<Writes> = {
     name: string,
     value: unknown,
     set: (value: Writes | undefined) => void,
+    setReader: (read: () => Writes) => void,
     leave: () => void,
 }
 
