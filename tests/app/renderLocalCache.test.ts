@@ -38,7 +38,7 @@ describe('the cache of a render', () => {
         expect(runs).toHaveBeenCalledTimes(1)
     })
 
-    test('answers everything in the render from one read, until one of them clears it', async () => {
+    test('answers everything in the render from one read, until what is no read ends in one of them', async () => {
         const { RenderLocalCache } = await import('@/app/renderLocalCache')
         const operation = {}
         const read = jest.fn(() => Promise.resolve({}))
@@ -49,14 +49,37 @@ describe('the cache of a render', () => {
         expect(await ofThePage.remember(operation, 'key', read)).toBe(first)
         expect(read).toHaveBeenCalledTimes(1)
 
-        ofThePage.clear()
+        ofThePage.notAReadEnded()
 
         expect(await ofTheLayout.remember(operation, 'key', read)).not.toBe(first)
         expect(await ofThePage.remember(operation, 'key', read)).not.toBe(first)
         expect(read).toHaveBeenCalledTimes(2)
     })
 
-    test('begun inside another of the render, is cleared with it and remembers again', async () => {
+    test('gives no answer again that read a table one of them was told is written, and the others still', async () => {
+        const { RenderLocalCache } = await import('@/app/renderLocalCache')
+        const { prisma } = await import('@/prisma-pn-client-instance')
+        const quotes = jest.fn(async () => await prisma.omegaQuote.count())
+        const licenses = jest.fn(async () => await prisma.license.count())
+        const ofTheLayout = new RenderLocalCache()
+        const ofThePage = new RenderLocalCache()
+        const readBoth = async (cache: InstanceType<typeof RenderLocalCache>) => {
+            await cache.remember(quotes, 'key', quotes)
+            await cache.remember(licenses, 'key', licenses)
+        }
+
+        await readBoth(ofTheLayout)
+        await RenderLocalCache.begin(async () => {
+            await prisma.omegaQuote.updateMany({ where: { id: -1 }, data: { quote: 'none' } })
+        })
+        await readBoth(ofTheLayout)
+        await readBoth(ofThePage)
+
+        expect(quotes).toHaveBeenCalledTimes(2)
+        expect(licenses).toHaveBeenCalledTimes(1)
+    })
+
+    test('begun inside another of the render, is told with it and remembers again', async () => {
         const { RenderLocalCache } = await import('@/app/renderLocalCache')
         const { LocalCache } = await import('@/services/localCache')
         const read = jest.fn(() => Promise.resolve({}))
@@ -64,7 +87,7 @@ describe('the cache of a render', () => {
 
         await RenderLocalCache.begin(() => RenderLocalCache.begin(async () => {
             await remember()
-            LocalCache.inForce()?.clear()
+            LocalCache.inForce()?.notAReadEnded()
 
             expect(await remember()).toBe(await remember())
             expect(read).toHaveBeenCalledTimes(2)

@@ -19,10 +19,12 @@ import logger from '@/lib/logger'
 import { activeMembersOf, testSession } from 'tests/utils'
 import { afterAll, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals'
 import { z } from 'zod'
+import { AsyncResource } from 'async_hooks'
 import type { KeysOfUnion } from '@/lib/keysOfUnion'
 import type { Prisma } from '@/prisma-generated-pn-client'
 import type { UserFiltered } from '@/services/users/types'
 
+const outsideEveryCache = new AsyncResource('outside every cache')
 const authorizerRuns = jest.fn()
 const runs = jest.fn()
 
@@ -325,12 +327,10 @@ describe('the local cache in force', () => {
     })
 
     test('is refused when it answers with what the operation never read', async () => {
-        class AnswersForAnother extends LocalCache {
+        class AnswersForAnother extends MapLocalCache {
             public remember() {
                 return Promise.resolve({ id: 1, readFor: 'cache-berit' })
             }
-
-            protected clearOwn() {}
         }
 
         await expect(AnswersForAnother.begin(readThingOnce))
@@ -389,21 +389,21 @@ describe('a local cache begun inside another', () => {
         expect(runs).toHaveBeenCalledTimes(5)
     })
 
-    test('is not cleared by a write outside it, once it has ended', async () => {
-        const cleared = jest.fn()
-        class CountsClearings extends MapLocalCache {
-            protected clearOwn() {
-                cleared()
-                super.clearOwn()
+    test('is not told of a write outside it, once it has ended', async () => {
+        const told = jest.fn()
+        class SaysWhenItIsTold extends MapLocalCache {
+            public notAReadEnded() {
+                told()
+                super.notAReadEnded()
             }
         }
 
         await MapLocalCache.begin(async () => {
-            await CountsClearings.begin(readThingOnce)
+            await SaysWhenItIsTold.begin(readThingOnce)
             await write({})
         })
 
-        expect(cleared).not.toHaveBeenCalled()
+        expect(told).not.toHaveBeenCalled()
     })
 })
 
@@ -946,7 +946,7 @@ describe('the reads of the services', () => {
             expect(profile).not.toBe(repaired)
             expect(profile).toEqual(repaired)
 
-            await prisma.user.update({ where: { id: anne.id }, data: { firstname: 'Anne Etterpå' } })
+            await unseenByTheCache(() => prisma.user.update({ where: { id: anne.id }, data: { firstname: 'Anne Etterpå' } }))
             const again = await readProfileAs(anne)
             const fresh = await LocalCache.withNone(() => readProfileAs(anne))
 
@@ -1078,7 +1078,7 @@ describe('what the page of an event reads', () => {
             const access = await readAccess()
             // Run with no cache in force, so the refused sign-up does not clear the access just read.
             await expect(LocalCache.withNone(() => eventRegistrationOperations.create(signUp))).rejects.toThrow(Smorekopp)
-            await prisma.event.update({ where: { id: event.id }, data: { published: true } })
+            await unseenByTheCache(() => prisma.event.update({ where: { id: event.id }, data: { published: true } }))
 
             expect(await readAccess()).toBe(access)
             await expect(eventRegistrationOperations.create(signUp)).resolves.toMatchObject({ userId: anne.id })
@@ -1143,6 +1143,14 @@ describe('a page reads, an action writes and the next render reads again', () =>
         expect((await MapLocalCache.begin(readTags)).map(tag => tag.id)).toContain(made.id)
     })
 })
+
+/**
+ * A write no cache is told of, as one made by another process is: it is awaited where no cache is
+ * in force, though it is called inside one.
+ */
+function unseenByTheCache<Written>(write: () => Promise<Written>) {
+    return outsideEveryCache.runInAsyncScope(async () => await write())
+}
 
 function gate() {
     let open = () => {}
