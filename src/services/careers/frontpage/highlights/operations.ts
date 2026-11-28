@@ -1,5 +1,5 @@
 import '@ow-server-only'
-import { careerFrontpageHighlightAuth } from './auth'
+import { careerFrontpageHighlightContract } from './contract'
 import {
     adminHighlightOrdering,
     careerFrontpageHighlightSelection,
@@ -10,7 +10,6 @@ import {
     highlightableJobAd,
     highlightableJobAdSelection,
 } from './constants'
-import { careerFrontpageHighlightSchemas } from './schemas'
 import { activeJobAdOrdering } from '@/services/careers/jobAds/constants'
 import { ServiceError } from '@/services/error'
 import { defineOperation } from '@/services/serviceOperation'
@@ -18,17 +17,14 @@ import type { CareerFrontpageHighlightTargets, ExpandedCareerFrontpageHighlight 
 import type { PrismaPossibleTransaction } from '@/services/serviceOperation'
 
 export const careerFrontpageHighlightOperations = {
-    create: defineOperation({
-        dataSchema: careerFrontpageHighlightSchemas.data.create,
-        authorizer: () => careerFrontpageHighlightAuth.create,
+    create: defineOperation(careerFrontpageHighlightContract.create, {
         operation: async ({ prisma, data }) => {
             await assertCanBeHighlighted(prisma, data)
             return prisma.careerFrontpageHighlight.create({ data })
         },
     }),
     /** The highlights to show now. Each one also ends when its event does, should the event be moved earlier. */
-    readCurrent: defineOperation({
-        authorizer: () => careerFrontpageHighlightAuth.readCurrent,
+    readCurrent: defineOperation(careerFrontpageHighlightContract.readCurrent, {
         operation: async ({ prisma }, prismaWhereFilter): Promise<ExpandedCareerFrontpageHighlight[]> => {
             const now = new Date()
             return await prisma.careerFrontpageHighlight.findMany({
@@ -48,8 +44,7 @@ export const careerFrontpageHighlightOperations = {
             })
         },
     }),
-    readMany: defineOperation({
-        authorizer: () => careerFrontpageHighlightAuth.readMany,
+    readMany: defineOperation(careerFrontpageHighlightContract.readMany, {
         operation: async ({ prisma }): Promise<ExpandedCareerFrontpageHighlight[]> => (
             await prisma.careerFrontpageHighlight.findMany({
                 orderBy: adminHighlightOrdering,
@@ -57,8 +52,7 @@ export const careerFrontpageHighlightOperations = {
             })
         ),
     }),
-    readTargets: defineOperation({
-        authorizer: () => careerFrontpageHighlightAuth.readTargets,
+    readTargets: defineOperation(careerFrontpageHighlightContract.readTargets, {
         operation: async ({ prisma }): Promise<CareerFrontpageHighlightTargets> => {
             const [events, jobAds] = await Promise.all([
                 prisma.event.findMany({
@@ -75,18 +69,13 @@ export const careerFrontpageHighlightOperations = {
             return { events, jobAds }
         },
     }),
-    update: defineOperation({
-        paramsSchema: careerFrontpageHighlightSchemas.params.update,
-        dataSchema: careerFrontpageHighlightSchemas.data.update,
-        authorizer: () => careerFrontpageHighlightAuth.update,
+    update: defineOperation(careerFrontpageHighlightContract.update, {
         operation: async ({ prisma, params: { id }, data }) => {
             await assertCanBeHighlighted(prisma, data)
             return prisma.careerFrontpageHighlight.update({ where: { id }, data })
         },
     }),
-    destroy: defineOperation({
-        paramsSchema: careerFrontpageHighlightSchemas.params.destroy,
-        authorizer: () => careerFrontpageHighlightAuth.destroy,
+    destroy: defineOperation(careerFrontpageHighlightContract.destroy, {
         operation: async ({ prisma, params: { id } }) => {
             await prisma.careerFrontpageHighlight.delete({ where: { id } })
         },

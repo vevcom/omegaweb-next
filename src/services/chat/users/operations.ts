@@ -1,6 +1,5 @@
 import '@ow-server-only'
-import { chatUserAuth } from './auth'
-import { chatUserSchemas } from './schemas'
+import { chatUserContract } from './contract'
 import { CHAT_LOCALPART_ATTEMPTS, chatLocalpartAt, isReservedChatLocalpart } from './localpart'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
@@ -19,9 +18,8 @@ export const chatUserOperations = {
      * their username as a Matrix id takes it, with a number after it when that is taken. A user who
      * has an account keeps it as it is, so it is called at every sign in.
      */
-    optIn: defineOperation({
-        paramsSchema: chatUserSchemas.params.optIn,
-        authorizer: ({ params }) => chatUserAuth.optIn.data({ userId: params.userId }),
+    optIn: defineOperation(chatUserContract.optIn, {
+        authorizerData: ({ params }) => ({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
             const existing = await prisma.chatUser.findUnique({ where: { userId: params.userId } })
             if (existing) return existing
@@ -47,9 +45,8 @@ export const chatUserOperations = {
     }),
 
     /** A user's account on the chat. Not found for a user who has not signed in to it. */
-    read: defineOperation({
-        paramsSchema: chatUserSchemas.params.read,
-        authorizer: ({ params }) => chatUserAuth.read.data({ userId: params.userId }),
+    read: defineOperation(chatUserContract.read, {
+        authorizerData: ({ params }) => ({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
             const chatUser = await prisma.chatUser.findUnique({ where: { userId: params.userId } })
             if (!chatUser) throw new ServiceError('NOT FOUND', 'Brukeren har ingen chatkonto')
@@ -58,9 +55,8 @@ export const chatUserOperations = {
     }),
 
     /** The spaces a user is in, each with its two notification channels. None for one who has not signed in to the chat. */
-    readSpaces: defineOperation({
-        paramsSchema: chatUserSchemas.params.readSpaces,
-        authorizer: ({ params }) => chatUserAuth.readSpaces.data({ userId: params.userId }),
+    readSpaces: defineOperation(chatUserContract.readSpaces, {
+        authorizerData: ({ params }) => ({ userId: params.userId }),
         operation: async ({ prisma, params }) => {
             const chatUser = await prisma.chatUser.findUnique({
                 where: { userId: params.userId },
@@ -93,9 +89,7 @@ export const chatUserOperations = {
      * Where the chat client opens a direct message with a user. No url for a user without an
      * account on the chat, and no chat to write on where the client or the server name is unset.
      */
-    readDirectMessage: defineOperation({
-        paramsSchema: chatUserSchemas.params.readDirectMessage,
-        authorizer: () => chatUserAuth.readDirectMessage,
+    readDirectMessage: defineOperation(chatUserContract.readDirectMessage, {
         operation: async ({ prisma, params }) => {
             const { serverName } = chatServer
             if (!chatClientOrigin || !serverName) return { chatIsSetUp: false, url: null }

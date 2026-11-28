@@ -1,6 +1,5 @@
 import { userAuth } from '@/services/users/auth'
 import { admissionAuth } from '@/services/admission/auth'
-import { omegaOrderAuth } from '@/services/omegaOrder/auth'
 import { classAuth } from '@/services/groups/classes/auth'
 import { committeeAuth } from '@/services/groups/committees/auth'
 import { interestGroupAuth } from '@/services/groups/interestGroups/auth'
@@ -16,18 +15,19 @@ import { revueAdminLinks } from '@/app/(revue)/revue/(static-theme)/admin/links'
 import { manualNotificationChannelAuth } from '@/services/notifications/channels/manual/auth'
 import { mailServerNavAuthorizers } from '@/pageKits/mailServer/navAuthorizers'
 import { dotAuth } from '@/services/dots/auth'
-import { dotFreezePeriodAuth } from '@/services/dots/freezePeriods/auth'
-import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
-import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
 import { cabinProductAuth } from '@/services/cabin/product/auth'
 import { cabinBookingAuth } from '@/services/cabin/booking/auth'
 import { ledgerAccountAuth } from '@/services/ledger/accounts/auth'
-import { manualReviewAuth } from '@/services/ledger/transactions/manualReviews/auth'
 import { promoAuth } from '@/services/promo/auth'
 import { licenseAuth } from '@/services/licenses/auth'
 import { flairAuth } from '@/services/flairs/auth'
 import { lockerAuth } from '@/services/lockers/auth'
 import { lockerLocationCapabilities } from '@/capabilities/lockers/locations/capabilities'
+import { manualReviewCapabilities } from '@/capabilities/ledger/transactions/manualReviews/capabilities'
+import { omegaOrderCapabilities } from '@/capabilities/omegaOrder/capabilities'
+import { cabinPricePeriodCapabilities } from '@/capabilities/cabin/pricePeriod/capabilities'
+import { cabinReleasePeriodCapabilities } from '@/capabilities/cabin/releasePeriod/capabilities'
+import { dotFreezePeriodCapabilities } from '@/capabilities/dots/freezePeriods/capabilities'
 import { defineGroupedNavDef } from '@/lib/navDef/groupedNavDef'
 import { appHref } from '@/lib/sites/href'
 import {
@@ -89,7 +89,7 @@ export const adminNavDef = defineGroupedNavDef([
                 key: 'state-of-omega',
                 name: 'Omegas tilstand',
                 href: appHref('/admin/state-of-omega'),
-                authorizers: () => [omegaOrderAuth.create],
+                authorizers: () => [omegaOrderCapabilities.create.authorizer],
             },
         ],
     },
@@ -244,8 +244,8 @@ export const adminNavDef = defineGroupedNavDef([
                 name: 'Frysperioder',
                 href: appHref('/admin/dots-freeze-periods'),
                 authorizers: () => [
-                    dotFreezePeriodAuth.create,
-                    dotFreezePeriodAuth.update,
+                    dotFreezePeriodCapabilities.create.authorizer,
+                    dotFreezePeriodCapabilities.update.authorizer,
                 ],
             },
         ],
@@ -258,8 +258,8 @@ export const adminNavDef = defineGroupedNavDef([
                 name: 'Perioder',
                 href: appHref('/admin/cabin-periods'),
                 authorizers: () => [
-                    cabinReleasePeriodAuth.readMany,
-                    cabinPricePeriodAuth.readMany,
+                    cabinReleasePeriodCapabilities.readMany.authorizer,
+                    cabinPricePeriodCapabilities.readMany.authorizer,
                 ],
             },
             {
@@ -289,7 +289,7 @@ export const adminNavDef = defineGroupedNavDef([
                 key: 'ledger-review',
                 name: 'Trenger oppfølging',
                 href: appHref('/admin/ledger-review'),
-                authorizers: () => [manualReviewAuth.readOpen],
+                authorizers: () => [manualReviewCapabilities.readOpen.authorizer],
             },
         ],
     },

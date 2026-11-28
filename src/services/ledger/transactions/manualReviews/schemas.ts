@@ -1,7 +1,7 @@
-import { ManualReviewProblem } from '@/prisma-generated-pn-types'
+import { ManualReviewProblem } from '@/prisma-generated-pn/enums'
 import { z } from 'zod'
 
-const paramsFieldSchemas = z.object({
+export const manualReviewParamsFieldSchemas = z.object({
     transactionId: z.number(),
     paymentId: z.number(),
     problem: z.nativeEnum(ManualReviewProblem),
@@ -10,26 +10,6 @@ const paramsFieldSchemas = z.object({
     reviewId: z.number(),
 })
 
-const dataFieldSchemas = z.object({
+export const manualReviewDataFieldSchemas = z.object({
     resolutionDescription: z.string().trim().min(1),
 })
-
-export const manualReviewSchemas = {
-    params: {
-        create: paramsFieldSchemas.pick({
-            transactionId: true,
-            paymentId: true,
-            problem: true,
-            problemDescription: true,
-            error: true,
-        }).partial({ transactionId: true, paymentId: true, problemDescription: true }),
-        resolve: paramsFieldSchemas.pick({
-            reviewId: true,
-        }),
-    },
-    data: {
-        resolve: dataFieldSchemas.pick({
-            resolutionDescription: true,
-        }),
-    },
-}

@@ -1,17 +1,14 @@
 'use client'
 import ReleasePeriodForm from './ReleasePeriodForm'
 import PricePeriodForm from './PricePeriodForm'
+import { DestroyPricePeriodSubmitter, DestroyReleasePeriodSubmitter } from './cabinPeriodSubmitters'
 import { buttonClassName } from '@/components/UI/buttonClassName'
 import PopUp from '@/app/_components/PopUp/PopUp'
 import { displayDate } from '@/lib/dates/displayDate'
 import SimpleTable from '@/app/_components/Table/SimpleTable'
-import Form from '@/app/_components/Form/Form'
 import useAuthorizer from '@/hooks/useAuthorizer'
-import { cabinPricePeriodAuth } from '@/services/cabin/pricePeriod/auth'
-import { cabinReleasePeriodAuth } from '@/services/cabin/releasePeriod/auth'
-import { destroyPricePeriodAction } from '@/services/cabin/pricePeriod/actions'
-import { destroyReleasePeriodAction } from '@/services/cabin/releasePeriod/actions'
-import { configureAction } from '@/services/configureAction'
+import { cabinPricePeriodCapabilities } from '@/capabilities/cabin/pricePeriod/capabilities'
+import { cabinReleasePeriodCapabilities } from '@/capabilities/cabin/releasePeriod/capabilities'
 import type { PricePeriod, ReleasePeriod } from '@/prisma-generated-pn-types'
 
 
@@ -22,12 +19,14 @@ export default function PageStateWrapper({
     releasePeriods: ReleasePeriod[],
     pricePeriods: PricePeriod[],
 }) {
-    const canCreateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.create }).authorized
-    const canUpdateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.update }).authorized
-    const canDestroyReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodAuth.destroy }).authorized
-    const canCreatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.create }).authorized
-    const canUpdatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.update }).authorized
-    const canDestroyPricePeriod = useAuthorizer({ authorizer: cabinPricePeriodAuth.destroy }).authorized
+    const canCreateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodCapabilities.create.authorizer }).authorized
+    const canUpdateReleasePeriod = useAuthorizer({ authorizer: cabinReleasePeriodCapabilities.update.authorizer }).authorized
+    const canDestroyReleasePeriod = useAuthorizer({
+        authorizer: cabinReleasePeriodCapabilities.destroy.authorizer,
+    }).authorized
+    const canCreatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodCapabilities.create.authorizer }).authorized
+    const canUpdatePricePeriod = useAuthorizer({ authorizer: cabinPricePeriodCapabilities.update.authorizer }).authorized
+    const canDestroyPricePeriod = useAuthorizer({ authorizer: cabinPricePeriodCapabilities.destroy.authorizer }).authorized
 
     function isPricePeriodReleased(pricePeriod: PricePeriod): boolean {
         return releasePeriods
@@ -66,11 +65,9 @@ export default function PageStateWrapper({
                         <ReleasePeriodForm period={period} closePopUpOnSuccess={`UpdateReleasePeriod${period.id}`} />
                     </PopUp>,
                 period.releaseTime < new Date() ? 'Slippet er publisert.' : canDestroyReleasePeriod &&
-                    <Form
+                    <DestroyReleasePeriodSubmitter
                         key={period.id}
-                        action={configureAction(destroyReleasePeriodAction, {
-                            params: { id: period.id },
-                        })}
+                        params={{ id: period.id }}
                         submitText="Slett"
                         submitColor="error"
                         confirmation={{
@@ -108,11 +105,9 @@ export default function PageStateWrapper({
                         <PricePeriodForm period={period} closePopUpOnSuccess={`UpdatePricePeriod${period.id}`} />
                     </PopUp>,
                 isPricePeriodReleased(period) ? 'Prisperioden er publisert.' : canDestroyPricePeriod &&
-                    <Form
+                    <DestroyPricePeriodSubmitter
                         key={period.id}
-                        action={configureAction(destroyPricePeriodAction, {
-                            params: { id: period.id },
-                        })}
+                        params={{ id: period.id }}
                         submitText="Slett"
                         submitColor="error"
                         confirmation={{

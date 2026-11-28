@@ -1,14 +1,11 @@
 import '@ow-server-only'
-import { cabinReleasePeriodAuth } from './auth'
-import { cabinReleasePeriodSchemas } from './schemas'
+import { cabinReleasePeriodContract } from './contract'
 import { defineOperation } from '@/services/serviceOperation'
 import { ServiceError } from '@/services/error'
 
 export const cabinReleasePeriodOperations = {
 
-    create: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.create,
-        dataSchema: cabinReleasePeriodSchemas.data.create,
+    create: defineOperation(cabinReleasePeriodContract.create, {
         operation: async ({ prisma, data }) => {
             const latestReleasePeriod = await prisma.releasePeriod.findFirst({
                 orderBy: {
@@ -30,9 +27,7 @@ export const cabinReleasePeriodOperations = {
         }
     }),
 
-    destroy: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.destroy,
-        paramsSchema: cabinReleasePeriodSchemas.params.destroy,
+    destroy: defineOperation(cabinReleasePeriodContract.destroy, {
         operation: async ({ prisma, params }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,
@@ -48,8 +43,7 @@ export const cabinReleasePeriodOperations = {
         }
     }),
 
-    readMany: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.readMany,
+    readMany: defineOperation(cabinReleasePeriodContract.readMany, {
         operation: async ({ prisma }) => prisma.releasePeriod.findMany({
             orderBy: {
                 releaseUntil: 'desc',
@@ -57,8 +51,7 @@ export const cabinReleasePeriodOperations = {
         })
     }),
 
-    getCurrentReleasePeriod: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.getCurrentReleasePeriod,
+    getCurrentReleasePeriod: defineOperation(cabinReleasePeriodContract.getCurrentReleasePeriod, {
         operation: async ({ prisma }) => prisma.releasePeriod.findFirst({
             where: {
                 releaseTime: {
@@ -76,10 +69,7 @@ export const cabinReleasePeriodOperations = {
      * Changes a release that has not happened yet. The releases stay in order: each one releases
      * later, and further, than the one before it, as `create` requires of a new one.
      */
-    update: defineOperation({
-        authorizer: () => cabinReleasePeriodAuth.update,
-        paramsSchema: cabinReleasePeriodSchemas.params.update,
-        dataSchema: cabinReleasePeriodSchemas.data.update,
+    update: defineOperation(cabinReleasePeriodContract.update, {
         operation: async ({ prisma, params, data }) => {
             const releasePeriod = await prisma.releasePeriod.findUniqueOrThrow({
                 where: params,

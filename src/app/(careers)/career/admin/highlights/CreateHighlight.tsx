@@ -1,7 +1,7 @@
 'use client'
-import HighlightForm from './HighlightForm'
+import HighlightFields from './HighlightFields'
+import { CreateHighlightField, CreateHighlightSubmitter } from './highlightSubmitters'
 import { AddHeaderItemPopUp } from '@/components/HeaderItems/HeaderItemPopUp'
-import { createCareerFrontpageHighlightAction } from '@/services/careers/frontpage/highlights/actions'
 import type { CareerFrontpageHighlightTargets } from '@/services/careers/frontpage/highlights/types'
 
 const popUpKey = 'CreateCareerFrontpageHighlight'
@@ -9,13 +9,15 @@ const popUpKey = 'CreateCareerFrontpageHighlight'
 export default function CreateHighlight({ targets }: { targets: CareerFrontpageHighlightTargets }) {
     return (
         <AddHeaderItemPopUp popUpKey={popUpKey}>
-            <HighlightForm
+            <CreateHighlightSubmitter
+                defaultValues={{ eventId: null, jobAdId: null }}
                 title="Ny fremheving"
-                action={createCareerFrontpageHighlightAction}
                 submitText="Lag"
+                refreshOnSuccess
                 closePopUpOnSuccess={popUpKey}
-                targets={targets}
-            />
+            >
+                <HighlightFields Field={CreateHighlightField} targets={targets} />
+            </CreateHighlightSubmitter>
         </AddHeaderItemPopUp>
     )
 }

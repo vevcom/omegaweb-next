@@ -14,7 +14,7 @@ import { revueSubGroupAuth } from '@/services/groups/revueSubGroups/auth'
 import { omegaIdAuth } from '@/services/omegaid/auth'
 import { eventRegistrationAuth } from '@/services/events/registration/auth'
 import { mailAliasAuth } from '@/services/mail/alias/auth'
-import { chatUserAuth } from '@/services/chat/users/auth'
+import { chatUserCapabilities } from '@/capabilities/chat/users/capabilities'
 import { Require } from '@/auth/authorizer/Require'
 import { omegaLinks } from '@/app/(omegaweb)/links'
 import { defineNavDef } from '@/lib/navDef/navDef'
@@ -91,7 +91,7 @@ export function userNavDef({ username, userId }: UserNavSubject) {
             name: 'Chat',
             href: appHref(`/users/${username}/chat`),
             icon: faComments,
-            authorizers: () => [chatUserAuth.readSpaces.data({ userId })],
+            authorizers: () => [chatUserCapabilities.readSpaces.authorizer.data({ userId })],
         },
         {
             key: 'account',

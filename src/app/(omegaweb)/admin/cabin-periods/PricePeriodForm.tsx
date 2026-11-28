@@ -1,10 +1,9 @@
-'use client'
-
-import { createPricePeriodAction, updatePricePeriodAction } from '@/services/cabin/pricePeriod/actions'
-import { configureAction } from '@/services/configureAction'
-import Form from '@/app/_components/Form/Form'
-import Checkbox from '@/app/_components/UI/Checkbox'
-import DateInput from '@/app/_components/UI/DateInput'
+import {
+    CreatePricePeriodField,
+    CreatePricePeriodSubmitter,
+    UpdatePricePeriodField,
+    UpdatePricePeriodSubmitter,
+} from './cabinPeriodSubmitters'
 import type { PricePeriod } from '@/prisma-generated-pn-types'
 import type { PopUpKeyType } from '@/contexts/PopUp'
 
@@ -14,16 +13,24 @@ type PropTypes = {
 }
 
 export default function PricePeriodForm({ period, closePopUpOnSuccess }: PropTypes) {
-    return <Form
-        action={period
-            ? configureAction(updatePricePeriodAction, { params: { id: period.id } })
-            : createPricePeriodAction
-        }
-        submitText={period ? 'Oppdater prisperiode' : 'Lag ny prisperiode'}
+    if (!period) {
+        return <CreatePricePeriodSubmitter
+            defaultValues={{ copyPreviousPrices: true }}
+            submitText="Lag ny prisperiode"
+            refreshOnSuccess
+            closePopUpOnSuccess={closePopUpOnSuccess}
+        >
+            <CreatePricePeriodField kind="date" name="validFrom" label="Startdato" />
+            <CreatePricePeriodField kind="boolean" name="copyPreviousPrices" label="Kopier tidligere priser" />
+        </CreatePricePeriodSubmitter>
+    }
+    return <UpdatePricePeriodSubmitter
+        params={{ id: period.id }}
+        defaultValues={{ validFrom: period.validFrom }}
+        submitText="Oppdater prisperiode"
         refreshOnSuccess
         closePopUpOnSuccess={closePopUpOnSuccess}
     >
-        <DateInput name="validFrom" label="Startdato" defaultValue={period?.validFrom} />
-        {!period && <Checkbox name="copyPreviousPrices" label="Kopier tidligere priser" defaultChecked />}
-    </Form>
+        <UpdatePricePeriodField kind="date" name="validFrom" label="Startdato" />
+    </UpdatePricePeriodSubmitter>
 }

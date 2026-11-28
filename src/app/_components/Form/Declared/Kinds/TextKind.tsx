@@ -2,7 +2,7 @@
 import { defineKind } from './kind'
 import Textarea from '@/components/UI/Textarea'
 
-export const textKind = defineKind<string, { className?: string, placeholder?: string }>(
+export const textKind = defineKind<{ writes: string, props: { className?: string, placeholder?: string } }>(
     '',
     ({ label, field, className, placeholder }) => (
         <Textarea

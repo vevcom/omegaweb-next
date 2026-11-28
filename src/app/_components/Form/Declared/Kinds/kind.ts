@@ -2,15 +2,15 @@ import type { ComponentType } from 'react'
 
 /**
  * A kind of field: the value an empty one holds, and the component that binds an input of
- * `_components/UI/` to the form. `Writes` is what it sets in the form, so it fits a name where the
- * schema takes that. The empty value of a text field is `''`. A number field has no number that
- * means empty, so its empty value is `undefined`. `Props` is what it takes beside `kind`, `name`
- * and `label`.
+ * `_components/UI/` to the form. `Spec['writes']` is what it sets in the form, so it fits a name where
+ * the schema takes that. The empty value of a text field is `''`. A number field has no number that
+ * means empty, so its empty value is `undefined`. `Spec['props']` is what it takes beside `kind`,
+ * `name` and `label`.
  */
-export function defineKind<Writes, Props extends object>(
-    emptyValue: Writes | undefined,
-    Component: ComponentType<{ label: string, field: FieldBinding<Writes> } & Props>,
-): Kind<{ writes: Writes, props: Props }> {
+export function defineKind<Spec extends KindSpec>(
+    emptyValue: Spec['writes'] | undefined,
+    Component: ComponentType<{ label: string, field: FieldBinding<Spec['writes']> } & Spec['props']>,
+): Kind<Spec> {
     return { emptyValue, Component }
 }
 
@@ -27,7 +27,15 @@ type FieldBinding<Writes> = {
     leave: () => void,
 }
 
-export type KindSpec = { writes: unknown, props: object }
+/**
+ * What a kind writes and takes. A kind whose writes and props depend on the name, such as a select
+ * whose options are values the schema takes there, declares `value`, the values it can hold, and
+ * reads `this['value']` in an interface. A field narrows it to what the schema takes under its name.
+ */
+export type KindSpec = { value?: unknown, writes: unknown, props: object }
+
+/** The spec of a kind for a name whose schema takes `Value`. */
+export type SpecFor<Spec extends KindSpec, Value> = Spec & { value: Value }
 
 type Kind<Spec extends KindSpec> = {
     emptyValue: unknown,
